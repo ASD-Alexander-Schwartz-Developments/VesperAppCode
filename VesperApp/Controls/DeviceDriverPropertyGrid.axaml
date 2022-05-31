@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
+             x:Class="VesperApp.Controls.DeviceDriverPropertyGrid"
+	         xmlns:vm="using:VesperApp.ViewModels"
+			 xmlns:c="using:Avalonia.Collections">
+	
+	<DockPanel>
+		<DataGrid Items="{Binding PropertiesView}"
+			BorderThickness="0"
+			RowBackground="Transparent"
+			SelectedItem="{Binding SelectedProperty, Mode=TwoWay}"
+			CanUserResizeColumns="true"
+			x:Name="gridEditProperties">
+			<DataGrid.Columns>
+				<DataGridTextColumn Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
+				<DataGridTextColumn Header="Value" Binding="{Binding Value}" />
+				<DataGridTextColumn Header="Description" Binding="{Binding Description}" />
+			</DataGrid.Columns>
+		</DataGrid>
+	</DockPanel>
+</UserControl>

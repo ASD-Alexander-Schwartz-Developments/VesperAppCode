@@ -1,0 +1,388 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:VesperApp.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:m="using:VesperApp.Models"
+		xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
+		xmlns:Controls="clr-namespace:VesperApp.Controls"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="560"
+		Width="800"
+		Height="560"
+		MinWidth="800"
+		MinHeight="560"
+        x:Class="VesperApp.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="VesperApp">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+
+	<Grid ColumnDefinitions="120,*" RowDefinitions="70,150,*,75"  Margin="5" ShowGridLines="false" 
+		  Background="{DynamicResource ThemeBorderMidBrush}">
+		
+		
+		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" 
+					Background="{DynamicResource ThemeControlMidHighBrush}" >
+			
+			<StackPanel Spacing="1" VerticalAlignment="Center" >
+				<Button Margin="10" Command="{Binding ConnectDisconnectDockCommand}" x:Name="ConnectToggle">
+					<StackPanel Orientation="Horizontal">
+						<Image Source="/Assets/connected.png" IsVisible="{Binding IsConnected}" Width="24"
+											  Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" />
+						<Image Source="/Assets/disconnected.png" IsVisible="{Binding !IsConnected}" Width="24"
+											  Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" />
+						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Connect Dock" IsVisible="{Binding !IsConnected}" Classes="DockControls"/>
+						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Disconnect Dock" IsVisible="{Binding IsConnected}" Classes="DockControls"/>
+					</StackPanel>
+				</Button>
+			</StackPanel>
+			
+			<StackPanel x:Name="spDockControls" Spacing="1" VerticalAlignment="Center" IsEnabled="{Binding IsConnected}" Orientation="Horizontal">
+				
+				<Button Margin="10" Command="{Binding EnableDeviceDockCommand}" x:Name="DockEnableDeviceToggle">
+					<StackPanel Orientation="Horizontal">
+						<Ellipse Fill="Red" Width="24" Height="24" IsVisible="{Binding !IsDeviceEnabled}"/>
+						<Ellipse Fill="Green" Width="24" Height="24" IsVisible="{Binding IsDeviceEnabled}"/>
+						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Enable Device" IsVisible="{Binding !IsDeviceEnabled}" Classes="DockControls"/>
+						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Disable Device" IsVisible="{Binding IsDeviceEnabled}" Classes="DockControls"/>
+					</StackPanel>
+				</Button>
+				<Button Margin="10" Command="{Binding ResetDeviceDockCommand}" x:Name="DockRestDeviceButton">
+					<StackPanel Orientation="Horizontal">
+						<TextBlock VerticalAlignment="Center" Padding="2,6,2,6" Text="Rest Device" IsVisible="True" Classes="DockControls"/>
+					</StackPanel>
+				</Button>
+				<Button Margin="10" Command="{Binding Boot0ModeDockCommand}" x:Name="DockBoot0DeviceToggle">
+					<StackPanel Orientation="Horizontal">
+						<Ellipse Fill="Red" Width="24" Height="24" IsVisible="{Binding !IsDeviceBoot0Mode}"/>
+						<Ellipse Fill="Green" Width="24" Height="24" IsVisible="{Binding IsDeviceBoot0Mode}"/>
+						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Device Boot" IsVisible="{Binding !IsDeviceBoot0Mode}" Classes="DockControls"/>
+						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Device Exit Boot" IsVisible="{Binding IsDeviceBoot0Mode}" Classes="DockControls"/>
+					</StackPanel>
+				</Button>
+
+			</StackPanel>
+
+			<Separator />
+			<Separator />
+			<Separator />
+				
+			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Vertical">
+				<TextBlock HorizontalAlignment="Right" x:Name="textDateTime" VerticalAlignment="Center" Padding="10,2,2,4" Text="{Binding TextDateTimeNow}" FontFamily="Roboto" FontSize="14"/>
+				<CheckBox x:Name="chkIsUTC" IsChecked="{Binding IsClockUTC}" Content="Is UTC" Padding="4,2,2,4"/>
+			</StackPanel>
+		</StackPanel>
+		
+		
+			
+		<Border BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="5" BorderThickness="0,0,0,1"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
+			<Grid ColumnDefinitions="*,100" RowDefinitions="*,36" ShowGridLines="false">
+				<!--
+				<DataGrid Name="listLoggerDevices" Items="{Binding LoggerDevices}" AutoGenerateColumns="False" SelectedItem="{Binding SelectedLoggerDevice}">
+					<DataGrid.Columns>
+						<DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="2*" />
+						<DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+						<DataGridTextColumn Header="HWID" Binding="{Binding HwId}" Width="*" />
+						<DataGridTextColumn Header="FWID" Binding="{Binding FwId}" Width="*"  />
+						<DataGridTextColumn Header="Date Time" Binding="{Binding LocalDateTime}" Width="2*" />
+
+						<DataGridTemplateColumn Header="Disk">
+							<DataGridTemplateColumn.CellTemplate>
+								<DataTemplate DataType="m:LoggerDevice">
+									<StackPanel>
+										<TextBlock Text="{Binding DiskSize, StringFormat='{}{0}GB'}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+										<TextBlock Text="{Binding DiskOccupancy, StringFormat='{}{0}%'}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+									</StackPanel>
+								</DataTemplate>
+							</DataGridTemplateColumn.CellTemplate>
+						</DataGridTemplateColumn>
+
+						<DataGridTemplateColumn Header="Battery">
+							<DataGridTemplateColumn.CellTemplate>
+								<DataTemplate DataType="m:LoggerDevice">
+									<TextBlock Text="{Binding BatteryChargePercent, StringFormat='{}{0}%'}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+								</DataTemplate>
+							</DataGridTemplateColumn.CellTemplate>
+						</DataGridTemplateColumn>
+
+					</DataGrid.Columns>
+				</DataGrid>-->
+
+				<ListBox x:Name="listLoggerDevices" Items="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}">
+					<ListBox.Styles>
+						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
+						<Style Selector="ListBoxItem">
+							<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+							<Setter Property="HorizontalAlignment" Value="Stretch"/>
+						</Style>
+					</ListBox.Styles>
+					<ListBox.Template>
+						<ControlTemplate>
+							<DockPanel LastChildFill="True">
+								<Grid DockPanel.Dock="Top" Height="30" ShowGridLines="false">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition MinWidth="100" Width="*"></ColumnDefinition>
+										<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
+										<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
+										<ColumnDefinition MinWidth="30" Width="*"></ColumnDefinition>
+										<ColumnDefinition MinWidth="30" Width="*"></ColumnDefinition>
+										<ColumnDefinition MinWidth="150" Width="*"></ColumnDefinition>
+										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
+										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
+									</Grid.ColumnDefinitions>
+									<Label Grid.Column="0">Serial Number</Label>
+									<Separator/>
+									<Label Grid.Column="1">Name</Label>
+									<Separator/>
+									<Label Grid.Column="2">Nickname</Label>
+									<Separator/>
+									<Label Grid.Column="3">HwId</Label>
+									<Separator/>
+									<Label Grid.Column="4">FwId</Label>
+									<Separator/>
+									<Label Grid.Column="5">Date Time</Label>
+									<Separator/>
+									<Label Grid.Column="6">Size</Label>
+									<Separator/>
+									<Label Grid.Column="7">Batt</Label>
+								</Grid>
+								<ItemsPresenter></ItemsPresenter>
+							</DockPanel>
+						</ControlTemplate>
+					</ListBox.Template>
+					<ListBox.ItemTemplate>
+						<DataTemplate DataType="m:LoggerDevice">
+							<Grid DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" Margin="0,0" ShowGridLines="False">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition MinWidth="100" Width="*"></ColumnDefinition>
+									<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
+									<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
+									<ColumnDefinition MinWidth="30" Width="*"></ColumnDefinition>
+									<ColumnDefinition MinWidth="30" Width="*"></ColumnDefinition>
+									<ColumnDefinition MinWidth="150" Width="*"></ColumnDefinition>
+									<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
+									<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
+								</Grid.ColumnDefinitions>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="0" TextWrapping="Wrap" Padding="1" Text="{Binding SerialNumber}" TextAlignment="Left"/>
+								<Separator/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="1" TextWrapping="Wrap" Padding="1" Text="{Binding Name}" TextAlignment="Left"/>
+								<Separator/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="2" TextWrapping="Wrap" Padding="1" Text="{Binding Nickname}" TextAlignment="Left"/>
+								<Separator/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="3" TextWrapping="Wrap" Padding="1" Text="{Binding HwId}" TextAlignment="Left"/>
+								<Separator/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="4" TextWrapping="Wrap" Padding="1" Text="{Binding FwId}" TextAlignment="Left"/>
+								<Separator/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="5" TextWrapping="Wrap" Padding="1" Text="{Binding LocalDateTime}" TextAlignment="Left"/>
+								<Separator/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="6" TextWrapping="Wrap" Padding="1" Text="{Binding DiskSize}" TextAlignment="Left"/>
+								<Separator/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="7" TextWrapping="Wrap" Padding="1" Text="{Binding BatteryChargePercent}" TextAlignment="Left"/>
+							</Grid>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+
+
+				<StackPanel IsEnabled="{Binding IsConnected}" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Spacing="5" Margin="10,1,1,1" HorizontalAlignment="Center">
+
+					<Button Margin="1" Height="30" Command="{Binding ConnectDisconnectDeviceCommand}" x:Name="DeviceConnectButton">
+						<StackPanel Orientation="Horizontal">
+							<Image Source="/Assets/connected.png" IsVisible="{Binding IsDeviceConnected}" Width="24"
+												  Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" />
+							<Image Source="/Assets/disconnected.png" IsVisible="{Binding !IsDeviceConnected}" Width="24"
+												  Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" />
+							<TextBlock VerticalAlignment="Center" Padding="6,0,0,0" Text="Connect Device" IsVisible="{Binding !IsDeviceConnected}" Classes="DeviceControls"/>
+							<TextBlock VerticalAlignment="Center" Padding="6,0,0,0" Text="Disconnect Device" IsVisible="{Binding IsDeviceConnected}" Classes="DeviceControls"/>
+						</StackPanel>
+					</Button>
+
+					<Button Margin="1" Height="30" Command="{Binding SleepDeviceCommand}" x:Name="SleepDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock VerticalAlignment="Center" Text="Sleep" IsVisible="True" Classes="DeviceControls"/>
+						</StackPanel>
+					</Button>
+
+					<Button Margin="1" Height="30" Command="{Binding ArmSleepDeviceCommand}" x:Name="ArmSleepDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock VerticalAlignment="Center" Text="Arm Sleep" IsVisible="True" Classes="DeviceControls"/>
+						</StackPanel>
+					</Button>
+
+					<Button Margin="1" Height="30" Command="{Binding FormatDeviceCommand}" x:Name="FormatDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock VerticalAlignment="Center" Text="Format" IsVisible="True" Classes="DeviceControls"/>
+						</StackPanel>
+					</Button>
+
+					<Button Margin="1" Height="30" Command="{Binding SetDateTimeDeviceCommand}" x:Name="SetDateTimeDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock VerticalAlignment="Center" Text="Set Time" IsVisible="True" Classes="DeviceControls"/>
+						</StackPanel>
+					</Button>
+
+					<Button Margin="1" Height="30" Command="{Binding UploadDeviceConfig}" x:Name="UploadDeviceConfigButton" IsEnabled="{Binding IsDeviceConnected}">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock VerticalAlignment="Center" Text="Upload" IsVisible="True" Classes="DeviceControls"/>
+						</StackPanel>
+					</Button>
+
+					<Button Margin="1" Height="30" Command="{Binding DownloadDeviceData}" x:Name="DownloadDeviceDataButton" IsEnabled="{Binding IsDeviceConnected}">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock VerticalAlignment="Center" Text="Download" IsVisible="True" Classes="DeviceControls"/>
+						</StackPanel>
+					</Button>
+
+				</StackPanel>
+
+				<StackPanel Spacing="1" Orientation="Horizontal" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2">
+					<ListBox Items="{Binding DevicesFilters}" SelectionMode="Multiple,Toggle" Width="120" Selection="{Binding DevicesFiltersSelection}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<Border Background="Wheat" CornerRadius="3" Padding="3">
+									<TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+								</Border>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+				</StackPanel>
+
+
+			</Grid>
+		</Border>
+					
+		
+		
+		
+		
+		<!--
+		<Border BorderBrush="{DynamicResource ThemeForegroundLowBrush}" CornerRadius="3" Grid.Column="0" Grid.Row="2" HorizontalAlignment="Stretch" Padding="0,5">
+			<StackPanel Spacing="0,5" Orientation="Vertical" Background="{DynamicResource ThemeControlDarkenBrush}">
+				
+				<StackPanel Spacing="5" HorizontalAlignment="Center">
+					<Button Padding="10" x:Name="btnRecordings">
+						<TextBlock Text="{Binding ConnectionStatus}"/>
+					</Button>
+				</StackPanel>
+				
+				<StackPanel Spacing="5" HorizontalAlignment="Center">
+					<Button Padding="10" x:Name="btnConfigs">
+						<TextBlock Text="{Binding ConnectionStatus}"/>
+					</Button>
+				</StackPanel>
+
+				<StackPanel Spacing="5" HorizontalAlignment="Center">
+					<Button Padding="10" x:Name="btnProperties">
+						<TextBlock Text="{Binding ConnectionStatus}"/>
+					</Button>
+				</StackPanel>
+
+				<StackPanel Spacing="5" HorizontalAlignment="Center">
+					<Button Padding="10" x:Name="btnHelp">
+						<TextBlock Text="{Binding ConnectionStatus}"/>
+					</Button>
+				</StackPanel>
+
+
+			</StackPanel>
+		</Border>
+		-->
+		<Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="3" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2" HorizontalAlignment="Stretch" Padding="1,5,1,1">
+			<TabControl TabStripPlacement="Left" VerticalContentAlignment="Stretch">
+				<TabItem>
+					<TabItem.Header>
+						<TextBlock Classes="tbTabHeader" Text="Recordings" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+					</TabItem.Header>
+					<StackPanel>
+						<TextBlock Text="Hello1"/>
+					</StackPanel>				
+				</TabItem>
+				<TabItem>
+					<TabItem.Header>
+						<TextBlock Classes="tbTabHeader" Text="Config" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+					</TabItem.Header>
+					<Grid ColumnDefinitions="*" RowDefinitions="36,*" ShowGridLines="false">
+						<StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Center" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+							<Button Margin="1" Height="30" Command="{Binding NewConfigCommand}" x:Name="NewConfigButton">
+								<StackPanel Orientation="Horizontal">
+									<TextBlock VerticalAlignment="Center" Text="New"/>
+								</StackPanel>
+							</Button>
+							<Button Margin="1" Height="30" Command="{Binding LoadConfigCommand}" x:Name="LoadConfigButton">
+								<StackPanel Orientation="Horizontal">
+									<TextBlock VerticalAlignment="Center" Text="New"/>
+								</StackPanel>
+							</Button>
+							<Button Margin="1" Height="30" Command="{Binding SaveConfigCommand}" x:Name="SaveConfigButton">
+								<StackPanel Orientation="Horizontal">
+									<TextBlock VerticalAlignment="Center" Text="New"/>
+								</StackPanel>
+							</Button>
+							<Separator/>
+							<Label Content="Select Device Type" VerticalAlignment="Center"/>
+							<ComboBox x:Name="comboDeviceType" 
+								Margin="1" 
+								VerticalAlignment="Center"
+								Width="120"
+								Items="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}"
+								SelectedItem="{Binding SelectedDeviceType}"/>
+						</StackPanel>
+
+						<ScrollViewer Grid.Column="0" Grid.Row="1" BorderThickness="1" BorderBrush="Cornsilk">
+							<StackPanel  Orientation="Vertical"	Margin="0,16,0,0" HorizontalAlignment="Stretch">
+								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}"/>
+								<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+									<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="1,10,1,1"/>
+									<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="1,10,1,1"/>
+								</StackPanel>
+							</StackPanel>
+						</ScrollViewer>
+					</Grid>
+				</TabItem>
+				<TabItem>
+					<TabItem.Header>
+						<TextBlock Classes="tbTabHeader" Text="Help" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+					</TabItem.Header>
+
+					<StackPanel>
+						<TextBlock Text="Hello3"/>
+					</StackPanel>
+				</TabItem>
+				<TabItem>
+					<TabItem.Header>
+						<TextBlock Classes="tbTabHeader" Text="Properties" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+					</TabItem.Header>
+
+					<StackPanel>
+						<TextBlock Text="Hello4"/>
+					</StackPanel>
+				</TabItem>
+			</TabControl>
+		</Border>
+		<Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="5" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Padding="0,1">
+			<Grid Margin="1">
+				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{DynamicResource ThemeControlHighlightHighColor}" x:Name="textLogWindow" Text="{Binding ConnectionStatus}"/>
+			</Grid>
+		</Border>		
+	</Grid>
+	
+
+		
+		
+
+		<!--
+		<Grid>
+			<si:CalendarControl>
+				<si:CalendarControl.ItemTemplate>
+					<DataTemplate>
+						<si:AppointmentControl Begin="{Binding Begin}" End="{Binding End}" Text="{Binding Text}" />
+					</DataTemplate>
+				</si:CalendarControl.ItemTemplate>
+			</si:CalendarControl>
+		</Grid>-->
+
+	
+</Window>

@@ -1,0 +1,18 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VesperApp.Controls.LargePopout"
+             ToolTip.Tip="Show Pattern Editor"
+             DetachedFromVisualTree="Unloaded">
+
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="Brush" />
+  </UserControl.Resources>
+
+  <Canvas Width="30" Height="30" Background="Transparent" x:Name="Icon"
+          PointerEnter="MouseEnter" PointerLeave="MouseLeave" PointerPressed="MouseDown" PointerReleased="MouseUp">
+    <Path Stroke="{DynamicResource Brush}" StrokeThickness="4"
+          Data="M 2,15 L 2,2 28,2 28,28 15,28 M 2,28 L 16,14" />
+    <Path Fill="{DynamicResource Brush}"
+          Data="M 8,8 L 22,8 22,22 Z" />
+  </Canvas>
+</UserControl>

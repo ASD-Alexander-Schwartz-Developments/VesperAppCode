@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:VesperApp.ViewModels"
+		xmlns:m="using:VesperApp.Models"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
+        x:Class="VesperApp.Views.DockPickWindow"
+        Title="Choose Docking Station"
+		Topmost="True"
+		CanResize="False"
+		Width="400"
+		Height="400"
+		Closing="Unloading_DockPickWindow"
+		>
+
+    <Design.DataContext>
+        <vm:DockPickWindowViewModel/>
+    </Design.DataContext>
+
+	<DockPanel>
+		<StackPanel DockPanel.Dock="Top" Orientation="Vertical">
+			<ProgressBar Height="15" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+			<ListBox Height="350" x:Name="listDocks" Items="{Binding Docks}" SelectionMode="Single" Selection="{Binding SelectedDock}">
+				<ListBox.Styles>
+					<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
+					<Style Selector="ListBoxItem">
+						<Setter Property="Width" Value="200"/>
+						<Setter Property="HorizontalAlignment" Value="Center"/>
+					</Style>
+				</ListBox.Styles>
+			
+				<ListBox.ItemTemplate>
+					<DataTemplate DataType="m:DockDeviceInfo">
+					
+						<Border Background="AliceBlue" CornerRadius="4" Padding="4">
+							<StackPanel HorizontalAlignment="Stretch">
+								<TextBlock Padding="3" Text="{Binding Id, StringFormat='S/N: {0}'}"/>
+								<TextBlock Padding="3" Text="{Binding Text, StringFormat='Name: {0}'}"/>
+								<TextBlock Padding="3" Text="{Binding Description, StringFormat='Description: {0}'}"/>
+							</StackPanel>
+						</Border>
+					
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
+		</StackPanel>
+
+		<StackPanel DockPanel.Dock="Bottom">
+			<Button VerticalContentAlignment="Center" HorizontalContentAlignment="Center" HorizontalAlignment="Stretch" Height="50" 
+					x:Name="btnChooseClose" Command="{Binding CloseAndConnect}" Content="Select Dock and click here"/>
+		</StackPanel>
+	</DockPanel>
+
+</Window>

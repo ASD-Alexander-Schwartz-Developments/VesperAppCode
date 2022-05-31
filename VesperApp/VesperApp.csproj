@@ -1,0 +1,79 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <!--Avalonia doesen't support TrimMode=link currently,but we are working on that https://github.com/AvaloniaUI/Avalonia/issues/6892 -->
+    <TrimMode>copyused</TrimMode>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+    <AvaloniaXaml Remove="Controls\ApolloContextMenu.axaml" />
+    <AvaloniaXaml Remove="Themes\FluentCalendarControl.axaml" />
+    <None Remove=".gitignore" />
+    <None Remove="Assets\ASD-LOGO-01.png" />
+    <None Remove="Assets\connected.png" />
+    <None Remove="Assets\disconnected.png" />
+    <None Remove="Assets\FluentUiIcons_Filled.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Themes\FluentCalendarControl.axaml">
+      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
+    </AvaloniaResource>
+  </ItemGroup>
+  <ItemGroup>
+    <!--This helps with theme dll-s trimming.
+	If you will publish your application in self-contained mode with p:PublishTrimmed=true and it will use Fluent theme Default theme will be trimmed from the output and vice versa.
+	https://github.com/AvaloniaUI/Avalonia/issues/5593 -->
+    <TrimmableAssembly Include="Avalonia.Themes.Fluent" />
+    <TrimmableAssembly Include="Avalonia.Themes.Default" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="0.10.14" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.10.14" />
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="0.10.14" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="0.10.14" />
+    <PackageReference Include="CalendarControl.Avalonia" Version="0.10.14" />
+    <PackageReference Include="FTD2XX.Net" Version="1.2.1" />
+    <PackageReference Include="MessageBox.Avalonia" Version="2.0.0" />
+    <PackageReference Include="XamlNameReferenceGenerator" Version="1.3.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ASDLibUSBWrapper\ASDLibUSBWrapper.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Update="Assets\FluentUiIcons_Filled.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </AvaloniaResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Controls\ConnectToggle.axaml.cs">
+      <DependentUpon>ConnectToggle.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\DeviceDriverPropertyGrid.axaml.cs">
+      <DependentUpon>DeviceDriverPropertyGrid.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\DockPickWindow.axaml.cs">
+      <DependentUpon>DockPickWindow.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Views\LaunchpadInfo.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </None>
+    <None Update="Views\LaunchpadWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </None>
+    <None Update="Views\MessageWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </None>
+    <None Update="Views\PatternWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </None>
+    <None Update="Views\PreferencesWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </None>
+  </ItemGroup>
+</Project>

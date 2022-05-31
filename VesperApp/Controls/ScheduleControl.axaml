@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	         xmlns:vm="using:VesperApp.ViewModels"
+			 xmlns:m="using:VesperApp.Models"
+			 xmlns:c="using:VesperApp.Controls"
+             mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="280"
+             x:Class="VesperApp.Controls.ScheduleControl">
+
+	
+	<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+	<DockPanel>
+		<StackPanel Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
+			<Label Margin="20,10" Content="Select Schedule Type" VerticalAlignment="Center"/>
+			<ComboBox x:Name="comboScheduleType"
+					  SelectedIndex="0" Margin="1"
+					  VerticalAlignment="Center"
+					  Width="120"
+					  Items="{Binding Source={m:EnumBindingSource {x:Type m:ScheduleTypes}}}"
+					  SelectionChanged="OnSelectionChanged_ScheduleType"/>
+		</StackPanel>
+
+		
+		<StackPanel Margin="1,10,30,0" Orientation="Vertical" DockPanel.Dock="Right">
+			<StackPanel Orientation="Vertical" VerticalAlignment="Center">
+				<DatePicker SelectedDate="{Binding SelectedDate}" FontSize="9" Header="Activation Trigger Date" x:Name="dpDate" VerticalAlignment="Center" Padding="0,0,0,14" />
+				<TimePicker SelectedTime="{Binding SelectedTime}" FontSize="9" Header="Activation Trigger Time" x:Name="tpTime" VerticalAlignment="Center" Padding="0,0,0,14" ClockIdentifier="24HourClock"/>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+				<Label Content="Select Configuration" VerticalAlignment="Center"/>
+				<ComboBox x:Name="comboConfig"
+						  SelectedIndex="0" Margin="1"
+						  VerticalAlignment="Center"
+						  Width="100"
+						  Items="{Binding Source={m:EnumBindingSource {x:Type m:WorkingConfiguration}}}"
+						  SelectionChanged="OnSelectionChanged_Config"/>
+			</StackPanel>
+			<StackPanel Margin="1,28,10,10" Spacing="5" Orientation="Horizontal" HorizontalAlignment="Center">
+				<Button x:Name="btnApply" HorizontalAlignment="Center" Margin="0" Command="{Binding CommandApplyButton}">
+					<DrawingPresenter Width="26" Height="26" Drawing="{DynamicResource FluentIconsFilled.text_change_accept_filled}" />
+				</Button>
+				<Button x:Name="btnCancel" HorizontalAlignment="Center" Margin="0" Command="{Binding CommandRejectButton}">
+					<DrawingPresenter Width="26" Height="26" Drawing="{DynamicResource FluentIconsFilled.text_change_reject_filled}" />
+				</Button>
+			</StackPanel>
+		</StackPanel>
+
+		<StackPanel Margin="1,10,30,0" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+			<Label Content="Operating Schedule Alarms"/>
+			<Border BorderBrush="AntiqueWhite" BorderThickness="1">
+			<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+			<ListBox Items="{Binding ScheduleEventsList}" 
+					 x:Name="listScheduleEventsList" 
+					 Margin="1,1,1,1" 
+					 SelectionMode="Single" 
+					 Selection="{Binding SelectedScheduleEvent}"
+					 MinWidth="260"
+					 MinHeight="160"
+					 Height="160"
+					 MaxHeight="160"
+					 HorizontalAlignment="Stretch"
+					 VerticalAlignment="Stretch"
+					 Background="AliceBlue">
+				<ListBox.ItemTemplate>
+					<DataTemplate DataType="m:ConfigScheduleJSONItem">
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*" />
+							</Grid.ColumnDefinitions>
+							<StackPanel Margin="1,1,1,1" Orientation="Horizontal" Spacing="3">
+								<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy hh:mm:ss}'}" FontSize="12" />
+								<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontSize="12" />
+							</StackPanel>
+						</Grid>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+				<ListBox.Styles>
+					<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
+					<Style Selector="ListBoxItem">
+						<!--
+						<Setter Property="Width" Value="200"/>
+						<Setter Property="Height" Value="30"/>-->
+						<Setter Property="HorizontalAlignment" Value="Stretch"/>
+					</Style>
+				</ListBox.Styles>
+			</ListBox>
+			</ScrollViewer>
+			</Border>
+			<StackPanel Margin="5" Spacing="5" Orientation="Horizontal" HorizontalAlignment="Left">
+				<Button x:Name="btnUp" Command="{Binding CommandUpButton}" >
+					<DrawingPresenter Width="26" Height="26" Drawing="{DynamicResource FluentIconsFilled.arrow_up_filled}" />
+				</Button>
+				<Button x:Name="btnAdd" Command="{Binding CommandAddButton}">
+					<DrawingPresenter Width="26" Height="26" Drawing="{DynamicResource FluentIconsFilled.calendar_add_filled}" />
+				</Button>
+				<Button x:Name="btnDelete" Command="{Binding CommandDeleteButton}" >
+					<DrawingPresenter Width="26" Height="26" Drawing="{DynamicResource FluentIconsFilled.calendar_empty_filled}" />
+				</Button>
+				<Button x:Name="btnDown" Command="{Binding CommandDownButton}">
+					<DrawingPresenter Width="26" Height="26" Drawing="{DynamicResource FluentIconsFilled.arrow_down_filled}" />
+				</Button>
+			</StackPanel>
+		</StackPanel>
+	</DockPanel>
+	</ScrollViewer>
+</UserControl>

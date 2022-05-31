@@ -1,0 +1,18 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VesperApp.Controls.MacroRectangle">
+
+  <UserControl.Styles>
+    <Style Selector="Grid > TextBlock">
+      <Setter Property="Opacity" Value="0"/>
+    </Style>
+
+    <Style Selector="Grid:pointerover > TextBlock">
+      <Setter Property="Opacity" Value="1"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid Background="Transparent" Margin="1" Cursor="Hand" Width="15" Height="15" x:Name="Rect">
+    <TextBlock FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="false" x:Name="Text" />
+  </Grid>
+</UserControl>

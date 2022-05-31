@@ -1,0 +1,111 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
+    xmlns:sic="clr-namespace:SatialInterfaces.Converters;assembly=CalendarControl"
+    xmlns:s="clr-namespace:System;assembly=mscorlib"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <sic:XOffsetThresholdConverter x:Key="XOffsetThresholdConverter" />
+        <s:Double x:Key="XOffsetThreshold">8.0</s:Double>
+    </Styles.Resources>
+    <Style Selector="si|AppointmentControl">
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Child">
+            <Template>
+                <Grid>
+                    <Border BorderThickness="3" CornerRadius="{Binding $parent[si:AppointmentControl].CornerRadius}">
+                        <Border.Background>
+                            <SolidColorBrush Color="{DynamicResource SystemAccentColor}" />
+                        </Border.Background>
+                        <Border.BorderBrush>
+                            <SolidColorBrush Color="{DynamicResource SystemAccentColor}" />
+                        </Border.BorderBrush>
+                    </Border>
+                    <Border BorderThickness="3" CornerRadius="{Binding $parent[si:AppointmentControl].CornerRadius}">
+                        <Border.Background>
+                            <SolidColorBrush Color="{Binding $parent[si:AppointmentControl].Color}" />
+                        </Border.Background>
+                        <Border.BorderBrush>
+                            <SolidColorBrush Color="{Binding $parent[si:AppointmentControl].Color}" />
+                        </Border.BorderBrush>
+                    </Border>
+                    <Border BorderThickness="3" Classes="selectedAppointment" CornerRadius="{Binding $parent[si:AppointmentControl].CornerRadius}" Name="SelectionBorder" />
+                    <StackPanel ClipToBounds="True" MaxHeight="{Binding $parent[Grid].Bounds.Height}">
+                        <TextBlock FontWeight="Bold" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" Margin="8,8,8,0" Text="{Binding $parent[si:AppointmentControl].Begin, StringFormat={}{0:t}}" TextWrapping="Wrap" />
+                        <TextBlock Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" Margin="8,0,8,0" Text="{Binding $parent[si:AppointmentControl].Text}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
+            </Template>
+        </Setter>
+        <Setter Property="Margin" Value="0,0,2,0" />
+    </Style>
+    <Style Selector="si|AppointmentControl:selected Border.selectedAppointment">
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrongStrokeColorDefaultBrush}" />
+    </Style>
+    <Style Selector="si|CalendarControl">
+        <Setter Property="AppointmentGroupMargin" Value="0,0,6,0" />
+        <Setter Property="BeginOfTheDay" Value="06:00" />
+        <Setter Property="EndOfTheDay" Value="18:00" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Padding="{TemplateBinding Padding}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="si|CalendarControl Button">
+        <Setter Property="Background">
+            <SolidColorBrush Color="Transparent" />
+        </Setter>
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="si|CalendarControl Button#PreviousDayButton">
+        <Setter Property="Content">
+            <Template>
+                <Viewbox Stretch="Uniform" Height="12" Width="12">
+                    <Canvas Width="16" Height="16">
+                        <Path Fill="{Binding $parent[Button].Foreground}" Data="M 16,0 V 16 L 0,8 16,0" />
+                    </Canvas>
+                </Viewbox>
+            </Template>
+        </Setter>
+    </Style>
+    <Style Selector="si|CalendarControl Button#NextDayButton">
+        <Setter Property="Content">
+            <Template>
+                <Viewbox Stretch="Uniform" Height="12" Width="12">
+                    <Canvas Width="16" Height="16">
+                        <Path Fill="{Binding $parent[Button].Foreground}" Data="M 0,0 V 16 L 16,8 0,0" />
+                    </Canvas>
+                </Viewbox>
+            </Template>
+        </Setter>
+    </Style>
+    <Style Selector="si|CalendarControl ScrollViewer#DayScrollViewer">
+        <Setter Property="Height" Value="20" />
+    </Style>
+    <Style Selector="si|CalendarControl ScrollViewer#MainScrollViewer">
+        <Setter Property="Offset" Value="{Binding Path=$self.Offset, Converter={StaticResource XOffsetThresholdConverter}, ConverterParameter={StaticResource XOffsetThreshold}}" />
+    </Style>
+    <Style Selector="si|CalendarControl TextBlock">
+        <Setter Property="Margin" Value="4,0,4,0" />
+    </Style>
+    <Style Selector="si|HourCell">
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefault}" />
+        <Setter Property="BorderThickness" Value="0.5" />
+        <Setter Property="Child">
+            <Template>
+                <Grid RowDefinitions="1*,1*,1*,1*">
+                    <Border Grid.Row="0" BorderBrush="{DynamicResource SubtleFillColorTertiaryBrush}" BorderThickness="0.5" />
+                    <Border Grid.Row="1" BorderBrush="{DynamicResource SubtleFillColorTertiaryBrush}" BorderThickness="0.5" />
+                    <Border Grid.Row="2" BorderBrush="{DynamicResource SubtleFillColorTertiaryBrush}" BorderThickness="0.5" />
+                    <Border Grid.Row="3" BorderBrush="{DynamicResource SubtleFillColorTertiaryBrush}" BorderThickness="0.5" />
+                </Grid>
+            </Template>
+        </Setter>
+    </Style>
+    <Style Selector="si|WeekendControl">
+        <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefault}" />
+    </Style>
+</Styles>

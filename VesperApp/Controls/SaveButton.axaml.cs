@@ -1,0 +1,59 @@
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
+using Avalonia.Input;
+using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.VisualTree;
+using System.Diagnostics;
+
+namespace VesperApp.Controls {
+    public partial class SaveButton: IconButton {
+        void InitializeComponent() {
+            AvaloniaXamlLoader.Load(this);
+
+            path = this.Get<Path>("Path");
+        }
+
+        void Update_Saved(bool saved) => Enabled = !saved;
+
+        Path path;
+
+        protected override IBrush Fill {
+            get => path.Fill;
+            set => path.Fill = value;
+        }
+
+
+        public void ContextMenu_Action(string action)
+        {
+            Debug.WriteLine(action);
+        }
+
+        public SaveButton() {
+            InitializeComponent();
+
+            AllowRightClick = true;
+            base.MouseLeave(this, null);
+
+            //Program.Project.Undo.SavedChanged += Update_Saved;
+            //Update_Saved(Program.Project.Undo.Saved);
+        }
+
+        protected override void Unloaded(object sender, VisualTreeAttachmentEventArgs e) {
+            base.Unloaded(sender, e);
+            
+            //if (Program.Project.Undo != null)
+                //Program.Project.Undo.SavedChanged -= Update_Saved;
+        }
+
+        //async void ContextMenu_Action(string action) => await Program.Project.Save((Window)this.GetVisualRoot(), action == "Save as...");
+
+        protected override async void Click(PointerReleasedEventArgs e) {
+            PointerUpdateKind MouseButton = e.GetCurrentPoint(this).Properties.PointerUpdateKind;
+            
+            //if (MouseButton == PointerUpdateKind.LeftButtonReleased) await Program.Project.Save((Window)this.GetVisualRoot());
+            //else if (MouseButton == PointerUpdateKind.RightButtonReleased) ((VesperContextMenu)this.Resources["SaveContextMenu"]).Open(this);
+        }
+    }
+}

@@ -1,0 +1,18 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VesperApp.Controls.RedoButton"
+             ToolTip.Tip="Redo"
+             DetachedFromVisualTree="Unloaded">
+
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="Brush" />
+  </UserControl.Resources>
+
+  <Canvas HorizontalAlignment="Center" Width="16" Height="16" Background="Transparent" x:Name="Icon"
+          PointerEnter="MouseEnter" PointerLeave="MouseLeave" PointerPressed="MouseDown" PointerReleased="MouseUp">
+    <Path Stroke="{DynamicResource Brush}" StrokeThickness="2"
+          Data="M 12.95,3.05 A 7,7 270 1 0 12.95,12.95" />
+    <Path Fill="{DynamicResource Brush}"
+          Data="M 16,0 L 10,6 16,6 Z" />
+  </Canvas>
+</UserControl>

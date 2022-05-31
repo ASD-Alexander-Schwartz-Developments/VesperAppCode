@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
+ 	         xmlns:vm="using:VesperApp.ViewModels"
+			 xmlns:m="using:VesperApp.Models"
+			 xmlns:c="using:VesperApp.Controls"
+             x:Class="VesperApp.Controls.SelectDeviceDrivers">
+	<DockPanel>
+		<StackPanel Orientation="Horizontal" Spacing="5">
+			<Border BorderBrush="Black" BorderThickness="1">
+				<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+					<ListBox Items="{Binding DeviceDriversCollection}"
+							 x:Name="listSupportedDeviceDriversList"
+							 Margin="1,1,1,1"
+							 SelectionMode="Single"
+							 Selection="{Binding SelectedDriverModel}"
+							 MinWidth="450"
+							 Width="400"
+							 MinHeight="100"
+							 Height="200"
+							 MaxHeight="200"
+							 HorizontalAlignment="Stretch"
+							 VerticalAlignment="Stretch"
+							 Background="AliceBlue">
+						<ListBox.ItemTemplate>
+							<DataTemplate DataType="m:ConfigurationDeviceDriver">
+								<Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*" />
+										<ColumnDefinition Width="*" />
+									</Grid.ColumnDefinitions>
+									<CheckBox Grid.Column="0" 
+											  Margin="4"
+											  IsChecked="{Binding IsChecked}"
+											  Content="{Binding Name}"/>
+									<TextBox Grid.Column="1"
+										     Margin="1"
+											 Text="{Binding Description}"/>
+								</Grid>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+						<ListBox.Styles>
+							<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
+							<Style Selector="ListBoxItem">
+								<!--
+						<Setter Property="Width" Value="200"/>
+						<Setter Property="Height" Value="30"/>-->
+								<Setter Property="HorizontalAlignment" Value="Stretch"/>
+							</Style>
+						</ListBox.Styles>
+					</ListBox>
+				</ScrollViewer>				
+			</Border>
+		</StackPanel>
+	</DockPanel>
+</UserControl>
