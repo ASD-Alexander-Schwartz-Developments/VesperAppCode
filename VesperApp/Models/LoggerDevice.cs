@@ -616,6 +616,25 @@ namespace VesperApp.Models
 
                         Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);
 
+
+                        for (int si = 0; si < bytes.Length; si += 4)
+                        {
+                            byte l0 = bytes[si];
+                            byte l1 = bytes[si + 1];
+                            byte l2 = bytes[si + 2];
+                            byte l3 = bytes[si + 3];
+
+                            UInt32 temp = (UInt32)(((UInt32)(l0) + (UInt32)(l1 << 8) + (UInt32)(l2 << 16) + (UInt32)(l3 << 24)));
+
+                            temp = VesperApp.Services.ByteHelper.SwapWords(temp);
+
+                            bytes[si] = ((byte)(temp & 0xFF));
+                            bytes[si + 1] = ((byte)(temp >> 8));
+                            bytes[si + 2] = ((byte)(temp >> 16));
+                            bytes[si + 3] = ((byte)(temp >> 24));
+                        }
+
+
                         using (System.IO.FileStream file = new FileStream(filename, FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite))
                         {
                             if (file.Length < (snapPagesInSnap * 4096))
