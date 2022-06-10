@@ -211,7 +211,14 @@ namespace VesperApp.ViewModels
             DownloadDeviceData = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (SelectedLoggerDevice != null)
-                    await SelectedLoggerDevice.DownloadPages();
+                {
+                    OpenFolderDialog openFolderDialog = new OpenFolderDialog();
+                    openFolderDialog.Title = "Select output folder for downloaded data";
+
+                    string ? path = await openFolderDialog.ShowAsync(MainWindowContext);
+
+                    await SelectedLoggerDevice.DownloadPages(path);
+                }
             });
 
 
@@ -223,7 +230,7 @@ namespace VesperApp.ViewModels
 
                     openFileDialog.Title = "Choose Configuration File to Upload";
                     openFileDialog.AllowMultiple = false;
-                    string []files = await openFileDialog.ShowAsync(MainWindowContext);
+                    string [] ? files = await openFileDialog.ShowAsync(MainWindowContext);
 
                     if (files != null && files[0] != null)
                     {

@@ -14,17 +14,17 @@ namespace VesperApp.ViewModels
         public abstract object Key { get; }
         public abstract string Name { get; }
         public abstract string Group { get; }
-        public abstract string Type { get; }
-        public abstract string Value { get; set; }
+        public abstract Type ? PropType { get; }
+        public abstract object ? Value { get; set; }
 
         public abstract string Description { get; }
         public abstract void Update();
 
         protected static string ConvertToString(object ? value)
         {
-            if (value is null)
+            if (value == null)
             {
-                return "(null)";
+                return String.Empty;
             }
 
             var converter = TypeDescriptor.GetConverter(value);

@@ -195,7 +195,7 @@ namespace VesperApp.Models
 
 
 
-        public bool IsConnected => (this.USBDevice == null) ? false : this.USBDevice.IsOpen;
+        public bool IsConnected => (this.USBDevice == null) ? false : this.USBDevice.IsOpen == true;
 
         public async Task<bool> Disconnect()
         {
@@ -244,7 +244,16 @@ namespace VesperApp.Models
             data2send.CopyTo(buffer, 4);
             //Write three bytes
             //Console.WriteLine("Writing");
-            _usbEndpointWriter?.Write(buffer, 500, out wr);
+            LibUsbError ?err = _usbEndpointWriter?.Write(buffer, 500, out wr);
+
+            if(err != null && err != LibUsbError.Success)
+            {
+                if(err == LibUsbError.Io || err == LibUsbError.NoDevice || err == LibUsbError.NotFound)
+                {
+                    this.Dispose();
+                    return -999;
+                }
+            }
 
            // Console.WriteLine("Written " + wr.ToString() + " bytes");
 
@@ -254,7 +263,16 @@ namespace VesperApp.Models
 
             //Read some data
             DateTime dtstart = DateTime.Now;
-            _usbEndpointReader?.Read(readBuffer, 500, out rd);
+            err = _usbEndpointReader?.Read(readBuffer, 500, out rd);
+            if (err != null && err != LibUsbError.Success)
+            {
+                if (err == LibUsbError.Io || err == LibUsbError.NoDevice || err == LibUsbError.NotFound)
+                {
+                    this.Dispose();
+                    return -999;
+                }
+            }
+
             TimeSpan ts = DateTime.Now - dtstart;
 
             //Debug.Write(" Done - " + rd.ToString() + "[B]" + ts.TotalMilliseconds.ToString() + "[ms] ");
@@ -437,7 +455,7 @@ namespace VesperApp.Models
         }
 
 
-        public async Task<bool> DownloadPages()
+        public async Task<bool> DownloadPages(string ? path = "")
         {
             bool r = false;
 
@@ -469,7 +487,7 @@ namespace VesperApp.Models
                         if (getpageresult == 0)
                         {
                             Debug.WriteLine(" - OK");
-                            Task.Factory.StartNew( () => { ProcessOnePage(dpageresponse); });
+                            Task.Factory.StartNew( () => { ProcessOnePage(dpageresponse, path); });
                         }
                         else if(getpageresult == -200)
                         {
@@ -515,7 +533,7 @@ namespace VesperApp.Models
         private readonly int reference_year = 2020;
         private readonly byte NAND_FS_SNAP_PAGE_TYPE = 0x21;
 
-        private bool ProcessOnePage(byte [] data)
+        private bool ProcessOnePage(byte [] data, string ? path)
         {
             if (data.Length > 1)
             {
@@ -600,7 +618,12 @@ namespace VesperApp.Models
                         snapIndex < snapPagesInSnap)
                     {
                         //string outfolder = this.textOutputFolder.Text;
-                        string outfolder = Directory.GetCurrentDirectory();
+                        string outfolder;
+
+                        if (path != null && path.Length > 0) outfolder = path;
+                        else outfolder = Directory.GetCurrentDirectory();
+
+
                         if (outfolder.EndsWith("\\") == false)
                             outfolder += "\\";
 

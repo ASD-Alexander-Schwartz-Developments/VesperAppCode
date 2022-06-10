@@ -13,12 +13,12 @@ namespace VesperApp.Models
     {
         public ConfigACLYSDriver() : base("ACLYS", "Snap GPS receiver") // GPS
         {
-            this.snap_size = 256;
+            SnapSize = AclysSnapLength.SNAP256ms;
             this.MemoryBufferSize = 0;
             this.FileSize = 0;
         }
 
-        private UInt32 snap_size;
+        //private AclysSnapLength snap_size;
 
 
         [JsonPropertyName("name"), JsonPropertyOrder(0)]
@@ -31,16 +31,16 @@ namespace VesperApp.Models
 
 
 
-        [TypeConverter(typeof(AclysSNAPLengthConverter)),
-        CategoryAttribute("ACLYS specific Settings"),
+
+        [CategoryAttribute("ACLYS specific Settings"),
         DisplayName("Snap Size"),
         DescriptionAttribute("Size (in ms) of a single GPS snap. The longer the snap - the better the positioning in expense of power consumption")]
         [JsonPropertyName("snapSize")]
         [Browsable(true)]
-        public UInt32 SnapSize
+        public AclysSnapLength SnapSize
         {
-            get { return this.snap_size; }
-            set { this.snap_size = value; }
+            get { return (AclysSnapLength)base.RawData1; }
+            set { base.RawData1 = (UInt32)value; }
         }
 
         
@@ -48,24 +48,13 @@ namespace VesperApp.Models
     }
 
 
-    public class AclysSNAPLengthConverter : UInt32Converter
+
+    public enum AclysSnapLength : UInt32
     {
-        public override bool GetStandardValuesSupported(
-                           ITypeDescriptorContext? context)
-        {
-            return true;
-        }
-
-
-        public override StandardValuesCollection
-                     GetStandardValues(ITypeDescriptorContext? context)
-        {
-            return new StandardValuesCollection(new UInt32[] {
-                64,
-                128,
-                256,
-                512});
-        }
+        SNAP64ms = 64,
+        SNAP128ms = 128,
+        SNAP256ms = 256,
+        SNAP512ms = 512,
     }
 
 }

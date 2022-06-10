@@ -6,8 +6,10 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
              x:Class="VesperApp.Controls.DeviceDriverPropertyGrid"
 	         xmlns:vm="using:VesperApp.ViewModels"
+			 xmlns:controls="using:VesperApp.Controls"
 			 xmlns:c="using:Avalonia.Collections">
-	
+
+
 	<DockPanel>
 		<DataGrid Items="{Binding PropertiesView}"
 			BorderThickness="0"
@@ -17,8 +19,23 @@
 			x:Name="gridEditProperties">
 			<DataGrid.Columns>
 				<DataGridTextColumn Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
-				<DataGridTextColumn Header="Value" Binding="{Binding Value}" />
-				<DataGridTextColumn Header="Description" Binding="{Binding Description}" />
+				<!--
+				<controls:DataGridPropertyValueColumn Header="Value" Binding="{Binding Value}" />-->
+				<DataGridTemplateColumn Header="Value">
+
+					<DataGridTemplateColumn.CellTemplate>
+						<DataTemplate DataType="vm:DriverPropertyViewModel">
+							<TextBlock Text="{Binding Value, StringFormat='{}{0}'}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+						</DataTemplate>
+					</DataGridTemplateColumn.CellTemplate>
+					<!--
+					<DataGridTemplateColumn.CellEditingTemplate>
+						<DataTemplate DataType="vm:DriverPropertyViewModel">
+						</DataTemplate>
+					</DataGridTemplateColumn.CellEditingTemplate>-->
+
+				</DataGridTemplateColumn>
+				<DataGridTextColumn Header="Description" Binding="{Binding Description}"/>
 			</DataGrid.Columns>
 		</DataGrid>
 	</DockPanel>

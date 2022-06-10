@@ -22,6 +22,12 @@ namespace VesperApp.Models
         protected UInt32 mem_size;
         protected UInt32 bitmask;
 
+        private UInt32 rawData1;
+        private UInt32 rawData2;
+        private UInt32 rawData3;
+        private UInt32 rawData4;
+
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public ConfigurationDeviceDriver(string name, string description)
@@ -43,6 +49,11 @@ namespace VesperApp.Models
             this.window_rate[0] = 0;
             this.window_rate[1] = 0;
             this.window_rate[2] = 0;
+
+            this.rawData1 = 0;
+            this.rawData2 = 0;
+            this.rawData3 = 0;
+            this.rawData4 = 0;
         }
 
 
@@ -169,7 +180,7 @@ namespace VesperApp.Models
 
         [CategoryAttribute("Standard configuration"),
         DescriptionAttribute("Duty cycled sampling OFF time in [ms] when running Config1 schedule"),
-        DisplayName("Window Length [1]")]
+        DisplayName("Window Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
         public virtual UInt32 WindowRate1
@@ -184,7 +195,7 @@ namespace VesperApp.Models
 
         [CategoryAttribute("Standard configuration"),
         DescriptionAttribute("Duty cycled sampling OFF time in [ms] when running Config2 schedule"),
-        DisplayName("Window Length [2]")]
+        DisplayName("Window Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
         public virtual UInt32 WindowRate2
@@ -231,7 +242,7 @@ namespace VesperApp.Models
             }
         }
 
-        [Browsable(true)]
+        [Browsable(false)]
         [JsonPropertyName("bitmask")]
         public virtual UInt32 Bitmask
         {
@@ -243,34 +254,54 @@ namespace VesperApp.Models
             }
         }
 
+        [Browsable(true)]
+        [JsonIgnore]
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Should LED indicate activity is this driver"),
+        DisplayName("LED Activity")]
+        public virtual bool IsLEDActive
+        {
+            get => ((Bitmask & 0x01) == 0x01);
+            set
+            {
+                if (value == true) 
+                    Bitmask |= 0x01;
+                else
+                    Bitmask &= ~((UInt32)0x01);
+            }
+        }
+
 
         [Browsable(false)]
         [JsonIgnore]
-        public UInt32 RawData1
+        public virtual UInt32 RawData1
         {
-            get;
-            set;
+            get { return this.rawData1; }
+            protected set { this.rawData1 = value; OnPropertyChanged(); }
         }
+
         [Browsable(false)]
         [JsonIgnore]
-        public UInt32 RawData2
+        public virtual UInt32 RawData2
         {
-            get;
-            set;
+            get { return this.rawData2; }
+            protected set { this.rawData2 = value; OnPropertyChanged(); }
         }
+
         [Browsable(false)]
         [JsonIgnore]
-        public UInt32 RawData3
+        public virtual UInt32 RawData3
         {
-            get;
-            set;
+            get { return this.rawData3; }
+            protected set { this.rawData3 = value; OnPropertyChanged(); }
         }
+
         [Browsable(false)]
         [JsonIgnore]
-        public UInt32 RawData4
+        public virtual UInt32 RawData4
         {
-            get;
-            set;
+            get { return this.rawData4; }
+            protected set { this.rawData4 = value; OnPropertyChanged(); }
         }
 
         [Browsable(false)]

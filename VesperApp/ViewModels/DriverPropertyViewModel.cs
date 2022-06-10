@@ -13,7 +13,7 @@ namespace VesperApp.ViewModels
     public class DriverPropertyViewModel : PropertyViewModel
     {
         private readonly object _target;
-        private string ? _type;
+        private Type ? _type;
         private object ? _value;
         //private string _priority;
         private string _group;
@@ -53,6 +53,7 @@ namespace VesperApp.ViewModels
                 Debug.WriteLine(property.Name + " " + visibleAttr.Browsable.ToString());
             }
 
+            _type = property.PropertyType;
 
             Update();
         }
@@ -71,17 +72,32 @@ namespace VesperApp.ViewModels
             private set => this.RaiseAndSetIfChanged(ref _priority, value);
         }*/
 
-        public override string Type => ((_type == null) ? "" : _type);
+        public override Type ? PropType => _type;
 
-        public override string Value
+        public bool IsText
         {
-            get => ConvertToString(_value);
+            get { return _type != null && _type == typeof(string); }
+        }
+
+        public bool IsEnum
+        {
+            get { return _type != null && _type.IsEnum == true; }
+        }
+
+
+
+        public override object ? Value
+        {
+            get => _value;
             set
             {
                 try
                 {
-                    var convertedValue = ConvertFromString(value, Property.PropertyType);
-                    Property.SetValue(_target, convertedValue, null);
+                    this.RaiseAndSetIfChanged(ref _value, value);
+                    //this.RaiseAndSetIfChanged(ref _type, _value?.GetType());
+
+                    //var convertedValue = ConvertFromString(value, Property.PropertyType);
+                    Property.SetValue(_target, _value);
                     //_target.SetValue(Property, convertedValue);
                 }
                 catch { }
@@ -96,7 +112,7 @@ namespace VesperApp.ViewModels
         public override void Update()
         {
             this.RaiseAndSetIfChanged(ref _value, Property.GetValue(_target), nameof(Value));
-            this.RaiseAndSetIfChanged(ref _type, _value?.GetType().Name, nameof(Type));
+            this.RaiseAndSetIfChanged(ref _type, _value?.GetType());
         }
 
         private void SetGroup(string group)
