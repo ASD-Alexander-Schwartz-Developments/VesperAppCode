@@ -54,6 +54,21 @@ namespace VesperApp.Models
             this.rawData2 = 0;
             this.rawData3 = 0;
             this.rawData4 = 0;
+
+            this.bitmask = 0;
+        }
+
+
+        public void Load(ConfigurationDeviceDriver ldrv)
+        {
+            this.sample_rate = ldrv.sample_rate;
+            this.window_rate = ldrv.window_rate;
+            this.window_length = ldrv.window_length;
+            this.rawData1 = ldrv.rawData1;
+            this.rawData2 = ldrv.rawData2;
+            this.rawData3 = ldrv.rawData3;
+            this.rawData4 = ldrv.rawData4;
+            this.bitmask = ldrv.bitmask;
         }
 
 
@@ -308,9 +323,12 @@ namespace VesperApp.Models
         [JsonIgnore]
         public bool IsChecked
         {
-            get;
-            set;
-        } = false;
+            get => isChecked;
+            set { this.isChecked = value; OnPropertyChanged(); }
+        }
+
+
+        private bool isChecked = false;
 
         // Create the OnPropertyChanged method to raise the event
         // The calling member's name will be used as the parameter.

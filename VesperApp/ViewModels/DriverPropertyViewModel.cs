@@ -54,6 +54,7 @@ namespace VesperApp.ViewModels
             }
 
             _type = property.PropertyType;
+            _value = property.GetValue(_target, null);
 
             Update();
         }

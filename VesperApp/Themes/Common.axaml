@@ -6,10 +6,10 @@
   
   <Style.Resources>
 
-	  <Image Source="/Assets/connected.png" x:Key="imgConnected" />
-	  <Image Source="/Assets/disconnected.png" x:Key="imgDisconnected" />
+    <Image Source="/Assets/connected.png" x:Key="imgConnected" />
+	<Image Source="/Assets/disconnected.png" x:Key="imgDisconnected" />
 
-	  <Color x:Key="ThemeAccentColor">#FF0288D1</Color>
+    <Color x:Key="ThemeAccentColor">#FF0288D1</Color>
     <Color x:Key="ThemeAccentColor2">#990288D1</Color>
     <Color x:Key="ThemeAccentColor3">#660288D1</Color>
     <Color x:Key="ThemeAccentColor4">#330288D1</Color>

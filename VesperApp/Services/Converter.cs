@@ -1,4 +1,7 @@
+using Avalonia.Data;
+using Avalonia.Data.Converters;
 using System;
+using System.Globalization;
 
 namespace VesperApp.Services {
     public static class Converter {
@@ -6,5 +9,40 @@ namespace VesperApp.Services {
 
         public static byte DRtoXY(int dr) => _DRtoXY[dr];
         public static byte XYtoDR(int xy) => (byte)Array.IndexOf(_DRtoXY, (byte)xy);
+    }
+
+
+
+    public class UpDownUintConverter : IValueConverter
+    {
+
+        public static readonly UpDownUintConverter Instance = new();
+
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        {
+            if (value is UInt32 v)
+            {
+                if (targetType.IsAssignableTo(typeof(double)))
+                {
+                    return (double)v;
+                }
+            }
+            // converter used for the wrong type
+            return new BindingNotification(new InvalidCastException(), BindingErrorType.Error);
+
+        }
+
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        {
+            if (value is double v)
+            {
+                //if (targetType.IsAssignableTo(typeof(UInt32)))
+                //{
+                    return (UInt32)Math.Round(v);
+                //}
+            }
+            // converter used for the wrong type
+            return new BindingNotification(new InvalidCastException(), BindingErrorType.Error);
+        }
     }
 }

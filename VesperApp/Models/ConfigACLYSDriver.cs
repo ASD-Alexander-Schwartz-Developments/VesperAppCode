@@ -14,7 +14,7 @@ namespace VesperApp.Models
         public ConfigACLYSDriver() : base("ACLYS", "Snap GPS receiver") // GPS
         {
             SnapSize = AclysSnapLength.SNAP256ms;
-            this.MemoryBufferSize = 0;
+            this.MemoryBufferSize = 1024;
             this.FileSize = 0;
         }
 
@@ -43,8 +43,10 @@ namespace VesperApp.Models
             set { base.RawData1 = (UInt32)value; }
         }
 
-        
-//        public string TEST { get; set; }
+
+        [JsonIgnore]
+        [Browsable(true)]
+        public double TEST { get; set; }
     }
 
 

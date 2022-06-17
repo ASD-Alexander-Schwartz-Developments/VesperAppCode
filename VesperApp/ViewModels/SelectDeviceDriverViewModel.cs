@@ -21,6 +21,7 @@ namespace VesperApp.ViewModels
 
         public SelectDeviceDriverViewModel(List<ConfigurationDeviceDriver> supporteddevicedrivers)
         {
+            ActiveDeviceDriversCollection = new List<ConfigurationDeviceDriver>();
             DeviceDriversCollection = new ObservableCollection<ConfigurationDeviceDriver>(supporteddevicedrivers);
             SelectedDriverModel = new SelectionModel<ConfigurationDeviceDriver>();
             SelectedDriverModel.SelectionChanged += SelectedDriverModel_SelectionChanged;
@@ -34,6 +35,7 @@ namespace VesperApp.ViewModels
 
                 var selectedDriver = DeviceDriversCollection[e.SelectedIndexes[0]];
                 this.SelectedDeviceDriver = selectedDriver;
+
                 /*Debug.WriteLine("Selected " + selectedDriver.Name + " " + selectedDriver.GetType().FullName);
 
                 if(selectedDriver != _selectedDeviceDriver)
@@ -47,14 +49,45 @@ namespace VesperApp.ViewModels
         //public TreePageViewModel TreePage { get; }
 
         public ObservableCollection<ConfigurationDeviceDriver> DeviceDriversCollection { get; }
+        public List<ConfigurationDeviceDriver> ActiveDeviceDriversCollection { get; }
 
         public async Task<bool> UpdateDeviceDriverCollection(List<ConfigurationDeviceDriver> supporteddevicedrivers)
         {
+            ActiveDeviceDriversCollection.Clear();
             DeviceDriversCollection.Clear();
             foreach (ConfigurationDeviceDriver d in supporteddevicedrivers)
+            {
+                d.PropertyChanged += D_PropertyChanged;
                 DeviceDriversCollection.Add(d);
+            }
 
             return await Task.FromResult(true);
+        }
+
+        private void D_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if(sender != null)
+            {
+                ConfigurationDeviceDriver drv = (ConfigurationDeviceDriver)sender;
+
+                if(e.PropertyName == nameof(ConfigurationDeviceDriver.IsChecked))
+                {
+                    if(drv.IsChecked == true)
+                    {
+                        if(ActiveDeviceDriversCollection.Any<ConfigurationDeviceDriver>(x => x == drv) == false)
+                        {
+                            ActiveDeviceDriversCollection.Add((ConfigurationDeviceDriver)drv);
+                        }
+                    }
+                    else
+                    {
+                        if (ActiveDeviceDriversCollection.Any<ConfigurationDeviceDriver>(x => x == drv) == true)
+                        {
+                            ActiveDeviceDriversCollection.Remove((ConfigurationDeviceDriver)drv);
+                        }
+                    }
+                }
+            }
         }
 
         public SelectionModel<ConfigurationDeviceDriver>? SelectedDriverModel { get; }

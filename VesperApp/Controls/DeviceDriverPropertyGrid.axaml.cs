@@ -58,16 +58,34 @@ namespace VesperApp.Controls
 
                                 col.CellEditingTemplate = template;
                             }
-                            else if(dt == typeof(UInt32))
+                            else if( dt == typeof(UInt32) || dt == typeof(double) )
                             {
-                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new NumericUpDown
+                                Binding b = new Binding("Value", BindingMode.TwoWay);
+                                b.Converter = VesperApp.Services.UpDownUintConverter.Instance;
+                                NumericUpDown nud = new NumericUpDown
                                 {
-                                    [!NumericUpDown.ValueProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!NumericUpDown.ValueProperty] = b,
+                                    // [!NumericUpDown.TextProperty] = new Binding("Value", BindingMode.TwoWay),
                                     Margin = new Thickness(0),
+                                    IsReadOnly = false,
+                                    Focusable = true,
+                                    FormatString = "{0}",
+                                    Maximum = 1000000,
+                                    Minimum = 0,
+                                    Increment = 10,
+                                    AllowSpin = true,
+                                    ParsingNumberStyle = System.Globalization.NumberStyles.AllowLeadingWhite |
+                                    System.Globalization.NumberStyles.AllowTrailingWhite | System.Globalization.NumberStyles.AllowThousands,
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                                    VerticalAlignment = VerticalAlignment.Stretch
-                                });
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                };
+                                nud.TextInputOptionsQuery += Nud_TextInputOptionsQuery;
+                                nud.TextInput += Nud_TextInput;
+                                nud.LostFocus += Nud_LostFocus;
+                                nud.KeyDown += Nud_KeyDown;
 
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => nud);
+                                
                                 col.CellEditingTemplate = template;
                             }
                             else if (dt == typeof(bool))
@@ -98,6 +116,67 @@ namespace VesperApp.Controls
                     }
                 }
             }
+        }
+
+        private void Nud_KeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+        {
+            if (sender != null)
+            {
+                var nud = (NumericUpDown)sender;
+
+                if (e.Key == Avalonia.Input.Key.Delete)
+                {
+                    nud.Text = "";
+                    e.Handled = true;
+                }
+                else if (e.Key == Avalonia.Input.Key.Back)
+                {
+                    nud.Text = "";
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private void Nud_LostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            if (sender != null)
+            {
+                var nud = (NumericUpDown)sender;
+                double r = nud.Value;
+                string text = nud.Text;
+
+                if(text == null || text.Length == 0)
+                {
+                    text = "0";
+                }
+
+                if (double.TryParse(text, out r) == true)
+                {
+                    nud.Value = r;
+                }
+            }
+        }
+
+        private void Nud_TextInput(object? sender, Avalonia.Input.TextInputEventArgs e)
+        {
+            if (sender != null)
+            {
+                var nud = (NumericUpDown)sender;
+                double r = nud.Value;
+                string text = nud.Text + e.Text;
+                Debug.WriteLine("Numeric text changed event:" + e.Device.ToString());
+                Debug.WriteLine("Numeric text changed: Original Value: " + r + " Original Text: " + nud.Text + " Event Text: " + e.Text);
+                
+                if (double.TryParse(text, out r) == true)
+                {
+                    nud.Value = r;
+                }
+            }
+        }
+
+        private void Nud_TextInputOptionsQuery(object? sender, Avalonia.Input.TextInput.TextInputOptionsQueryEventArgs e)
+        {
+            e.ContentType = Avalonia.Input.TextInput.TextInputContentType.Number;
         }
 
         private void GridEditor_DataContextChanged(object? sender, System.EventArgs e)

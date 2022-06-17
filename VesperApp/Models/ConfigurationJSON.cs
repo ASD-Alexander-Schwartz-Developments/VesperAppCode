@@ -38,6 +38,21 @@ namespace VesperApp.Models
             this.drivers = new List<ConfigurationDeviceDriver>();
         }
 
+
+        public void Load(ConfigurationJSON newconf)
+        {
+            this.Name = newconf.name;
+            this.BatteryCapacity = newconf.battery_capacity;
+            this.IsMagnetOffEnabled = newconf.is_magnet_off_enabled;
+            this.MinimumSupportedHardware = newconf.minimum_supported_hw;
+            this.ScheduleType = newconf.schedule_type;
+            this.Schedule.Clear();
+            this.Schedule.AddRange(newconf.Schedule);
+            this.DeviceDrivers.Clear();
+            this.DeviceDrivers.AddRange(newconf.DeviceDrivers);
+        }
+
+
         [JsonPropertyName("name")]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(string), "vesper"),

@@ -9,9 +9,8 @@
              x:Class="VesperApp.Controls.ScheduleControl">
 
 	
-	<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-	<DockPanel>
-		<StackPanel Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
+	<DockPanel Margin="1">
+		<StackPanel Background="AntiqueWhite" Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
 			<Label Margin="20,10" Content="Select Schedule Type" VerticalAlignment="Center"/>
 			<ComboBox x:Name="comboScheduleType"
 					  SelectedIndex="0" Margin="1"
@@ -22,10 +21,10 @@
 		</StackPanel>
 
 		
-		<StackPanel Margin="1,10,30,0" Orientation="Vertical" DockPanel.Dock="Right">
+		<StackPanel Margin="1,10,30,0" Orientation="Vertical" DockPanel.Dock="Right" IsEnabled="{Binding IsAddingNewEntry}">
 			<StackPanel Orientation="Vertical" VerticalAlignment="Center">
-				<DatePicker SelectedDate="{Binding SelectedDate}" FontSize="9" Header="Activation Trigger Date" x:Name="dpDate" VerticalAlignment="Center" Padding="0,0,0,14" />
-				<TimePicker SelectedTime="{Binding SelectedTime}" FontSize="9" Header="Activation Trigger Time" x:Name="tpTime" VerticalAlignment="Center" Padding="0,0,0,14" ClockIdentifier="24HourClock"/>
+				<DatePicker SelectedDate="{Binding SelectedDate}" FontFamily="Lato" FontSize="10" Header="Activation Trigger Date" x:Name="dpDate" VerticalAlignment="Center" Padding="0,0,0,14" />
+				<TimePicker SelectedTime="{Binding SelectedTime}" FontFamily="Lato" FontSize="10" Header="Activation Trigger Time" x:Name="tpTime" VerticalAlignment="Center" Padding="0,0,0,14" ClockIdentifier="24HourClock"/>
 			</StackPanel>
 			<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 				<Label Content="Select Configuration" VerticalAlignment="Center"/>
@@ -54,22 +53,22 @@
 					 x:Name="listScheduleEventsList" 
 					 Margin="1,1,1,1" 
 					 SelectionMode="Single" 
-					 Selection="{Binding SelectedScheduleEvent}"
+					 SelectedIndex="{Binding SelectedScheduleEventIndex}"
 					 MinWidth="260"
 					 MinHeight="160"
 					 Height="160"
 					 MaxHeight="160"
 					 HorizontalAlignment="Stretch"
 					 VerticalAlignment="Stretch"
-					 Background="AliceBlue">
+					 Background="AntiqueWhite">
 				<ListBox.ItemTemplate>
 					<DataTemplate DataType="m:ConfigScheduleJSONItem">
 						<Grid>
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="*" />
 							</Grid.ColumnDefinitions>
-							<StackPanel Margin="1,1,1,1" Orientation="Horizontal" Spacing="3">
-								<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy hh:mm:ss}'}" FontSize="12" />
+							<StackPanel Margin="1,1,1,1" Orientation="Horizontal" Spacing="5">
+								<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontSize="12" />
 								<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontSize="12" />
 							</StackPanel>
 						</Grid>
@@ -103,5 +102,4 @@
 			</StackPanel>
 		</StackPanel>
 	</DockPanel>
-	</ScrollViewer>
 </UserControl>

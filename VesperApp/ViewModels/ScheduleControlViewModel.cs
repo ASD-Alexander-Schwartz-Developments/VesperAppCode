@@ -18,17 +18,32 @@ namespace VesperApp.ViewModels
             isAddingNewEntry = false;
             selectedDate = null;
             selectedTime = null;
-
+            selectedConfiguration = WorkingConfiguration.Off;
+ 
             ScheduleEventsList = new ObservableCollection<ConfigScheduleJSONItem>(items);
 
             CommandAddButton = ReactiveCommand.Create(() =>
             {
-                IsAddingNewEntry = true;
+                selectedDate = null;
+                selectedTime = null;
+                selectedConfiguration = WorkingConfiguration.Off;
+
+                if (IsAddingNewEntry == true)
+                {
+
+                }
+                else
+                {
+                    IsAddingNewEntry = true;
+                }
             });
 
             CommandRejectButton = ReactiveCommand.Create(() =>
             {
                 IsAddingNewEntry = false;
+                selectedDate = null;
+                selectedTime = null;
+                selectedConfiguration = WorkingConfiguration.Off;
             });
 
             CommandApplyButton = ReactiveCommand.Create(() =>
@@ -46,19 +61,37 @@ namespace VesperApp.ViewModels
 
                 nitem.Configuration = SelectedConfiguration;
                 ScheduleEventsList.Add(nitem);
+                IsAddingNewEntry = false;
             });
 
             CommandDeleteButton = ReactiveCommand.Create(() =>
             {
-
+                ScheduleEventsList.RemoveAt(_selectedIndex);
             });
 
-            CommandUpButton = ReactiveCommand.Create(() => { });
-            CommandDownButton = ReactiveCommand.Create(() => { });
+            CommandUpButton = ReactiveCommand.Create(() => 
+            {
+                ScheduleEventsList.Move(_selectedIndex, _selectedIndex-1);
+            });
+            
+            CommandDownButton = ReactiveCommand.Create(() => 
+            {
+                ScheduleEventsList.Move(_selectedIndex, _selectedIndex + 1);
+            });
         }
 
         public ObservableCollection<ConfigScheduleJSONItem> ScheduleEventsList { get; }
+        //public SelectionModel<ConfigScheduleJSONItem>? SelectedScheduleEvent { get; }
 
+
+        int _selectedIndex;
+
+        public int SelectedIndex
+        {
+            get => _selectedIndex;
+            set => this.RaiseAndSetIfChanged(ref _selectedIndex, value);
+        }
+    
         public bool IsAddingNewEntry
         {
             get => isAddingNewEntry;

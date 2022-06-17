@@ -95,6 +95,9 @@ namespace VesperApp.ViewModels
                     inpc.PropertyChanged += ControlPropertyChanged;
                 }
             }
+            else
+                PropertiesCollectionView.Clear();
+
             return await Task.FromResult(true);
         }
 

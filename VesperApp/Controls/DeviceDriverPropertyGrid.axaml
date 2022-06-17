@@ -18,10 +18,10 @@
 			CanUserResizeColumns="true"
 			x:Name="gridEditProperties">
 			<DataGrid.Columns>
-				<DataGridTextColumn Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
+				<DataGridTextColumn Width="Auto" Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
 				<!--
 				<controls:DataGridPropertyValueColumn Header="Value" Binding="{Binding Value}" />-->
-				<DataGridTemplateColumn Header="Value">
+				<DataGridTemplateColumn Width="120" Header="Value">
 
 					<DataGridTemplateColumn.CellTemplate>
 						<DataTemplate DataType="vm:DriverPropertyViewModel">
@@ -35,7 +35,7 @@
 					</DataGridTemplateColumn.CellEditingTemplate>-->
 
 				</DataGridTemplateColumn>
-				<DataGridTextColumn Header="Description" Binding="{Binding Description}"/>
+				<DataGridTextColumn Width="*" Header="Description" Binding="{Binding Description}"/>
 			</DataGrid.Columns>
 		</DataGrid>
 	</DockPanel>

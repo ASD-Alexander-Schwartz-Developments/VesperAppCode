@@ -18,6 +18,7 @@ using System.Text.Json;
 using System.Diagnostics;
 using Avalonia.Controls;
 using System.IO;
+using MessageBox.Avalonia.DTO;
 
 /// <summary>
 /// //// {Binding Description, StringFormat='Description: {0}'}
@@ -102,6 +103,11 @@ namespace VesperApp.ViewModels
             EnableDeviceDockCommand = null;
             Boot0ModeDockCommand = null;
             ResetDeviceDockCommand = null;
+
+            NewConfigCommand = null;
+            LoadConfigCommand = null;
+            SaveConfigCommand = null;
+
             _timer = null;
             LoggerDevices = new ObservableCollection<LoggerDevice>();
             _deviceUsbAdapter = null;
@@ -119,6 +125,7 @@ namespace VesperApp.ViewModels
 
             ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
 
+            #region Dock Commands
             ConnectDisconnectDockCommand = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (_isConnected == true)
@@ -135,7 +142,7 @@ namespace VesperApp.ViewModels
 
                     if (result != null)
                     {
-                        var dockdevice = await _globalDockAdapter.GetDockBySerialNumberAsync(result.Id);
+                        var dockdevice = await _globalDockAdapter.GetDockBySerialNumberAsync(result.Id ?? string.Empty);
 
                         if (dockdevice != null)
                             await _globalDockAdapter.DockConnect(dockdevice);
@@ -178,8 +185,9 @@ namespace VesperApp.ViewModels
             });
 
 
-            
+            #endregion
 
+            #region Device Commands
             ConnectDisconnectDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (_isDeviceConnected == true && _deviceUsbAdapter != null && IsClosing == false)
@@ -278,6 +286,34 @@ namespace VesperApp.ViewModels
                     await SelectedLoggerDevice.FormatDisk();
                 }
             });
+            #endregion
+
+            #region Configuration Commands
+
+            NewConfigCommand = ReactiveCommand.CreateFromTask(async () =>
+            {
+                var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                new MessageBoxStandardParams
+                {
+                    ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.YesNoCancel,
+                    ContentTitle = "New Configuration",
+                    ContentHeader = "Do you want to open new configuration?",
+                    ContentMessage = "By pressing Yes you will loose and unsaved changes.",
+                    //WindowIcon = new WindowIcon("icon-rider.png")
+                });
+
+                if(await messageBoxStandardWindow.ShowDialog(MainWindowContext) == MessageBox.Avalonia.Enums.ButtonResult.Yes)
+                {
+                    CreateNewConfigurationInstance();
+                }
+            });
+
+            SaveConfigCommand = ReactiveCommand.CreateFromTask(SaveConfiguration);
+
+            LoadConfigCommand = ReactiveCommand.CreateFromTask(LoadConfiguration);
+
+            #endregion
+
 
             _timer = new System.Timers.Timer();
             _timer.Elapsed += _timer_Elapsed;
@@ -292,12 +328,180 @@ namespace VesperApp.ViewModels
             SelectedLoggerDeviceModel = new SelectionModel<LoggerDevice>();
             SelectedLoggerDeviceModel.SelectionChanged += SelectedLoggerDeviceModel_SelectionChanged;
             configurationJSONInstance = new ConfigurationJSON();
-            configurationJSONInstance.DeviceDrivers.Add(new ConfigACLYSDriver());
+            
             ScheduleViewModel = new ScheduleControlViewModel(configurationJSONInstance.Schedule);
             DriversViewModel = new SelectDeviceDriverViewModel(new List<ConfigurationDeviceDriver>());
             DriversViewModel.PropertyChanged += DriversViewModel_PropertyChanged;
             DriverEditorGridViewModel = new DeviceDriverPropertyGridViewModel();
         }
+
+
+
+        private async void CreateNewConfigurationInstance()
+        {
+            SelectedDeviceType = null;
+            _selectedDeviceDriver = null;
+
+            UpdateSelectedDeviceDriverPropertiesView(_selectedDeviceDriver);
+            configurationJSONInstance.Load(new ConfigurationJSON());
+
+            await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
+        }
+
+
+        private async Task<bool> SaveConfiguration()
+        {
+            bool ok = false;
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+
+            saveFileDialog.Title = "Save Configuration...";
+
+            string? file = await saveFileDialog.ShowAsync(MainWindowContext);
+            string error = "";
+
+            if (file != null && file.Length > 0 && configurationJSONInstance != null)
+            {
+                var options = new JsonSerializerOptions();
+                options.WriteIndented = false;
+                options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
+                options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+                configurationJSONInstance.DeviceDrivers.Clear();
+                if (DriversViewModel != null)
+                {
+                    foreach(ConfigurationDeviceDriver d in DriversViewModel.DeviceDriversCollection)
+                        if(d.IsChecked) configurationJSONInstance.DeviceDrivers.Add(d);
+                }
+
+                configurationJSONInstance.Schedule.Clear();
+                if (ScheduleViewModel != null)
+                {
+                    foreach(ConfigScheduleJSONItem item in ScheduleViewModel.ScheduleEventsList)
+                        configurationJSONInstance.Schedule.Add(item);
+                }
+
+                string json = JsonSerializer.Serialize<ConfigurationJSON>(configurationJSONInstance, options);
+
+                if (json.Length > 0)
+                {
+                    try
+                    {
+                        await File.WriteAllTextAsync(file, json);
+                    }
+                    catch (Exception ex)
+                    {
+                        error = ex.Message;
+                    }
+                }
+
+                if (error.Length > 0 || json.Length == 0)
+                {
+                    var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                        new MessageBoxStandardParams
+                        {
+                            ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                            ContentTitle = "Error Saving Configuration",
+                            ContentHeader = "Configuration Not saved",
+                            ContentMessage = error,
+                            Icon = MessageBox.Avalonia.Enums.Icon.Warning
+                        });
+
+                    await messageBoxStandardWindow.ShowDialog(MainWindowContext);
+                }
+            }
+
+            ok = true;
+
+            return await Task.FromResult(ok);
+        }
+
+
+        private async Task<bool> LoadConfiguration()
+        {
+            bool ok = false;
+
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+
+            openFileDialog.Title = "Choose Configuration File to load";
+            openFileDialog.AllowMultiple = false;
+            string[]? files = await openFileDialog.ShowAsync(MainWindowContext);
+
+            if (files != null && files[0] != null)
+            {
+                string jsonString = "";
+                try
+                {
+                    jsonString = File.ReadAllText(files[0]);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                    jsonString = "";
+                }
+
+                var options = new JsonSerializerOptions();
+                options.WriteIndented = false;
+                options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
+                options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+                ConfigurationJSON? config = null;
+                try
+                {
+                    config = JsonSerializer.Deserialize<ConfigurationJSON>(jsonString, options)!;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                }
+                finally
+                { }
+
+                if (config != null)
+                {
+                    if (config.Name == DeviceTypes.Nanotag.ToString())                   // it's a nanotag configuration
+                    {
+                        this.SelectedDeviceType = DeviceTypes.Nanotag;
+                    }
+                    else if (config.Name == DeviceTypes.Vesper.ToString())
+                    {
+                        this.SelectedDeviceType = DeviceTypes.Vesper;
+                    }
+                    else if (config.Name == DeviceTypes.Pipistrelle.ToString())
+                    {
+                        this.SelectedDeviceType = DeviceTypes.Pipistrelle;
+                    }
+                    else
+                    {
+                        this.SelectedDeviceType = null;
+                    }
+
+
+                    if (this.SelectedDeviceType != null && DriversViewModel != null)
+                    {
+                        configurationJSONInstance = config;
+
+                        //DriversViewModel.DeviceDriversCollection.Clear();
+                        DriversViewModel.ActiveDeviceDriversCollection.Clear();
+
+                        foreach (ConfigurationDeviceDriver drv in config.DeviceDrivers)
+                        {
+                            int index = DriversViewModel.DeviceDriversCollection.IndexOf(drv);
+
+                            if (index >= 0 && index < DriversViewModel.DeviceDriversCollection.Count)
+                            {
+                                DriversViewModel.DeviceDriversCollection[index].Load(drv);
+                                DriversViewModel.DeviceDriversCollection[index].IsChecked = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            ok = true;
+
+            return await Task.FromResult(ok);
+        }
+
+
 
         private void DriversViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
@@ -433,6 +637,12 @@ namespace VesperApp.ViewModels
         public ICommand? UploadDeviceConfig { get; }
         public ICommand? DownloadDeviceData { get; }
 
+        public ICommand? NewConfigCommand { get; }
+        public ICommand? SaveConfigCommand { get; }
+        public ICommand? LoadConfigCommand { get; }
+
+
+
 
         public ConfigurationJSON Configuration { get => _config; }
         private ConfigurationJSON _config = new ConfigurationJSON();
@@ -461,7 +671,9 @@ namespace VesperApp.ViewModels
             }
             else
             {
-                switch(_seldeviceType)
+                configurationJSONInstance.Name = _seldeviceType.ToString();
+
+                switch (_seldeviceType)
                 {
                     case DeviceTypes.Nanotag:
                         await DriversViewModel.UpdateDeviceDriverCollection(Nanotag.SupportedDeviceDrivers);
@@ -483,13 +695,13 @@ namespace VesperApp.ViewModels
 
         #region "Config.Scheduler"
 
-        public ScheduleControlViewModel ScheduleViewModel { get; }
+        public ScheduleControlViewModel ScheduleViewModel { get; private set; }
 
         #endregion
 
         #region "Config.DeviceDrivers"
 
-        DeviceDriverPropertyGridViewModel DriverEditorGridViewModel { get; }
+        DeviceDriverPropertyGridViewModel DriverEditorGridViewModel { get; set; }
 
         public SelectDeviceDriverViewModel DriversViewModel { get; private set; }
         
