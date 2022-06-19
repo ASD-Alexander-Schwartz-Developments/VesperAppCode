@@ -34,9 +34,14 @@ namespace VesperApp.Models
 			options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
 			options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
 			ConfigurationJSON? config = null;
+			bool ok = false;
+
+			byte[] buffer = new byte[0];
+
 			try
 			{
 				config = JsonSerializer.Deserialize<ConfigurationJSON>(json, options)!;
+				ok = true;
 			}
 			catch (Exception ex)
 			{
@@ -45,80 +50,89 @@ namespace VesperApp.Models
 			finally
 			{ }
 
-			int structsize = 3 * CONFIG_CHUNK_SIZE;
-            byte[] buffer = new byte[structsize];
-			IntPtr ptr;
 
-			NanotagConfiguration sConfiguration;
-			sConfiguration = new NanotagConfiguration();
-			sConfiguration.devices_list = new NanotagDeviceConfigParams[MAX_LOADED_DEVICES];
-			sConfiguration.schedule_entries = new NanotagScheduleEntry[MAX_SCHEDULE_SIZE];
-
-			if (config != null)
+			if (ok == true && config != null)
 			{
-				int i;
+				int structsize = 3 * CONFIG_CHUNK_SIZE;
+				buffer = new byte[structsize];
+				IntPtr ptr;
 
-				sConfiguration.general.isMagnetOffEnabled = (byte)(config.IsMagnetOffEnabled ? 1 : 0);
-				ushort.TryParse(config.MinimumSupportedHardware, out sConfiguration.general.minimum_hw_ver);
-				sConfiguration.general.battery_capacity = (ushort)config.BatteryCapacity;
-				sConfiguration.general.config_rev = 0;
-				sConfiguration.general.reference_year = 2020;
-				sConfiguration.general.Schedule_type = (ushort)config.ScheduleType;
+				NanotagConfiguration sConfiguration;
+				sConfiguration = new NanotagConfiguration();
+				sConfiguration.devices_list = new NanotagDeviceConfigParams[MAX_LOADED_DEVICES];
+				sConfiguration.schedule_entries = new NanotagScheduleEntry[MAX_SCHEDULE_SIZE];
 
-				if (sConfiguration.devices_list != null)
+				if (config != null)
 				{
-					for (i = 0; i < MAX_LOADED_DEVICES; i++)
-					{
-						if (config.DeviceDrivers.Count > i)
-						{
-							sConfiguration.devices_list[i].name = new char[DEVICE_NAME_LENGTH];
-							for (int c = 0; c < DEVICE_NAME_LENGTH; c++)
-								sConfiguration.devices_list[i].name[c] = (config.DeviceDrivers[i].Name.Length > c) ? config.DeviceDrivers[i].Name[c] : (char)0;
+					int i;
 
-							sConfiguration.devices_list[i].windowLen1 = config.DeviceDrivers[i].WindowLength[1];
-							sConfiguration.devices_list[i].windowLen2 = config.DeviceDrivers[i].WindowLength[2];
-							sConfiguration.devices_list[i].windowRate1 = config.DeviceDrivers[i].WindowRate[1];
-							sConfiguration.devices_list[i].windowRate2 = config.DeviceDrivers[i].WindowRate[2];
-							sConfiguration.devices_list[i].sampleRate1 = config.DeviceDrivers[i].SampleRate[1];
-							sConfiguration.devices_list[i].sampleRate2 = config.DeviceDrivers[i].SampleRate[2];
-							sConfiguration.devices_list[i].controlBitmask = config.DeviceDrivers[i].Bitmask;
-							sConfiguration.devices_list[i].memorySize = config.DeviceDrivers[i].MemoryBufferSize;
-							sConfiguration.devices_list[i].RawData1 = config.DeviceDrivers[i].RawData1;
-							sConfiguration.devices_list[i].RawData2 = config.DeviceDrivers[i].RawData2;
-							sConfiguration.devices_list[i].RawData3 = config.DeviceDrivers[i].RawData3;
-							sConfiguration.devices_list[i].RawData4 = config.DeviceDrivers[i].RawData4;
-							// NANOTAG does not have file size property
-						}
-						else
-                        {
-							sConfiguration.devices_list[i].name = new char[DEVICE_NAME_LENGTH];
-							for (int c = 0; c < DEVICE_NAME_LENGTH; c++)
-								sConfiguration.devices_list[i].name[c] = (char)0;
-						}
-					}
-					if (sConfiguration.schedule_entries != null)
+					sConfiguration.general.isMagnetOffEnabled = (byte)(config.IsMagnetOffEnabled ? 1 : 0);
+					ushort.TryParse(config.MinimumSupportedHardware, out sConfiguration.general.minimum_hw_ver);
+					sConfiguration.general.battery_capacity = (ushort)config.BatteryCapacity;
+					sConfiguration.general.config_rev = 0;
+					sConfiguration.general.reference_year = 2020;
+					sConfiguration.general.Schedule_type = (ushort)config.ScheduleType;
+
+					if (sConfiguration.devices_list != null)
 					{
-						for (i = 0; i < MAX_SCHEDULE_SIZE; i++)
+						for (i = 0; i < MAX_LOADED_DEVICES; i++)
 						{
-							if (config.Schedule.Count > i)
+							if (config.DeviceDrivers.Count > i)
 							{
-								sConfiguration.schedule_entries[i].time = ToTimestamp(config.Schedule[i].Alarm);
-								sConfiguration.schedule_entries[i].config = ((uint)config.Schedule[i].Configuration);
+								sConfiguration.devices_list[i].name = new char[DEVICE_NAME_LENGTH];
+								for (int c = 0; c < DEVICE_NAME_LENGTH; c++)
+									sConfiguration.devices_list[i].name[c] = (config.DeviceDrivers[i].Name.Length > c) ? config.DeviceDrivers[i].Name[c] : (char)0;
+
+								sConfiguration.devices_list[i].windowLen1 = config.DeviceDrivers[i].WindowLength[1];
+								sConfiguration.devices_list[i].windowLen2 = config.DeviceDrivers[i].WindowLength[2];
+								sConfiguration.devices_list[i].windowRate1 = config.DeviceDrivers[i].WindowRate[1];
+								sConfiguration.devices_list[i].windowRate2 = config.DeviceDrivers[i].WindowRate[2];
+								sConfiguration.devices_list[i].sampleRate1 = config.DeviceDrivers[i].SampleRate[1];
+								sConfiguration.devices_list[i].sampleRate2 = config.DeviceDrivers[i].SampleRate[2];
+								sConfiguration.devices_list[i].controlBitmask = config.DeviceDrivers[i].Bitmask;
+								sConfiguration.devices_list[i].memorySize = config.DeviceDrivers[i].MemoryBufferSize;
+								sConfiguration.devices_list[i].RawData1 = config.DeviceDrivers[i].RawData1;
+								sConfiguration.devices_list[i].RawData2 = config.DeviceDrivers[i].RawData2;
+								sConfiguration.devices_list[i].RawData3 = config.DeviceDrivers[i].RawData3;
+								sConfiguration.devices_list[i].RawData4 = config.DeviceDrivers[i].RawData4;
+								// NANOTAG does not have file size property
 							}
 							else
-                            {
-								sConfiguration.schedule_entries[i].time = 0xFFFFFFFF;
-								sConfiguration.schedule_entries[i].config = 0;
-                            }
+							{
+								sConfiguration.devices_list[i].name = new char[DEVICE_NAME_LENGTH];
+								for (int c = 0; c < DEVICE_NAME_LENGTH; c++)
+									sConfiguration.devices_list[i].name[c] = (char)0;
+							}
+						}
+						if (sConfiguration.schedule_entries != null)
+						{
+							for (i = 0; i < MAX_SCHEDULE_SIZE; i++)
+							{
+								if (config.Schedule.Count > i)
+								{
+									sConfiguration.schedule_entries[i].time = ToTimestamp(config.Schedule[i].Alarm);
+									sConfiguration.schedule_entries[i].config = ((uint)config.Schedule[i].Configuration);
+								}
+								else
+								{
+									sConfiguration.schedule_entries[i].time = 0xFFFFFFFF;
+									sConfiguration.schedule_entries[i].config = 0xFF;
+								}
+							}
 						}
 					}
 				}
-			}
 
-			ptr = Marshal.AllocHGlobal(structsize);
-			Marshal.StructureToPtr(sConfiguration, ptr, true);
-			Marshal.Copy(ptr, buffer, 0, structsize);
-			Marshal.FreeHGlobal(ptr);
+				ptr = Marshal.AllocHGlobal(structsize);
+				Marshal.StructureToPtr(sConfiguration, ptr, true);
+				Marshal.Copy(ptr, buffer, 0, structsize);
+				Marshal.FreeHGlobal(ptr);
+			}
+			else
+            {
+
+            }
+
 
 			return buffer;
         }

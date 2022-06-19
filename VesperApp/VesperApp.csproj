@@ -6,6 +6,7 @@
     <!--Avalonia doesen't support TrimMode=link currently,but we are working on that https://github.com/AvaloniaUI/Avalonia/issues/6892 -->
     <TrimMode>copyused</TrimMode>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationIcon>Assets\bat.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
@@ -21,6 +22,9 @@
     <AvaloniaResource Include="Themes\FluentCalendarControl.axaml">
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </AvaloniaResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\bat.ico" />
   </ItemGroup>
   <ItemGroup>
     <!--This helps with theme dll-s trimming.
@@ -44,6 +48,9 @@
     <ProjectReference Include="..\ASDLibUSBWrapper\ASDLibUSBWrapper.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <AvaloniaResource Update="Assets\bat.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AvaloniaResource>
     <AvaloniaResource Update="Assets\FluentUiIcons_Filled.xaml">
       <Generator>MSBuild:Compile</Generator>
     </AvaloniaResource>

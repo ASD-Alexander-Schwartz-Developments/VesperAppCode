@@ -103,7 +103,7 @@ namespace VesperApp.ViewModels
             EnableDeviceDockCommand = null;
             Boot0ModeDockCommand = null;
             ResetDeviceDockCommand = null;
-
+            BootloaderDeviceCommand = null;
             NewConfigCommand = null;
             LoadConfigCommand = null;
             SaveConfigCommand = null;
@@ -230,6 +230,15 @@ namespace VesperApp.ViewModels
             });
 
 
+            BootloaderDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
+            {
+                if (SelectedLoggerDevice != null)
+                {
+                    await SelectedLoggerDevice.Bootloader();
+                }
+            });
+
+
             UploadDeviceConfig = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (SelectedLoggerDevice != null)
@@ -299,7 +308,8 @@ namespace VesperApp.ViewModels
                     ContentTitle = "New Configuration",
                     ContentHeader = "Do you want to open new configuration?",
                     ContentMessage = "By pressing Yes you will loose and unsaved changes.",
-                    //WindowIcon = new WindowIcon("icon-rider.png")
+                    WindowIcon = MainWindowContext.Icon,
+                    Icon = MessageBox.Avalonia.Enums.Icon.Question
                 });
 
                 if(await messageBoxStandardWindow.ShowDialog(MainWindowContext) == MessageBox.Avalonia.Enums.ButtonResult.Yes)
@@ -403,7 +413,8 @@ namespace VesperApp.ViewModels
                             ContentTitle = "Error Saving Configuration",
                             ContentHeader = "Configuration Not saved",
                             ContentMessage = error,
-                            Icon = MessageBox.Avalonia.Enums.Icon.Warning
+                            Icon = MessageBox.Avalonia.Enums.Icon.Error,
+                            WindowIcon = MainWindowContext.Icon,
                         });
 
                     await messageBoxStandardWindow.ShowDialog(MainWindowContext);
@@ -633,9 +644,13 @@ namespace VesperApp.ViewModels
         public ICommand? SleepDeviceCommand { get; }
         public ICommand? ArmSleepDeviceCommand { get; }
         public ICommand? FormatDeviceCommand { get; }
+        
+        public ICommand? BootloaderDeviceCommand { get; }
         public ICommand? SetDateTimeDeviceCommand { get; }
         public ICommand? UploadDeviceConfig { get; }
         public ICommand? DownloadDeviceData { get; }
+
+
 
         public ICommand? NewConfigCommand { get; }
         public ICommand? SaveConfigCommand { get; }

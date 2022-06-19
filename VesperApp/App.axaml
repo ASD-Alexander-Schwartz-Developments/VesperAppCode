@@ -24,7 +24,7 @@
 
 		<Style Selector="Label">
 			<Setter Property="FontFamily" Value="Lato" />
-			<Setter Property="FontSize" Value="10"/>
+			<Setter Property="FontSize" Value="12"/>
 		</Style>
 
 

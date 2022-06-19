@@ -21,6 +21,7 @@ namespace VesperApp.Models
         public const byte VND_CMD_GET_DATACHUNK = 0x05;
         public const byte VND_CMD_SET_DATETIME = 0x06;
         public const byte VND_CMD_SET_SLEEP = 0x07;
+        public const byte VND_CMD_SET_BOOT = 0x0F;
 
         public const byte VND_CMD_GET_CFGCHUNK_GEN = 0x0A;
         public const byte VND_CMD_GET_CFGCHUNK_SCH = 0x0B;
@@ -390,6 +391,24 @@ namespace VesperApp.Models
 
 
 
+        public async Task<bool> Bootloader()
+        {
+            bool r = false;
+
+            if (this.USBDevice != null && this._usbEndpointReader != null && this._usbEndpointWriter != null)
+            {
+                var response = new byte[0];
+
+                int retb = WriteRead(VND_CMD_SET_BOOT, 0, 0, 0, new byte[0], out response, 0);
+
+                if (retb == 0) r = true;
+            }
+
+            return await Task.FromResult(r);
+        }
+
+
+
         public async Task<bool> SetDateTime(DateTime ldt)
         {
             bool r = false;
@@ -425,28 +444,32 @@ namespace VesperApp.Models
                 var response = new byte[0];
 
                 byte[] cfg = Nanotag.ConfigBinaryConverter(json);
-                byte[] main_cfg = new byte[Nanotag.CONFIG_CHUNK_SIZE];
-                byte[] sch_cfg = new byte[Nanotag.CONFIG_CHUNK_SIZE];
-                byte[] dev_cfg = new byte[Nanotag.CONFIG_CHUNK_SIZE];
 
-                Array.Copy(cfg, 0, main_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
-                Array.Copy(cfg, Nanotag.CONFIG_CHUNK_SIZE, dev_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
-                Array.Copy(cfg, Nanotag.CONFIG_CHUNK_SIZE*2, sch_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
-
-                int retb = WriteRead(VND_CMD_SET_CFGCHUNK_GEN, main_cfg, out response, 0);
-                Debug.WriteLine("Sent General config result: " + retb.ToString());
-                if (retb == 0)
+                if (cfg != null && cfg.Length >= (Nanotag.CONFIG_CHUNK_SIZE + Nanotag.CONFIG_CHUNK_SIZE + Nanotag.CONFIG_CHUNK_SIZE))
                 {
-                    await Task.Delay(200);
-                    retb = WriteRead(VND_CMD_SET_CFGCHUNK_DEV, dev_cfg, out response, 0);
-                    Debug.WriteLine("Sent Device config result: " + retb.ToString());
+                    byte[] main_cfg = new byte[Nanotag.CONFIG_CHUNK_SIZE];
+                    byte[] sch_cfg = new byte[Nanotag.CONFIG_CHUNK_SIZE];
+                    byte[] dev_cfg = new byte[Nanotag.CONFIG_CHUNK_SIZE];
 
+                    Array.Copy(cfg, 0, main_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
+                    Array.Copy(cfg, Nanotag.CONFIG_CHUNK_SIZE, dev_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
+                    Array.Copy(cfg, Nanotag.CONFIG_CHUNK_SIZE * 2, sch_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
+
+                    int retb = WriteRead(VND_CMD_SET_CFGCHUNK_GEN, main_cfg, out response, 0);
+                    Debug.WriteLine("Sent General config result: " + retb.ToString());
                     if (retb == 0)
                     {
                         await Task.Delay(200);
-                        retb = WriteRead(VND_CMD_SET_CFGCHUNK_SCH, sch_cfg, out response, 0);
-                        Debug.WriteLine("Sent Schedule config result: " + retb.ToString());
-                        r = true;
+                        retb = WriteRead(VND_CMD_SET_CFGCHUNK_DEV, dev_cfg, out response, 0);
+                        Debug.WriteLine("Sent Device config result: " + retb.ToString());
+
+                        if (retb == 0)
+                        {
+                            await Task.Delay(200);
+                            retb = WriteRead(VND_CMD_SET_CFGCHUNK_SCH, sch_cfg, out response, 0);
+                            Debug.WriteLine("Sent Schedule config result: " + retb.ToString());
+                            r = true;
+                        }
                     }
                 }
             }

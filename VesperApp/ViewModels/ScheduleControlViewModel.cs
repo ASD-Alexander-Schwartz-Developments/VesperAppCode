@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Controls.Selection;
+using MessageBox.Avalonia.DTO;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
@@ -22,20 +23,125 @@ namespace VesperApp.ViewModels
  
             ScheduleEventsList = new ObservableCollection<ConfigScheduleJSONItem>(items);
 
-            CommandAddButton = ReactiveCommand.Create(() =>
+
+            CommandAddButton = ReactiveCommand.Create(async () =>
             {
-                selectedDate = null;
-                selectedTime = null;
-                selectedConfiguration = WorkingConfiguration.Off;
-
-                if (IsAddingNewEntry == true)
+                if(SelectedScheduleType == ScheduleTypes.Continues)
                 {
+                    var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                    new MessageBoxStandardParams
+                    {
+                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                        ContentTitle = "New Schedule Entry",
+                        ContentHeader = "Not able to create new entry",
+                        ContentMessage = "Continues schedule types just run forever",
+                        SizeToContent = SizeToContent.WidthAndHeight,
+                        WindowIcon = App.MainWindow.Icon,
+                        Icon = MessageBox.Avalonia.Enums.Icon.Info
+                    });
 
+                    await messageBoxStandardWindow.ShowDialog(App.MainWindow);
                 }
-                else
+                else if(SelectedScheduleType == ScheduleTypes.Triggered)
                 {
-                    IsAddingNewEntry = true;
+                    if(ScheduleEventsList.Count >= 1)
+                    {
+                        var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                        new MessageBoxStandardParams
+                        {
+                            ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                            ContentTitle = "New Schedule Entry",
+                            ContentHeader = "Not able to create new entry",
+                            ContentMessage = "Triggered schedule contain single entry of first activation",
+                            SizeToContent = SizeToContent.WidthAndHeight,
+                            WindowIcon = App.MainWindow.Icon,
+                            Icon = MessageBox.Avalonia.Enums.Icon.Info
+                        });
+
+                        await messageBoxStandardWindow.ShowDialog(App.MainWindow);
+                    }
+                    else
+                    {
+                        selectedDate = null;
+                        selectedTime = null;
+                        selectedConfiguration = WorkingConfiguration.Off;
+
+                        if (IsAddingNewEntry == true)
+                        {
+
+                        }
+                        else
+                        {
+                            IsAddingNewEntry = true;
+                            IsDateEnabled = true;
+                        }
+                    }
                 }
+                else if(SelectedScheduleType == ScheduleTypes.Daily)
+                {
+                    selectedDate = null;
+                    selectedTime = null;
+                    selectedConfiguration = WorkingConfiguration.Off;
+
+                    if (IsAddingNewEntry == true)
+                    {
+
+                    }
+                    else
+                    {
+                        IsAddingNewEntry = true;
+                        IsDateEnabled = false;
+                    }
+                }
+                else if (SelectedScheduleType == ScheduleTypes.Weekly)
+                {
+                    selectedDate = null;
+                    selectedTime = null;
+                    selectedConfiguration = WorkingConfiguration.Off;
+
+                    if (IsAddingNewEntry == true)
+                    {
+
+                    }
+                    else
+                    {
+                        IsAddingNewEntry = true;
+                        IsDateEnabled = true;
+                    }
+                }
+                else if (SelectedScheduleType == ScheduleTypes.Dated)
+                {
+                    selectedDate = null;
+                    selectedTime = null;
+                    selectedConfiguration = WorkingConfiguration.Off;
+
+                    if (IsAddingNewEntry == true)
+                    {
+
+                    }
+                    else
+                    {
+                        IsAddingNewEntry = true;
+                        IsDateEnabled = true;
+                    }
+                }
+                else if (SelectedScheduleType == ScheduleTypes.Relative)
+                {
+                    selectedDate = null;
+                    selectedTime = null;
+                    selectedConfiguration = WorkingConfiguration.Off;
+
+                    if (IsAddingNewEntry == true)
+                    {
+
+                    }
+                    else
+                    {
+                        IsAddingNewEntry = true;
+                        IsDateEnabled = true;
+                    }
+                }
+
             });
 
             CommandRejectButton = ReactiveCommand.Create(() =>
@@ -48,13 +154,13 @@ namespace VesperApp.ViewModels
 
             CommandApplyButton = ReactiveCommand.Create(() =>
             {
-                IsAddingNewEntry = false;
                 ConfigScheduleJSONItem nitem = new ConfigScheduleJSONItem();
-                DateTime dt = new DateTime(2000, 1, 1, 0, 0, 0);
+                //DateTime dt = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
                 if (SelectedDate != null) 
-                    if(DateTime.TryParse(SelectedDate, out dt) == true)
-                        nitem.Alarm = dt;
+                   // if(/*DateTime.TryParse(SelectedDate, out dt) == true*/dt = new DateTime( )
+                        nitem.Alarm = SelectedDate.Value.DateTime;
+
 
                 if (SelectedTime != null)
                     nitem.Alarm += (TimeSpan)SelectedTime;
@@ -62,21 +168,73 @@ namespace VesperApp.ViewModels
                 nitem.Configuration = SelectedConfiguration;
                 ScheduleEventsList.Add(nitem);
                 IsAddingNewEntry = false;
+                selectedDate = null;
+                selectedTime = null;
+                selectedConfiguration = WorkingConfiguration.Off;
             });
 
-            CommandDeleteButton = ReactiveCommand.Create(() =>
+            CommandDeleteButton = ReactiveCommand.Create( async () =>
             {
-                ScheduleEventsList.RemoveAt(_selectedIndex);
+                if (_selectedIndex == -1 || _selectedIndex > ScheduleEventsList.Count)
+                {
+                    var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                    new MessageBoxStandardParams
+                    {
+                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                        ContentTitle = "Delete Schedule Entry",
+                        ContentHeader = "Not able to delete entry",
+                        ContentMessage = "Please selec entry to delete first",
+                        SizeToContent = SizeToContent.WidthAndHeight,
+                        WindowIcon = App.MainWindow.Icon,
+                        Icon = MessageBox.Avalonia.Enums.Icon.Info
+                    });
+
+                    await messageBoxStandardWindow.ShowDialog(App.MainWindow);
+
+                }
+                else
+                {
+                    var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                    new MessageBoxStandardParams
+                    {
+                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.YesNoCancel,
+                        ContentTitle = "Delete Schedule Entry",
+                        ContentHeader = "Do you really want to delete this entry?",
+                        ContentMessage = ScheduleEventsList[_selectedIndex].Alarm.ToString() + " " + ScheduleEventsList[_selectedIndex].Configuration.ToString(),
+                        SizeToContent = SizeToContent.WidthAndHeight,
+                        WindowIcon = App.MainWindow.Icon,
+                        Icon = MessageBox.Avalonia.Enums.Icon.Question
+                    });
+
+                    if(await messageBoxStandardWindow.ShowDialog(App.MainWindow) == MessageBox.Avalonia.Enums.ButtonResult.Yes)
+                        ScheduleEventsList.RemoveAt(_selectedIndex);
+                }
             });
 
             CommandUpButton = ReactiveCommand.Create(() => 
             {
-                ScheduleEventsList.Move(_selectedIndex, _selectedIndex-1);
+                if (ScheduleEventsList.Count > 1)
+                {
+                    if (_selectedIndex > 0)
+                    {
+                        int oldIndex = _selectedIndex;
+                        ScheduleEventsList.Move(oldIndex, oldIndex - 1);
+                        SelectedIndex--;
+                    }
+                }
             });
             
             CommandDownButton = ReactiveCommand.Create(() => 
             {
-                ScheduleEventsList.Move(_selectedIndex, _selectedIndex + 1);
+                if (ScheduleEventsList.Count > 1)
+                {
+                    if (_selectedIndex < ScheduleEventsList.Count - 1)
+                    {
+                        int oldIndex = _selectedIndex;
+                        ScheduleEventsList.Move(oldIndex, oldIndex + 1);
+                        SelectedIndex++;
+                    }
+                }
             });
         }
 
@@ -99,12 +257,22 @@ namespace VesperApp.ViewModels
         }
         private bool isAddingNewEntry;
 
-        public string ? SelectedDate 
+
+        public bool IsDateEnabled
+        {
+            get => isDateEnabled;
+            set => this.RaiseAndSetIfChanged(ref isDateEnabled, value);
+        }
+        private bool isDateEnabled;
+
+
+
+        public DateTimeOffset? SelectedDate 
         { 
             get => selectedDate; 
             set => this.RaiseAndSetIfChanged(ref selectedDate, value); 
         }
-        private string ? selectedDate;
+        private DateTimeOffset? selectedDate;
         public TimeSpan ? SelectedTime 
         { 
             get => selectedTime; 

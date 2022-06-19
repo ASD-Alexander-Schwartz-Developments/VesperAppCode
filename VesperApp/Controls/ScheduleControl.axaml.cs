@@ -15,7 +15,7 @@ namespace VesperApp.Controls
             InitializeComponent();
 
             picker = this.FindControl<DatePicker>("dpDate");
-            picker.SelectedDate = new DateTimeOffset(new DateTime(2000, 1, 1));
+            picker.SelectedDate = new DateTimeOffset(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified));
         }
 
         private void InitializeComponent()
