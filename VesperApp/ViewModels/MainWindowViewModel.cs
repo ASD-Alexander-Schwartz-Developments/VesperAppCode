@@ -225,7 +225,12 @@ namespace VesperApp.ViewModels
 
                     string ? path = await openFolderDialog.ShowAsync(MainWindowContext);
 
-                    await SelectedLoggerDevice.DownloadPages(path);
+                    bool ok = await SelectedLoggerDevice.DownloadPages(path);
+
+                    if(!ok)
+                    {
+                        ///// show error
+                    }
                 }
             });
 
@@ -602,7 +607,7 @@ namespace VesperApp.ViewModels
                             }
                         }
 
-                        if (f == false) LoggerDevices.Remove(dev);
+                        if (f == false && dev.IsConnected == false) LoggerDevices.Remove(dev);
                     }
                 });
 

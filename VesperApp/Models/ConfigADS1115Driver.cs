@@ -10,7 +10,6 @@ namespace VesperApp.Models
     public class ConfigADS1115Driver : ConfigurationDeviceDriver
     {
         //public const UInt32 BITMASK_MIKE_RESOLUTION = 0x01;
-        public const UInt32 BITMASK_ADS_LED = 0x02;
 
         public ConfigADS1115Driver() : base("ADS1115", "Low datarate analog to digital converter")
         {
@@ -118,32 +117,6 @@ namespace VesperApp.Models
                     this.channels |= 0x08;
                 else
                     this.channels &= (0xF7);
-            }
-        }
-
-
-
-
-        [DisplayName("External ADC activity LED indication"),
-        TypeConverter(typeof(bool)),
-        CategoryAttribute("Ext. ADC specific Settings"),
-        DescriptionAttribute("Enables LED to blink on ADS1115 ADC recording activity")]
-        [JsonIgnore]
-        public bool EnableLEDIndication
-        {
-            get
-            {
-                if ((this.bitmask & BITMASK_ADS_LED) == BITMASK_ADS_LED)
-                    return true;
-                else
-                    return false;
-            }
-            set
-            {
-                if (value == true)
-                    this.bitmask |= BITMASK_ADS_LED;
-                else
-                    this.bitmask &= ~(BITMASK_ADS_LED);
             }
         }
     }

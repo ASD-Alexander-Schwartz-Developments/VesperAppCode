@@ -12,6 +12,8 @@ namespace VesperApp.Models
 {
     public class ConfigurationDeviceDriver : INotifyPropertyChanged, IEquatable<ConfigurationDeviceDriver>
     {
+        public const UInt32 BITMASK_LED = 0x01;
+
         private string name;
         private string description;
         protected UInt32[] sample_rate;
@@ -276,13 +278,13 @@ namespace VesperApp.Models
         DisplayName("LED Activity")]
         public virtual bool IsLEDActive
         {
-            get => ((Bitmask & 0x01) == 0x01);
+            get => ((Bitmask & BITMASK_LED) == BITMASK_LED);
             set
             {
                 if (value == true) 
-                    Bitmask |= 0x01;
+                    Bitmask |= BITMASK_LED;
                 else
-                    Bitmask &= ~((UInt32)0x01);
+                    Bitmask &= ~((UInt32)BITMASK_LED);
             }
         }
 

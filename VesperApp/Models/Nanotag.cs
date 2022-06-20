@@ -23,7 +23,9 @@ namespace VesperApp.Models
 		{
 			{ new ConfigACLYSDriver() },
 			{ new ConfigLEDDriver() },
-			{ new ConfigTPRH31Driver() }
+			{ new ConfigTPRH31Driver() },
+			{ new ConfigNanotagAcc() },
+			{ new ConfigALS3001DDriver() }
 
 		};
 

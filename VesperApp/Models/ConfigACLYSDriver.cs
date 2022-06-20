@@ -42,11 +42,6 @@ namespace VesperApp.Models
             get { return (AclysSnapLength)base.RawData1; }
             set { base.RawData1 = (UInt32)value; }
         }
-
-
-        [JsonIgnore]
-        [Browsable(true)]
-        public double TEST { get; set; }
     }
 
 

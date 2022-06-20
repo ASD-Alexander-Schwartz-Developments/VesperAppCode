@@ -11,10 +11,8 @@ namespace VesperApp.Models
     {
         public ConfigALS3001DDriver() : base("ALS3001D", "Huaman Eye calibrated response ambient light sensor")
         {
-
             this.MemoryBufferSize = 512;
             this.FileSize = 512 * 1024;
-
         }
     }
 }

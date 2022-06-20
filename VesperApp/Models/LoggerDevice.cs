@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ASDLibUSBWrapper;
+using Avalonia.Threading;
 using ReactiveUI;
 
 namespace VesperApp.Models
@@ -59,7 +60,13 @@ namespace VesperApp.Models
 
         public string? Nickname { get; set; }
 
-        public string? HwId { get; set; }
+        public string? HwId 
+        { 
+            get => hwid; 
+            set => this.RaiseAndSetIfChanged(ref hwid, value); 
+        }
+        private string? hwid;
+
         public string? FwId 
         { 
             get => fwid; 
@@ -74,8 +81,17 @@ namespace VesperApp.Models
         }
         private string? localDateTime;
 
-        public string? DiskSize { get; set; }
-        public string? DiskOccupancy { get; set; }
+        public double? DiskSize { get; set; }
+        public double? DiskOccupancy { get; set; }
+
+        public double ? DownloadProgress { get; set; } 
+        public string? DiskStatus
+        {
+            get => diskStatus;
+            set => this.RaiseAndSetIfChanged(ref diskStatus, value);
+        }
+        private string? diskStatus;
+
         public string? BatteryChargePercent 
         { 
             get => batteryCharge; 
@@ -98,15 +114,20 @@ namespace VesperApp.Models
                 else if (this._name.Contains("Vesper")) _type = DeviceTypes.Vesper;
                 else if (this._name.Contains("Pipistrelle")) _type = DeviceTypes.Pipistrelle;
             }
+            else
+            {
+                _name = "Unknown";
+            }
 
             this._interfaceVender = 2;
             this._readEndpointID = ReadEndpointID.Ep03;
             this._writeEndpointID = WriteEndpointID.Ep03;
 
             this.BatteryChargePercent = "-";
-            this.DiskOccupancy = "-";
-            this.DiskSize = "-";
-            this.LocalDateTime = DateTime.Now.ToLongDateString();
+            this.DiskOccupancy = 0.0;
+            this.DiskSize = 0.0;
+            this.DownloadProgress = 0.0;
+            this.LocalDateTime = "-";
             this.HwId = "-";
             this.FwId = "-";
 
@@ -189,12 +210,65 @@ namespace VesperApp.Models
             {
                 this._serialnumber = this.USBDevice.Info.SerialNumber;
                 this._name = this.USBDevice.Info.Product;
+                
+                byte[] response;
+                int retb = WriteRead(VND_CMD_GET_DISKINFO, new byte[0], out response, 38);
+
+                if(retb == 0)
+                {
+                    UInt32 nandSizePages = (UInt32)response[0] + 
+                                            ((UInt32)response[1] << 8) + 
+                                            ((UInt32)response[2] << 16) + 
+                                            ((UInt32)response[3] << 24);
+                    UInt32 pageSizeBytes = (UInt32)response[4] +
+                                            ((UInt32)response[5] << 8) +
+                                            ((UInt32)response[6] << 16) +
+                                            ((UInt32)response[7] << 24);
+
+                    UInt16 freep = (UInt16)((UInt16)response[36] +
+                                            ((UInt16)response[37] << 8));
+
+                    DiskSize = ((double)(nandSizePages * pageSizeBytes)) / (double)(1024*1024*1024); // GB
+                    DiskOccupancy = (double)freep;
+                    UpdateDiskStatus();
+                }
+                /*
+                 * 	uint32_t   		 	nandSizePages;
+	uint32_t			pageSizeBytes;		// Page size in Bytes
+	uint32_t			spareSizeBytes;
+	uint16_t			nandSizeBlocks;
+    uint16_t            columnAddrMask;     // (1 << (number of bits in column address+1)) - 1
+	uint16_t			planeSizeBlocks;	
+	uint16_t			blockSizePages;
+    uint16_t            blockSizePages2Log; // number of bitshifts in pages in block
+    uint16_t            blockAddressShift;
+	uint16_t   		 	maxLunBadBlocks;
+	uint16_t   		 	reserved;
+	uint8_t				lunSizePlanes;
+	uint8_t				dieSizeLuns;
+	uint8_t				nandSizeDies;
+	uint8_t				nandSizeGb;			
+                            appData->transmitDataBuffer[i++] = (bdblk & 0xFF);
+                            appData->transmitDataBuffer[i++] = ((bdblk>>8) & 0xFF);
+                            appData->transmitDataBuffer[i++] = ((bdblk>>16) & 0xFF);
+                            appData->transmitDataBuffer[i++] = ((bdblk>>24) & 0xFF);
+
+                            appData->transmitDataBuffer[i++] = (freep & 0xFF);
+                            appData->transmitDataBuffer[i++] = ((freep>>8) & 0xFF);
+
+                */
             }
 
             return await Task.FromResult(r);
         }
 
+        private void UpdateDiskStatus()
+        {
+            DiskStatus = DownloadProgress?.ToString("N2") + "%" + Environment.NewLine +
+                            DiskOccupancy?.ToString("N2") + "%" + Environment.NewLine +
+                            DiskSize?.ToString("N2") + "GB";
 
+        }
 
         public bool IsConnected => (this.USBDevice == null) ? false : this.USBDevice.IsOpen == true;
 
@@ -332,7 +406,10 @@ namespace VesperApp.Models
                     fwidbld = response[3];
                     FwId = fwidmj.ToString() + "." + fwidmd.ToString() + "." + fwidmn.ToString() + "." + fwidbld.ToString();
 
-                    // spare 4 bytes
+                    byte hwidmj = response[4];
+                    byte hwidmn = response[5];
+                    HwId = hwidmj.ToString() + "." + hwidmn.ToString();
+                    // spare 2 bytes
 
                     UInt16 batt_level = (UInt16)((UInt16)response[8] + ((UInt16)response[9] << 8));
                     BatteryChargePercent = batt_level + "[%]";
@@ -490,34 +567,43 @@ namespace VesperApp.Models
 
                 if (retb == 0)
                 {
-                    UInt32 first_page = (UInt32)(((UInt32)response[0]) + ((UInt32)response[1] << 8) + ((UInt32)response[2] << 16) + ((UInt32)response[3] << 24));
-                    UInt32 last_page = (UInt32)(((UInt32)response[4]) + ((UInt32)response[5] << 8) + ((UInt32)response[6] << 16) + ((UInt32)response[7] << 24));
-
-                    Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
-
-                    for (UInt32 i = first_page; i < last_page; i++)
+                    await Task.Run(async () =>
                     {
-                        //Console.WriteLine(("\r" + i.ToString()).PadLeft(Console.WindowWidth - Console.CursorLeft - 1));
-                        byte[] addr = new byte[4];
-                        addr[0] = (byte)(i & 0xFF);
-                        addr[1] = (byte)(i >> 8);
-                        addr[2] = (byte)(i >> 16);
-                        addr[3] = (byte)(i >> 24);
-                        var dpageresponse = new byte[0];
-                        Debug.Write("Trying to download page = " + i.ToString());
-                        int getpageresult = WriteRead(VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
+                        DownloadProgress = 0;
 
-                        if (getpageresult == 0)
+                        UInt32 first_page = (UInt32)(((UInt32)response[0]) + ((UInt32)response[1] << 8) + ((UInt32)response[2] << 16) + ((UInt32)response[3] << 24));
+                        UInt32 last_page = (UInt32)(((UInt32)response[4]) + ((UInt32)response[5] << 8) + ((UInt32)response[6] << 16) + ((UInt32)response[7] << 24));
+
+                        Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
+
+                        for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
                         {
-                            Debug.WriteLine(" - OK");
-                            Task.Factory.StartNew( () => { ProcessOnePage(dpageresponse, path); });
+                            //Console.WriteLine(("\r" + i.ToString()).PadLeft(Console.WindowWidth - Console.CursorLeft - 1));
+                            byte[] addr = new byte[4];
+                            addr[0] = (byte)(i & 0xFF);
+                            addr[1] = (byte)(i >> 8);
+                            addr[2] = (byte)(i >> 16);
+                            addr[3] = (byte)(i >> 24);
+                            var dpageresponse = new byte[0];
+                            Debug.Write("Trying to download page = " + i.ToString());
+                            int getpageresult = WriteRead(VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
+
+                            if (getpageresult == 0)
+                            {
+                                Debug.WriteLine(" - OK");
+
+                                _ = Task.Factory.StartNew(() => { ProcessOnePage(dpageresponse, path); });
+                            }
+                            else if (getpageresult == -200)
+                            {
+                                Debug.WriteLine(" - BAD Block");
+                                i += 63;    // the 64th will be inside for loop
+                            }
+                            await Dispatcher.UIThread.InvokeAsync(() => UpdateDiskStatus());
                         }
-                        else if(getpageresult == -200)
-                        {
-                            Debug.WriteLine(" - BAD Block");
-                            i += 63;    // the 64th will be inside for loop
-                        }
-                    }
+                        DownloadProgress = 100.0;
+                        UpdateDiskStatus();
+                    });
                 }
                 else
                 {
@@ -529,23 +615,7 @@ namespace VesperApp.Models
             return await Task.FromResult(r);
         }
 
-/*
-        typedef union
-        {
-   struct __date_time
-        {
-            unsigned second :6;
-            unsigned minute :6;
-            unsigned hour :5;
-            unsigned day :5;
-            unsigned month :4;
-            unsigned year :6;
-        }
-        date_time;
-   uint32_t packedTime;
-    }
-    vesper_datetime_t;
-*/
+
 
 
 

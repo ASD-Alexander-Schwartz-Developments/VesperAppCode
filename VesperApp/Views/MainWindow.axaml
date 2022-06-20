@@ -133,21 +133,21 @@
 										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 									</Grid.ColumnDefinitions>
-									<Label Grid.Column="0">Serial Number</Label>
+									<Label Grid.Column="0" FontWeight="Bold">Serial Number</Label>
 									<Separator/>
-									<Label Grid.Column="1">Name</Label>
+									<Label Grid.Column="1" FontWeight="Bold">Name</Label>
 									<Separator/>
-									<Label Grid.Column="2">Nickname</Label>
+									<Label Grid.Column="2" FontWeight="Bold">Nickname</Label>
 									<Separator/>
-									<Label Grid.Column="3">HwId</Label>
+									<Label Grid.Column="3" FontWeight="Bold">HwId</Label>
 									<Separator/>
-									<Label Grid.Column="4">FwId</Label>
+									<Label Grid.Column="4" FontWeight="Bold">FwId</Label>
 									<Separator/>
-									<Label Grid.Column="5">Date Time</Label>
+									<Label Grid.Column="5" FontWeight="Bold">Date Time</Label>
 									<Separator/>
-									<Label Grid.Column="6">Size</Label>
+									<Label Grid.Column="6" FontWeight="Bold">Disk Info</Label>
 									<Separator/>
-									<Label Grid.Column="7">Batt</Label>
+									<Label Grid.Column="7" FontWeight="Bold">Batt</Label>
 								</Grid>
 								<ItemsPresenter></ItemsPresenter>
 							</DockPanel>
@@ -178,7 +178,7 @@
 								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="5" TextWrapping="Wrap" Padding="1" Text="{Binding LocalDateTime}" TextAlignment="Left"/>
 								<Separator/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="6" TextWrapping="Wrap" Padding="1" Text="{Binding DiskSize}" TextAlignment="Left"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="6" TextWrapping="Wrap" Padding="1" Text="{Binding DiskStatus}" TextAlignment="Left"/>
 								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="7" TextWrapping="Wrap" Padding="1" Text="{Binding BatteryChargePercent}" TextAlignment="Left"/>
 							</Grid>
@@ -236,7 +236,7 @@
 						</StackPanel>
 					</Button>
 
-					<Button Margin="1" Height="30" Command="{Binding BootloadDeviceCommand}" x:Name="bBootloadDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
+					<Button Margin="1" Height="30" Command="{Binding BootloaderDeviceCommand}" x:Name="bBootloadDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
 						<StackPanel Orientation="Horizontal">
 							<TextBlock VerticalAlignment="Center" Text="Upgrade Firmware" IsVisible="True" Classes="DeviceControls"/>
 						</StackPanel>
@@ -245,11 +245,11 @@
 				</StackPanel>
 
 				<StackPanel Spacing="1" Orientation="Horizontal" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2">
-					<ListBox Items="{Binding DevicesFilters}" SelectionMode="Multiple,Toggle" Width="120" Selection="{Binding DevicesFiltersSelection}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+					<ListBox Items="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}" SelectionMode="Multiple,Toggle" Width="120" Selection="{Binding DevicesFiltersSelection}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 						<ListBox.ItemTemplate>
 							<DataTemplate>
-								<Border Background="Wheat" CornerRadius="3" Padding="3">
-									<TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+								<Border Background="LightBlue" CornerRadius="3" Padding="3">
+									<TextBlock Text="{Binding .}" TextWrapping="Wrap"/>
 								</Border>
 							</DataTemplate>
 						</ListBox.ItemTemplate>
@@ -310,29 +310,29 @@
 					<TabItem.Header>
 						<TextBlock Classes="tbTabHeader" Text="Config" HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
 					</TabItem.Header>
-					<Grid ColumnDefinitions="*" RowDefinitions="42,*" ShowGridLines="false">
+					<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="false">
 						<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal" 
-									HorizontalAlignment="Stretch" VerticalAlignment="Center" 
+									HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
 									ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 									>
 
-								<Button Margin="1" Height="30" Command="{Binding NewConfigCommand}" x:Name="NewConfigButton">
+							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding NewConfigCommand}" x:Name="NewConfigButton">
 								<StackPanel Orientation="Horizontal">
-									<TextBlock VerticalAlignment="Center" Text="New"/>
+									<DrawingPresenter Stretch="Fill" Width="42" Height="42" Drawing="{DynamicResource FluentIconsFilled.form_new_filled}" />
 								</StackPanel>
 							</Button>
-							<Button Margin="1" Height="30" Command="{Binding LoadConfigCommand}" x:Name="LoadConfigButton">
+							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding LoadConfigCommand}" x:Name="LoadConfigButton">
 								<StackPanel Orientation="Horizontal">
-									<TextBlock VerticalAlignment="Center" Text="Load"/>
+									<DrawingPresenter Stretch="Fill" Width="42" Height="42" Drawing="{DynamicResource FluentIconsFilled.open_filled}" />
 								</StackPanel>
 							</Button>
-							<Button Margin="1" Height="30" Command="{Binding SaveConfigCommand}" x:Name="SaveConfigButton">
+							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding SaveConfigCommand}" x:Name="SaveConfigButton">
 								<StackPanel Orientation="Horizontal">
-									<TextBlock VerticalAlignment="Center" Text="Save"/>
+									<DrawingPresenter Stretch="Fill" Width="42" Height="42" Drawing="{DynamicResource FluentIconsFilled.save_filled}" />
 								</StackPanel>
 							</Button>
 							<Separator Margin="10"/>
-							<Label Content="Select Device Type" VerticalAlignment="Center"/>
+							<Label FontWeight="Bold" Content="Select Device Type" VerticalAlignment="Center"/>
 							<ComboBox x:Name="comboDeviceType"
 								Margin="1"
 								VerticalAlignment="Center"
@@ -343,11 +343,15 @@
 
 						<ScrollViewer Grid.Column="0" Grid.Row="1" BorderThickness="1" BorderBrush="Cornsilk">
 							<StackPanel  Orientation="Vertical"	Margin="0,16,0,0" HorizontalAlignment="Stretch">
-								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}"/>
-								<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
-									<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="1,10,1,1"/>
-									<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="1,10,1,1"/>
-								</StackPanel>
+								<Expander ExpandDirection="Down" Header="Schedule">
+									<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}"/>
+								</Expander>
+								<Expander ExpandDirection="Down" Header="Drivers">
+									<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+										<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="1,10,1,1"/>
+										<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="1,10,1,1"/>
+									</StackPanel>
+								</Expander>
 							</StackPanel>
 						</ScrollViewer>
 					</Grid>
@@ -374,7 +378,7 @@
 		</Border>
 		<Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="5" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Padding="0,1">
 			<Grid Margin="1">
-				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{DynamicResource ThemeControlHighlightHighColor}" x:Name="textLogWindow" Text="{Binding ConnectionStatus}"/>
+				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{DynamicResource ThemeControlHighlightHighColor}" x:Name="textLogWindow" Text="{Binding IsConnected}"/>
 			</Grid>
 		</Border>		
 	</Grid>

@@ -23,6 +23,14 @@ namespace VesperApp.ViewModels
  
             ScheduleEventsList = new ObservableCollection<ConfigScheduleJSONItem>(items);
 
+            selectedScheduleType = ScheduleTypes.Continues;
+            previousScheduleType = ScheduleTypes.Continues;
+            isDateEnabled = false;
+            isMonthVisible = false;
+            isYearVisible = false;
+            dayVisible = false;
+
+
 
             CommandAddButton = ReactiveCommand.Create(async () =>
             {
@@ -148,7 +156,7 @@ namespace VesperApp.ViewModels
             {
                 IsAddingNewEntry = false;
                 selectedDate = null;
-                selectedTime = null;
+                selectedTime = new TimeSpan(0); ;
                 selectedConfiguration = WorkingConfiguration.Off;
             });
 
@@ -157,10 +165,11 @@ namespace VesperApp.ViewModels
                 ConfigScheduleJSONItem nitem = new ConfigScheduleJSONItem();
                 //DateTime dt = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
-                if (SelectedDate != null) 
-                   // if(/*DateTime.TryParse(SelectedDate, out dt) == true*/dt = new DateTime( )
-                        nitem.Alarm = SelectedDate.Value.DateTime;
-
+                if (SelectedDate != null)
+                    nitem.Alarm = SelectedDate.Value.DateTime;
+                else
+                    nitem.Alarm = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0, 0, DateTimeKind.Unspecified);
+                        
 
                 if (SelectedTime != null)
                     nitem.Alarm += (TimeSpan)SelectedTime;
@@ -266,6 +275,39 @@ namespace VesperApp.ViewModels
         private bool isDateEnabled;
 
 
+        public bool IsMonthVisible
+        {
+            get => isMonthVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref isMonthVisible, value);
+            }
+        }
+
+        private bool isMonthVisible;
+        
+
+        public bool IsYearVisible
+        {
+            get => isYearVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref isYearVisible, value);
+            }
+        }
+        private bool isYearVisible;
+		
+        public bool IsDayVisible
+        {
+            get => dayVisible;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref dayVisible, value);
+            }
+        }
+        private bool dayVisible;
+
+
 
         public DateTimeOffset? SelectedDate 
         { 
@@ -292,9 +334,65 @@ namespace VesperApp.ViewModels
         public ScheduleTypes SelectedScheduleType
         {
             get => selectedScheduleType;
-            set => this.RaiseAndSetIfChanged(ref selectedScheduleType, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref selectedScheduleType, value);
+
+                if(selectedScheduleType == ScheduleTypes.Continues)
+                {
+                    IsDateEnabled = false;
+                    SelectedDate = null;
+                }
+                else if(selectedScheduleType == ScheduleTypes.Triggered)
+                {
+                    IsDateEnabled = true;
+                    SelectedDate = null;
+                    IsMonthVisible = true;
+                    IsYearVisible = true;
+                    IsDayVisible = true;
+                }
+                else if(selectedScheduleType == ScheduleTypes.Dated)
+                {
+                    IsDateEnabled = true;
+                    SelectedDate = null;
+                    IsMonthVisible = true;
+                    IsYearVisible = true;
+                    IsDayVisible = true;
+                }
+                else if (selectedScheduleType == ScheduleTypes.Daily)
+                {
+                    IsMonthVisible = false;
+                    IsYearVisible = false;
+                    IsDayVisible = false;
+                    IsDateEnabled = false;
+                    SelectedDate = null;
+                }
+                else if (selectedScheduleType == ScheduleTypes.Weekly)
+                {
+                    IsMonthVisible = false;
+                    IsYearVisible = false;
+                    IsDayVisible = true;
+                    IsDateEnabled = true;
+                    SelectedDate = null;
+                }
+                else if (selectedScheduleType == ScheduleTypes.Relative)
+                {
+                    IsMonthVisible = true;
+                    IsYearVisible = false;
+                    IsDayVisible = true;
+                    IsDateEnabled = true;
+                    SelectedDate = null;
+                }
+
+                if(selectedScheduleType != previousScheduleType)
+                {
+                    previousScheduleType = selectedScheduleType;
+                    ScheduleEventsList.Clear();
+                }
+            }
         }
         private ScheduleTypes selectedScheduleType;
+        private ScheduleTypes previousScheduleType;
 
 
 
