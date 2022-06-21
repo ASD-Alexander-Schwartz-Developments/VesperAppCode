@@ -7,6 +7,7 @@ using VesperApp.Models;
 using VesperApp.ViewModels;
 using VesperApp.Controls;
 using Avalonia.Markup.Xaml;
+using System.Reflection;
 
 namespace VesperApp.Views
 {
@@ -25,6 +26,11 @@ namespace VesperApp.Views
         {
             AvaloniaXamlLoader.Load(this);
 
+            Version? v = Assembly.GetExecutingAssembly().GetName().Version;
+
+            string version = (v == null) ? "Unknown Version" : v.ToString();
+
+            this.Title += " - v" + version;
         }
 
 

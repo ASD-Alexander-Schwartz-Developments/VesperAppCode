@@ -23,6 +23,13 @@ namespace VesperApp.Models
             set { this.file_size = value; }
         }
 
+        [Browsable(false)]
+        public override UInt32 MemoryBufferSize
+        {
+            get { return this.mem_size; }
+            set { this.mem_size = value; }
+        }
+
         public override string ToString()
         {
             return "VT03-TPRH31";

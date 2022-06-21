@@ -13,7 +13,7 @@ namespace VesperApp.Controls
 {
     public partial class DeviceDriverPropertyGrid : UserControl
     {
-        private DataGrid gridEditor;
+        private Avalonia.Controls.DataGrid gridEditor;
         private DriverPropertyViewModel ? selectedDriverProperty;
         //private DataTemplate dataTemlate;
         DataGridTemplateColumn col;

@@ -107,6 +107,7 @@ namespace VesperApp.ViewModels
             NewConfigCommand = null;
             LoadConfigCommand = null;
             SaveConfigCommand = null;
+            ManualGPSParserCommand = null;
 
             _timer = null;
             LoggerDevices = new ObservableCollection<LoggerDevice>();
@@ -329,6 +330,9 @@ namespace VesperApp.ViewModels
 
             #endregion
 
+            #region Parser Commands
+            ManualGPSParserCommand = ReactiveCommand.CreateFromTask(ParseNanotagSnaps);
+            #endregion
 
             _timer = new System.Timers.Timer();
             _timer.Elapsed += _timer_Elapsed;
@@ -372,7 +376,7 @@ namespace VesperApp.ViewModels
 
             saveFileDialog.Title = "Save Configuration...";
 
-            string? file = await saveFileDialog.ShowAsync(MainWindowContext);
+            string? file = await saveFileDialog.ShowAsync(MainWindowContext??App.MainWindow);
             string error = "";
 
             if (file != null && file.Length > 0 && configurationJSONInstance != null)
@@ -419,7 +423,7 @@ namespace VesperApp.ViewModels
                             ContentHeader = "Configuration Not saved",
                             ContentMessage = error,
                             Icon = MessageBox.Avalonia.Enums.Icon.Error,
-                            WindowIcon = MainWindowContext.Icon,
+                            WindowIcon = App.MainWindow.Icon,
                         });
 
                     await messageBoxStandardWindow.ShowDialog(MainWindowContext);
@@ -515,6 +519,137 @@ namespace VesperApp.ViewModels
             ok = true;
 
             return await Task.FromResult(ok);
+        }
+
+
+        private async Task<bool> ParseNanotagSnaps()
+        {
+            bool result = false;
+
+            if (OperatingSystem.IsWindows())
+            {
+                OpenFolderDialog openFolderDialog = new OpenFolderDialog();
+
+                openFolderDialog.Title = "Select Folder holdeing the snaps";
+
+                string? path = await openFolderDialog.ShowAsync(MainWindowContext ?? App.MainWindow);
+
+                if (path != null && path.Length > 0)
+                {
+                    System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo(Directory.GetCurrentDirectory() + @"\CG\GeoTag\GeoTag.exe");
+                    psi.Arguments = "-t --download=\"" + path + "\" --decode=\"" + path + "\\decode\" --geotagengine=\"" + Directory.GetCurrentDirectory() + "\\CG\\GeoTagEngine\\GeoTagEngine.exe\" --pattern=snap.*.dat";
+
+                    //psi.RedirectStandardOutput = true;
+                    //psi.RedirectStandardError = true;
+                    //psi.RedirectStandardInput = true;
+                    psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized;
+                    psi.UseShellExecute = true;
+                    psi.CreateNoWindow = false;
+                    System.Diagnostics.Process? ischk = null;
+                    System.IO.StreamReader ischkout;
+                    System.IO.StreamReader ischkerr;
+
+                    try
+                    {
+                        ischk = System.Diagnostics.Process.Start(psi);
+                    }
+                    catch(Exception excp)
+                    {
+                        ischk = null;
+                    }
+
+                    if (ischk != null)
+                    {
+
+                        string ?error, msg = "";
+                        int index1, index2, current;
+                        double percent = 0;
+
+//                        this.Log("Starting " + bar.Name, 1, true);
+
+                        await Task.Delay(1000);
+                        //ischkout = ischk.StandardOutput;
+                        //ischkerr = ischk.StandardError;
+
+                        bool done = false;
+
+                        await Task.Run( async () =>
+                        {
+                            while (ischk.HasExited == false && done == false)
+                            {
+                                await Task.Delay(200);
+
+/*                              await Task.Delay(1000);
+                                error = ischkerr.ReadLine();
+
+                                if (error != null)
+                                {
+                                    if (error.Contains("Set: decode 00%")) // isolate the number of decoded files to calculate progress
+                                    {
+
+                                        index1 = error.IndexOf('(');
+                                        index2 = error.IndexOf('/') - 1;
+
+                                        if (index1 > 0)
+                                        {
+                                            msg = error.Substring(index1 + 1, index2 - index1);
+                                            current = Int32.Parse(msg);
+//                                            percent = Math.Ceiling((current / total) * 100);
+
+//                                            if (Convert.ToInt32(percent) <= 99)
+//                                                bar.Percent = Convert.ToInt32(percent);
+                                        }
+                                    }
+                                    else if (error.Contains("7Z.exe"))
+                                    {
+                                        done = true;
+                                    }
+                                    else if (error.Contains("Graceful termination complete"))
+                                    {
+                                        done = true;
+                                    }
+                                }*/
+                            }
+                        });
+                    }
+                    else
+                    {
+                        var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                            new MessageBoxStandardParams
+                            {
+                                ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                                ContentTitle = "GPS Snap Parser",
+                                ContentHeader = "Could not start parser",
+                                ContentMessage = "SNAP Parser executable not found or access denied",
+                                Icon = MessageBox.Avalonia.Enums.Icon.Warning,
+                                WindowIcon = App.MainWindow.Icon,
+                            });
+
+                        await messageBoxStandardWindow.ShowDialog(MainWindowContext);
+
+                    }
+
+                    //bar.Percent = 100;
+                    //this.Log(bar.Name + " Done!", 1, true);
+                }
+            }
+            else
+            {
+                var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                    new MessageBoxStandardParams
+                    {
+                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                        ContentTitle = "GPS Snap Parser",
+                        ContentHeader = "Could not start parser",
+                        ContentMessage = "SNAP Parser is currently available only on MS Windows OS",
+                        Icon = MessageBox.Avalonia.Enums.Icon.Warning,
+                        WindowIcon = App.MainWindow.Icon,
+                    });
+
+                await messageBoxStandardWindow.ShowDialog(MainWindowContext);
+            }
+
+            return await Task.FromResult(result);
         }
 
 
@@ -662,6 +797,7 @@ namespace VesperApp.ViewModels
         public ICommand? LoadConfigCommand { get; }
 
 
+        public ICommand? ManualGPSParserCommand { get; }
 
 
         public ConfigurationJSON Configuration { get => _config; }

@@ -13,25 +13,21 @@
 	<DockPanel>
 		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch">
 			<Border BorderBrush="Black" BorderThickness="1" VerticalAlignment="Stretch">
-
 				<DataGrid Items="{Binding PropertiesView}"
-			BorderThickness="0"
-			RowBackground="Transparent"
-			SelectedItem="{Binding SelectedProperty, Mode=TwoWay}"
-			CanUserResizeColumns="true"
-			x:Name="gridEditProperties">
+					BorderThickness="0"
+					RowBackground="Transparent"
+					SelectedItem="{Binding SelectedProperty, Mode=TwoWay}"
+					CanUserResizeColumns="true"
+					x:Name="gridEditProperties">
+					
 					<DataGrid.Columns>
 						<DataGridTextColumn Width="Auto" Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
-						<!--
-				<controls:DataGridPropertyValueColumn Header="Value" Binding="{Binding Value}" />-->
 						<DataGridTemplateColumn Width="120" Header="Value">
-
 							<DataGridTemplateColumn.CellTemplate>
 								<DataTemplate DataType="vm:DriverPropertyViewModel">
 									<TextBlock Text="{Binding Value, StringFormat='{}{0}'}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
 								</DataTemplate>
 							</DataGridTemplateColumn.CellTemplate>
-
 						</DataGridTemplateColumn>
 						<DataGridTextColumn Width="*" Header="Description" Binding="{Binding Description}"/>
 					</DataGrid.Columns>

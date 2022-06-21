@@ -9,8 +9,6 @@ namespace VesperApp.Models
 
     public class ConfigADS1115Driver : ConfigurationDeviceDriver
     {
-        //public const UInt32 BITMASK_MIKE_RESOLUTION = 0x01;
-
         public ConfigADS1115Driver() : base("ADS1115", "Low datarate analog to digital converter")
         {
             this.MemoryBufferSize = 2 * 1024;

@@ -302,9 +302,17 @@
 					<TabItem.Header>
 						<TextBlock Classes="tbTabHeader" Text="Recordings" HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
 					</TabItem.Header>
-					<StackPanel>
-						<TextBlock Text="Hello1"/>
-					</StackPanel>				
+						<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="false">
+							<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal"
+										HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+										ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualGPSParserCommand}" x:Name="bParseGPS">
+									<StackPanel Orientation="Horizontal">
+										<DrawingPresenter Stretch="Fill" Width="42" Height="42" Drawing="{DynamicResource FluentIconsFilled.globe_location_filled}" />
+									</StackPanel>
+								</Button>
+							</StackPanel>
+						</Grid>
 				</TabItem>
 				<TabItem>
 					<TabItem.Header>
@@ -313,8 +321,7 @@
 					<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="false">
 						<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal" 
 									HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
-									ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-									>
+									ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 
 							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding NewConfigCommand}" x:Name="NewConfigButton">
 								<StackPanel Orientation="Horizontal">

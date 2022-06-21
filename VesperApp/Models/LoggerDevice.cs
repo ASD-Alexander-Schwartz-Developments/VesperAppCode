@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ASDLibUSBWrapper;
 using Avalonia.Threading;
+using MessageBox.Avalonia.DTO;
 using ReactiveUI;
 
 namespace VesperApp.Models
@@ -110,9 +111,14 @@ namespace VesperApp.Models
 
             if (_name != null)
             {
-                if (this._name.Contains("Nanotag")) _type = DeviceTypes.Nanotag;
-                else if (this._name.Contains("Vesper")) _type = DeviceTypes.Vesper;
-                else if (this._name.Contains("Pipistrelle")) _type = DeviceTypes.Pipistrelle;
+                string nu = _name.ToUpper();
+                string nanotag = "NANOTAG";
+                string vesper = "VESPER";
+                string pipistrelle = "PIPISTRELLE";
+
+                if (nu.Contains(nanotag)) _type = DeviceTypes.Nanotag;
+                else if (nu.Contains(vesper)) _type = DeviceTypes.Vesper;
+                else if (nu.Contains(pipistrelle)) _type = DeviceTypes.Pipistrelle;
             }
             else
             {
@@ -142,6 +148,26 @@ namespace VesperApp.Models
             if (_usbDevice != null) _usbDevice.Dispose();
             _usbContext = null;
         }
+
+
+        private UInt16 freeDiskPercent;
+
+        private UInt32 nandSizePages;
+        private UInt32 pageSizeBytes;
+        private UInt32 spareSizeBytes;
+        UInt16 nandSizeBlocks;
+        UInt16 columnAddrMask;     // (1 << (number of bits in column address+1)) - 1
+        UInt16 planeSizeBlocks;
+        UInt16 blockSizePages;
+        UInt16 blockSizePages2Log; // number of bitshifts in pages in block
+        UInt16 blockAddressShift;
+        UInt16 maxLunBadBlocks;
+        UInt16 reserved;
+        byte lunSizePlanes;
+        byte dieSizeLuns;
+        byte nandSizeDies;
+        byte nandSizeGb;
+
 
 
         public async Task<bool> Connect()
@@ -212,24 +238,24 @@ namespace VesperApp.Models
                 this._name = this.USBDevice.Info.Product;
                 
                 byte[] response;
-                int retb = WriteRead(VND_CMD_GET_DISKINFO, new byte[0], out response, 38);
+                int retb = WriteRead(VND_CMD_GET_DISKINFO, new byte[0], out response, 40);
 
                 if(retb == 0)
                 {
-                    UInt32 nandSizePages = (UInt32)response[0] + 
+                    nandSizePages = (UInt32)response[0] + 
                                             ((UInt32)response[1] << 8) + 
                                             ((UInt32)response[2] << 16) + 
                                             ((UInt32)response[3] << 24);
-                    UInt32 pageSizeBytes = (UInt32)response[4] +
+                    pageSizeBytes = (UInt32)response[4] +
                                             ((UInt32)response[5] << 8) +
                                             ((UInt32)response[6] << 16) +
                                             ((UInt32)response[7] << 24);
 
-                    UInt16 freep = (UInt16)((UInt16)response[36] +
+                    freeDiskPercent = (UInt16)((UInt16)response[36] +
                                             ((UInt16)response[37] << 8));
 
                     DiskSize = ((double)(nandSizePages * pageSizeBytes)) / (double)(1024*1024*1024); // GB
-                    DiskOccupancy = (double)freep;
+                    DiskOccupancy = (double)freeDiskPercent;
                     UpdateDiskStatus();
                 }
                 /*
@@ -412,7 +438,22 @@ namespace VesperApp.Models
                     // spare 2 bytes
 
                     UInt16 batt_level = (UInt16)((UInt16)response[8] + ((UInt16)response[9] << 8));
-                    BatteryChargePercent = batt_level + "[%]";
+
+                    if (_type != null)
+                    {
+                        if (_type == DeviceTypes.Nanotag)
+                        {
+                            double voltage = ((((double)batt_level / 65535.0) * 3.0) * 2.0);
+                            double max_volatge = 4.18;
+                            double min_voltage = 2.9;
+                            double charge = ((voltage - min_voltage) / (max_volatge - min_voltage)) * 100.0;
+
+                            if (charge > 100.0) charge = 100.0;
+                            else if (charge < 0.0) charge = 0.0;
+
+                            BatteryChargePercent = charge.ToString("N2") + "%";
+                        }
+                    }
 
                     // spare 2 bytes
 
@@ -571,38 +612,112 @@ namespace VesperApp.Models
                     {
                         DownloadProgress = 0;
 
-                        UInt32 first_page = (UInt32)(((UInt32)response[0]) + ((UInt32)response[1] << 8) + ((UInt32)response[2] << 16) + ((UInt32)response[3] << 24));
-                        UInt32 last_page = (UInt32)(((UInt32)response[4]) + ((UInt32)response[5] << 8) + ((UInt32)response[6] << 16) + ((UInt32)response[7] << 24));
+                        if (path == null || path.Length == 0)
+                            path = Directory.GetCurrentDirectory();
 
-                        Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
+                        if (path.EndsWith("\\") == false)
+                            path += "\\";
 
-                        for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
+                        bool foldersok = false;
+                        string error = string.Empty;
+                        string etype = string.Empty;
+
+                        try
                         {
-                            //Console.WriteLine(("\r" + i.ToString()).PadLeft(Console.WindowWidth - Console.CursorLeft - 1));
-                            byte[] addr = new byte[4];
-                            addr[0] = (byte)(i & 0xFF);
-                            addr[1] = (byte)(i >> 8);
-                            addr[2] = (byte)(i >> 16);
-                            addr[3] = (byte)(i >> 24);
-                            var dpageresponse = new byte[0];
-                            Debug.Write("Trying to download page = " + i.ToString());
-                            int getpageresult = WriteRead(VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
-
-                            if (getpageresult == 0)
-                            {
-                                Debug.WriteLine(" - OK");
-
-                                _ = Task.Factory.StartNew(() => { ProcessOnePage(dpageresponse, path); });
-                            }
-                            else if (getpageresult == -200)
-                            {
-                                Debug.WriteLine(" - BAD Block");
-                                i += 63;    // the 64th will be inside for loop
-                            }
-                            await Dispatcher.UIThread.InvokeAsync(() => UpdateDiskStatus());
+                            Directory.CreateDirectory(path + "GPS");
+                            Directory.CreateDirectory(path + "ACC");
+                            Directory.CreateDirectory(path + "SNS");
+                            foldersok = true;
                         }
-                        DownloadProgress = 100.0;
-                        UpdateDiskStatus();
+                        catch (ArgumentNullException anex)
+                        {
+                            error = anex.Message;
+                            etype = "Bad output folder name";
+                        }
+                        catch (ArgumentException aex)
+                        {
+                            error = aex.Message;
+                            etype = "Empty output folder name";
+                        }
+                        catch(PathTooLongException ptlex)
+                        {
+                            error = ptlex.Message;
+                            etype = "Output folder name too long";
+                        }
+                        catch (DirectoryNotFoundException dnfex)
+                        {
+                            error = dnfex.Message;
+                            etype = "Output folder does not exists";
+                        }
+                        catch (NotSupportedException nsex)
+                        {
+                            error = nsex.Message;
+                            etype = "Operation in not supported";
+                        }
+                        catch (IOException ioex)
+                        {
+                            error = ioex.Message;
+                            etype = "I/O Error creating output folders";
+                        }
+                        catch(UnauthorizedAccessException uaaex)
+                        {
+                            error = uaaex.Message;
+                            etype = "Access denied creating output folders";
+                        }
+
+
+                        if (foldersok == true)
+                        {
+                            UInt32 first_page = (UInt32)(((UInt32)response[0]) + ((UInt32)response[1] << 8) + ((UInt32)response[2] << 16) + ((UInt32)response[3] << 24));
+                            UInt32 last_page = (UInt32)(((UInt32)response[4]) + ((UInt32)response[5] << 8) + ((UInt32)response[6] << 16) + ((UInt32)response[7] << 24));
+
+                            Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
+
+                            for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
+                            {
+                                //Console.WriteLine(("\r" + i.ToString()).PadLeft(Console.WindowWidth - Console.CursorLeft - 1));
+                                byte[] addr = new byte[4];
+                                addr[0] = (byte)(i & 0xFF);
+                                addr[1] = (byte)(i >> 8);
+                                addr[2] = (byte)(i >> 16);
+                                addr[3] = (byte)(i >> 24);
+                                var dpageresponse = new byte[0];
+                                Debug.Write("Trying to download page = " + i.ToString());
+                                int getpageresult = WriteRead(VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
+
+                                if (getpageresult == 0)
+                                {
+                                    Debug.WriteLine(" - OK");
+
+                                    _ = Task.Factory.StartNew(() => { ProcessOnePage(dpageresponse, path); });
+                                }
+                                else if (getpageresult == -200)
+                                {
+                                    Debug.WriteLine(" - BAD Block");
+                                    i += 63;    // the 64th will be inside for loop
+                                }
+                                await Dispatcher.UIThread.InvokeAsync(() => UpdateDiskStatus());
+                            }
+                            DownloadProgress = 100.0;
+                            UpdateDiskStatus();
+                            r = true;
+                        }
+                        else
+                        {
+                            var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                            new MessageBoxStandardParams
+                            {
+                                ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                                ContentTitle = "Download Data Failed",
+                                ContentHeader = etype,
+                                ContentMessage = error,
+                                WindowIcon = App.MainWindow.Icon,
+                                Icon = MessageBox.Avalonia.Enums.Icon.Error
+                            });
+
+                            await messageBoxStandardWindow.ShowDialog(App.MainWindow);
+
+                        }
                     });
                 }
                 else
@@ -626,7 +741,7 @@ namespace VesperApp.Models
         private readonly int reference_year = 2020;
         private readonly byte NAND_FS_SNAP_PAGE_TYPE = 0x21;
 
-        private bool ProcessOnePage(byte [] data, string ? path)
+        private bool ProcessOnePage(byte [] data, string path)
         {
             if (data.Length > 1)
             {
@@ -711,14 +826,10 @@ namespace VesperApp.Models
                         snapIndex < snapPagesInSnap)
                     {
                         //string outfolder = this.textOutputFolder.Text;
-                        string outfolder;
+                        string outfolder = path + "GPS\\";
 
-                        if (path != null && path.Length > 0) outfolder = path;
-                        else outfolder = Directory.GetCurrentDirectory();
-
-
-                        if (outfolder.EndsWith("\\") == false)
-                            outfolder += "\\";
+//                        if (outfolder.EndsWith("\\") == false)
+                            //outfolder += "\\";
 
                         string filename;//= String.Format("{0}\\{1}.bin",
                                         //                    new object[] {
