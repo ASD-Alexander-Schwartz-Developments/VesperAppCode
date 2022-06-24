@@ -226,6 +226,14 @@ namespace VesperApp.Services
 
                         if (device.TryOpen() == true)
                         {
+                            int i = 10;
+                            do
+                            {
+                                await Task.Delay(100);
+                                if (device.Info.Product != null || device.Info.SerialNumber != null)
+                                    break;
+                            } while (--i > 0);
+
                             Debug.WriteLine("Opened " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
                             device.Close();
 
