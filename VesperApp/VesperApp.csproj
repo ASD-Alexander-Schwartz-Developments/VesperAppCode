@@ -8,7 +8,7 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationIcon>Assets\bat.ico</ApplicationIcon>
     <StartupObject>VesperApp.Program</StartupObject>
-    <AssemblyVersion>1.0.1.1</AssemblyVersion>
+    <AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
@@ -36,15 +36,15 @@
     <TrimmableAssembly Include="Avalonia.Themes.Default" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="0.10.15" />
-    <PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.15" />
-    <PackageReference Include="Avalonia.Desktop" Version="0.10.15" />
+    <PackageReference Include="Avalonia" Version="0.10.17" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="0.10.17" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.10.17" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="0.10.15" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="0.10.15" />
-    <PackageReference Include="CalendarControl.Avalonia" Version="0.10.15" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="0.10.17" />
+    <PackageReference Include="CalendarControl.Avalonia" Version="0.10.17" />
     <PackageReference Include="FTD2XX.Net" Version="1.2.1" />
-    <PackageReference Include="MessageBox.Avalonia" Version="2.0.1" />
+    <PackageReference Include="MessageBox.Avalonia" Version="2.0.2" />
     <PackageReference Include="XamlNameReferenceGenerator" Version="1.3.4" />
   </ItemGroup>
   <ItemGroup>
