@@ -54,7 +54,7 @@
     <Thickness x:Key="LPGrid_TopMargin">21</Thickness>
     <sys:Double x:Key="LPGrid_PadSpacing">3</sys:Double>
     <Thickness x:Key="LPGrid_PadMargin">3</Thickness>
-
+<!--
     <media:StreamGeometry x:Key="LPGrid_SquareGeometry" />
     <media:StreamGeometry x:Key="LPGrid_SplitGeometry" />
     <media:StreamGeometry x:Key="LPGrid_CircleGeometry" />
@@ -64,6 +64,6 @@
     <media:StreamGeometry x:Key="LPGrid_44CornerGeometry" />
     <media:StreamGeometry x:Key="LPGrid_45CornerGeometry" />
     <media:StreamGeometry x:Key="LPGrid_54CornerGeometry" />
-    <media:StreamGeometry x:Key="LPGrid_55CornerGeometry" />
+    <media:StreamGeometry x:Key="LPGrid_55CornerGeometry" />-->
   </Style.Resources>
 </Style>

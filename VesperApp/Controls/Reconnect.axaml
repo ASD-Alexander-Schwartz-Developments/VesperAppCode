@@ -8,11 +8,11 @@
     <SolidColorBrush x:Key="Brush" />
   </UserControl.Resources>
 
-  <Canvas Width="12" Height="12" Background="Transparent" x:Name="Icon"
-          PointerEnter="MouseEnter" PointerLeave="MouseLeave" PointerPressed="MouseDown" PointerReleased="MouseUp">
-    <Path Stroke="{DynamicResource Brush}" StrokeThickness="2"
-          Data="M 9.7125,2.2875 A 5,5 270 1 0 9.7125,9.7125" />
-    <Path Fill="{DynamicResource Brush}"
-          Data="M 12,0 L 7.5,4.5 12,4.5 Z" />
-  </Canvas>
+	<Canvas Width="12" Height="12" Background="Transparent" x:Name="Icon">
+		<!--PointerEnter="MouseEnter" PointerLeave="MouseLeave" PointerPressed="MouseDown" PointerReleased="MouseUp">-->
+		<Path Stroke="{DynamicResource Brush}" StrokeThickness="2"
+			  Data="M 9.7125,2.2875 A 5,5 270 1 0 9.7125,9.7125" />
+		<Path Fill="{DynamicResource Brush}"
+			  Data="M 12,0 L 7.5,4.5 12,4.5 Z" />
+	</Canvas>
 </UserControl>

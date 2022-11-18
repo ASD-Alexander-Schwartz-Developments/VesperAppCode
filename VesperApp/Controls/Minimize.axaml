@@ -3,9 +3,9 @@
              x:Class="VesperApp.Controls.Minimize"
              DetachedFromVisualTree="Unloaded">
 
-  <Canvas HorizontalAlignment="Center" Width="16" Height="16" Background="Transparent" x:Name="Icon"
-          PointerEnter="MouseEnter" PointerLeave="MouseLeave" PointerPressed="MouseDown" PointerReleased="MouseUp">
-    <Path StrokeThickness="2" x:Name="Path"
-          Data="M 2,5 L 8,11 14,5" />
-  </Canvas>
+	<Canvas HorizontalAlignment="Center" Width="16" Height="16" Background="Transparent" x:Name="Icon">
+		<!--PointerEnter="MouseEnter" PointerLeave="MouseLeave" PointerPressed="MouseDown" PointerReleased="MouseUp">-->
+		<Path StrokeThickness="2" x:Name="Path"
+			  Data="M 2,5 L 8,11 14,5" />
+	</Canvas>
 </UserControl>

@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.0-preview4" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="LibUsb\macos\libusb-1.0.0.dylib">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

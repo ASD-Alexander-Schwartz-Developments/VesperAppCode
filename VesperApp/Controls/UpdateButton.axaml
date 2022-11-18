@@ -4,8 +4,8 @@
              IsVisible="false"
              DetachedFromVisualTree="Unloaded">
 
-	<Border Background="{DynamicResource ThemeAccentBrush}" BorderBrush="{DynamicResource ThemeAccentBrush2}" BorderThickness="1 0 1 1" Cursor="Hand"
-		  PointerEnter="MouseEnter" PointerLeave="MouseLeave" PointerPressed="MouseDown" PointerReleased="MouseUp">
+	<Border Background="{DynamicResource ThemeAccentBrush}" BorderBrush="{DynamicResource ThemeAccentBrush2}" BorderThickness="1 0 1 1" Cursor="Hand">
+		<!--PointerEnter="MouseEnter" PointerLeave="MouseLeave" PointerPressed="MouseDown" PointerReleased="MouseUp">-->
 
 		<StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="5" Margin="6">
 			<Canvas VerticalAlignment="Center" Width="16" Height="16" Background="Transparent">

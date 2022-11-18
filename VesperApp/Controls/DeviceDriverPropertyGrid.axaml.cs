@@ -79,7 +79,7 @@ namespace VesperApp.Controls
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
                                     VerticalAlignment = VerticalAlignment.Stretch,
                                 };
-                                nud.TextInputOptionsQuery += Nud_TextInputOptionsQuery;
+                                nud.TextInputMethodClientRequested += Nud_TextInputMethodClientRequested;//    += Nud_TextInputOptionsQuery;
                                 nud.TextInput += Nud_TextInput;
                                 nud.LostFocus += Nud_LostFocus;
                                 nud.KeyDown += Nud_KeyDown;
@@ -118,6 +118,11 @@ namespace VesperApp.Controls
             }
         }
 
+        private void Nud_TextInputMethodClientRequested(object? sender, Avalonia.Input.TextInput.TextInputMethodClientRequestedEventArgs e)
+        {
+            /////e.Client = 
+        }
+
         private void Nud_KeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
         {
             if (sender != null)
@@ -142,15 +147,15 @@ namespace VesperApp.Controls
             if (sender != null)
             {
                 var nud = (NumericUpDown)sender;
-                double r = nud.Value;
-                string text = nud.Text;
+                decimal r = (nud.Value is null) ? 0 : (decimal)nud.Value;
+                string? text = nud.Text;
 
                 if(text == null || text.Length == 0)
                 {
                     text = "0";
                 }
 
-                if (double.TryParse(text, out r) == true)
+                if (decimal.TryParse(text, out r) == true)
                 {
                     nud.Value = r;
                 }
@@ -162,22 +167,23 @@ namespace VesperApp.Controls
             if (sender != null)
             {
                 var nud = (NumericUpDown)sender;
-                double r = nud.Value;
-                string text = nud.Text + e.Text;
-                Debug.WriteLine("Numeric text changed event:" + e.Device.ToString());
+                decimal r = (nud.Value is null) ? 0 : (decimal)nud.Value;
+                string? text = nud.Text + e.Text;
+                Debug.WriteLine("Numeric text changed event:" + e.Device?.ToString());
                 Debug.WriteLine("Numeric text changed: Original Value: " + r + " Original Text: " + nud.Text + " Event Text: " + e.Text);
                 
-                if (double.TryParse(text, out r) == true)
+                if (decimal.TryParse(text, out r) == true)
                 {
                     nud.Value = r;
                 }
             }
         }
 
+        /*
         private void Nud_TextInputOptionsQuery(object? sender, Avalonia.Input.TextInput.TextInputOptionsQueryEventArgs e)
         {
             e.ContentType = Avalonia.Input.TextInput.TextInputContentType.Number;
-        }
+        }*/
 
         private void GridEditor_DataContextChanged(object? sender, System.EventArgs e)
         {

@@ -1,22 +1,23 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:VesperApp"
+			 xmlns:l="using:Avalonia.Themes.Fluent"
              x:Class="VesperApp.App">
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
 
     <Application.Styles>
-		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Default.xaml"/>
+		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
 		<StyleInclude Source="/Themes/FluentCalendarControl.axaml" />
 		<StyleInclude Source="avares://VesperApp/Assets/FluentUiIcons_Filled.xaml"/>
-        <FluentTheme Mode="Light"/>
 		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+		<FluentTheme Mode="Light"/>
 
 		<Style Selector="Window">
 			<Setter Property="FontFamily" Value="Open Sans" />
 			<Setter Property="FontSize" Value="10"/>
-			<Setter Property="HasSystemDecorations" Value="true" />
+			<!--<Setter Property="HasSystemDecorations" Value="true" />-->
 		</Style>
 
 		<Style Selector=":is(Control)">
