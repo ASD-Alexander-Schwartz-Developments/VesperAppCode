@@ -1,96 +1,115 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <!--Avalonia doesen't support TrimMode=link currently,but we are working on that https://github.com/AvaloniaUI/Avalonia/issues/6892 -->
-    <TrimMode>copyused</TrimMode>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <ApplicationIcon>Assets\bat.ico</ApplicationIcon>
-    <StartupObject>VesperApp.Program</StartupObject>
-    <AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
-  </PropertyGroup>
-  <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
-    <AvaloniaXaml Remove="Controls\ApolloContextMenu.axaml" />
-    <AvaloniaXaml Remove="Themes\FluentCalendarControl.axaml" />
-    <None Remove=".gitignore" />
-    <None Remove="Assets\ASD-LOGO-01.png" />
-    <None Remove="Assets\connected.png" />
-    <None Remove="Assets\disconnected.png" />
-    <None Remove="Assets\FluentUiIcons_Filled.xaml" />
-  </ItemGroup>
-  <ItemGroup>
-    <AvaloniaResource Include="Themes\FluentCalendarControl.axaml">
-      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
-    </AvaloniaResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Assets\bat.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <!--This helps with theme dll-s trimming.
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<!--Avalonia doesen't support TrimMode=link currently,but we are working on that https://github.com/AvaloniaUI/Avalonia/issues/6892 -->
+		<TrimMode>copyused</TrimMode>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+		<ApplicationIcon>Assets\bat.ico</ApplicationIcon>
+		<StartupObject>VesperApp.Program</StartupObject>
+		<AssemblyVersion>1.0.0.7</AssemblyVersion>
+		<FileVersion>1.0.0.7</FileVersion>
+		<Version>1.0.0.7</Version>
+		<Company>Vesper </Company>
+		<Product></Product>
+		<PackageIcon>bat.png</PackageIcon>
+	</PropertyGroup>
+	<ItemGroup>
+		<AvaloniaResource Include="Assets\**" />
+		<AvaloniaXaml Remove="Controls\ApolloContextMenu.axaml" />
+		<AvaloniaXaml Remove="Themes\FluentCalendarControl.axaml" />
+		<None Remove=".gitignore" />
+		<None Remove="Assets\ASD-LOGO-01.png" />
+		<None Remove="Assets\connected.png" />
+		<None Remove="Assets\disconnected.png" />
+		<None Remove="Assets\download.gif" />
+		<None Remove="Assets\FluentUiIcons_Filled.xaml" />
+		<None Remove="Assets\icons8-done-48.png" />
+		<None Remove="Assets\icons8-download-from-cloud-48.png" />
+		<None Remove="Assets\icons8-ok-16.png" />
+		<None Remove="Assets\redFlag.png" />
+		<None Remove="Assets\rotation.png" />
+		<None Remove="Assets\update.png" />
+		<None Remove="Assets\updated.png" />
+	</ItemGroup>
+	<ItemGroup>
+		<AvaloniaResource Include="Themes\FluentCalendarControl.axaml">
+			<Generator>MSBuild:UpdateDesignTimeXaml</Generator>
+		</AvaloniaResource>
+	</ItemGroup>
+	<ItemGroup>
+		<Content Include="Assets\bat.ico" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="..\..\..\VesperAppCode\VesperApp\Assets\bat.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+		<!--This helps with theme dll-s trimming.
 	If you will publish your application in self-contained mode with p:PublishTrimmed=true and it will use Fluent theme Default theme will be trimmed from the output and vice versa.
 	https://github.com/AvaloniaUI/Avalonia/issues/5593 -->
-    <TrimmableAssembly Include="Avalonia.Themes.Fluent" />
-    <TrimmableAssembly Include="Avalonia.Themes.Default" />
-  </ItemGroup>
-  <ItemGroup>
+		<TrimmableAssembly Include="Avalonia.Themes.Fluent" />
+		<TrimmableAssembly Include="Avalonia.Themes.Default" />
+	</ItemGroup>
+	<ItemGroup>
     <PackageReference Include="Avalonia" Version="11.0.0-preview4" />
-    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.0.0-preview4" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview4" />
-    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.0-preview4" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.0-preview4" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.0-preview4" />
-    <PackageReference Include="CalendarControl.Avalonia" Version="11.0.0-preview4" />
-    <PackageReference Include="FTD2XX.Net" Version="1.2.1" />
-    <PackageReference Include="MessageBox.Avalonia" Version="2.3.1-prev2" />
-    <PackageReference Include="XamlNameReferenceGenerator" Version="1.4.2" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ASDLibUSBWrapper\ASDLibUSBWrapper.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <AvaloniaResource Update="Assets\bat.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </AvaloniaResource>
-    <AvaloniaResource Update="Assets\FluentUiIcons_Filled.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </AvaloniaResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Controls\ConnectToggle.axaml.cs">
-      <DependentUpon>ConnectToggle.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\DeviceDriverPropertyGrid.axaml.cs">
-      <DependentUpon>DeviceDriverPropertyGrid.axaml</DependentUpon>
-    </Compile>
-    <Compile Update="Views\DockPickWindow.axaml.cs">
-      <DependentUpon>DockPickWindow.axaml</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="CG\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-	<None Update="FirmwareUpdater\**">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	</None>
-    <None Update="Views\LaunchpadInfo.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </None>
-    <None Update="Views\LaunchpadWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </None>
-    <None Update="Views\MessageWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </None>
-    <None Update="Views\PatternWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </None>
-    <None Update="Views\PreferencesWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </None>
-  </ItemGroup>
+		<PackageReference Include="Avalonia.Controls.DataGrid" Version="11.0.0-preview4" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview4" />
+		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.0-preview4" />
+		<PackageReference Include="Avalonia.ReactiveUI" Version="11.0.0-preview4" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.0-preview4" />
+		<PackageReference Include="CalendarControl.Avalonia" Version="11.0.0-preview4" />
+		<PackageReference Include="FTD2XX.Net" Version="1.2.1" />
+		<PackageReference Include="MessageBox.Avalonia" Version="2.3.1-prev2" />
+		<PackageReference Include="XamlNameReferenceGenerator" Version="1.4.2" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ASDLibUSBWrapper\ASDLibUSBWrapper.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<AvaloniaResource Update="Assets\bat.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</AvaloniaResource>
+		<AvaloniaResource Update="Assets\FluentUiIcons_Filled.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</AvaloniaResource>
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Update="Controls\ConnectToggle.axaml.cs">
+			<DependentUpon>ConnectToggle.axaml</DependentUpon>
+		</Compile>
+		<Compile Update="Controls\DeviceDriverPropertyGrid.axaml.cs">
+			<DependentUpon>DeviceDriverPropertyGrid.axaml</DependentUpon>
+		</Compile>
+		<Compile Update="Views\DockPickWindow.axaml.cs">
+			<DependentUpon>DockPickWindow.axaml</DependentUpon>
+		</Compile>
+	</ItemGroup>
+	<ItemGroup>
+		<None Update="CG\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="FirmwareUpdater\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Views\LaunchpadInfo.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</None>
+		<None Update="Views\LaunchpadWindow.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</None>
+		<None Update="Views\MessageWindow.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</None>
+		<None Update="Views\PatternWindow.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</None>
+		<None Update="Views\PreferencesWindow.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</None>
+	</ItemGroup>
 </Project>
