@@ -2,59 +2,38 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using ASDLibUSBWrapper;
+using System.IO.Ports;
 using Avalonia.Threading;
 using MessageBox.Avalonia.DTO;
 using ReactiveUI;
+using VesperApp.Services;
+using Splat;
+using System.Diagnostics.Metrics;
 
 namespace VesperApp.Models
 {
     
     public class LoggerDevice : ReactiveObject, IDisposable, IEquatable<LoggerDevice>
     {
-        public const byte VND_CMD_GET_INFO = 0x00;
-        public const byte VND_CMD_GET_DISKINFO = 0x01;
-        public const byte VND_CMD_GET_LOGNPAGES = 0x02;
-        public const byte VND_CMD_GET_LOGCHUNK = 0x03;
-        public const byte VND_CMD_GET_DATANPAGES = 0x04;
-        public const byte VND_CMD_GET_DATACHUNK = 0x05;
-        public const byte VND_CMD_SET_DATETIME = 0x06;
-        public const byte VND_CMD_SET_SLEEP = 0x07;
-        public const byte VND_CMD_SET_BOOT = 0x0F;
-
-        public const byte VND_CMD_GET_CFGCHUNK_GEN = 0x0A;
-        public const byte VND_CMD_GET_CFGCHUNK_SCH = 0x0B;
-        public const byte VND_CMD_GET_CFGCHUNK_DEV = 0x0C;
-        public const byte VND_CMD_SET_CFGCHUNK_GEN = 0x1A;
-        public const byte VND_CMD_SET_CFGCHUNK_SCH = 0x1B;
-        public const byte VND_CMD_SET_CFGCHUNK_DEV = 0x1C;
-
-        public const byte VND_CMD_FORMAT_DISK = 0x3F;
-
-
-
         private UsbContext? _usbContext;
         private UsbDevice? _usbDevice;
-        private FTD2XX_NET.FTDI? _fTDI;
-        private FTD2XX_NET.FTDI.FT_DEVICE_INFO_NODE? _ftdiNODE;
+        private SerialMessage? _comport;
         private string _serialnumber;
         private string _name;
         private DeviceTypes ? _type;
 
-        private int _interfaceVender;
+        private int _interfaceVendor;
         private ASDLibUSBWrapper.ReadEndpointID _readEndpointID;
         private ASDLibUSBWrapper.WriteEndpointID _writeEndpointID;
 
         private UsbEndpointReader ? _usbEndpointReader;
         private UsbEndpointWriter ? _usbEndpointWriter;
+        
         private FlashGeometry _flashGeometry;
 
         public UsbDevice? USBDevice => _usbDevice;
-        public FTD2XX_NET.FTDI? FTDIDevice => _fTDI;
-
 
         public string? SerialNumber { get => _serialnumber; }
         public string? Name { get => _name; }
@@ -100,12 +79,218 @@ namespace VesperApp.Models
         }
         private string? batteryCharge;
 
+
+
+        public LoggerDevice(string port, int baudrate, DeviceTypes type, uint serial)
+        {
+            this._comport = new SerialMessage(port, baudrate);
+            _serialnumber = serial.ToString("X");
+            _type = type;
+            HwId = "4.0.0";
+            switch (_type)
+            {
+                case DeviceTypes.Nanotag:
+                    _name = "NANOTAG";
+                    break;
+
+                case DeviceTypes.Vesper:
+                    _name = "VESPER";
+                    break;
+
+                case DeviceTypes.Pipistrelle:
+                    _name = "PIPISTRELLE";
+                    break;
+                default:
+                    _name = "Unknown";
+                    break;
+            }
+
+            this._comport.ErrorEvent += _comport_ErrorEvent;
+            this._comport.MessageEvent += _comport_MessageEvent;
+            memoryStreamPage = new MemoryStream();
+        }
+
+        private void _comport_MessageEvent(object? sender, MessageEventArgs e)
+        {
+            switch (e.typeOfMessage)
+            {
+                case MessageTypes.VESPER_GET_VER:
+                    if (e.MessageData != null)
+                    {
+                        byte l = e.MessageData[0];
+                        byte h = e.MessageData[1];
+
+                        uint serial_num = (uint)((uint)e.MessageData[2] + ((uint)e.MessageData[3] << 8) + ((uint)e.MessageData[4] << 16) + ((uint)e.MessageData[5] << 24));
+
+
+                        this.FwId = h.ToString() + l.ToString();
+                        this._serialnumber = serial_num.ToString("X");
+                    }
+                    break;
+
+                case MessageTypes.VESPER_GET_RTC:
+                    if (e.MessageData != null)
+                    {
+                        DateTime dt = SerialMessage.BytesToDateTime(e.MessageData);
+                    }
+                    break;
+
+                case MessageTypes.VESPER_GETDISKSIZE:
+                    if (e.MessageData != null)
+                    {
+                        UInt64 size = e.MessageData[0] +
+                            (UInt32)(e.MessageData[1] << 8) + (UInt32)(e.MessageData[2] << 16) + (UInt32)(e.MessageData[3] << 24);
+
+                        size *= 512;
+
+                        double ss = size / (1024 * 1024 * 1024);
+                    }
+                    break;
+
+
+                case MessageTypes.GET_VOLTAGE:
+                    if (e.MessageData.Length >= 16)
+                    {
+                        UInt16 header = (UInt16)((UInt16)e.MessageData[0] + (UInt16)(e.MessageData[1] << 8));
+
+                        if ((header >> 8) == 0x06)
+                        {
+                            int year = BCD2BIN(e.MessageData[9]) + 2000;
+                            int month = BCD2BIN(e.MessageData[7]);
+                            int day = BCD2BIN(e.MessageData[8]);
+
+                            DateTime ts = new DateTime(year, month, day,
+                            BCD2BIN(e.MessageData[2]), BCD2BIN(e.MessageData[3]), BCD2BIN(e.MessageData[4]));
+                        }
+                        else
+                        {
+                            DateTime ts = new DateTime(e.MessageData[9] + 2000, e.MessageData[7], e.MessageData[8],
+                            e.MessageData[2], e.MessageData[3], e.MessageData[4]);
+                        }
+
+                        UInt16 vltg = (UInt16)((UInt16)e.MessageData[10] + (UInt16)(e.MessageData[11] << 8));
+                        UInt16 charge = (UInt16)((UInt16)e.MessageData[12] + (UInt16)(e.MessageData[13] << 8));
+
+                        double vl = 0.0;
+                        double cl = 0.0;
+
+
+                        if ((header >> 8) == 0x06)
+                        {
+                            vl = (vltg / 4096.0) * 2.8 * 2;
+                        }
+                        else
+                        {
+                            if (charge == 0xFFFF)
+                            {
+                                vl = (vltg / 4096.0) * 3.3 * 2;
+                            }
+                            else
+                            {
+                                vl = vltg * 2.2E-3;
+                                cl = charge / 512.0;
+                            }
+                        }
+                    }
+                    break;
+
+
+                case MessageTypes.VESPER_GET_FLAGS:
+                    if (e.MessageData == null)
+                        break;
+
+                    if (e.MessageData.Length < 16)
+                        break;
+
+                    VesperOnlineData vd = new VesperOnlineData();
+
+                    /*
+                     * 
+                     * 			tbuf[0] = tbuf[1] = tbuf[2] = tbuf[3] = 0;
+
+			tbuf[3] = STORAGE_GetUSBDriveStatus();
+			s1 = (uint8_t *) &tbuf[4];
+			s1[0] = FW_VER_MAJOR;
+			s1[1] = FW_VER_MINOR;
+			s1[2] = (uint8_t)(GetDEVUID());
+			s1[3] = (uint8_t)(GetDEVUID() >> 8);
+			s1[4] = (uint8_t)(GetDEVUID() >> 16);
+			s1[5] = (uint8_t)(GetDEVUID() >> 24);
+			s1[6] = 0;
+			s1[7] = 0;
+			//Get_SerialNumB((uint32_t *) &s1[2]);
+
+			s1[8] = (uint8_t) HAL_RTCEx_BKUPRead(&hrtc, REG_BKP_ARMED);
+
+			s1[9] = SysTime.Seconds;
+			s1[10] = SysTime.Minutes;
+			s1[11] = SysTime.Hours;
+			s1[12] = SysDate.Date;
+			s1[13] = SysDate.Month;
+			s1[14] = (uint8_t) ((uint16_t) (SysDate.Year + 2000) & 0xFF);
+			s1[15] = (uint8_t) ((uint16_t) (SysDate.Year + 2000) >> 8);
+			s1[16] = (BatteryLevel.Voltage & 0xFF);
+			s1[17] = ((BatteryLevel.Voltage >> 8) & 0xFF);
+
+			PROTO_MsgBuild(VESPER_GETFLAGS, (34), (uint8_t *) &tbuf[0]);
+                     * */
+
+                    counter = 0;
+                    vesperEnabled = true;
+
+                    ChangeIndicatorColor(0, true);
+                    //checkIfEnabled();
+
+                    byte[] data = e.MessageData;
+
+                    //                    UInt32 ee_size = (UInt32)((UInt32)data[0] + (UInt32)(data[1] << 8) + (UInt32)(data[2] << 16) + (UInt32)(data[3] << 24));
+                    //                    Int32 valid = (Int32)((UInt32)data[8] + (UInt32)(data[9] << 8) + (UInt32)(data[10] << 16) + (UInt32)(data[11] << 24));
+                    UInt32 state = (UInt32)((UInt32)data[12] + (UInt32)(data[13] << 8) + (UInt32)(data[14] << 16) + (UInt32)(data[15] << 24));
+                    vd.usb_status = state.ToString();
+
+                    UInt32 major = (UInt32)(data[16]);
+                    UInt32 minor = (UInt32)(data[17]);
+                    byte[] vuid = { data[18], data[19], data[20], data[21] };
+
+                    vd.fw_major = major.ToString();
+                    vd.fw_minor = minor.ToString();
+                    vd.uid = SerialMessage.ByteArrayToString(vuid);
+
+                    currentUid = vd.uid;
+                    currentFWVer = vd.fw_major + "." + vd.fw_minor;
+                    Invoke(new Action(() =>
+                    {
+                        this.checkForFWUpdatesToolStripMenuItem.Enabled = true;
+                    }));
+
+                    //22
+                    //23
+
+                    vd.isarmed = (data[24] == 0) ? "Armed" : "Not Armed";
+                    byte[] dtarray = { data[25], data[26], data[27], data[28], data[29], data[30], data[31] };
+                    DateTime dtt = SerialMessage.BytesToDateTime(dtarray);
+                    vd.VesperTime = dtt.ToString();
+
+                    UInt32 voltage = (UInt32)((UInt32)data[32] + (UInt32)(data[33] << 8));
+                    vd.battery_level = voltage.ToString();
+
+                    //StepProgressBarInvoke();
+                    UpdateVesperDetails(vd);
+                    break;
+
+
+            }
+        }
+
+        private void _comport_ErrorEvent(object? sender, Services.ErrorEventArgs e)
+        {
+        }
+
         public LoggerDevice(UsbContext c, UsbDevice d)
         {
-            _ftdiNODE = null;
-            _fTDI = null;
             this._usbContext = c;
             this._usbDevice = d;
+            this._comport = null;
             this._serialnumber = (this._usbDevice.Info.SerialNumber == null) ? "" : this._usbDevice.Info.SerialNumber.TrimEnd(new char[] {' ', '\n', '\r', '\0' }).ToUpper();
             this._name = this._usbDevice.Info.Product;
 
@@ -125,9 +310,21 @@ namespace VesperApp.Models
                 _name = "Unknown";
             }
 
-            this._interfaceVender = 2;
-            this._readEndpointID = ReadEndpointID.Ep03;
-            this._writeEndpointID = WriteEndpointID.Ep03;
+            switch(_type)
+            {
+                case DeviceTypes.Nanotag:
+                    this._interfaceVendor = 2;
+                    this._readEndpointID = ReadEndpointID.Ep03;
+                    this._writeEndpointID = WriteEndpointID.Ep03;
+                    break;
+
+                case DeviceTypes.Vesper:
+                    break;
+
+                case DeviceTypes.Pipistrelle:
+                    break;
+            }
+
 
             this.BatteryChargePercent = "-";
             this.DiskOccupancy = 0.0;
@@ -151,24 +348,8 @@ namespace VesperApp.Models
 
 
         private UInt16 freeDiskPercent;
-
         private UInt32 nandSizePages;
         private UInt32 pageSizeBytes;
-        private UInt32 spareSizeBytes;
-        UInt16 nandSizeBlocks;
-        UInt16 columnAddrMask;     // (1 << (number of bits in column address+1)) - 1
-        UInt16 planeSizeBlocks;
-        UInt16 blockSizePages;
-        UInt16 blockSizePages2Log; // number of bitshifts in pages in block
-        UInt16 blockAddressShift;
-        UInt16 maxLunBadBlocks;
-        UInt16 reserved;
-        byte lunSizePlanes;
-        byte dieSizeLuns;
-        byte nandSizeDies;
-        byte nandSizeGb;
-
-
 
         public async Task<bool> Connect()
         {
@@ -214,7 +395,7 @@ namespace VesperApp.Models
 
                         try
                         {
-                            r = this.USBDevice.ClaimInterface(this._interfaceVender);
+                            r = this.USBDevice.ClaimInterface(this._interfaceVendor);
                             this._usbEndpointReader = this.USBDevice.OpenEndpointReader(_readEndpointID, ((4096 + 64 + 4) * 2), EndpointType.Bulk);
                             this._usbEndpointWriter = this.USBDevice.OpenEndpointWriter(_writeEndpointID, EndpointType.Bulk);
                         }
@@ -232,57 +413,43 @@ namespace VesperApp.Models
                 }
             }
 
-            if(r == true && this.USBDevice != null && this.USBDevice.Info != null)
+            if (_type == DeviceTypes.Nanotag)
             {
-                this._serialnumber = this.USBDevice.Info.SerialNumber;
-                this._name = this.USBDevice.Info.Product;
-                
-                byte[] response;
-                int retb = WriteRead(VND_CMD_GET_DISKINFO, new byte[0], out response, 40);
-
-                if(retb == 0)
+                if (r == true && this.USBDevice != null && this.USBDevice.Info != null)
                 {
-                    nandSizePages = (UInt32)response[0] + 
-                                            ((UInt32)response[1] << 8) + 
-                                            ((UInt32)response[2] << 16) + 
-                                            ((UInt32)response[3] << 24);
-                    pageSizeBytes = (UInt32)response[4] +
-                                            ((UInt32)response[5] << 8) +
-                                            ((UInt32)response[6] << 16) +
-                                            ((UInt32)response[7] << 24);
+                    this._serialnumber = this.USBDevice.Info.SerialNumber;
+                    this._name = this.USBDevice.Info.Product;
 
-                    freeDiskPercent = (UInt16)((UInt16)response[36] +
-                                            ((UInt16)response[37] << 8));
+                    byte[] response;
+                    int retb = WriteRead(VND_CMD_GET_DISKINFO, new byte[0], out response, 40);
 
-                    DiskSize = ((double)(nandSizePages * pageSizeBytes)) / (double)(1024*1024*1024); // GB
-                    DiskOccupancy = (double)freeDiskPercent;
-                    UpdateDiskStatus();
+                    if (retb == 0)
+                    {
+                        nandSizePages = (UInt32)response[0] +
+                                                ((UInt32)response[1] << 8) +
+                                                ((UInt32)response[2] << 16) +
+                                                ((UInt32)response[3] << 24);
+                        pageSizeBytes = (UInt32)response[4] +
+                                                ((UInt32)response[5] << 8) +
+                                                ((UInt32)response[6] << 16) +
+                                                ((UInt32)response[7] << 24);
+
+                        freeDiskPercent = (UInt16)((UInt16)response[36] +
+                                                ((UInt16)response[37] << 8));
+
+                        DiskSize = ((double)(nandSizePages * pageSizeBytes)) / (double)(1024 * 1024 * 1024); // GB
+                        DiskOccupancy = (double)freeDiskPercent;
+                        UpdateDiskStatus();
+                    }
                 }
-                /*
-                 * 	uint32_t   		 	nandSizePages;
-	uint32_t			pageSizeBytes;		// Page size in Bytes
-	uint32_t			spareSizeBytes;
-	uint16_t			nandSizeBlocks;
-    uint16_t            columnAddrMask;     // (1 << (number of bits in column address+1)) - 1
-	uint16_t			planeSizeBlocks;	
-	uint16_t			blockSizePages;
-    uint16_t            blockSizePages2Log; // number of bitshifts in pages in block
-    uint16_t            blockAddressShift;
-	uint16_t   		 	maxLunBadBlocks;
-	uint16_t   		 	reserved;
-	uint8_t				lunSizePlanes;
-	uint8_t				dieSizeLuns;
-	uint8_t				nandSizeDies;
-	uint8_t				nandSizeGb;			
-                            appData->transmitDataBuffer[i++] = (bdblk & 0xFF);
-                            appData->transmitDataBuffer[i++] = ((bdblk>>8) & 0xFF);
-                            appData->transmitDataBuffer[i++] = ((bdblk>>16) & 0xFF);
-                            appData->transmitDataBuffer[i++] = ((bdblk>>24) & 0xFF);
-
-                            appData->transmitDataBuffer[i++] = (freep & 0xFF);
-                            appData->transmitDataBuffer[i++] = ((freep>>8) & 0xFF);
-
-                */
+            }
+            else if(_type == DeviceTypes.Vesper && this._comport != null)
+            {
+                this._comport.Start();
+            }
+            else if(_type == DeviceTypes.Pipistrelle && this._comport != null)
+            {
+                this._comport.Start();
             }
 
             return await Task.FromResult(r);
@@ -304,7 +471,7 @@ namespace VesperApp.Models
 
             if (this.USBDevice != null && this.USBDevice.IsOpen)
             {
-                this.USBDevice.ReleaseInterface(this._interfaceVender);
+                this.USBDevice.ReleaseInterface(this._interfaceVendor);
                 this.USBDevice.Close();
                 r = true;
             }
@@ -417,7 +584,7 @@ namespace VesperApp.Models
             {
                 var response = new byte[0];
 
-                int retb = WriteRead(VND_CMD_GET_INFO, new byte[0], out response, 20);
+                int retb = WriteRead(Nanotag.VND_CMD_GET_INFO, new byte[0], out response, 20);
 
                 if (retb == 0)
                 {
@@ -481,7 +648,7 @@ namespace VesperApp.Models
             {
                 var response = new byte[0];
 
-                int retb = WriteRead(VND_CMD_FORMAT_DISK, new byte[0], out response, 0);
+                int retb = WriteRead(Nanotag.VND_CMD_FORMAT_DISK, new byte[0], out response, 0);
 
                 if (retb == 0) r = true;
             }
@@ -543,9 +710,15 @@ namespace VesperApp.Models
                 buffer[2] = (byte)(ts >> 16);
                 buffer[3] = (byte)(ts >> 24);
 
-                int retb = WriteRead(VND_CMD_SET_DATETIME, buffer, out response, 0);
+                int retb = WriteRead(Nanotag.VND_CMD_SET_DATETIME, buffer, out response, 0);
 
                 if (retb == 0) r = true;
+            }
+            else if(this._comport != null && this._comport.IsRunning == true)
+            {
+                MessageOutEventArgs moea = new MessageOutEventArgs();
+                moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER, 0, new byte[0], 0);
+                this._comport.SendMessage(moea);
             }
             
             return await Task.FromResult(r);
@@ -573,18 +746,18 @@ namespace VesperApp.Models
                     Array.Copy(cfg, Nanotag.CONFIG_CHUNK_SIZE, dev_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
                     Array.Copy(cfg, Nanotag.CONFIG_CHUNK_SIZE * 2, sch_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
 
-                    int retb = WriteRead(VND_CMD_SET_CFGCHUNK_GEN, main_cfg, out response, 0);
+                    int retb = WriteRead(Nanotag.VND_CMD_SET_CFGCHUNK_GEN, main_cfg, out response, 0);
                     Debug.WriteLine("Sent General config result: " + retb.ToString());
                     if (retb == 0)
                     {
                         await Task.Delay(200);
-                        retb = WriteRead(VND_CMD_SET_CFGCHUNK_DEV, dev_cfg, out response, 0);
+                        retb = WriteRead(Nanotag.VND_CMD_SET_CFGCHUNK_DEV, dev_cfg, out response, 0);
                         Debug.WriteLine("Sent Device config result: " + retb.ToString());
 
                         if (retb == 0)
                         {
                             await Task.Delay(200);
-                            retb = WriteRead(VND_CMD_SET_CFGCHUNK_SCH, sch_cfg, out response, 0);
+                            retb = WriteRead(Nanotag.VND_CMD_SET_CFGCHUNK_SCH, sch_cfg, out response, 0);
                             Debug.WriteLine("Sent Schedule config result: " + retb.ToString());
                             r = true;
                         }
@@ -604,7 +777,7 @@ namespace VesperApp.Models
             {
                 var response = new byte[0];
 
-                int retb = WriteRead(VND_CMD_GET_DATANPAGES, new byte[0], out response, 8);
+                int retb = WriteRead(Nanotag.VND_CMD_GET_DATANPAGES, new byte[0], out response, 8);
 
                 if (retb == 0)
                 {
@@ -683,7 +856,7 @@ namespace VesperApp.Models
                                 addr[3] = (byte)(i >> 24);
                                 var dpageresponse = new byte[0];
                                 Debug.Write("Trying to download page = " + i.ToString());
-                                int getpageresult = WriteRead(VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
+                                int getpageresult = WriteRead(Nanotag.VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
 
                                 if (getpageresult == 0)
                                 {
@@ -909,10 +1082,21 @@ namespace VesperApp.Models
                 return false;
             }
 
+            if ((this._serialnumber != ld._serialnumber)) return false;
+
+            if(this._comport == null)
+            {
+                return ((this.USBDevice?.VendorId == ld.USBDevice?.VendorId) && (this.USBDevice?.ProductId == ld.USBDevice?.ProductId));
+            }
+            else
+            {
+                return this._comport.PortName == ld?._comport?.PortName;
+            }
+
             // Return true if the fields match.
             // Note that the base class is not invoked because it is
             // System.Object, which defines Equals as reference equality.
-            return ((this._serialnumber == ld._serialnumber) && (this.USBDevice?.VendorId == ld.USBDevice?.VendorId) && (this.USBDevice?.ProductId == ld.USBDevice?.ProductId));
+            
         }
 
         public override int GetHashCode() => ((this._serialnumber == null) ? "" : this._serialnumber).GetHashCode();

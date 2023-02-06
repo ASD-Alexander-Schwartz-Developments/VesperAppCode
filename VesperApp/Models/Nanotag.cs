@@ -13,13 +13,37 @@ namespace VesperApp.Models
 {
     public class Nanotag
     {
-		public static readonly int DEVICE_NAME_LENGTH = 16;
+        public const byte VND_CMD_GET_INFO = 0x00;
+        public const byte VND_CMD_GET_DISKINFO = 0x01;
+        public const byte VND_CMD_GET_LOGNPAGES = 0x02;
+        public const byte VND_CMD_GET_LOGCHUNK = 0x03;
+        public const byte VND_CMD_GET_DATANPAGES = 0x04;
+        public const byte VND_CMD_GET_DATACHUNK = 0x05;
+        public const byte VND_CMD_SET_DATETIME = 0x06;
+        public const byte VND_CMD_SET_SLEEP = 0x07;
+        public const byte VND_CMD_SET_BOOT = 0x0F;
+
+        public const byte VND_CMD_GET_CFGCHUNK_GEN = 0x0A;
+        public const byte VND_CMD_GET_CFGCHUNK_SCH = 0x0B;
+        public const byte VND_CMD_GET_CFGCHUNK_DEV = 0x0C;
+        public const byte VND_CMD_SET_CFGCHUNK_GEN = 0x1A;
+        public const byte VND_CMD_SET_CFGCHUNK_SCH = 0x1B;
+        public const byte VND_CMD_SET_CFGCHUNK_DEV = 0x1C;
+
+        public const byte VND_CMD_FORMAT_DISK = 0x3F;
+
+
+        public static readonly int DEVICE_NAME_LENGTH = 16;
 		public static readonly int MAX_LOADED_DEVICES = 4;
 		public static readonly int MAX_SCHEDULE_SIZE = 32;
 		public static readonly int REFERENCE_YEAR = 2020;
 		public static readonly int CONFIG_CHUNK_SIZE = 256;
 
-		public static readonly List<ConfigurationDeviceDriver> SupportedDeviceDrivers = new List<ConfigurationDeviceDriver>
+		public static readonly int VendorId = 0x04d8;
+		public static readonly int ProductId = 0xfe57;
+
+
+        public static readonly List<ConfigurationDeviceDriver> SupportedDeviceDrivers = new List<ConfigurationDeviceDriver>
 		{
 			{ new ConfigACLYSDriver() },
 			{ new ConfigLEDDriver() },

@@ -7,6 +7,8 @@ using VesperApp.Models;
 using ASDLibUSBWrapper;
 using System.Diagnostics;
 using System.Threading;
+using System.IO.Ports;
+
 
 namespace VesperApp.Services
 {
@@ -21,6 +23,8 @@ namespace VesperApp.Services
         Task ? DisconnectDeviceTestTask;
         CancellationTokenSource tokenSource;
         CancellationToken token;
+
+        SerialPort? _serialPort;
 
 
         public DeviceUsbAdapter(DockDevice connectedDock)
@@ -274,6 +278,71 @@ namespace VesperApp.Services
 
             return await Task.FromResult(this._loggerDevices);
         }
+
+
+
+
+        public async Task<IEnumerable<LoggerDevice>> ScanComPortsAsync(bool forceRefresh = false)
+        {
+            if (forceRefresh == true)
+                this._loggerDevices.Clear();
+
+            if (this._serialPort != null)
+            {
+                string []comports = SerialPort.GetPortNames();
+
+                foreach (string s in comports)
+                {
+                    try
+                    {
+                        Debug.WriteLine("Try " + s);
+                        this._serialPort.PortName = s;
+                        this._serialPort.ReadTimeout = 1000;
+                        this._serialPort.Open();
+
+                        /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
+
+                        byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER,
+                            0, new byte[0], 0);
+                        this._serialPort.Write(buffer, 0, buffer.Length);
+                        Thread.Sleep(50);
+                        buffer = new byte[16];
+                        if (this._serialPort.Read(buffer, 0, buffer.Length) >= 8)
+                        {
+                            int i;
+                            for(i = 0; i < buffer.Length; i++)
+                            {
+                                if (buffer[i] == 0x5A)
+                                    break;
+                            }
+                            if (buffer[i] == 0x5A && buffer[i+2] == (byte)MessageTypes.VESPER_GET_VER)             /// need to implement something real here
+                            {
+                                uint serial = (uint)((uint)buffer[i+4] + ((uint)buffer[i+5] << 8) + ((uint)buffer[i+6] << 16) + ((uint)buffer[i+7] << 24));
+                                DeviceTypes type = (DeviceTypes)buffer[i+8];
+
+                                var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial);
+
+                                if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
+                                    this._loggerDevices.Add(dev);
+                            }
+                        }
+                    }
+                    catch 
+                    { 
+                    }
+                    finally
+                    { 
+                        this._serialPort.Close();
+                    }
+                }
+            }
+
+            return await Task.FromResult(this._loggerDevices);
+        }
+
+
+
+
 
         public Task<LoggerDevice?> GetDiviceBySerialNumberAsync(string serialnum)
         {

@@ -1138,6 +1138,40 @@ namespace VesperApp.ViewModels
             IsDeviceConnected = e.IsConnected;
         }
 
+
+
+        private async Task ScanFor(int vid, int pid)
+        {
+            if (_deviceUsbAdapter != null)
+            {
+                var devices = await _deviceUsbAdapter.ScanDevicesAsync((uint)vid,(uint)pid, true);
+                foreach (LoggerDevice logDevice in devices)
+                {
+                    if (LoggerDevices.Contains(logDevice) == false)
+                        LoggerDevices.Add(logDevice);
+                }
+
+                LoggerDevice[] list = new LoggerDevice[LoggerDevices.Count];
+                LoggerDevices.CopyTo(list, 0);
+
+                foreach (LoggerDevice dev in list)
+                {
+                    bool f = false;
+                    foreach (LoggerDevice lDevice in devices)
+                    {
+                        if (lDevice == dev)
+                        {
+                            f = true;
+                            break;
+                        }
+                    }
+
+                    if (f == false && dev.IsConnected == false) LoggerDevices.Remove(dev);
+                }
+            }
+        }
+
+
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             if (IsClockUTC == false)
@@ -1147,33 +1181,9 @@ namespace VesperApp.ViewModels
 
             if (IsConnected == true && IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false)
             {
-                var scan = Task.Run(async () =>
-                {
-                    var devices = await _deviceUsbAdapter.ScanDevicesAsync(0x04d8, 0xfe57, true);
-                    foreach (LoggerDevice logDevice in devices)
-                    {
-                        if (LoggerDevices.Contains(logDevice) == false)
-                            LoggerDevices.Add(logDevice);
-                    }
-
-                    LoggerDevice[] list = new LoggerDevice[LoggerDevices.Count];
-                    LoggerDevices.CopyTo(list, 0);
-
-                    foreach (LoggerDevice dev in list)
-                    {
-                        bool f = false;
-                        foreach (LoggerDevice lDevice in devices)
-                        {
-                            if (lDevice == dev)
-                            {
-                                f = true;
-                                break;
-                            }
-                        }
-
-                        if (f == false && dev.IsConnected == false) LoggerDevices.Remove(dev);
-                    }
-                });
+                var scan_nano = Task.Run( async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
+                var scan_vesp = Task.Run(async () => await ScanFor(Vesper.VendorId, Vesper.ProductId));
+                var scan_pip = Task.Run(async () => await ScanFor(Pipistrelle.VendorId, Pipistrelle.ProductId));
 
             }
 
