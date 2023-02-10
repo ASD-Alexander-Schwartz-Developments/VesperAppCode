@@ -15,8 +15,8 @@ namespace VesperApp.ViewModels
     {
         public ObservableCollection<DockDeviceInfo> Docks { get; }
 
-        public ReactiveCommand<Unit, DockDeviceInfo?> ? CloseAndConnect { get; }
-        public SelectionModel<DockDeviceInfo> ? SelectedDock { get; }
+        //public ReactiveCommand<Unit, DockDeviceInfo?> ? CloseAndConnect { get; }
+        public SelectionModel<DockDeviceInfo?> ? SelectedDock { get; }
 
         public bool IsBusy
         {
@@ -38,13 +38,13 @@ namespace VesperApp.ViewModels
             scanTimer = null;
             SelectedDock = null;
             _isBusy = false;
-            CloseAndConnect = null;
+            //CloseAndConnect = null;
         }
 
         public DockPickWindowViewModel(DockAdapter adapter)
         {
             Docks = new ObservableCollection<DockDeviceInfo>();
-            SelectedDock = new SelectionModel<DockDeviceInfo>();
+            SelectedDock = new SelectionModel<DockDeviceInfo?>();
             SelectedDock.SelectionChanged += SelectedDock_SelectionChanged;
             _dockDeviceInfo = null;
             _isBusy = false;
@@ -53,14 +53,9 @@ namespace VesperApp.ViewModels
             scanTimer.Elapsed += ScanTimer_Elapsed;
             scanTimer.Interval = 2500;
             scanTimer.Start();
-
-            CloseAndConnect = ReactiveCommand.Create(() =>
-            {
-                return _dockDeviceInfo;
-            });
         }
 
-        private void SelectedDock_SelectionChanged(object? sender, SelectionModelSelectionChangedEventArgs<DockDeviceInfo> e)
+        private void SelectedDock_SelectionChanged(object? sender, SelectionModelSelectionChangedEventArgs<DockDeviceInfo?> e)
         {
             if(e.SelectedItems != null && e.SelectedItems.Count > 0)
                 _dockDeviceInfo = e.SelectedItems[0];
@@ -75,42 +70,46 @@ namespace VesperApp.ViewModels
         }
         private async void ScanTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            IsBusy = true;
-            scanTimer.Stop();
-            var docks = await _adapter.ScanDocksAsync();
-
-            //ObservableCollection<DockDeviceInfo> _discovered = new ObservableCollection<DockDeviceInfo>();
-            await System.Threading.Tasks.Task.Delay(150);
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            if (_adapter != null)
             {
-                //Docks.Clear();
-                foreach (DockDevice dockDevice in docks)
-                {
-                    if(Docks.Contains(dockDevice.Info) == false)
-                        Docks.Add(dockDevice.Info);
-                }
-                
-                DockDeviceInfo[] list = new DockDeviceInfo[Docks.Count];
-                Docks.CopyTo(list, 0);
 
-                foreach (DockDeviceInfo dockinfo in list)
+                IsBusy = true;
+                scanTimer?.Stop();
+                var docks = await _adapter.ScanDocksAsync();
+
+                //ObservableCollection<DockDeviceInfo> _discovered = new ObservableCollection<DockDeviceInfo>();
+                await System.Threading.Tasks.Task.Delay(150);
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    bool f = false;
+                    //Docks.Clear();
                     foreach (DockDevice dockDevice in docks)
                     {
-                        if(dockinfo.Id == dockDevice.Info.Id) f = true;
+                        if (Docks.Contains(dockDevice.Info) == false)
+                            Docks.Add(dockDevice.Info);
                     }
 
-                    if (f == false) Docks.Remove(dockinfo);
-                }
+                    DockDeviceInfo[] list = new DockDeviceInfo[Docks.Count];
+                    Docks.CopyTo(list, 0);
+
+                    foreach (DockDeviceInfo dockinfo in list)
+                    {
+                        bool f = false;
+                        foreach (DockDevice dockDevice in docks)
+                        {
+                            if (dockinfo.Id == dockDevice.Info.Id) f = true;
+                        }
+
+                        if (f == false) Docks.Remove(dockinfo);
+                    }
 
 
-            });
+                });
 
-//            Docks = _discovered;
-            IsBusy = false;
-            scanTimer.Start();
+                //            Docks = _discovered;
+                IsBusy = false;
+                scanTimer?.Start();
+            }
         }
     }
 }

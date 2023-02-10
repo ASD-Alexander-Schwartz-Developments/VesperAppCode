@@ -1,54 +1,51 @@
+using Avalonia;
 using Avalonia.Controls;
-using Avalonia.ReactiveUI;
-using ReactiveUI;
-using System;
-using System.Threading.Tasks;
-using VesperApp.Models;
-using VesperApp.ViewModels;
-using VesperApp.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using System.Reflection;
+using VesperApp.ViewModels;
 
 namespace VesperApp.Views
 {
-    public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
+    public partial class MainWindow : Window
     {
-        
-//        private ConnectToggle _connectToggle;
         public MainWindow()
         {
             InitializeComponent();
-//            _connectToggle = this.Get<ConnectToggle>("ConnectToggle");
-            this.WhenActivated(d => d(ViewModel!.ShowDockPickDialog.RegisterHandler(DoShowDockPickDialogAsync)));
-        }
+#if DEBUG
+            this.AttachDevTools();
+#endif
 
-        void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
-
-            Version? v = Assembly.GetExecutingAssembly().GetName().Version;
+            System.Version? v = Assembly.GetExecutingAssembly().GetName().Version;
 
             string version = (v == null) ? "Unknown Version" : v.ToString();
 
             this.Title += " - v" + version;
+
+            //this.mainView.textLogWindow.Text= version;
         }
 
-
-
-        private bool _toggle = false;
-        void Launchpad_LockToggle()
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-//            _connectToggle.SetState(_toggle);
-//            _toggle = !_toggle;
+            //Setting up the minimum size based on the initial size of the form elements
+            //https://stackoverflow.com/questions/9319248/how-to-avoid-having-a-window-smaller-than-the-minimum-size-of-a-usercontrol-in-w
+
+            // We know longer need to size to the contents.
+            ClearValue(SizeToContentProperty);
+            // We want our control to shrink/expand with the window.
+            /*_MyControlName.ClearValue(WidthProperty);
+            _MyControlName.ClearValue(HeightProperty);*/
+            // Don't want our window to be able to get any smaller than this.
+            SetValue(MinWidthProperty, this.Width);
+            SetValue(MinHeightProperty, this.Height);
         }
 
-        private async Task DoShowDockPickDialogAsync(InteractionContext<DockPickWindowViewModel, DockDeviceInfo?> interaction)
+
+        private void InitializeComponent()
         {
-            var dialog = new DockPickWindow();
-            dialog.DataContext = interaction.Input;
-
-            var result = await dialog.ShowDialog<DockDeviceInfo?>(this);
-            interaction.SetOutput(result);
+            AvaloniaXamlLoader.Load(this);
         }
+
+
     }
 }

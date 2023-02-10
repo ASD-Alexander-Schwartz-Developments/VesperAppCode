@@ -16,20 +16,19 @@ namespace VesperApp.ViewModels
     {
         public ScheduleControlViewModel(IEnumerable<ConfigScheduleJSONItem> items)
         {
-            isAddingNewEntry = false;
-            selectedDate = null;
-            selectedTime = null;
-            selectedConfiguration = WorkingConfiguration.Off;
+            IsAddingNewEntry = false;
+            SelectedDate = null;
+            SelectedTime = null;
+            SelectedConfiguration = WorkingConfiguration.Off;
  
             ScheduleEventsList = new ObservableCollection<ConfigScheduleJSONItem>(items);
 
-            selectedScheduleType = ScheduleTypes.Continues;
+            SelectedScheduleType = ScheduleTypes.Continues;
             previousScheduleType = ScheduleTypes.Continues;
-            isDateEnabled = false;
-            isMonthVisible = false;
-            isYearVisible = false;
-            dayVisible = false;
-
+            IsDateEnabled = false;
+            IsMonthVisible = false;
+            IsYearVisible = false;
+            IsDayVisible = false;
 
 
             CommandAddButton = ReactiveCommand.Create(async () =>
@@ -70,9 +69,9 @@ namespace VesperApp.ViewModels
                     }
                     else
                     {
-                        selectedDate = null;
-                        selectedTime = null;
-                        selectedConfiguration = WorkingConfiguration.Off;
+                        SelectedDate = null;
+                        SelectedTime = null;
+                        SelectedConfiguration = WorkingConfiguration.Off;
 
                         if (IsAddingNewEntry == true)
                         {
@@ -87,9 +86,9 @@ namespace VesperApp.ViewModels
                 }
                 else if(SelectedScheduleType == ScheduleTypes.Daily)
                 {
-                    selectedDate = null;
-                    selectedTime = null;
-                    selectedConfiguration = WorkingConfiguration.Off;
+                    SelectedDate = null;
+                    SelectedTime = null;
+                    SelectedConfiguration = WorkingConfiguration.Off;
 
                     if (IsAddingNewEntry == true)
                     {
@@ -103,9 +102,9 @@ namespace VesperApp.ViewModels
                 }
                 else if (SelectedScheduleType == ScheduleTypes.Weekly)
                 {
-                    selectedDate = null;
-                    selectedTime = null;
-                    selectedConfiguration = WorkingConfiguration.Off;
+                    SelectedDate = null;
+                    SelectedTime = null;
+                    SelectedConfiguration = WorkingConfiguration.Off;
 
                     if (IsAddingNewEntry == true)
                     {
@@ -119,9 +118,9 @@ namespace VesperApp.ViewModels
                 }
                 else if (SelectedScheduleType == ScheduleTypes.Dated)
                 {
-                    selectedDate = null;
-                    selectedTime = null;
-                    selectedConfiguration = WorkingConfiguration.Off;
+                    SelectedDate = null;
+                    SelectedTime = null;
+                    SelectedConfiguration = WorkingConfiguration.Off;
 
                     if (IsAddingNewEntry == true)
                     {
@@ -135,9 +134,9 @@ namespace VesperApp.ViewModels
                 }
                 else if (SelectedScheduleType == ScheduleTypes.Relative)
                 {
-                    selectedDate = null;
-                    selectedTime = null;
-                    selectedConfiguration = WorkingConfiguration.Off;
+                    SelectedDate = null;
+                    SelectedTime = null;
+                    SelectedConfiguration = WorkingConfiguration.Off;
 
                     if (IsAddingNewEntry == true)
                     {
@@ -155,9 +154,9 @@ namespace VesperApp.ViewModels
             CommandRejectButton = ReactiveCommand.Create(() =>
             {
                 IsAddingNewEntry = false;
-                selectedDate = null;
-                selectedTime = new TimeSpan(0); ;
-                selectedConfiguration = WorkingConfiguration.Off;
+                SelectedDate = null;
+                SelectedTime = null;
+                SelectedConfiguration = WorkingConfiguration.Off;
             });
 
             CommandApplyButton = ReactiveCommand.Create(() =>
@@ -170,16 +169,15 @@ namespace VesperApp.ViewModels
                 else
                     nitem.Alarm = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0, 0, DateTimeKind.Unspecified);
                         
-
                 if (SelectedTime != null)
                     nitem.Alarm += (TimeSpan)SelectedTime;
 
                 nitem.Configuration = SelectedConfiguration;
                 ScheduleEventsList.Add(nitem);
                 IsAddingNewEntry = false;
-                selectedDate = null;
-                selectedTime = null;
-                selectedConfiguration = WorkingConfiguration.Off;
+                SelectedDate = null;
+                SelectedTime = null;
+                SelectedConfiguration = WorkingConfiguration.Off;
             });
 
             CommandDeleteButton = ReactiveCommand.Create( async () =>

@@ -89,6 +89,9 @@
 		<Compile Update="Views\DockPickWindow.axaml.cs">
 			<DependentUpon>DockPickWindow.axaml</DependentUpon>
 		</Compile>
+		<Compile Update="Views\MainView.axaml.cs">
+		  <DependentUpon>MainView.axaml</DependentUpon>
+		</Compile>
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="CG\**">

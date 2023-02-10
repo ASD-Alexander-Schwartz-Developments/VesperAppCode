@@ -8,9 +8,9 @@ namespace VesperApp.Models
 {
     public enum DeviceTypes
     {
-        Nanotag,
-        Vesper,
-        Pipistrelle
+        Nanotag = 0,
+        Vesper = 1,
+        Pipistrelle = 2
     }
 
     public enum WorkingConfiguration : UInt32 

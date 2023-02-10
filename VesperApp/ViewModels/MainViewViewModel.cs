@@ -25,6 +25,9 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Xml;
+using Avalonia.Platform.Storage;
+using Avalonia.Controls.Platform;
+using Avalonia.Controls.ApplicationLifetimes;
 
 /// <summary>
 /// //// {Binding Description, StringFormat='Description: {0}'}
@@ -34,7 +37,7 @@ using System.Xml;
 
 namespace VesperApp.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainViewViewModel : ViewModelBase
     {
         private DockAdapter? _globalDockAdapter;
         private DeviceUsbAdapter? _deviceUsbAdapter;
@@ -175,12 +178,12 @@ namespace VesperApp.ViewModels
 		}
 
 		#endregion
-
-		public MainWindowViewModel()
+/*
+		public MainViewViewModel()
         {
             _globalDockAdapter = null;
             MainWindowContext = null;
-            ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
+            //ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
 
             ConnectDisconnectDockCommand = null;
             EnableDeviceDockCommand = null;
@@ -203,14 +206,14 @@ namespace VesperApp.ViewModels
 			DownloadCheckCommand = ReactiveCommand.Create(DownloadCheck);
 			LaterCommand = ReactiveCommand.Create(closeFlyout);
 			IsUpdateAvailable = CheckUpdate();
-		}
+		}*/
 
-        public MainWindowViewModel(Avalonia.Controls.Window mainWindowContext)
+        public MainViewViewModel(/*Avalonia.Controls.Window mainWindowContext*/)
         {
-            MainWindowContext = mainWindowContext;
+            MainWindowContext = App.MainWindow;
             _globalDockAdapter = new DockAdapter();
 
-            ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
+            //ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
 
             #region Dock Commands
             ConnectDisconnectDockCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -223,18 +226,23 @@ namespace VesperApp.ViewModels
                 }
                 else
                 {
-                    var dockPick = new DockPickWindowViewModel(_globalDockAdapter);
+                    DockPickWindow dockPickDialog = new DockPickWindow();
+                    var dockPickVM = new DockPickWindowViewModel(_globalDockAdapter);
+                    dockPickDialog.DataContext = dockPickVM;
 
-                    var result = await ShowDockPickDialog.Handle(dockPick);
-
-                    if (result != null)
+                    if (App.MainWindow != null)
                     {
-                        var dockdevice = await _globalDockAdapter.GetDockBySerialNumberAsync(result.Id ?? string.Empty);
+                        var result = await dockPickDialog.ShowDialog<DockDeviceInfo?>(App.MainWindow);
 
-                        if (dockdevice != null)
-                            await _globalDockAdapter.DockConnect(dockdevice);
+                        if (result != null)
+                        {
+                            var dockdevice = await _globalDockAdapter.GetDockBySerialNumberAsync(result.Id ?? string.Empty);
 
-                        //IsConnected = _globalDockAdapter.IsConnected;
+                            if (dockdevice != null)
+                                await _globalDockAdapter.DockConnect(dockdevice);
+
+                            //IsConnected = _globalDockAdapter.IsConnected;
+                        }
                     }
                 }
             });
@@ -293,12 +301,22 @@ namespace VesperApp.ViewModels
                 }
                 else if (_deviceUsbAdapter != null && _isDeviceConnected == false && SelectedLoggerDevice != null)
                 {
+                    if (this.SelectedLoggerDevice.IsComportDevice)
+                    {
+                        this._timer?.Stop();
+                        await Task.Delay(250);
+                    }
                     try
                     {
                         await _deviceUsbAdapter.DeviceConnect(SelectedLoggerDevice);
                     }
                     catch (Exception ex)
                     { }
+                    finally
+                    {
+                        if (this._timer?.Enabled == false)
+                            this._timer.Start();
+                    }
 
                 }
             });
@@ -422,7 +440,7 @@ namespace VesperApp.ViewModels
 
             _timer = new System.Timers.Timer();
             _timer.Elapsed += _timer_Elapsed;
-            _timer.Interval = 1000;
+            _timer.Interval = 1500;
             _timer.Start();
 
             _globalDockAdapter.ConnectionEvent += _globalDockAdapter_ConnectionEvent;
@@ -801,65 +819,92 @@ namespace VesperApp.ViewModels
         {
             bool ok = false;
 
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            string json = string.Empty;
+            string error = string.Empty;
 
-            saveFileDialog.Title = "Save Configuration...";
-
-            string? file = await saveFileDialog.ShowAsync(MainWindowContext??App.MainWindow);
-            string error = "";
-
-            if (file != null && file.Length > 0 && configurationJSONInstance != null)
+            try
             {
-                var options = new JsonSerializerOptions();
-                options.WriteIndented = false;
-                options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
-                options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
-                configurationJSONInstance.DeviceDrivers.Clear();
-                if (DriversViewModel != null)
+                FilePickerSaveOptions options = new()
                 {
-                    foreach(ConfigurationDeviceDriver d in DriversViewModel.DeviceDriversCollection)
-                        if(d.IsChecked) configurationJSONInstance.DeviceDrivers.Add(d);
-                }
+                    Title = "Save configuration file as...",
+                    SuggestedFileName = "config.json",
+                    DefaultExtension = ".json",
+                    FileTypeChoices = new List<FilePickerFileType>{ new("Configuration JSON file (.json)")
+                    {
+                        Patterns = new[]{"*.json"},
+                        MimeTypes = new[]{"JSON/*"},
+                        AppleUniformTypeIdentifiers = new[]{"utf8PlainText"}
+                    },
+                },
+                    ShowOverwritePrompt = true
+                };
 
-                configurationJSONInstance.Schedule.Clear();
-                if (ScheduleViewModel != null)
-                {
-                    foreach(ConfigScheduleJSONItem item in ScheduleViewModel.ScheduleEventsList)
-                        configurationJSONInstance.Schedule.Add(item);
-                }
-
-                string json = JsonSerializer.Serialize<ConfigurationJSON>(configurationJSONInstance, options);
-
-                if (json.Length > 0)
+                Task<IStorageFile?> dialog = StorageProvider!.SaveFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(delegate (Task<IStorageFile?> dialog)
                 {
                     try
                     {
-                        await File.WriteAllTextAsync(file, json);
-                    }
-                    catch (Exception ex)
-                    {
-                        error = ex.Message;
-                    }
-                }
+                        IStorageFile? file = dialog.Result;
 
-                if (error.Length > 0 || json.Length == 0)
-                {
-                    var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
-                        new MessageBoxStandardParams
+                        //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
+                        if (file is not null && file.CanOpenWrite)
                         {
-                            ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
-                            ContentTitle = "Error Saving Configuration",
-                            ContentHeader = "Configuration Not saved",
-                            ContentMessage = error,
-                            Icon = MessageBox.Avalonia.Enums.Icon.Error,
-                            WindowIcon = App.MainWindow.Icon,
-                        });
+                            file.OpenWriteAsync().ContinueWith(delegate (Task<Stream> task)
+                            {
+                                var options = new JsonSerializerOptions();
+                                options.WriteIndented = false;
+                                options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
+                                options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+                                configurationJSONInstance.DeviceDrivers.Clear();
+                                if (DriversViewModel != null)
+                                {
+                                    foreach (ConfigurationDeviceDriver d in DriversViewModel.DeviceDriversCollection)
+                                        if (d.IsChecked) configurationJSONInstance.DeviceDrivers.Add(d);
+                                }
 
-                    await messageBoxStandardWindow.ShowDialog(MainWindowContext);
-                }
+                                configurationJSONInstance.Schedule.Clear();
+                                if (ScheduleViewModel != null)
+                                {
+                                    foreach (ConfigScheduleJSONItem item in ScheduleViewModel.ScheduleEventsList)
+                                        configurationJSONInstance.Schedule.Add(item);
+
+                                    configurationJSONInstance.ScheduleType = ScheduleViewModel.SelectedScheduleType;
+                                }
+
+                                json = JsonSerializer.Serialize<ConfigurationJSON>(configurationJSONInstance, options);
+
+                                if (json.Length > 0)
+                                {
+                                    using StreamWriter reader = new(task.Result);
+                                    reader.WriteLineAsync(json);
+                                }
+                                ok = true;
+                            });
+                        }
+                    }
+                    catch (Exception e) { error = e.Message; Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+            }
+            catch (Exception e) { error = e.Message; Debug.WriteLine("An error has occured for the output save dialog: " + e); }
+
+/*            if (error.Length > 0 || json.Length == 0)
+            {
+                var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                    new MessageBoxStandardParams
+                    {
+                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                        ContentTitle = "Error Saving Configuration",
+                        ContentHeader = "Configuration Not saved",
+                        ContentMessage = error,
+                        Icon = MessageBox.Avalonia.Enums.Icon.Error,
+                        WindowIcon = App.MainWindow.Icon,
+                    });
+
+                await messageBoxStandardWindow.ShowDialog(App.MainWindow);
             }
 
-            ok = true;
+            */
 
             return await Task.FromResult(ok);
         }
@@ -1156,21 +1201,68 @@ namespace VesperApp.ViewModels
 
                 foreach (LoggerDevice dev in list)
                 {
-                    bool f = false;
-                    foreach (LoggerDevice lDevice in devices)
+                    if (dev.IsComportDevice == false)
                     {
-                        if (lDevice == dev)
+                        bool f = false;
+                        foreach (LoggerDevice lDevice in devices)
                         {
-                            f = true;
-                            break;
+                            if (lDevice.Equals(dev))
+                            {
+                                f = true;
+                                break;
+                            }
+                        }
+
+                        if (f == false && dev.IsConnected == false) LoggerDevices.Remove(dev);
+                    }
+                }
+            }
+        }
+        private async Task ScanForComport()
+        {
+            if (_deviceUsbAdapter != null)
+            {
+                var devices = await _deviceUsbAdapter.ScanComPortsAsync(false);
+                foreach (LoggerDevice logDevice in devices)
+                {
+                    if (LoggerDevices.Contains(logDevice) == false)
+                    {
+                        Debug.WriteLine("Added: " + logDevice.SerialNumber);
+                        LoggerDevices.Add(logDevice);
+                    }
+                }
+
+                LoggerDevice[] list = new LoggerDevice[LoggerDevices.Count];
+                LoggerDevices.CopyTo(list, 0);
+
+                foreach (LoggerDevice dev in list)
+                {
+                    if (dev.IsComportDevice)
+                    {
+                        Debug.WriteLine("Probing: " + dev.SerialNumber);
+                        bool f = false;
+                        foreach (LoggerDevice lDevice in devices)
+                        {
+                            Debug.WriteLine(" - : " + lDevice.SerialNumber);
+                            if (lDevice == dev)
+                            {
+                                Debug.WriteLine("Match");
+                                f = true;
+                                break;
+                            }
+                        }
+
+                        if (f == false && dev.IsConnected == false)
+                        {
+                            LoggerDevices.Remove(dev);
+                            Debug.WriteLine("No Match - Remove: " + dev.SerialNumber);
                         }
                     }
-
-                    if (f == false && dev.IsConnected == false) LoggerDevices.Remove(dev);
                 }
             }
         }
 
+        
 
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
@@ -1182,9 +1274,7 @@ namespace VesperApp.ViewModels
             if (IsConnected == true && IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false)
             {
                 var scan_nano = Task.Run( async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
-                var scan_vesp = Task.Run(async () => await ScanFor(Vesper.VendorId, Vesper.ProductId));
-                var scan_pip = Task.Run(async () => await ScanFor(Pipistrelle.VendorId, Pipistrelle.ProductId));
-
+                var scan_comport = Task.Run(async () => await ScanForComport());
             }
 
             if(IsConnected == true && IsDeviceConnected == true)
@@ -1302,5 +1392,39 @@ namespace VesperApp.ViewModels
         
         private ConfigurationDeviceDriver? _selectedDeviceDriver;
         #endregion
+
+        public static TopLevel? RootTopLevel { get; set; }
+        private static IStorageProvider? _storageProvider;
+        public static IStorageProvider? StorageProvider
+        {
+            get
+            {
+                if (_storageProvider != null)
+                    return _storageProvider;
+
+                IStorageProvider? rootTopLevelStorageProvider = RootTopLevel?.StorageProvider;
+                if (rootTopLevelStorageProvider != null)
+                {
+                    _storageProvider = rootTopLevelStorageProvider;
+                    return _storageProvider;
+                }
+
+                //If mainWindow is available (for example for the Desktop variant), we use it to get a storage provider.
+                // If not, then we try getting the provider from the root TopLevel instance. (Web, the designer preview,...)
+                //TODO doesn't work. I have ho idea how to get a TopLevel instance in a Web, preview or Android/iOS environment.
+                MainWindow? mainWindow = (MainWindow?)App.MainWindow;
+                _storageProvider = mainWindow != null ? mainWindow.StorageProvider
+                    : RootTopLevel != null ? AvaloniaLocator.Current.GetService<IStorageProviderFactory>()
+                        ?.CreateProvider(RootTopLevel)
+                                           : null;
+
+                if (_storageProvider == null)
+                    throw new InvalidOperationException("StorageProvider platform implementation is not available.");
+
+                return _storageProvider;
+            }
+            set => _storageProvider = value;
+        }
+
     }
 }

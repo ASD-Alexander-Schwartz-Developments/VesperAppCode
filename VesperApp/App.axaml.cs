@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 using System;
 using System.Collections.Generic;
 using VesperApp.ViewModels;
@@ -12,17 +13,17 @@ namespace VesperApp
 {
     public partial class App : Application
     {
-        static App instance;
+        static App? instance;
 
-        public static Window MainWindow => ((ClassicDesktopStyleApplicationLifetime)instance.ApplicationLifetime).MainWindow;
-        public static IReadOnlyList<Window> Windows => ((ClassicDesktopStyleApplicationLifetime)instance.ApplicationLifetime).Windows;
+        public static Window? MainWindow => ((instance != null) ? ((ClassicDesktopStyleApplicationLifetime?)instance.ApplicationLifetime).MainWindow : null);
+        public static IReadOnlyList<Window>? Windows => ((ClassicDesktopStyleApplicationLifetime?)instance?.ApplicationLifetime).Windows;
         public static void Shutdown() => ((ClassicDesktopStyleApplicationLifetime)instance.ApplicationLifetime).Shutdown();
 
 
         public override void Initialize()
         {
-            AvaloniaXamlLoader.Load(this);
             instance = this;
+            AvaloniaXamlLoader.Load(this);
             Styles.Add(new VesperApp.Themes.Light());
         }
 
@@ -30,25 +31,38 @@ namespace VesperApp
         {
             if (sender is SplashWindow)
             {
-                //Preferences.Window?.Close();
-
-                //foreach (Launchpad lp in MIDI.Devices)
-                    //lp.Window?.Close();
             }
         }
 
 
         public override void OnFrameworkInitializationCompleted()
         {
+            MainViewViewModel mainViewModel = new();
+            TopLevel? rootTopLevel = null;
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                var mainWindow = new MainWindow();//SplashWindow();
-                mainWindow.DataContext = new MainWindowViewModel(mainWindow);
+                desktop.MainWindow = new MainWindow
+                {
+                    DataContext = mainViewModel
+                };
+                rootTopLevel = desktop.MainWindow;
+            }
+            else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
+            {
+                singleViewPlatform.MainView = new MainView
+                {
+                    DataContext = mainViewModel
+                };
 
-                desktop.MainWindow = mainWindow;
+                //Getting TopLevel in SingleView - https://github.com/AvaloniaUI/Avalonia/discussions/8752
+                rootTopLevel = (TopLevel?)singleViewPlatform.MainView.GetVisualRoot();
             }
 
-            //lifetime.MainWindow = new SplashWindow();
+            if (rootTopLevel == null)
+                throw new NotImplementedException("Root TopLevel not found!");
+
+            MainViewViewModel.RootTopLevel = rootTopLevel;
+
             base.OnFrameworkInitializationCompleted();
         }
 

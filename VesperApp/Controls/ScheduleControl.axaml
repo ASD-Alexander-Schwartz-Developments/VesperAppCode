@@ -43,8 +43,8 @@
 						  SelectedIndex="0" Margin="1"
 						  VerticalAlignment="Center"
 						  Width="100"
-						  Items="{Binding Source={m:EnumBindingSource {x:Type m:WorkingConfiguration}}}"
-						  SelectionChanged="OnSelectionChanged_Config"/>
+						  SelectedItem="{Binding SelectedConfiguration, Mode=TwoWay}"
+						  Items="{Binding Source={m:EnumBindingSource {x:Type m:WorkingConfiguration}}}"/>
 			</StackPanel>
 			<StackPanel Margin="1,28,10,10" Spacing="5" Orientation="Horizontal" HorizontalAlignment="Center">
 				<Button x:Name="btnApply" HorizontalAlignment="Center" Margin="0" Command="{Binding CommandApplyButton}">
@@ -64,7 +64,7 @@
 			</StackPanel>
 		</StackPanel>
 
-		<StackPanel Margin="1,10,30,0" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+		<StackPanel Margin="1,10,30,0" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" DockPanel.Dock="Left">
 			<Label Content="Operating Schedule Alarms"/>
 			<Border BorderBrush="AntiqueWhite" BorderThickness="1">
 			<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
@@ -87,8 +87,8 @@
 								<ColumnDefinition Width="*" />
 							</Grid.ColumnDefinitions>
 							<StackPanel Margin="1,1,1,1" Orientation="Horizontal" Spacing="5">
-								<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontFamily="Lato" FontSize="11" />
-								<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontFamily="Lato" FontSize="11" />
+								<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontFamily="Lato" FontSize="12" />
+								<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontFamily="Lato" FontSize="12" />
 							</StackPanel>
 						</Grid>
 					</DataTemplate>

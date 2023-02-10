@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO.Ports;
 using System.Threading;
+using System.Diagnostics;
 
 namespace VesperApp.Services
 {
@@ -355,6 +356,15 @@ namespace VesperApp.Services
                 //System.Windows.Forms.Application.DoEvents();
                 Thread.Sleep(25);
             }
+        }
+
+
+        public static byte BCD2BIN(byte bcdNumber)
+        {
+            byte digit1 = (byte)(bcdNumber >> 4);
+            byte digit2 = (byte)(bcdNumber & 0x0f);
+
+            return (byte)(digit1 * 10 + digit2);
         }
 
 

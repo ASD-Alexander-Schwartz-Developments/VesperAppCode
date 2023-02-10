@@ -34,7 +34,7 @@ namespace VesperApp.Services
 
             _context = new UsbContext();
             _device = null;
-
+            _serialPort = new SerialPort();
             tokenSource = new CancellationTokenSource();
             token = tokenSource.Token;
 
@@ -223,7 +223,7 @@ namespace VesperApp.Services
                 
                 foreach(var device in usbdevices)
                 {
-                    Debug.WriteLine("Iterate " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
+                    //Debug.WriteLine("Iterate " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
                     if (device != null && device.VendorId == vendorid && device.ProductId == prodid)
                     {
                         Debug.WriteLine("Match " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
@@ -295,17 +295,16 @@ namespace VesperApp.Services
                 {
                     try
                     {
-                        Debug.WriteLine("Try " + s);
                         this._serialPort.PortName = s;
-                        this._serialPort.ReadTimeout = 1000;
+                        this._serialPort.ReadTimeout = 150;
                         this._serialPort.Open();
-
+                        Debug.WriteLine("Opened " + s);
                         /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
 
                         byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER,
                             0, new byte[0], 0);
                         this._serialPort.Write(buffer, 0, buffer.Length);
-                        Thread.Sleep(50);
+                        Thread.Sleep(100);
                         buffer = new byte[16];
                         if (this._serialPort.Read(buffer, 0, buffer.Length) >= 8)
                         {
@@ -317,8 +316,10 @@ namespace VesperApp.Services
                             }
                             if (buffer[i] == 0x5A && buffer[i+2] == (byte)MessageTypes.VESPER_GET_VER)             /// need to implement something real here
                             {
-                                uint serial = (uint)((uint)buffer[i+4] + ((uint)buffer[i+5] << 8) + ((uint)buffer[i+6] << 16) + ((uint)buffer[i+7] << 24));
-                                DeviceTypes type = (DeviceTypes)buffer[i+8];
+                                byte major = (byte)(buffer[i + 4]);
+                                byte minor = (byte)(buffer[i + 5]);
+                                uint serial = (uint)((uint)buffer[i+6] + ((uint)buffer[i+7] << 8) + ((uint)buffer[i+8] << 16) + ((uint)buffer[i+9] << 24));
+                                DeviceTypes type = (DeviceTypes)buffer[i+10];
 
                                 var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial);
 
@@ -327,8 +328,9 @@ namespace VesperApp.Services
                             }
                         }
                     }
-                    catch 
+                    catch(Exception ex)
                     { 
+                        Debug.WriteLine(ex.Message);
                     }
                     finally
                     { 

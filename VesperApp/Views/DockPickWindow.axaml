@@ -4,16 +4,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:VesperApp.ViewModels"
 		xmlns:m="using:VesperApp.Models"
-        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="420"
         x:Class="VesperApp.Views.DockPickWindow"
         Title="Choose Docking Station"
 		Topmost="True"
 		Icon="/Assets/bat.ico"
 		CanResize="False"
 		Width="400"
-		Height="400"
-		Closing="Unloading_DockPickWindow"
-		>
+		Height="420">
 
     <Design.DataContext>
         <vm:DockPickWindowViewModel/>
@@ -21,20 +19,19 @@
 
 	<DockPanel>
 		<StackPanel DockPanel.Dock="Top" Orientation="Vertical">
-			<ProgressBar Height="15" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
-			<ListBox Height="350" x:Name="listDocks" Items="{Binding Docks}" SelectionMode="Single" Selection="{Binding SelectedDock}">
+			<ProgressBar Height="15" IsIndeterminate="True" IsEnabled="{Binding IsBusy}" />
+			<ListBox Height="350" x:Name="listDocks" Items="{Binding Docks}" SelectionMode="Single" Selection="{Binding SelectedDock}" HorizontalAlignment="Stretch">
 				<ListBox.Styles>
 					<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
 					<Style Selector="ListBoxItem">
-						<Setter Property="Width" Value="200"/>
-						<Setter Property="HorizontalAlignment" Value="Center"/>
+						<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+						<Setter Property="HorizontalAlignment" Value="Stretch"/>
 					</Style>
 				</ListBox.Styles>
 			
 				<ListBox.ItemTemplate>
 					<DataTemplate DataType="m:DockDeviceInfo">
-					
-						<Border Background="AliceBlue" CornerRadius="4" Padding="4">
+						<Border Background="AliceBlue" CornerRadius="4" Padding="7">
 							<StackPanel HorizontalAlignment="Stretch">
 								<TextBlock Padding="3" Text="{Binding Id, StringFormat='S/N: {0}'}"/>
 								<TextBlock Padding="3" Text="{Binding Text, StringFormat='Name: {0}'}"/>
@@ -48,8 +45,8 @@
 		</StackPanel>
 
 		<StackPanel DockPanel.Dock="Bottom">
-			<Button VerticalContentAlignment="Center" HorizontalContentAlignment="Center" HorizontalAlignment="Stretch" Height="50" 
-					x:Name="btnChooseClose" Command="{Binding CloseAndConnect}" Content="Select Dock and click here"/>
+			<Button VerticalContentAlignment="Center" HorizontalContentAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="55" 
+					x:Name="btnChooseClose" Content="Select Dock and click here" FontStyle="Normal" FontWeight="Bold" FontSize="14"/>
 		</StackPanel>
 	</DockPanel>
 

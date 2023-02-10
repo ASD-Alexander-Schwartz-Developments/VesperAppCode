@@ -1,20 +1,28 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-			 xmlns:vm="using:VesperApp.ViewModels"
-			 xmlns:m="using:VesperApp.Models"
-			 xmlns:Controls="using:VesperApp.Controls"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="VesperApp.Views.MainScreenControl">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:VesperApp.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:m="using:VesperApp.Models"
+		xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
+		xmlns:Controls="using:VesperApp.Controls"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="560"
+		MinWidth="800"
+		MinHeight="560"
+        x:Class="VesperApp.Views.MainView">
 
-	<Grid ColumnDefinitions="120,*" RowDefinitions="70,150,*,75"  Margin="5" ShowGridLines="false"
+    <Design.DataContext>
+        <vm:MainViewViewModel/>
+    </Design.DataContext>
+
+
+	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,150,*,75"  Margin="5" ShowGridLines="false" 
 		  Background="{DynamicResource ThemeBorderMidBrush}">
-
-
-		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal"
+		
+		
+		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" 
 					Background="{DynamicResource ThemeControlMidHighBrush}" >
-
+			
 			<StackPanel Spacing="1" VerticalAlignment="Center" >
 				<Button Margin="10" Command="{Binding ConnectDisconnectDockCommand}" x:Name="ConnectToggle">
 					<StackPanel Orientation="Horizontal">
@@ -27,9 +35,9 @@
 					</StackPanel>
 				</Button>
 			</StackPanel>
-
+			
 			<StackPanel x:Name="spDockControls" Spacing="1" VerticalAlignment="Center" IsEnabled="{Binding IsConnected}" Orientation="Horizontal">
-
+				
 				<Button Margin="10" Command="{Binding EnableDeviceDockCommand}" x:Name="DockEnableDeviceToggle">
 					<StackPanel Orientation="Horizontal">
 						<Ellipse Fill="Red" Width="24" Height="24" IsVisible="{Binding !IsDeviceEnabled}"/>
@@ -57,7 +65,7 @@
 			<Separator />
 			<Separator />
 			<Separator />
-
+				
 			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Vertical">
 				<TextBlock HorizontalAlignment="Right" x:Name="textDateTime" VerticalAlignment="Center" Padding="10,2,2,4" Text="{Binding TextDateTimeNow}" FontFamily="Roboto" FontSize="14"/>
 				<CheckBox x:Name="chkIsUTC" IsChecked="{Binding IsClockUTC}" Content="Is UTC" Padding="4,2,2,4"/>
@@ -81,9 +89,9 @@
 				</Button >
 			</StackPanel>
 		</StackPanel>
-
-
-
+		
+		
+			
 		<Border BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="5" BorderThickness="0,0,0,1"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
 			<Grid ColumnDefinitions="*,100" RowDefinitions="*,36" ShowGridLines="false">
 				<!--
@@ -117,7 +125,7 @@
 					</DataGrid.Columns>
 				</DataGrid>-->
 
-				<ListBox x:Name="listLoggerDevices" Items="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}">
+				<ListBox x:Name="listLoggerDevices" Items="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}" ScrollViewer.VerticalScrollBarVisibility="Auto">
 					<ListBox.Styles>
 						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
 						<Style Selector="ListBoxItem">
@@ -265,11 +273,11 @@
 
 			</Grid>
 		</Border>
-
-
-
-
-
+					
+		
+		
+		
+		
 		<!--
 		<Border BorderBrush="{DynamicResource ThemeForegroundLowBrush}" CornerRadius="3" Grid.Column="0" Grid.Row="2" HorizontalAlignment="Stretch" Padding="0,5">
 			<StackPanel Spacing="0,5" Orientation="Vertical" Background="{DynamicResource ThemeControlDarkenBrush}">
@@ -308,29 +316,29 @@
 					<TabItem.Header>
 						<TextBlock Classes="tbTabHeader" Text="Recordings" HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
 					</TabItem.Header>
-					<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="false">
-						<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal"
-									HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-									ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualGPSParserCommand}" x:Name="bParseGPS">
-								<StackPanel Orientation="Horizontal">
-									<Image Stretch="Fill" Width="42" Height="42">
-										<Image.Source>
-											<DrawingImage Drawing="{DynamicResource FluentIconsFilled.globe_location_filled}" />
-										</Image.Source>
-									</Image>
-								</StackPanel>
-							</Button>
-						</StackPanel>
-					</Grid>
+						<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="false">
+							<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal"
+										HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+										ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualGPSParserCommand}" x:Name="bParseGPS">
+									<StackPanel Orientation="Horizontal">
+										<Image Stretch="Fill" Width="42" Height="42">
+											<Image.Source>
+												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.globe_location_filled}" />
+											</Image.Source>
+										</Image> 
+									</StackPanel>
+								</Button>
+							</StackPanel>
+						</Grid>
 				</TabItem>
 				<TabItem>
 					<TabItem.Header>
 						<TextBlock Classes="tbTabHeader" Text="Config" HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
 					</TabItem.Header>
 					<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="false">
-						<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal"
-									HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+						<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal" 
+									HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
 									ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 
 							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding NewConfigCommand}" x:Name="NewConfigButton">
@@ -339,7 +347,7 @@
 										<Image.Source>
 											<DrawingImage Drawing="{DynamicResource FluentIconsFilled.form_new_filled}" />
 										</Image.Source>
-									</Image>
+									</Image> 
 								</StackPanel>
 							</Button>
 							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding LoadConfigCommand}" x:Name="LoadConfigButton">
@@ -348,7 +356,7 @@
 										<Image.Source>
 											<DrawingImage Drawing="{DynamicResource FluentIconsFilled.open_filled}" />
 										</Image.Source>
-									</Image>
+									</Image> 
 								</StackPanel>
 							</Button>
 							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding SaveConfigCommand}" x:Name="SaveConfigButton">
@@ -409,14 +417,14 @@
 			<Grid Margin="1">
 				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{DynamicResource ThemeControlHighlightHighColor}" x:Name="textLogWindow" Text="{Binding IsConnected}"/>
 			</Grid>
-		</Border>
+		</Border>		
 	</Grid>
+	
 
+		
+		
 
-
-
-
-	<!--
+		<!--
 		<Grid>
 			<si:CalendarControl>
 				<si:CalendarControl.ItemTemplate>
@@ -427,5 +435,5 @@
 			</si:CalendarControl>
 		</Grid>-->
 
-
+	
 </UserControl>

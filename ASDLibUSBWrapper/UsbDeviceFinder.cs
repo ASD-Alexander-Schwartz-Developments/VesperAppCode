@@ -125,11 +125,11 @@ namespace ASDLibUSBWrapper
                 throw new ArgumentNullException("info");
             }
 
-            this.Vid = (int)info.GetValue("Vid", typeof(int));
-            this.Pid = (int)info.GetValue("Pid", typeof(int));
-            this.Revision = (int)info.GetValue("Revision", typeof(int));
+            this.Vid = (int?)info.GetValue("Vid", typeof(int));
+            this.Pid = (int?)info.GetValue("Pid", typeof(int));
+            this.Revision = (int?)info.GetValue("Revision", typeof(int));
             this.SerialNumber = (string)info.GetValue("SerialNumber", typeof(string));
-            this.DeviceInterfaceGuid = (Guid)info.GetValue("DeviceInterfaceGuid", typeof(Guid));
+            this.DeviceInterfaceGuid = (Guid?)info.GetValue("DeviceInterfaceGuid", typeof(Guid));
         }
 
         /// <summary>

@@ -14,7 +14,7 @@ using System.Diagnostics.Metrics;
 
 namespace VesperApp.Models
 {
-    
+
     public class LoggerDevice : ReactiveObject, IDisposable, IEquatable<LoggerDevice>
     {
         private UsbContext? _usbContext;
@@ -22,18 +22,20 @@ namespace VesperApp.Models
         private SerialMessage? _comport;
         private string _serialnumber;
         private string _name;
-        private DeviceTypes ? _type;
+        private DeviceTypes? _type;
 
         private int _interfaceVendor;
         private ASDLibUSBWrapper.ReadEndpointID _readEndpointID;
         private ASDLibUSBWrapper.WriteEndpointID _writeEndpointID;
 
-        private UsbEndpointReader ? _usbEndpointReader;
-        private UsbEndpointWriter ? _usbEndpointWriter;
-        
+        private UsbEndpointReader? _usbEndpointReader;
+        private UsbEndpointWriter? _usbEndpointWriter;
+
         private FlashGeometry _flashGeometry;
 
         public UsbDevice? USBDevice => _usbDevice;
+
+        public bool IsComportDevice => ((_usbDevice == null) && (_comport != null));
 
         public string? SerialNumber { get => _serialnumber; }
         public string? Name { get => _name; }
@@ -85,6 +87,7 @@ namespace VesperApp.Models
         {
             this._comport = new SerialMessage(port, baudrate);
             _serialnumber = serial.ToString("X");
+            this._usbDevice = null;
             _type = type;
             HwId = "4.0.0";
             switch (_type)
@@ -136,7 +139,7 @@ namespace VesperApp.Models
                     break;
 
                 case MessageTypes.VESPER_GETDISKSIZE:
-                    if (e.MessageData != null)
+                    if (e.MessageData != null && e.MessageData.Length >= 4)
                     {
                         UInt64 size = e.MessageData[0] +
                             (UInt32)(e.MessageData[1] << 8) + (UInt32)(e.MessageData[2] << 16) + (UInt32)(e.MessageData[3] << 24);
@@ -144,23 +147,24 @@ namespace VesperApp.Models
                         size *= 512;
 
                         double ss = size / (1024 * 1024 * 1024);
+                        this.DiskSize = ss;
                     }
                     break;
 
 
                 case MessageTypes.GET_VOLTAGE:
-                    if (e.MessageData.Length >= 16)
+                    if (e.MessageData != null && e.MessageData.Length >= 16)
                     {
                         UInt16 header = (UInt16)((UInt16)e.MessageData[0] + (UInt16)(e.MessageData[1] << 8));
 
                         if ((header >> 8) == 0x06)
                         {
-                            int year = BCD2BIN(e.MessageData[9]) + 2000;
-                            int month = BCD2BIN(e.MessageData[7]);
-                            int day = BCD2BIN(e.MessageData[8]);
+                            int year = SerialMessage.BCD2BIN(e.MessageData[9]) + 2000;
+                            int month = SerialMessage.BCD2BIN(e.MessageData[7]);
+                            int day = SerialMessage.BCD2BIN(e.MessageData[8]);
 
                             DateTime ts = new DateTime(year, month, day,
-                            BCD2BIN(e.MessageData[2]), BCD2BIN(e.MessageData[3]), BCD2BIN(e.MessageData[4]));
+                            SerialMessage.BCD2BIN(e.MessageData[2]), SerialMessage.BCD2BIN(e.MessageData[3]), SerialMessage.BCD2BIN(e.MessageData[4]));
                         }
                         else
                         {
@@ -191,94 +195,35 @@ namespace VesperApp.Models
                                 cl = charge / 512.0;
                             }
                         }
+
+                        this.BatteryChargePercent = cl.ToString();
                     }
                     break;
 
 
                 case MessageTypes.VESPER_GET_FLAGS:
-                    if (e.MessageData == null)
-                        break;
-
-                    if (e.MessageData.Length < 16)
-                        break;
-
-                    VesperOnlineData vd = new VesperOnlineData();
-
-                    /*
-                     * 
-                     * 			tbuf[0] = tbuf[1] = tbuf[2] = tbuf[3] = 0;
-
-			tbuf[3] = STORAGE_GetUSBDriveStatus();
-			s1 = (uint8_t *) &tbuf[4];
-			s1[0] = FW_VER_MAJOR;
-			s1[1] = FW_VER_MINOR;
-			s1[2] = (uint8_t)(GetDEVUID());
-			s1[3] = (uint8_t)(GetDEVUID() >> 8);
-			s1[4] = (uint8_t)(GetDEVUID() >> 16);
-			s1[5] = (uint8_t)(GetDEVUID() >> 24);
-			s1[6] = 0;
-			s1[7] = 0;
-			//Get_SerialNumB((uint32_t *) &s1[2]);
-
-			s1[8] = (uint8_t) HAL_RTCEx_BKUPRead(&hrtc, REG_BKP_ARMED);
-
-			s1[9] = SysTime.Seconds;
-			s1[10] = SysTime.Minutes;
-			s1[11] = SysTime.Hours;
-			s1[12] = SysDate.Date;
-			s1[13] = SysDate.Month;
-			s1[14] = (uint8_t) ((uint16_t) (SysDate.Year + 2000) & 0xFF);
-			s1[15] = (uint8_t) ((uint16_t) (SysDate.Year + 2000) >> 8);
-			s1[16] = (BatteryLevel.Voltage & 0xFF);
-			s1[17] = ((BatteryLevel.Voltage >> 8) & 0xFF);
-
-			PROTO_MsgBuild(VESPER_GETFLAGS, (34), (uint8_t *) &tbuf[0]);
-                     * */
-
-                    counter = 0;
-                    vesperEnabled = true;
-
-                    ChangeIndicatorColor(0, true);
-                    //checkIfEnabled();
-
-                    byte[] data = e.MessageData;
-
-                    //                    UInt32 ee_size = (UInt32)((UInt32)data[0] + (UInt32)(data[1] << 8) + (UInt32)(data[2] << 16) + (UInt32)(data[3] << 24));
-                    //                    Int32 valid = (Int32)((UInt32)data[8] + (UInt32)(data[9] << 8) + (UInt32)(data[10] << 16) + (UInt32)(data[11] << 24));
-                    UInt32 state = (UInt32)((UInt32)data[12] + (UInt32)(data[13] << 8) + (UInt32)(data[14] << 16) + (UInt32)(data[15] << 24));
-                    vd.usb_status = state.ToString();
-
-                    UInt32 major = (UInt32)(data[16]);
-                    UInt32 minor = (UInt32)(data[17]);
-                    byte[] vuid = { data[18], data[19], data[20], data[21] };
-
-                    vd.fw_major = major.ToString();
-                    vd.fw_minor = minor.ToString();
-                    vd.uid = SerialMessage.ByteArrayToString(vuid);
-
-                    currentUid = vd.uid;
-                    currentFWVer = vd.fw_major + "." + vd.fw_minor;
-                    Invoke(new Action(() =>
+                    if (e.MessageData != null && e.MessageData.Length >= 16)
                     {
-                        this.checkForFWUpdatesToolStripMenuItem.Enabled = true;
-                    }));
+                        byte[] data = e.MessageData;
 
-                    //22
-                    //23
+                        UInt32 state = (UInt32)((UInt32)data[12] + (UInt32)(data[13] << 8) + (UInt32)(data[14] << 16) + (UInt32)(data[15] << 24));
 
-                    vd.isarmed = (data[24] == 0) ? "Armed" : "Not Armed";
-                    byte[] dtarray = { data[25], data[26], data[27], data[28], data[29], data[30], data[31] };
-                    DateTime dtt = SerialMessage.BytesToDateTime(dtarray);
-                    vd.VesperTime = dtt.ToString();
+                        UInt32 major = (UInt32)(data[16]);
+                        UInt32 minor = (UInt32)(data[17]);
+                        byte[] vuid = { data[18], data[19], data[20], data[21] };
+                        string fwid = major.ToString() + "." + minor.ToString();
 
-                    UInt32 voltage = (UInt32)((UInt32)data[32] + (UInt32)(data[33] << 8));
-                    vd.battery_level = voltage.ToString();
+                        if (this.FwId != fwid) { this.FwId = fwid; }
 
-                    //StepProgressBarInvoke();
-                    UpdateVesperDetails(vd);
+//                        vd.isarmed = (data[24] == 0) ? "Armed" : "Not Armed";
+                        byte[] dtarray = { data[25], data[26], data[27], data[28], data[29], data[30], data[31] };
+                        DateTime dtt = SerialMessage.BytesToDateTime(dtarray);
+                        this.LocalDateTime = dtt.ToString();
+
+                        UInt32 voltage = (UInt32)((UInt32)data[32] + (UInt32)(data[33] << 8));
+                        this.BatteryChargePercent = voltage.ToString();
+                    }
                     break;
-
-
             }
         }
 
@@ -421,7 +366,7 @@ namespace VesperApp.Models
                     this._name = this.USBDevice.Info.Product;
 
                     byte[] response;
-                    int retb = WriteRead(VND_CMD_GET_DISKINFO, new byte[0], out response, 40);
+                    int retb = WriteRead(Nanotag.VND_CMD_GET_DISKINFO, new byte[0], out response, 40);
 
                     if (retb == 0)
                     {
@@ -446,10 +391,12 @@ namespace VesperApp.Models
             else if(_type == DeviceTypes.Vesper && this._comport != null)
             {
                 this._comport.Start();
+                r = this._comport.IsRunning;
             }
             else if(_type == DeviceTypes.Pipistrelle && this._comport != null)
             {
                 this._comport.Start();
+                r = this._comport.IsRunning;
             }
 
             return await Task.FromResult(r);
@@ -463,7 +410,7 @@ namespace VesperApp.Models
 
         }
 
-        public bool IsConnected => (this.USBDevice == null) ? false : this.USBDevice.IsOpen == true;
+        public bool IsConnected => (this.USBDevice == null) ? ((this._comport == null) ? false : this._comport.IsRunning)  : this.USBDevice.IsOpen == true;
 
         public async Task<bool> Disconnect()
         {
@@ -473,6 +420,11 @@ namespace VesperApp.Models
             {
                 this.USBDevice.ReleaseInterface(this._interfaceVendor);
                 this.USBDevice.Close();
+                r = true;
+            }
+            else if(this._comport != null && this._comport.IsRunning)
+            {
+                this._comport.Stop();
                 r = true;
             }
 
@@ -633,6 +585,12 @@ namespace VesperApp.Models
                     res = true;
                 }
             }
+            else if(_comport != null && _comport.IsRunning)
+            {
+                MessageOutEventArgs moea = new MessageOutEventArgs();
+                moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_FLAGS, 0, new byte[0], 0);
+                this._comport.SendMessage(moea);
+            }
 
             return await Task.FromResult(res);
         }
@@ -666,9 +624,15 @@ namespace VesperApp.Models
             {
                 var response = new byte[0];
 
-                int retb = WriteRead(VND_CMD_SET_SLEEP, ((isarmed == true) ? (byte)1 : (byte)0), 0, 0, new byte[0], out response, 0);
+                int retb = WriteRead(Nanotag.VND_CMD_SET_SLEEP, ((isarmed == true) ? (byte)1 : (byte)0), 0, 0, new byte[0], out response, 0);
 
                 if (retb == 0) r = true;
+            }
+            else if (_comport != null && _comport.IsRunning)
+            {
+                MessageOutEventArgs moea = new MessageOutEventArgs();
+                moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_SLEEP, 0, new byte[0], 0);
+                this._comport.SendMessage(moea);
             }
 
             return await Task.FromResult(r);
@@ -684,7 +648,7 @@ namespace VesperApp.Models
             {
                 var response = new byte[0];
 
-                int retb = WriteRead(VND_CMD_SET_BOOT, 0, 0, 0, new byte[0], out response, 0);
+                int retb = WriteRead(Nanotag.VND_CMD_SET_BOOT, 0, 0, 0, new byte[0], out response, 0);
 
                 if (retb == 0) r = true;
             }
@@ -717,7 +681,8 @@ namespace VesperApp.Models
             else if(this._comport != null && this._comport.IsRunning == true)
             {
                 MessageOutEventArgs moea = new MessageOutEventArgs();
-                moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER, 0, new byte[0], 0);
+                byte[] data = SerialMessage.DateTimeToBytes(ldt);
+                moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_SET_RTC, (byte)data.Length, data, 0);
                 this._comport.SendMessage(moea);
             }
             
