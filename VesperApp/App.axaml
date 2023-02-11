@@ -33,7 +33,7 @@
 		<Style Selector="Button">
 			<Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderMidBrush}" />
 			<Setter Property="Background" Value="{DynamicResource ThemeControlHighBrush}" />
-			<Setter Property="FontSize" Value="10"/>
+			<Setter Property="FontSize" Value="11"/>
 		</Style>
 
 		<Style Selector="Button:pointerover /template/ ContentPresenter">
@@ -54,6 +54,8 @@
 
 		<Style Selector="ComboBox">
 			<Setter Property="Cursor" Value="Hand" />
+			<Setter Property="Background" Value="{DynamicResource ThemeControlHighBrush}" />
+			<Setter Property="FontSize" Value="11"/>
 		</Style>
 
 		<Style Selector="ScrollBar /template/ RepeatButton.repeat">
@@ -92,7 +94,7 @@
 		</Style>
 
 		<Style Selector="StackPanel.stlToolbar">
-			<Setter Property="Background" Value="Turquoise"/>
+			<Setter Property="Background" Value="#2B579A"/>	<!--Blueish-->
 			<Setter Property="Transitions">
 				<Transitions>
 					<DoubleTransition Property="Opacity" Duration="0:0:0.2" />

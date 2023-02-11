@@ -10,7 +10,7 @@
 
 	
 	<DockPanel Margin="1">
-		<StackPanel Background="AntiqueWhite" Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
+		<StackPanel Background="{DynamicResource ThemeControlMidHighBrush}" Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
 			<Label Margin="20,10" Content="Select Schedule Type" VerticalAlignment="Center"/>
 			<ComboBox x:Name="comboScheduleType"
 					  SelectedIndex="0" Margin="1"
@@ -79,7 +79,7 @@
 					 MaxHeight="160"
 					 HorizontalAlignment="Stretch"
 					 VerticalAlignment="Stretch"
-					 Background="AntiqueWhite">
+					 Background="{DynamicResource ThemeControlMidHighBrush}">
 				<ListBox.ItemTemplate>
 					<DataTemplate DataType="m:ConfigScheduleJSONItem">
 						<Grid>

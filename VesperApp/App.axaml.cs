@@ -58,8 +58,8 @@ namespace VesperApp
                 rootTopLevel = (TopLevel?)singleViewPlatform.MainView.GetVisualRoot();
             }
 
-            if (rootTopLevel == null)
-                throw new NotImplementedException("Root TopLevel not found!");
+            //if (rootTopLevel == null)
+            //    throw new NotImplementedException("Root TopLevel not found!");
 
             MainViewViewModel.RootTopLevel = rootTopLevel;
 

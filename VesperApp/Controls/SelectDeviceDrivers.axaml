@@ -22,7 +22,7 @@
 							MaxWidth="1000"
 							HorizontalAlignment="Stretch"
 							VerticalAlignment="Stretch"
-							Background="AliceBlue"
+							Background="{DynamicResource ThemeControlMidHighBrush}"
 							ScrollViewer.HorizontalScrollBarVisibility="Disabled" >
 					<ListBox.ItemTemplate>
 						<DataTemplate DataType="m:ConfigurationDeviceDriver">

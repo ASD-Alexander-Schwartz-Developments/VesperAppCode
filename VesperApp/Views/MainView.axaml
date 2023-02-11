@@ -16,7 +16,7 @@
     </Design.DataContext>
 
 
-	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,150,*,75"  Margin="5" ShowGridLines="false" 
+	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,75"  Margin="5" ShowGridLines="false" 
 		  Background="{DynamicResource ThemeBorderMidBrush}">
 		
 		
@@ -92,8 +92,8 @@
 		
 		
 			
-		<Border BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="5" BorderThickness="0,0,0,1"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
-			<Grid ColumnDefinitions="*,100" RowDefinitions="*,36" ShowGridLines="false">
+		<Border BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="2" BorderThickness="1,1,1,1"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
+			<Grid ColumnDefinitions="*,100" RowDefinitions="*,40" ShowGridLines="false">
 				<!--
 				<DataGrid Name="listLoggerDevices" Items="{Binding LoggerDevices}" AutoGenerateColumns="False" SelectedItem="{Binding SelectedLoggerDevice}">
 					<DataGrid.Columns>
@@ -135,8 +135,8 @@
 					</ListBox.Styles>
 					<ListBox.Template>
 						<ControlTemplate>
-							<DockPanel LastChildFill="True">
-								<Grid DockPanel.Dock="Top" Height="30" ShowGridLines="false">
+							<DockPanel LastChildFill="True" Background="{DynamicResource ThemeControlMidHighBrush}"> 
+								<Grid DockPanel.Dock="Top" Height="30" ShowGridLines="false" Background="{DynamicResource ThemeBorderMidBrush}">
 									<Grid.ColumnDefinitions>
 										<ColumnDefinition MinWidth="100" Width="*"></ColumnDefinition>
 										<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
@@ -259,11 +259,15 @@
 				</StackPanel>
 
 				<StackPanel Spacing="1" Orientation="Horizontal" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2">
-					<ListBox Items="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}" SelectionMode="Multiple,Toggle" Width="120" Selection="{Binding DevicesFiltersSelection}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+					<ListBox Items="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}" 
+							 SelectionMode="Multiple,Toggle" Width="120" 
+							 Selection="{Binding DevicesFiltersSelection}" 
+							 Background="{DynamicResource ThemeControlMidHighBrush}"
+							 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 						<ListBox.ItemTemplate>
 							<DataTemplate>
-								<Border Background="LightBlue" CornerRadius="3" Padding="3">
-									<TextBlock Text="{Binding .}" TextWrapping="Wrap"/>
+								<Border CornerRadius="3" Margin="1,3,10,3" Padding="3,3,3,3" BorderBrush="{DynamicResource ThemeBorderMidBrush}" BorderThickness="1">
+									<TextBlock FontWeight="Medium" Text="{Binding .}" TextWrapping="Wrap"/>
 								</Border>
 							</DataTemplate>
 						</ListBox.ItemTemplate>

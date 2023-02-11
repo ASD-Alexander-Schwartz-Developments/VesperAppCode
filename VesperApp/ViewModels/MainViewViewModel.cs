@@ -210,7 +210,7 @@ namespace VesperApp.ViewModels
 
         public MainViewViewModel(/*Avalonia.Controls.Window mainWindowContext*/)
         {
-            MainWindowContext = App.MainWindow;
+            //MainWindowContext = App.MainWindow;
             _globalDockAdapter = new DockAdapter();
 
             //ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
