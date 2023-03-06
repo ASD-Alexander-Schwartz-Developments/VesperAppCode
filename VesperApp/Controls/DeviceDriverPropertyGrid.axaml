@@ -10,18 +10,26 @@
 			 xmlns:c="using:Avalonia.Collections">
 
 
-	<DockPanel>
-		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch">
-			<Border BorderBrush="Black" BorderThickness="1" VerticalAlignment="Stretch">
+	<DockPanel Margin="1">
+		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+			<Border BorderBrush="{DynamicResource ThemeBorderMidBrush}" BorderThickness="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 				<DataGrid Items="{Binding PropertiesView}"
-					BorderThickness="0"
+					BorderThickness="1"
 					RowBackground="Transparent"
 					SelectedItem="{Binding SelectedProperty, Mode=TwoWay}"
 					CanUserResizeColumns="true"
-					x:Name="gridEditProperties">
-					
+					x:Name="gridEditProperties"
+						  HorizontalAlignment="Stretch"
+						  VerticalScrollBarVisibility="Auto"
+						  HorizontalScrollBarVisibility="Auto"
+						  Margin="1" Padding="1">
+					<DataGrid.Styles>
+						<Style Selector="TextBlock">
+							<Setter Property="TextWrapping" Value="WrapWithOverflow" />
+						</Style>
+					</DataGrid.Styles>
 					<DataGrid.Columns>
-						<DataGridTextColumn Width="Auto" Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
+						<DataGridTextColumn Width="160" Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
 						<DataGridTemplateColumn Width="120" Header="Value">
 							<DataGridTemplateColumn.CellTemplate>
 								<DataTemplate DataType="vm:DriverPropertyViewModel">
@@ -29,7 +37,7 @@
 								</DataTemplate>
 							</DataGridTemplateColumn.CellTemplate>
 						</DataGridTemplateColumn>
-						<DataGridTextColumn Width="*" Header="Description" Binding="{Binding Description}"/>
+						<DataGridTextColumn Width="360" Header="Description" Binding="{Binding Description}"/>
 					</DataGrid.Columns>
 				</DataGrid>
 			</Border>

@@ -5,11 +5,12 @@
 	         xmlns:vm="using:VesperApp.ViewModels"
 			 xmlns:m="using:VesperApp.Models"
 			 xmlns:c="using:VesperApp.Controls"
-             mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="280"
-             x:Class="VesperApp.Controls.ScheduleControl">
+             mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="340"
+             x:Class="VesperApp.Controls.ScheduleControl"
+			 MinHeight="340">
 
 	
-	<DockPanel Margin="1">
+	<DockPanel Margin="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 		<StackPanel Background="{DynamicResource ThemeControlMidHighBrush}" Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
 			<Label Margin="20,10" Content="Select Schedule Type" VerticalAlignment="Center"/>
 			<ComboBox x:Name="comboScheduleType"
@@ -74,9 +75,7 @@
 					 SelectionMode="Single" 
 					 SelectedIndex="{Binding SelectedIndex}"
 					 MinWidth="260"
-					 MinHeight="160"
-					 Height="160"
-					 MaxHeight="160"
+					 MinHeight="200"
 					 HorizontalAlignment="Stretch"
 					 VerticalAlignment="Stretch"
 					 Background="{DynamicResource ThemeControlMidHighBrush}">

@@ -48,7 +48,7 @@
 				</Button>
 				<Button Margin="10" Command="{Binding ResetDeviceDockCommand}" x:Name="DockRestDeviceButton">
 					<StackPanel Orientation="Horizontal">
-						<TextBlock VerticalAlignment="Center" Padding="2,6,2,6" Text="Rest Device" IsVisible="True" Classes="DockControls"/>
+						<TextBlock VerticalAlignment="Center" Padding="2,6,2,6" Text="Reset Device" IsVisible="True" Classes="DockControls"/>
 					</StackPanel>
 				</Button>
 				<Button Margin="10" Command="{Binding Boot0ModeDockCommand}" x:Name="DockBoot0DeviceToggle">
@@ -324,13 +324,32 @@
 							<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal"
 										HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 										ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualGPSParserCommand}" x:Name="bParseGPS">
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualGPSParserCommand}" x:Name="bParseGPS" ToolTip.Tip="GPS Decoder">
 									<StackPanel Orientation="Horizontal">
 										<Image Stretch="Fill" Width="42" Height="42">
 											<Image.Source>
 												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.globe_location_filled}" />
 											</Image.Source>
 										</Image> 
+									</StackPanel>
+								</Button>
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualAudioParserCommand}" x:Name="bParseAudio" ToolTip.Tip="Audio Decoder">
+									<StackPanel Orientation="Horizontal">
+										<Image Stretch="Fill" Width="42" Height="42">
+											<Image.Source>
+												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.sound_source_filled}" />
+											</Image.Source>
+										</Image>
+									</StackPanel>
+								</Button>
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding BinaryFilesExtractor}" x:Name="bParseBinaries" ToolTip.Tip="Extract Content files from Vesper/Pipistrelle binary files">
+									<StackPanel Orientation="Horizontal">
+										<Image Stretch="Fill" Width="42" Height="42">
+											<Image.Source>
+												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.folder_briefcase_filled}" />
+											</Image.Source>
+										</Image>
+										<ProgressBar x:Name="ProgressBinaryParser" IsVisible="{Binding BinaryParserIsRunning}" Value="{Binding BinaryParserPercent}"/>
 									</StackPanel>
 								</Button>
 							</StackPanel>
@@ -384,13 +403,13 @@
 
 						<ScrollViewer Grid.Column="0" Grid.Row="1" BorderThickness="1" BorderBrush="Cornsilk">
 							<StackPanel  Orientation="Vertical"	Margin="0,16,0,0" HorizontalAlignment="Stretch">
-								<Expander ExpandDirection="Down" Header="Schedule">
+								<Expander ExpandDirection="Down" Header="Schedule" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 									<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}"/>
 								</Expander>
-								<Expander ExpandDirection="Down" Header="Drivers">
+								<Expander ExpandDirection="Down" Header="Drivers" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 									<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
 										<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="1,10,1,1"/>
-										<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="1,10,1,1"/>
+										<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="10,10,10,10"/>
 									</StackPanel>
 								</Expander>
 							</StackPanel>
@@ -424,20 +443,5 @@
 		</Border>		
 	</Grid>
 	
-
-		
-		
-
-		<!--
-		<Grid>
-			<si:CalendarControl>
-				<si:CalendarControl.ItemTemplate>
-					<DataTemplate>
-						<si:AppointmentControl Begin="{Binding Begin}" End="{Binding End}" Text="{Binding Text}" />
-					</DataTemplate>
-				</si:CalendarControl.ItemTemplate>
-			</si:CalendarControl>
-		</Grid>-->
-
 	
 </UserControl>

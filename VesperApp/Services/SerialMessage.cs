@@ -596,7 +596,7 @@ namespace VesperApp.Services
             }
             if (handler != null)
             {
-                handler.BeginInvoke(this, e, callBack_message_done, null);
+                handler.Invoke(this, e);
             }
         }
 

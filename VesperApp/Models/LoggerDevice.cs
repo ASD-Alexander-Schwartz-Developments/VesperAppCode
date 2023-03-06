@@ -587,9 +587,11 @@ namespace VesperApp.Models
             }
             else if(_comport != null && _comport.IsRunning)
             {
-                MessageOutEventArgs moea = new MessageOutEventArgs();
-                moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_FLAGS, 0, new byte[0], 0);
-                this._comport.SendMessage(moea);
+                Debug.WriteLine("Prepare Get Flags request message");
+                byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_FLAGS, 0, new byte[0], 0);
+                Debug.WriteLine("Prepare Get Flags request array");
+                this._comport.SendToDevice(buffer, 0, buffer.Length);
+                Debug.WriteLine("Sent Get Flags request");
             }
 
             return await Task.FromResult(res);
@@ -631,7 +633,9 @@ namespace VesperApp.Models
             else if (_comport != null && _comport.IsRunning)
             {
                 MessageOutEventArgs moea = new MessageOutEventArgs();
-                moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_SLEEP, 0, new byte[0], 0);
+                byte[] data = new byte[1];
+                data[0] = (byte)((isarmed == true) ? (byte)1 : (byte)0);
+                moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_SLEEP, (byte)data.Length, data, 0);
                 this._comport.SendMessage(moea);
             }
 

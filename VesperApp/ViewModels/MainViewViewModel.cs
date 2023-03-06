@@ -28,6 +28,8 @@ using System.Xml;
 using Avalonia.Platform.Storage;
 using Avalonia.Controls.Platform;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage.FileIO;
+using ASDWaveLib;
 
 /// <summary>
 /// //// {Binding Description, StringFormat='Description: {0}'}
@@ -42,6 +44,24 @@ namespace VesperApp.ViewModels
         private DockAdapter? _globalDockAdapter;
         private DeviceUsbAdapter? _deviceUsbAdapter;
         private ConfigurationJSON configurationJSONInstance;
+
+
+        public bool BinaryParserIsRunning
+        {
+            get => binaryParserIsRunning;
+            set => this.RaiseAndSetIfChanged(ref binaryParserIsRunning, value);
+        }
+
+        private bool binaryParserIsRunning = false;
+
+        public int BinaryParserPercent
+        {
+            get => binaryParserPercent;
+            set => this.RaiseAndSetIfChanged(ref binaryParserPercent, value);
+        }
+
+        private int binaryParserPercent = 0;
+
 
 
         public bool IsConnected
@@ -432,6 +452,10 @@ namespace VesperApp.ViewModels
 
             LoadConfigCommand = ReactiveCommand.CreateFromTask(LoadConfiguration);
 
+            BinaryFilesExtractor = ReactiveCommand.CreateFromTask(RunBinaryParser);
+
+            ManualAudioParserCommand = ReactiveCommand.CreateFromTask(DecodeAudio);
+
             #endregion
 
             #region Parser Commands
@@ -798,12 +822,14 @@ namespace VesperApp.ViewModels
 				Debug.WriteLine(ex.Message);
 			}
 		}
-		#endregion
+        #endregion
 
-		//END
+        //END
 
+        //Window GetWindow() => TopLevel.GetTopLevel(this) as Window ?? throw new NullReferenceException("Invalid Owner");
+        //TopLevel GetTopLevel() => TopLevel.GetTopLevel(this) ?? throw new NullReferenceException("Invalid Owner");
 
-		private async void CreateNewConfigurationInstance()
+        private async void CreateNewConfigurationInstance()
         {
             SelectedDeviceType = null;
             _selectedDeviceDriver = null;
@@ -1004,7 +1030,7 @@ namespace VesperApp.ViewModels
             {
                 OpenFolderDialog openFolderDialog = new OpenFolderDialog();
 
-                openFolderDialog.Title = "Select Folder holdeing the snaps";
+                openFolderDialog.Title = "Select Folder containing the DAT Snaps";
 
                 string? path = await openFolderDialog.ShowAsync(MainWindowContext ?? App.MainWindow);
 
@@ -1124,6 +1150,176 @@ namespace VesperApp.ViewModels
             }
 
             return await Task.FromResult(result);
+        }
+
+        private async Task<bool> RunBinaryParser()
+        {
+            bool retval = false;
+
+            try
+            {
+                FilePickerOpenOptions options = new()
+                {
+                    Title = "Select binary files to extract data from...",
+                    //SuggestedStartLocation =,
+                    FileTypeFilter = new List<FilePickerFileType> 
+                    { 
+                        new("GPS Snap (.bin) ")
+                        {
+                            Patterns = new[]{"*G.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Audio Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*U.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+
+                    },
+                    AllowMultiple = true,
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+                        BinaryParserIsRunning = true;
+                        BinaryParserPercent = 0;
+                        double percentDelta = 100 / files.Count;
+                        double percent = 0;
+                        foreach (var file in files)
+                        {
+                            percent += percentDelta;
+                            BinaryParserPercent = (int)percent;
+                            //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
+                            if (file is not null && file.CanOpenRead)
+                            {
+                                if (file.TryGetUri(out var uri) == true)
+                                {
+                                    string? currentDirectory = Path.GetDirectoryName(uri.LocalPath);
+                                    string? currentFilename = Path.GetFileName(uri.LocalPath).ToUpper();
+
+                                    if (currentDirectory != null && currentFilename != null)
+                                    {
+                                        if (currentFilename.Contains("G.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "DAT";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.ExtractVesperSnap(uri.LocalPath, fullPathOnly, new TimeSpan(0, 0, 0));
+                                        }
+                                        else if(currentFilename.Contains("U.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(uri.LocalPath, fullPathOnly, 0);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        BinaryParserPercent = 100;
+                        await Task.Delay(250);
+                        BinaryParserIsRunning = false;
+
+                    }
+                    catch (Exception e) { Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+
+
+
+            }
+            catch { retval = true; }
+
+            return retval;
+        }
+
+        private async Task<bool> DecodeAudio()
+        {
+            bool retval = false;
+
+            try
+            {
+                FilePickerOpenOptions options = new()
+                {
+                    Title = "Select parsed audio binary recording files to convert to WAV...",
+                    //SuggestedStartLocation =,
+                    FileTypeFilter = new List<FilePickerFileType>
+                    {
+                        new("Audio binary (.UBN) ")
+                        {
+                            Patterns = new[]{"*-*.UBN"},
+                            MimeTypes = new[]{"bin/*"}
+                        }
+                    },
+                    AllowMultiple = true,
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+                        BinaryParserIsRunning = true;
+                        BinaryParserPercent = 0;
+                        double percentDelta = 100 / files.Count;
+                        double percent = 0;
+                        foreach (var file in files)
+                        {
+                            percent += percentDelta;
+                            BinaryParserPercent = (int)percent;
+                            //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
+                            if (file is not null && file.CanOpenRead)
+                            {
+                                if (file.TryGetUri(out var uri) == true)
+                                {
+                                    string? currentDirectory = Path.GetDirectoryName(uri.LocalPath);
+                                    string? currentFilename = Path.GetFileName(uri.LocalPath).ToUpper();
+
+                                    if (currentDirectory != null && currentFilename != null)
+                                    {
+                                        using (WaveFile wf = new WaveFile(uri.LocalPath,
+                                            1,
+                                            100000,
+                                            16))
+                                        {
+                                            byte[] databuf = File.ReadAllBytes(uri.LocalPath);
+
+                                            wf.Open();
+                                            wf.WriteWave(databuf);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        BinaryParserPercent = 100;
+                        await Task.Delay(250);
+                        BinaryParserIsRunning = false;
+
+                    }
+                    catch (Exception e) { Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+
+
+
+            }
+            catch { retval = true; }
+
+            return retval;
         }
 
 
@@ -1298,16 +1494,9 @@ namespace VesperApp.ViewModels
         public ICommand? ResetDeviceDockCommand { get; }
         public ICommand? Boot0ModeDockCommand { get; }
         public ICommand? EnableDeviceDockCommand { get; }
-
-
-
-
-        /*
-         * Logger Devices Section
-         * */
-        public ObservableCollection<LoggerDevice> LoggerDevices { get; }
-
-        public SelectionModel<LoggerDevice>? SelectedLoggerDeviceModel { get; }
+        public ICommand? BinaryFilesExtractor { get; }
+        
+        public ICommand? ManualAudioParserCommand { get; }
 
         public ICommand? ConnectDisconnectDeviceCommand { get; }
         public ICommand? SleepDeviceCommand { get; }
@@ -1327,6 +1516,14 @@ namespace VesperApp.ViewModels
 
 
         public ICommand? ManualGPSParserCommand { get; }
+
+
+        /*
+         * Logger Devices Section
+        * */
+        public ObservableCollection<LoggerDevice> LoggerDevices { get; }
+
+        public SelectionModel<LoggerDevice>? SelectedLoggerDeviceModel { get; }
 
 
         public ConfigurationJSON Configuration { get => _config; }
