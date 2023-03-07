@@ -34,7 +34,7 @@ namespace VesperApp.Services
                         word = (UInt32)(((UInt32)word >> 8) + ((UInt32)lastbyte << 24));
                         if (word == BinHeader.PreambleHeader)
                         {
-                            binHeader = new BinHeader(databuffer, idx, 'G');
+                            binHeader = new BinHeader(databuffer, idx-3, 'G');
                             idx += 1024;
                             snap_offset = 1024;
                             break;
