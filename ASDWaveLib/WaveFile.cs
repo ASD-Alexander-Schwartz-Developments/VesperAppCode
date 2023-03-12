@@ -28,8 +28,9 @@ namespace ASDWaveLib
         private bool IsOpened;
         private FileStream? fs;
         private BinaryWriter? bwr;
+        private string? metadata;
 
-        public WaveFile(string filename, UInt16 Channels, UInt32 SampleRate, UInt16 bps)
+        public WaveFile(string filename, string? meta = null, UInt16 Channels = 1, UInt32 SampleRate = 0, UInt16 bps = 16)
         {
             this.filename = filename;
             this.NumOfChannels = Channels;
@@ -44,7 +45,26 @@ namespace ASDWaveLib
             this.DataBuffer = null;
             this.fs = null;
             this.bwr = null;
+            this.metadata = meta;
             this.IsOpened = false;
+
+
+            if(this.metadata != null && this.metadata.Length > 0)
+            {
+                if(this.metadata.Contains("SampleRate") == true)
+                {
+                    int start = this.metadata.IndexOf("SampleRate");
+                    int valstart = this.metadata.IndexOf(":", start) + 1;
+                    int end = this.metadata.IndexOf(Environment.NewLine, valstart);
+                    string value = this.metadata.Substring(valstart, end-valstart);
+
+                    if(UInt32.TryParse(value, out var sr))
+                    {
+                        this.SampleRate = sr;
+                        this.ByteRate = (UInt32)(this.SampleRate * ((this.bps * this.NumOfChannels) / 8));
+                    }
+                }
+            }
         }
 
         public void Open()
@@ -66,22 +86,6 @@ namespace ASDWaveLib
                 IsOpened = false;
             }
         }
-
-
-        public void Open(string foldername)
-        {
-            try
-            {
-                fs = new FileStream(foldername + "\\" + this.filename + ".wav", FileMode.CreateNew, FileAccess.Write);
-                bwr = new BinaryWriter(fs);
-                IsOpened = true;
-            }
-            catch (Exception ex)
-            {
-                IsOpened = false;
-            }
-        }
-
 
 
         public void Dispose()
@@ -127,6 +131,12 @@ namespace ASDWaveLib
                     this.Subchunk2Size = (UInt32)this.DataBuffer.Length;
                     this.length = (UInt32)Subchunk2Size + this.Subchunk1Size + 4;
 
+                    if(SampleRate == 0)
+                    {
+                        SampleRate = (uint)this.DataBuffer.Length / 2;                // 16bit per sample
+                        this.ByteRate = (UInt32)(this.SampleRate * ((this.bps * this.NumOfChannels) / 8));
+                    }
+
                     bwr.Write(this.ChunkID);
                     bwr.Write(this.length);
                     bwr.Write(this.Format);
@@ -166,6 +176,7 @@ namespace ASDWaveLib
                 {
                     this.DataBuffer = new byte[buffer.Length];
                     buffer.CopyTo(this.DataBuffer, 0);
+
                     /*
                     Int16[] buf16bit = new Int16[buffer.Length / 2];
                     for (int objIndex = 0; objIndex < buf16bit.Length; objIndex++)
@@ -174,7 +185,7 @@ namespace ASDWaveLib
                                                     ((UInt16)buffer[(objIndex * 2) + 1] << 8));
                     }*/
                     
-                    double arr_avg = 0.0;
+                    //double arr_avg = 0.0;
                     /*for (int i = 0; i < buf16bit.Length; i++)
                     {
                         arr_avg += buf16bit[i];

@@ -107,6 +107,13 @@ namespace VesperApp.Models
         public UInt32 Configuration1 => this.config_data1;
         public UInt32 Configuration2 => this.config_data2;
         public UInt32 Configuration3 => this.config_data3;
+        public UInt32 SamplingRate => this.sampling_rate;
+        public UInt32 WindowLength => this.window_len;
+        public UInt32 WindowRate => this.window_rate;
+        public UInt32 Bitmask => this.bitmask;
+        public UInt16 FwId => this.fwid;
+        public UInt16 HwId => this.hwid;
+
 
 
     }

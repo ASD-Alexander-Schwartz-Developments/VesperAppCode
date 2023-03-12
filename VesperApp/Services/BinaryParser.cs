@@ -237,11 +237,45 @@ namespace VesperApp.Services
                                     wn = folder + Path.DirectorySeparatorChar;
                                 
                                 wn += timestamp.StartHeader.ToString();
-                                wn += '-' + timestamp.EndHeader.ToString();
+                                wn += '-' + timestamp.EndHeader.ToString();                               
                                 wn += "." + first_letter + "BN";
+                                string metadata_filename = wn + ".txt";
+
+                                string metadata = string.Empty;
 
                                 if (File.Exists(wn) == false)
                                 {
+                                    if(File.Exists(metadata_filename) == true)
+                                    {
+                                        File.Delete(metadata_filename);
+                                    }
+
+                                    if(binaryTypeHeader != null)
+                                    {
+                                        metadata += ("DeviceID:" + binaryTypeHeader.UId.ToString("X") + Environment.NewLine);
+                                        metadata += ("HWID:" + binaryTypeHeader.HwId.ToString("X") + Environment.NewLine);
+                                        metadata += ("FWID:" + binaryTypeHeader.FwId.ToString("X") + Environment.NewLine);
+                                        metadata += ("Sensor:" + binaryTypeHeader.DeviceDriverName + Environment.NewLine);
+                                        metadata += ("SampleRate:" + binaryTypeHeader.SamplingRate + Environment.NewLine);
+                                        metadata += ("WinRate:" + binaryTypeHeader.WindowRate + Environment.NewLine);
+                                        metadata += ("WinLen:" + binaryTypeHeader.WindowLength + Environment.NewLine);
+                                        metadata += ("Config0:" + binaryTypeHeader.Configuration0.ToString("X") + Environment.NewLine);
+                                        metadata += ("Config1:" + binaryTypeHeader.Configuration1.ToString("X") + Environment.NewLine);
+                                        metadata += ("Config2:" + binaryTypeHeader.Configuration2.ToString("X") + Environment.NewLine);
+                                        metadata += ("Config3:" + binaryTypeHeader.Configuration3.ToString("X") + Environment.NewLine);
+                                        metadata += ("Bitmask:" + binaryTypeHeader.Bitmask.ToString("X") + Environment.NewLine);
+
+                                        if (timestamp.SyncTimestamps != null)
+                                        {
+                                            foreach (BinHeader binh in timestamp.SyncTimestamps)
+                                            {
+                                                metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy hh:mm:ss.FFF") + ":" + (binh.StartPosition/2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
+                                            }
+                                        }
+
+                                        File.WriteAllText(metadata_filename, metadata, Encoding.UTF8);
+                                    }
+                                    
                                     using (FileStream fs = File.OpenWrite(wn))
                                     {
                                         if (timestamp.SyncTimestamps == null || timestamp.SyncTimestamps.Count == 0)
@@ -252,9 +286,9 @@ namespace VesperApp.Services
                                         {
                                             fs.Write(databuffer, timestamp.StartHeader.StartPosition, timestamp.SyncTimestamps[0].StartPosition - timestamp.StartHeader.StartPosition);
 
-                                            for (int i = 0; i < timestamp.SyncTimestamps.Count-1; i++)
+                                            for (int i = 0; i < timestamp.SyncTimestamps.Count - 1; i++)
                                             {
-                                                fs.Write(databuffer, timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.SyncTimestamps[i+1].StartPosition - (timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                                fs.Write(databuffer, timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.SyncTimestamps[i + 1].StartPosition - (timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
                                             }
 
                                             fs.Write(databuffer, timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.EndHeader.StartPosition - (timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
@@ -262,6 +296,7 @@ namespace VesperApp.Services
 
                                         fs.Close();
                                     }
+
                                 }
                             }
                         }

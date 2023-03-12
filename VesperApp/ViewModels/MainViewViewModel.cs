@@ -30,6 +30,7 @@ using Avalonia.Controls.Platform;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage.FileIO;
 using ASDWaveLib;
+using static VesperApp.Models.ConfigurationJSON;
 
 /// <summary>
 /// //// {Binding Description, StringFormat='Description: {0}'}
@@ -184,12 +185,10 @@ namespace VesperApp.ViewModels
 		{
 			get => _IsdownloadButtonEnable
 ;
-			set => this.RaiseAndSetIfChanged(ref _IsdownloadButtonEnable
-, value);
+			set => this.RaiseAndSetIfChanged(ref _IsdownloadButtonEnable, value);
 		}
 
-		private bool _IsdownloadButtonEnable
-= true;
+		private bool _IsdownloadButtonEnable = true;
 		private Flyout _updateFlyout;
 		public Flyout updateFlyout
 		{
@@ -348,13 +347,16 @@ namespace VesperApp.ViewModels
                     OpenFolderDialog openFolderDialog = new OpenFolderDialog();
                     openFolderDialog.Title = "Select output folder for downloaded data";
 
-                    string ? path = await openFolderDialog.ShowAsync(MainWindowContext);
-
-                    bool ok = await SelectedLoggerDevice.DownloadPages(path);
-
-                    if(!ok)
+                    if (App.MainWindow != null)
                     {
-                        ///// show error
+                        string? path = await openFolderDialog.ShowAsync((MainWindow)App.MainWindow);
+
+                        bool ok = await SelectedLoggerDevice.DownloadPages(path);
+
+                        if (!ok)
+                        {
+                            ///// show error
+                        }
                     }
                 }
             });
@@ -377,16 +379,19 @@ namespace VesperApp.ViewModels
 
                     openFileDialog.Title = "Choose Configuration File to Upload";
                     openFileDialog.AllowMultiple = false;
-                    string [] ? files = await openFileDialog.ShowAsync(MainWindowContext);
-
-                    if (files != null && files[0] != null)
+                    if (App.MainWindow != null)
                     {
-                        try
+                        string[]? files = await openFileDialog.ShowAsync(App.MainWindow);
+
+                        if (files != null && files[0] != null)
                         {
-                            string jsonString = File.ReadAllText(files[0]);
-                            await SelectedLoggerDevice.UploadConfigFile(jsonString);
+                            try
+                            {
+                                string jsonString = File.ReadAllText(files[0]);
+                                await SelectedLoggerDevice.UploadConfigFile(jsonString);
+                            }
+                            catch (Exception e) { }
                         }
-                        catch (Exception e) { }
                     }
 
                 }
@@ -438,7 +443,7 @@ namespace VesperApp.ViewModels
                     ContentTitle = "New Configuration",
                     ContentHeader = "Do you want to open new configuration?",
                     ContentMessage = "By pressing Yes you will loose and unsaved changes.",
-                    WindowIcon = MainWindowContext.Icon,
+                    WindowIcon = App.MainWindow.Icon,
                     Icon = MessageBox.Avalonia.Enums.Icon.Question
                 });
 
@@ -464,7 +469,7 @@ namespace VesperApp.ViewModels
 
             _timer = new System.Timers.Timer();
             _timer.Elapsed += _timer_Elapsed;
-            _timer.Interval = 1500;
+            _timer.Interval = 2000;
             _timer.Start();
 
             _globalDockAdapter.ConnectionEvent += _globalDockAdapter_ConnectionEvent;
@@ -882,6 +887,7 @@ namespace VesperApp.ViewModels
                                 options.WriteIndented = false;
                                 options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
                                 options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+                                options.Converters.Add(new VesperDateTimeConverter("yyyy-MM-dd hh:mm:dd"));
                                 configurationJSONInstance.DeviceDrivers.Clear();
                                 if (DriversViewModel != null)
                                 {
@@ -944,7 +950,7 @@ namespace VesperApp.ViewModels
 
             openFileDialog.Title = "Choose Configuration File to load";
             openFileDialog.AllowMultiple = false;
-            string[]? files = await openFileDialog.ShowAsync(MainWindowContext);
+            string[]? files = await openFileDialog.ShowAsync(App.MainWindow);
 
             if (files != null && files[0] != null)
             {
@@ -963,6 +969,7 @@ namespace VesperApp.ViewModels
                 options.WriteIndented = false;
                 options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
                 options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+                options.Converters.Add(new VesperDateTimeConverter("yyyy-MM-dd hh:mm:dd"));
                 ConfigurationJSON? config = null;
                 try
                 {
@@ -1032,7 +1039,7 @@ namespace VesperApp.ViewModels
 
                 openFolderDialog.Title = "Select Folder containing the DAT Snaps";
 
-                string? path = await openFolderDialog.ShowAsync(MainWindowContext ?? App.MainWindow);
+                string? path = await openFolderDialog.ShowAsync(App.MainWindow);
 
                 if (path != null && path.Length > 0)
                 {
@@ -1125,7 +1132,7 @@ namespace VesperApp.ViewModels
                                 WindowIcon = App.MainWindow.Icon,
                             });
 
-                        await messageBoxStandardWindow.ShowDialog(MainWindowContext);
+                        await messageBoxStandardWindow.ShowDialog(App.MainWindow);
 
                     }
 
@@ -1146,7 +1153,7 @@ namespace VesperApp.ViewModels
                         WindowIcon = App.MainWindow.Icon,
                     });
 
-                await messageBoxStandardWindow.ShowDialog(MainWindowContext);
+                await messageBoxStandardWindow.ShowDialog(App.MainWindow);
             }
 
             return await Task.FromResult(result);
@@ -1289,13 +1296,16 @@ namespace VesperApp.ViewModels
                                 {
                                     string? currentDirectory = Path.GetDirectoryName(uri.LocalPath);
                                     string? currentFilename = Path.GetFileName(uri.LocalPath).ToUpper();
+                                    string metadata = string.Empty;
 
                                     if (currentDirectory != null && currentFilename != null)
                                     {
-                                        using (WaveFile wf = new WaveFile(uri.LocalPath,
-                                            1,
-                                            100000,
-                                            16))
+                                        if(File.Exists(uri.LocalPath + ".txt"))                         /// Check if metadata exists
+                                        {
+                                            metadata = File.ReadAllText(uri.LocalPath + ".txt", Encoding.UTF8) ?? string.Empty;
+                                        }
+
+                                        using (WaveFile wf = new WaveFile(uri.LocalPath, metadata))
                                         {
                                             byte[] databuf = File.ReadAllBytes(uri.LocalPath);
 
@@ -1326,17 +1336,22 @@ namespace VesperApp.ViewModels
 
         private void DriversViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if(sender != null && e.PropertyName == "SelectedDeviceDriver")
+            if(e.PropertyName == "SelectedDeviceDriver")
             {
-                ConfigurationDeviceDriver ? _selected = (sender as SelectDeviceDriverViewModel).SelectedDeviceDriver;
-
-                Debug.WriteLine("Selected " + _selected.Name + " " + _selected.GetType().FullName);
-
-                if (_selected != _selectedDeviceDriver)
+                if (sender is not null)
                 {
-                    UpdateSelectedDeviceDriverPropertiesView(_selected);
+                    SelectDeviceDriverViewModel ? sddvm = sender as SelectDeviceDriverViewModel;
 
-                    _selectedDeviceDriver = _selected;
+                    ConfigurationDeviceDriver? _selected = sddvm?.SelectedDeviceDriver;
+
+                    Debug.WriteLine("Selected " + _selected?.Name + " " + _selected?.GetType().FullName);
+
+                    if (_selected != _selectedDeviceDriver)
+                    {
+                        UpdateSelectedDeviceDriverPropertiesView(_selected);
+
+                        _selectedDeviceDriver = _selected;
+                    }
                 }
             }
         }
@@ -1547,13 +1562,9 @@ namespace VesperApp.ViewModels
 
         private async void UpdateSelectedDeviceType(DeviceTypes? _seldeviceType)
         {
-            if(_seldeviceType == null)
+            if (_seldeviceType != null)
             {
-                await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
-            }
-            else
-            {
-                configurationJSONInstance.Name = _seldeviceType.ToString();
+                configurationJSONInstance.Name = (string)_seldeviceType.ToString();
 
                 switch (_seldeviceType)
                 {
@@ -1562,11 +1573,19 @@ namespace VesperApp.ViewModels
                         break;
 
                     case DeviceTypes.Vesper:
+                        await DriversViewModel.UpdateDeviceDriverCollection(Vesper.SupportedDeviceDrivers);
+                        break;
                     case DeviceTypes.Pipistrelle:
+                        await DriversViewModel.UpdateDeviceDriverCollection(Pipistrelle.SupportedDeviceDrivers);
+                        break;
                     default:
                         await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
                         break;
                 }
+            }
+            else
+            {
+                await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
             }
         }
 

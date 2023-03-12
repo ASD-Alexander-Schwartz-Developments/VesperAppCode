@@ -9,7 +9,7 @@ namespace VesperApp.Models
     public class ConfigurationJSON
     {
         private const string valid_name = "";
-        private const string valid_minimum_supported_hw = "";
+        private const string valid_minimum_supported_hw = "4.0";
 
 
         private string name;
@@ -208,6 +208,22 @@ namespace VesperApp.Models
         }
 
 
+        public class VesperDateTimeConverter : JsonConverter<DateTime>
+        {
+            private readonly string Format;
+            public VesperDateTimeConverter(string format)
+            {
+                Format = format;
+            }
+            public override void Write(Utf8JsonWriter writer, DateTime date, JsonSerializerOptions options)
+            {
+                writer.WriteStringValue(date.ToString(Format));
+            }
+            public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                return DateTime.ParseExact(reader.GetString(), Format, null);
+            }
+        }
         /*
 
         [Fact]

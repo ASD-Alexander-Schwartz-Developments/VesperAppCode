@@ -18,6 +18,8 @@ namespace VesperApp.Models
 		public static readonly int MAX_SCHEDULE_SIZE = 64;
 		public static readonly int REFERENCE_YEAR = 2020;
 
+		private static readonly int TICKS_IN_SECOND = 1024;
+
 		public static readonly int VendorId = 1155;
 		public static readonly int ProductId = 22288;
 
@@ -81,7 +83,7 @@ namespace VesperApp.Models
 
 			try
 			{
-				dt = new DateTime(years, months, days, hours, minutes, seconds, (int)(((double)ms / 1024) * 1000));
+				dt = new DateTime(years, months, days, hours, minutes, seconds, (int)(((double)ms / TICKS_IN_SECOND) * 1000));
 			}
 			catch (Exception ex)
 			{

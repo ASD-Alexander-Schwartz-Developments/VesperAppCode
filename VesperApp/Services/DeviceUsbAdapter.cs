@@ -287,7 +287,7 @@ namespace VesperApp.Services
             if (forceRefresh == true)
                 this._loggerDevices.Clear();
 
-            if (this._serialPort != null)
+            if (this._serialPort != null && this._serialPort.IsOpen == false)
             {
                 string []comports = SerialPort.GetPortNames();
 
@@ -296,7 +296,8 @@ namespace VesperApp.Services
                     try
                     {
                         this._serialPort.PortName = s;
-                        this._serialPort.ReadTimeout = 150;
+                        this._serialPort.ReadTimeout = 100;
+                        this._serialPort.WriteTimeout = 100;
                         this._serialPort.Open();
                         Debug.WriteLine("Opened " + s);
                         /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
@@ -304,7 +305,7 @@ namespace VesperApp.Services
                         byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER,
                             0, new byte[0], 0);
                         this._serialPort.Write(buffer, 0, buffer.Length);
-                        Thread.Sleep(100);
+                        Thread.Sleep(30);
                         buffer = new byte[16];
                         if (this._serialPort.Read(buffer, 0, buffer.Length) >= 8)
                         {
@@ -335,6 +336,7 @@ namespace VesperApp.Services
                     finally
                     { 
                         this._serialPort.Close();
+                        Debug.WriteLine("Closed " + s);
                     }
                 }
             }

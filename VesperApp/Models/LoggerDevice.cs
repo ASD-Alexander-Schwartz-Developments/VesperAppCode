@@ -831,7 +831,7 @@ namespace VesperApp.Models
                                 {
                                     Debug.WriteLine(" - OK");
 
-                                    _ = Task.Factory.StartNew(() => { ProcessOnePage(dpageresponse, path); });
+                                    ProcessOnePage(dpageresponse, path);
                                 }
                                 else if (getpageresult == -200)
                                 {
@@ -895,124 +895,126 @@ namespace VesperApp.Models
 
                     byte[] bytes;
                     bytes = memoryStreamPage.GetBuffer();
+                    if(bytes != null && bytes.Length >= bytes_in_flash_page)
+                    { 
+                        int ij = 4096;
 
-                    int ij = 4096;
+                        UInt32 f_preamble = 0;
+                        f_preamble += bytes[ij++];
+                        f_preamble += (UInt32)(bytes[ij++] << 8);
+                        f_preamble += (UInt32)(bytes[ij++] << 16);
+                        f_preamble += (UInt32)(bytes[ij++] << 24);
 
-                    UInt32 f_preamble = 0;
-                    f_preamble += bytes[ij++];
-                    f_preamble += (UInt32)(bytes[ij++] << 8);
-                    f_preamble += (UInt32)(bytes[ij++] << 16);
-                    f_preamble += (UInt32)(bytes[ij++] << 24);
-
-                    UInt16 MetadataLength = 0;
-                    MetadataLength += bytes[ij++];
-                    MetadataLength += (UInt16)(bytes[ij++] << 8);
-
-
-                    byte page_type = bytes[ij];
-                    ij++;
-                    byte page_subtype = bytes[ij];
-                    ij++;
-
-                    UInt16 page_rev = 0;
-                    page_rev += bytes[ij++];
-                    page_rev += (UInt16)(bytes[ij++] << 8);
-
-                    UInt16 battLevel = 0;
-                    battLevel += bytes[ij++];
-                    battLevel += (UInt16)(bytes[ij++] << 8);
+                        UInt16 MetadataLength = 0;
+                        MetadataLength += bytes[ij++];
+                        MetadataLength += (UInt16)(bytes[ij++] << 8);
 
 
-                    ij += 16;    /// padding
+                        byte page_type = bytes[ij];
+                        ij++;
+                        byte page_subtype = bytes[ij];
+                        ij++;
 
-                    char snapType = (char)bytes[ij];
-                    ij++;
-                    ij++;
+                        UInt16 page_rev = 0;
+                        page_rev += bytes[ij++];
+                        page_rev += (UInt16)(bytes[ij++] << 8);
 
-
-                    UInt32 snapTimestamp = 0;
-                    UInt32 snapID = 0, snapIndex = 0, snapPagesInSnap = 0;
-                    UInt16 snapSubsecond = 0;
-
-                    snapTimestamp += bytes[ij++];
-                    snapTimestamp += (UInt32)(bytes[ij++] << 8);
-                    snapTimestamp += (UInt32)(bytes[ij++] << 16);
-                    snapTimestamp += (UInt32)(bytes[ij++] << 24);
-
-                    snapSubsecond += bytes[ij++];
-                    snapSubsecond += (UInt16)(bytes[ij++] << 8);
-
-                    ij += 2;
-
-                    snapID += bytes[ij++];
-                    snapID += (UInt32)(bytes[ij++] << 8);
-                    snapID += (UInt32)(bytes[ij++] << 16);
-                    snapID += (UInt32)(bytes[ij++] << 24);
-
-                    snapPagesInSnap += bytes[ij++];
-                    snapPagesInSnap += (UInt32)(bytes[ij++] << 8);
-                    snapPagesInSnap += (UInt32)(bytes[ij++] << 16);
-                    snapPagesInSnap += (UInt32)(bytes[ij++] << 24);
-
-                    snapIndex += bytes[ij++];
-                    snapIndex += (UInt32)(bytes[ij++] << 8);
-                    snapIndex += (UInt32)(bytes[ij++] << 16);
-                    snapIndex += (UInt32)(bytes[ij++] << 24);
-
-                    if (snapIndex > 0) snapIndex--;
+                        UInt16 battLevel = 0;
+                        battLevel += bytes[ij++];
+                        battLevel += (UInt16)(bytes[ij++] << 8);
 
 
-                    if (f_preamble == preamnle_ok &&
-                        page_type == NAND_FS_SNAP_PAGE_TYPE &&
-                        snapType == 'G' &&
-                        snapIndex < snapPagesInSnap)
-                    {
-                        //string outfolder = this.textOutputFolder.Text;
-                        string outfolder = path + "GPS\\";
+                        ij += 16;    /// padding
 
-//                        if (outfolder.EndsWith("\\") == false)
+                        char snapType = (char)bytes[ij];
+                        ij++;
+                        ij++;
+
+
+                        UInt32 snapTimestamp = 0;
+                        UInt32 snapID = 0, snapIndex = 0, snapPagesInSnap = 0;
+                        UInt16 snapSubsecond = 0;
+
+                        snapTimestamp += bytes[ij++];
+                        snapTimestamp += (UInt32)(bytes[ij++] << 8);
+                        snapTimestamp += (UInt32)(bytes[ij++] << 16);
+                        snapTimestamp += (UInt32)(bytes[ij++] << 24);
+
+                        snapSubsecond += bytes[ij++];
+                        snapSubsecond += (UInt16)(bytes[ij++] << 8);
+
+                        ij += 2;
+
+                        snapID += bytes[ij++];
+                        snapID += (UInt32)(bytes[ij++] << 8);
+                        snapID += (UInt32)(bytes[ij++] << 16);
+                        snapID += (UInt32)(bytes[ij++] << 24);
+
+                        snapPagesInSnap += bytes[ij++];
+                        snapPagesInSnap += (UInt32)(bytes[ij++] << 8);
+                        snapPagesInSnap += (UInt32)(bytes[ij++] << 16);
+                        snapPagesInSnap += (UInt32)(bytes[ij++] << 24);
+
+                        snapIndex += bytes[ij++];
+                        snapIndex += (UInt32)(bytes[ij++] << 8);
+                        snapIndex += (UInt32)(bytes[ij++] << 16);
+                        snapIndex += (UInt32)(bytes[ij++] << 24);
+
+                        if (snapIndex > 0) snapIndex--;
+
+
+                        if (f_preamble == preamnle_ok &&
+                            page_type == NAND_FS_SNAP_PAGE_TYPE &&
+                            snapType == 'G' &&
+                            snapIndex < snapPagesInSnap)
+                        {
+                            //string outfolder = this.textOutputFolder.Text;
+                            string outfolder = path + "GPS\\";
+
+                            //                        if (outfolder.EndsWith("\\") == false)
                             //outfolder += "\\";
 
-                        string filename;//= String.Format("{0}\\{1}.bin",
-                                        //                    new object[] {
-                                        //                    outfolder, "G"+snapID.ToString("D6")});
+                            string filename;//= String.Format("{0}\\{1}.bin",
+                                            //                    new object[] {
+                                            //                    outfolder, "G"+snapID.ToString("D6")});
 
-                        DateTime dt = Nanotag.FromTimestamp(snapTimestamp, snapSubsecond);
+                            DateTime dt = Nanotag.FromTimestamp(snapTimestamp, snapSubsecond);
 
-                        filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}_GC0.dat",
-                            new object[] {
+                            filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}_GC0.dat",
+                                new object[] {
                                     outfolder, "snap.", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second});
 
-                        Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);
+                            Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);
 
 
-                        for (int si = 0; si < bytes.Length; si += 4)
-                        {
-                            byte l0 = bytes[si];
-                            byte l1 = bytes[si + 1];
-                            byte l2 = bytes[si + 2];
-                            byte l3 = bytes[si + 3];
+                            for (int si = 0; si < bytes.Length; si += 4)
+                            {
+                                byte l0 = bytes[si];
+                                byte l1 = bytes[si + 1];
+                                byte l2 = bytes[si + 2];
+                                byte l3 = bytes[si + 3];
 
-                            UInt32 temp = (UInt32)(((UInt32)(l0) + (UInt32)(l1 << 8) + (UInt32)(l2 << 16) + (UInt32)(l3 << 24)));
+                                UInt32 temp = (UInt32)(((UInt32)(l0) + (UInt32)(l1 << 8) + (UInt32)(l2 << 16) + (UInt32)(l3 << 24)));
 
-                            temp = VesperApp.Services.ByteHelper.SwapWords(temp);
+                                temp = VesperApp.Services.ByteHelper.SwapWords(temp);
 
-                            bytes[si] = ((byte)(temp & 0xFF));
-                            bytes[si + 1] = ((byte)(temp >> 8));
-                            bytes[si + 2] = ((byte)(temp >> 16));
-                            bytes[si + 3] = ((byte)(temp >> 24));
-                        }
+                                bytes[si] = ((byte)(temp & 0xFF));
+                                bytes[si + 1] = ((byte)(temp >> 8));
+                                bytes[si + 2] = ((byte)(temp >> 16));
+                                bytes[si + 3] = ((byte)(temp >> 24));
+                            }
 
 
-                        using (System.IO.FileStream file = new FileStream(filename, FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite))
-                        {
-                            if (file.Length < (snapPagesInSnap * 4096))
-                                file.SetLength(snapPagesInSnap * 4096);
+                            using (System.IO.FileStream file = new FileStream(filename, FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite))
+                            {
+                                if (file.Length < (snapPagesInSnap * 4096))
+                                    file.SetLength(snapPagesInSnap * 4096);
 
-                            file.Seek(snapIndex * 4096, SeekOrigin.Begin);
-                            file.Write(bytes, 0, 4096);
-                            file.Flush();
-                            file.Close();
+                                file.Seek(snapIndex * 4096, SeekOrigin.Begin);
+                                file.Write(bytes, 0, 4096);
+                                file.Flush();
+                                file.Close();
+                            }
                         }
                     }
                     else
