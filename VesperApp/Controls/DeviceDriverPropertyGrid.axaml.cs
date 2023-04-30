@@ -13,18 +13,23 @@ namespace VesperApp.Controls
 {
     public partial class DeviceDriverPropertyGrid : UserControl
     {
-        private Avalonia.Controls.DataGrid gridEditor;
+        private Avalonia.Controls.DataGrid ? gridEditor;
         private DriverPropertyViewModel ? selectedDriverProperty;
         //private DataTemplate dataTemlate;
-        DataGridTemplateColumn col;
+        DataGridTemplateColumn ? col;
         public DeviceDriverPropertyGrid()
         {
             InitializeComponent();
             gridEditor = this.FindControl<DataGrid>("gridEditProperties");
-            gridEditor.DataContextChanged += GridEditor_DataContextChanged;
-            gridEditor.SelectionChanged += GridEditor_SelectionChanged;
+            
+            if(gridEditor != null )
+            {
+                gridEditor.DataContextChanged += GridEditor_DataContextChanged;
+                gridEditor.SelectionChanged += GridEditor_SelectionChanged;
+                col = (DataGridTemplateColumn)gridEditor.Columns[1];
+            }
+            
             selectedDriverProperty = null;
-            col = (DataGridTemplateColumn)gridEditor.Columns[1];
         }
 
         private void GridEditor_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -57,19 +62,19 @@ namespace VesperApp.Controls
                                 }); 
 
                                 col.CellEditingTemplate = template;
-                            }
-                            else if( dt == typeof(UInt32) || dt == typeof(double) )
+                            }/*
+                            else if( dt == typeof(UInt32) || dt == typeof(double) || dt == typeof(decimal) || dt == typeof(UInt16))
                             {
-                                Binding b = new Binding("Value", BindingMode.TwoWay);
-                                b.Converter = VesperApp.Services.UpDownUintConverter.Instance;
+                                //Binding b = new Binding("Value", BindingMode.TwoWay);
+                                //b.Converter = VesperApp.Services.UpDownUintConverter.Instance;
                                 NumericUpDown nud = new NumericUpDown
                                 {
-                                    [!NumericUpDown.ValueProperty] = b,
-                                    // [!NumericUpDown.TextProperty] = new Binding("Value", BindingMode.TwoWay),
-                                    Margin = new Thickness(0),
+                                    [!NumericUpDown.ValueProperty] = new Binding("Value", BindingMode.TwoWay),//b,
+                                    //[!NumericUpDown.TextProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    Margin = new Thickness(1),
                                     IsReadOnly = false,
                                     Focusable = true,
-                                    FormatString = "{0}",
+                                    FormatString = "{0,N0}",
                                     Maximum = 1000000,
                                     Minimum = 0,
                                     Increment = 10,
@@ -78,16 +83,19 @@ namespace VesperApp.Controls
                                     System.Globalization.NumberStyles.AllowTrailingWhite | System.Globalization.NumberStyles.AllowThousands,
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
                                     VerticalAlignment = VerticalAlignment.Stretch,
-                                };
-                                nud.TextInputMethodClientRequested += Nud_TextInputMethodClientRequested;//    += Nud_TextInputOptionsQuery;
-                                nud.TextInput += Nud_TextInput;
-                                nud.LostFocus += Nud_LostFocus;
-                                nud.KeyDown += Nud_KeyDown;
+                                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                                    VerticalContentAlignment = VerticalAlignment.Center,
+                                    NumberFormat=System.Globalization.NumberFormatInfo.InvariantInfo,
+                                    TextConverter = new VesperApp.Services.UpDownUintConverter()
+                            };
+                                //nud.TextInputMethodClientRequested += Nud_TextInputMethodClientRequested;//    += Nud_TextInputOptionsQuery;
+                                //nud.TextInput += Nud_TextInput;
+                                //nud.LostFocus += Nud_LostFocus;
+                                //nud.KeyDown += Nud_KeyDown;
 
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => nud);
-                                
                                 col.CellEditingTemplate = template;
-                            }
+                            }*/
                             else if (dt == typeof(bool))
                             {
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new CheckBox
@@ -102,12 +110,16 @@ namespace VesperApp.Controls
                             }
                             else
                             {
-                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new TextBlock
+                                Binding b = new Binding("Value", BindingMode.TwoWay);
+                                b.Converter = VesperApp.Services.UpDownUintConverter.Instance;
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new TextBox
                                     {
-                                        [!TextBlock.TextProperty] = new Binding("Value", BindingMode.TwoWay),
+                                        [!TextBox.TextProperty] = b,
                                         Margin = new Thickness(0),
                                         HorizontalAlignment = HorizontalAlignment.Stretch,
-                                        VerticalAlignment = VerticalAlignment.Stretch
+                                        VerticalAlignment = VerticalAlignment.Stretch,
+                                        TextAlignment = Avalonia.Media.TextAlignment.Left,
+                                        Focusable = true
                                 });
 
                                 col.CellEditingTemplate = template;
@@ -120,26 +132,28 @@ namespace VesperApp.Controls
 
         private void Nud_TextInputMethodClientRequested(object? sender, Avalonia.Input.TextInput.TextInputMethodClientRequestedEventArgs e)
         {
-            /////e.Client = 
+            
         }
 
         private void Nud_KeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
         {
-            if (sender != null)
+            /*if (sender != null)
             {
                 var nud = (NumericUpDown)sender;
 
                 if (e.Key == Avalonia.Input.Key.Delete)
                 {
-                    nud.Text = "";
+                    nud.Text = "0";
+                    nud.Value = 0;
                     e.Handled = true;
                 }
                 else if (e.Key == Avalonia.Input.Key.Back)
                 {
-                    nud.Text = "";
+                    nud.Text = "0";
+                    nud.Value = 0; 
                     e.Handled = true;
                 }
-            }
+            }*/
         }
 
         private void Nud_LostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -163,7 +177,7 @@ namespace VesperApp.Controls
         }
 
         private void Nud_TextInput(object? sender, Avalonia.Input.TextInputEventArgs e)
-        {
+        {/*
             if (sender != null)
             {
                 var nud = (NumericUpDown)sender;
@@ -176,7 +190,7 @@ namespace VesperApp.Controls
                 {
                     nud.Value = r;
                 }
-            }
+            }*/
         }
 
         /*

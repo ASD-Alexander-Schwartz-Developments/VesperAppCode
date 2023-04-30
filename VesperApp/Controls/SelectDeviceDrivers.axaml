@@ -7,9 +7,9 @@
 			 xmlns:m="using:VesperApp.Models"
 			 xmlns:c="using:VesperApp.Controls"
              x:Class="VesperApp.Controls.SelectDeviceDrivers"
-			 MinHeight="300">
-	<DockPanel>
-		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch">
+			 MinHeight="300" MaxWidth="450">
+	<DockPanel HorizontalAlignment="Left" VerticalAlignment="Stretch">
+		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch" DockPanel.Dock="Left">
 			<Border BorderBrush="Black" BorderThickness="1" VerticalAlignment="Stretch">
 				<ListBox Items="{Binding DeviceDriversCollection}"
 							x:Name="listSupportedDeviceDriversList"
@@ -19,14 +19,14 @@
 							MinWidth="450"
 							Width="450"
 							MinHeight="300"
-							MaxWidth="1000"
+							MaxWidth="450"
 							HorizontalAlignment="Stretch"
 							VerticalAlignment="Stretch"
 							Background="{DynamicResource ThemeControlMidHighBrush}"
 							ScrollViewer.HorizontalScrollBarVisibility="Disabled" >
 					<ListBox.ItemTemplate>
 						<DataTemplate DataType="m:ConfigurationDeviceDriver">
-							<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+							<Grid HorizontalAlignment="Left" VerticalAlignment="Stretch">
 								<Grid.ColumnDefinitions>
 									<ColumnDefinition Width="*" />
 									<ColumnDefinition Width="2*" />

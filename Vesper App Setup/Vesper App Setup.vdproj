@@ -3,7 +3,7 @@
 "VSVersion" = "3:800"
 "ProjectType" = "8:{978C614F-708E-4E1A-B201-565925725DBA}"
 "IsWebType" = "8:FALSE"
-"ProjectName" = "8:Vesper App Setup"
+"ProjectName" = "8:VesperAppSetup"
 "LanguageId" = "3:1033"
 "CodePage" = "3:1252"
 "UILanguageId" = "3:1033"
@@ -27,7 +27,7 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_D1E7C7243A8D44B5AD266E64AF371D31"
+        "MsmKey" = "8:_F38D3228D2814C45B69D5D2771E95392"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -39,7 +39,7 @@
         "DisplayName" = "8:Debug"
         "IsDebugOnly" = "11:TRUE"
         "IsReleaseOnly" = "11:FALSE"
-        "OutputFilename" = "8:Debug\\vesperAppSetup.msi"
+        "OutputFilename" = "8:Debug\\VesperAppSetup.msi"
         "PackageFilesAs" = "3:2"
         "PackageFileSize" = "3:-2147483648"
         "CabType" = "3:1"
@@ -56,6 +56,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.CoreRuntime.6.0.x64"
+                    {
+                    "Name" = "8:.NET Runtime 6.0.16 (x64)"
+                    "ProductCode" = "8:Microsoft.NetCore.CoreRuntime.6.0.x64"
+                    }
+                }
             }
         }
         "Release"
@@ -63,7 +71,7 @@
         "DisplayName" = "8:Release"
         "IsDebugOnly" = "11:FALSE"
         "IsReleaseOnly" = "11:TRUE"
-        "OutputFilename" = "8:Release\\Vesper App Setup.msi"
+        "OutputFilename" = "8:Release\\VesperAppSetup.msi"
         "PackageFilesAs" = "3:2"
         "PackageFileSize" = "3:-2147483648"
         "CabType" = "3:1"
@@ -80,6 +88,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.CoreRuntime.6.0.x64"
+                    {
+                    "Name" = "8:.NET Runtime 6.0.14 (x64)"
+                    "ProductCode" = "8:Microsoft.NetCore.CoreRuntime.6.0.x64"
+                    }
+                }
             }
         }
     }
@@ -132,10 +148,10 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_D1E7C7243A8D44B5AD266E64AF371D31"
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_F38D3228D2814C45B69D5D2771E95392"
             {
-            "SourcePath" = "8:C:\\Users\\PranshuGupta\\Downloads\\batCover.jpg"
-            "TargetName" = "8:batCover.jpg"
+            "SourcePath" = "8:..\\VesperApp\\Assets\\ASD LOGO small-01.jpg"
+            "TargetName" = "8:ASD LOGO small-01.jpg"
             "Tag" = "8:"
             "Folder" = "8:_19F0F7653F00439EB8F579545EACE798"
             "Condition" = "8:"
@@ -209,7 +225,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Vesper App "
         "ProductCode" = "8:{C179C411-6252-4065-A616-77A5686BB756}"
-        "PackageCode" = "8:{32D9FA8A-6C71-4878-89A4-21BFF3C1EFB8}"
+        "PackageCode" = "8:{63CC89CF-029F-46F8-8E3D-4C48E9B7ABB5}"
         "UpgradeCode" = "8:{D1BAE3B6-C234-4C45-8ECB-4920D914B927}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -466,7 +482,7 @@
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
                             "Setting" = "3:2"
-                            "Value" = "8:_D1E7C7243A8D44B5AD266E64AF371D31"
+                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "CopyrightWarning"
@@ -515,7 +531,7 @@
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
                             "Setting" = "3:2"
-                            "Value" = "8:_D1E7C7243A8D44B5AD266E64AF371D31"
+                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
                             "UsePlugInResources" = "11:TRUE"
                             }
                         }
@@ -538,7 +554,7 @@
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
                             "Setting" = "3:2"
-                            "Value" = "8:_D1E7C7243A8D44B5AD266E64AF371D31"
+                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "InstallAllUsersVisible"
@@ -684,7 +700,7 @@
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
                             "Setting" = "3:2"
-                            "Value" = "8:_D1E7C7243A8D44B5AD266E64AF371D31"
+                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "ShowProgress"
@@ -729,7 +745,7 @@
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
                             "Setting" = "3:2"
-                            "Value" = "8:_D1E7C7243A8D44B5AD266E64AF371D31"
+                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "UpdateText"
@@ -763,7 +779,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_A547B31840C74F448DCBC757B010FA42"
             {
-            "SourcePath" = "8:..\\VesperApp\\obj\\Debug\\net6.0\\apphost.exe"
+            "SourcePath" = "8:..\\VesperApp\\obj\\Release\\net6.0\\apphost.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_19F0F7653F00439EB8F579545EACE798"

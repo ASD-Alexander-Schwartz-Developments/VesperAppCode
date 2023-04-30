@@ -1,7 +1,10 @@
+using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
 using System;
 using System.Globalization;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace VesperApp.Services {
     public static class Converter {
@@ -20,29 +23,35 @@ namespace VesperApp.Services {
 
         public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            if (value is UInt32 v)
-            {
-                if (targetType.IsAssignableTo(typeof(double)))
-                {
-                    return (double)v;
-                }
-            }
-            // converter used for the wrong type
-            return new BindingNotification(new InvalidCastException(), BindingErrorType.Error);
+            var str = value?.ToString();
+            if (str == null)
+                return AvaloniaProperty.UnsetValue;
+            /*if (UInt32.TryParse(str, NumberStyles.Number, CultureInfo.InvariantCulture, out uint x))
+                return (decimal)x;*/
 
+            if (targetType == typeof(string))
+                return str;
+
+            return AvaloniaProperty.UnsetValue;
         }
 
         public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            if (value is double v)
+            try
             {
-                //if (targetType.IsAssignableTo(typeof(UInt32)))
-                //{
-                    return (UInt32)Math.Round(v);
-                //}
+                if (value is string && value != null)
+                {
+                    if (UInt32.TryParse((string)value, NumberStyles.Number, CultureInfo.InvariantCulture, out uint x))
+                        return (UInt32)x;
+                }
+
+                return AvaloniaProperty.UnsetValue;
             }
-            // converter used for the wrong type
-            return new BindingNotification(new InvalidCastException(), BindingErrorType.Error);
+            catch
+            {
+                return AvaloniaProperty.UnsetValue;
+            }
+
         }
     }
 }

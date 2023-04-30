@@ -30,6 +30,13 @@ namespace VesperApp.ViewModels
             IsYearVisible = false;
             IsDayVisible = false;
 
+            isPowerOnRelative = true;
+            ponEditMask = "";
+            ponText = string.Empty;
+
+            IsPowerOnRelative = true;
+            PowerOnEditMask = "00 00:00:00";
+            PowerOnText = string.Empty;
 
             CommandAddButton = ReactiveCommand.Create(async () =>
             {
@@ -43,46 +50,11 @@ namespace VesperApp.ViewModels
                         ContentHeader = "Not able to create new entry",
                         ContentMessage = "Continues schedule types just run forever",
                         SizeToContent = SizeToContent.WidthAndHeight,
-                        WindowIcon = App.MainWindow.Icon,
+                        WindowIcon = App.MainWindow?.Icon,
                         Icon = MessageBox.Avalonia.Enums.Icon.Info
                     });
 
                     await messageBoxStandardWindow.ShowDialog(App.MainWindow);
-                }
-                else if(SelectedScheduleType == ScheduleTypes.Triggered)
-                {
-                    if(ScheduleEventsList.Count >= 1)
-                    {
-                        var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
-                        new MessageBoxStandardParams
-                        {
-                            ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
-                            ContentTitle = "New Schedule Entry",
-                            ContentHeader = "Not able to create new entry",
-                            ContentMessage = "Triggered schedule contain single entry of first activation",
-                            SizeToContent = SizeToContent.WidthAndHeight,
-                            WindowIcon = App.MainWindow.Icon,
-                            Icon = MessageBox.Avalonia.Enums.Icon.Info
-                        });
-
-                        await messageBoxStandardWindow.ShowDialog(App.MainWindow);
-                    }
-                    else
-                    {
-                        SelectedDate = null;
-                        SelectedTime = null;
-                        SelectedConfiguration = WorkingConfiguration.Off;
-
-                        if (IsAddingNewEntry == true)
-                        {
-
-                        }
-                        else
-                        {
-                            IsAddingNewEntry = true;
-                            IsDateEnabled = true;
-                        }
-                    }
                 }
                 else if(SelectedScheduleType == ScheduleTypes.Daily)
                 {
@@ -98,22 +70,6 @@ namespace VesperApp.ViewModels
                     {
                         IsAddingNewEntry = true;
                         IsDateEnabled = false;
-                    }
-                }
-                else if (SelectedScheduleType == ScheduleTypes.Weekly)
-                {
-                    SelectedDate = null;
-                    SelectedTime = null;
-                    SelectedConfiguration = WorkingConfiguration.Off;
-
-                    if (IsAddingNewEntry == true)
-                    {
-
-                    }
-                    else
-                    {
-                        IsAddingNewEntry = true;
-                        IsDateEnabled = true;
                     }
                 }
                 else if (SelectedScheduleType == ScheduleTypes.Dated)
@@ -165,12 +121,24 @@ namespace VesperApp.ViewModels
                 //DateTime dt = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
                 if (SelectedDate != null)
+                {
                     nitem.Alarm = SelectedDate.Value.DateTime;
+                }
                 else
-                    nitem.Alarm = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0, 0, DateTimeKind.Unspecified);
-                        
+                {
+                    int Year = DateTime.Now.Year;
+
+                    if (selectedScheduleType == ScheduleTypes.Daily)
+                        Year = 2000;
+
+                    nitem.Alarm = new DateTime(Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0, 0, DateTimeKind.Unspecified);
+                }
+
                 if (SelectedTime != null)
+                {
                     nitem.Alarm += (TimeSpan)SelectedTime;
+                    nitem.Alarm -= new TimeSpan(0, 0, nitem.Alarm.Second);
+                }
 
                 nitem.Configuration = SelectedConfiguration;
                 ScheduleEventsList.Add(nitem);
@@ -192,7 +160,7 @@ namespace VesperApp.ViewModels
                         ContentHeader = "Not able to delete entry",
                         ContentMessage = "Please selec entry to delete first",
                         SizeToContent = SizeToContent.WidthAndHeight,
-                        WindowIcon = App.MainWindow.Icon,
+                        WindowIcon = App.MainWindow?.Icon,
                         Icon = MessageBox.Avalonia.Enums.Icon.Info
                     });
 
@@ -209,7 +177,7 @@ namespace VesperApp.ViewModels
                         ContentHeader = "Do you really want to delete this entry?",
                         ContentMessage = ScheduleEventsList[_selectedIndex].Alarm.ToString() + " " + ScheduleEventsList[_selectedIndex].Configuration.ToString(),
                         SizeToContent = SizeToContent.WidthAndHeight,
-                        WindowIcon = App.MainWindow.Icon,
+                        WindowIcon = App.MainWindow?.Icon,
                         Icon = MessageBox.Avalonia.Enums.Icon.Question
                     });
 
@@ -307,6 +275,40 @@ namespace VesperApp.ViewModels
 
 
 
+        public bool IsPowerOnRelative
+        {
+            get => isPowerOnRelative;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref isPowerOnRelative, value);
+
+                if(value == true)
+                {
+                    PowerOnEditMask = "00 00:00:00";
+                }
+                else
+                {
+                    PowerOnEditMask = "0000-00-00 00:00:00";
+                }
+            }
+        }
+        private bool isPowerOnRelative;
+
+        public string PowerOnText
+        {
+            get => ponText;
+            set => this.RaiseAndSetIfChanged(ref ponText, value);
+        }
+        private string ponText;
+
+
+        public string PowerOnEditMask
+        {
+            get => ponEditMask;
+            set => this.RaiseAndSetIfChanged(ref ponEditMask, value);
+        }
+        private string ponEditMask;
+
         public DateTimeOffset? SelectedDate 
         { 
             get => selectedDate; 
@@ -341,14 +343,6 @@ namespace VesperApp.ViewModels
                     IsDateEnabled = false;
                     SelectedDate = null;
                 }
-                else if(selectedScheduleType == ScheduleTypes.Triggered)
-                {
-                    IsDateEnabled = true;
-                    SelectedDate = null;
-                    IsMonthVisible = true;
-                    IsYearVisible = true;
-                    IsDayVisible = true;
-                }
                 else if(selectedScheduleType == ScheduleTypes.Dated)
                 {
                     IsDateEnabled = true;
@@ -363,14 +357,6 @@ namespace VesperApp.ViewModels
                     IsYearVisible = false;
                     IsDayVisible = false;
                     IsDateEnabled = false;
-                    SelectedDate = null;
-                }
-                else if (selectedScheduleType == ScheduleTypes.Weekly)
-                {
-                    IsMonthVisible = false;
-                    IsYearVisible = false;
-                    IsDayVisible = true;
-                    IsDateEnabled = true;
                     SelectedDate = null;
                 }
                 else if (selectedScheduleType == ScheduleTypes.Relative)

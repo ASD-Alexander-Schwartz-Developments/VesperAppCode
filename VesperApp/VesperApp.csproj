@@ -8,10 +8,10 @@
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 		<ApplicationIcon>Assets\bat.ico</ApplicationIcon>
 		<StartupObject>VesperApp.Program</StartupObject>
-		<AssemblyVersion>1.0.0.7</AssemblyVersion>
-		<FileVersion>1.0.0.7</FileVersion>
-		<Version>1.0.0.7</Version>
-		<Company>Vesper </Company>
+		<AssemblyVersion>1.0.0.13</AssemblyVersion>
+		<FileVersion>1.0.0.13</FileVersion>
+		<Version>1.0.0.13</Version>
+		<Company>A.S.D</Company>
 		<Product></Product>
 		<PackageIcon>bat.png</PackageIcon>
 	</PropertyGroup>
@@ -73,6 +73,9 @@
 		<ProjectReference Include="..\ASDWaveLib\ASDWaveLib.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<AvaloniaResource Update="Assets\ASD LOGO small-01.jpg">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</AvaloniaResource>
 		<AvaloniaResource Update="Assets\bat.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</AvaloniaResource>

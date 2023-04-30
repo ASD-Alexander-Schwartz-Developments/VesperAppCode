@@ -17,7 +17,7 @@ namespace VesperApp.Models
         private bool is_magnet_off_enabled;
         //private string schedule_type;                   // 0 = continues, 1 = daily, 2 = weekly, 3 = absolute
         private UInt32 battery_capacity;
-        private DateTime wake_up_time;                  // time to turn on when no magnet mode
+        private DateTime ?wake_up_time;                  // time to turn on when no magnet mode
         private ScheduleTypes schedule_type;
 
         private List<ConfigScheduleJSONItem> schedule;
@@ -29,10 +29,10 @@ namespace VesperApp.Models
             this.minimum_supported_hw = valid_minimum_supported_hw;
 
             this.is_magnet_off_enabled = true;
-            this.battery_capacity = 40;
+            this.battery_capacity = 60;
             this.schedule_type = ScheduleTypes.Continues;
 
-            this.wake_up_time = DateTime.Now;
+            this.wake_up_time = null;
 
             this.schedule = new List<ConfigScheduleJSONItem>();
             this.drivers = new List<ConfigurationDeviceDriver>();
@@ -45,6 +45,7 @@ namespace VesperApp.Models
             this.BatteryCapacity = newconf.battery_capacity;
             this.IsMagnetOffEnabled = newconf.is_magnet_off_enabled;
             this.MinimumSupportedHardware = newconf.minimum_supported_hw;
+            this.wake_up_time = newconf.wake_up_time;
             this.ScheduleType = newconf.schedule_type;
             this.Schedule.Clear();
             this.Schedule.AddRange(newconf.Schedule);
@@ -92,7 +93,7 @@ namespace VesperApp.Models
 
         [JsonPropertyName("minhw")]
         [CategoryAttribute("General configuration"),
-        DefaultValueAttribute(typeof(string), "3.0"),
+        DefaultValueAttribute(typeof(string), "4.0"),
         DisplayName("Minimal Version"),
         DescriptionAttribute("Allows restricting the configuration to any firmware version above (including) the specified")]
         public string MinimumSupportedHardware
@@ -110,6 +111,18 @@ namespace VesperApp.Models
         {
             get { return this.battery_capacity; }
             set { this.battery_capacity = value; }
+        }
+
+
+        [JsonPropertyName("poweron")]
+        [CategoryAttribute("General configuration"),
+        DefaultValueAttribute(typeof(DateTime?), ""),
+        DisplayName("Device Power on time"),
+        DescriptionAttribute("Name of the device model that should use this configuration")]
+        public DateTime? PowerOn
+        {
+            get { return this.wake_up_time; }
+            set { this.wake_up_time = value; }
         }
 
 
@@ -145,28 +158,20 @@ namespace VesperApp.Models
 
             public override ScheduleTypes Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
-                string ? enumValue = reader.GetString();
-                if (enumValue == "continues")
+                ushort ? enumValue = reader.GetUInt16();
+                if (enumValue == 0)
                 {
                     return ScheduleTypes.Continues;
                 }
-                else if (enumValue == "trigger")
-                {
-                    return ScheduleTypes.Triggered;
-                }
-                else if (enumValue == "daily")
+                else if (enumValue == 1)
                 {
                     return ScheduleTypes.Daily;
                 }
-                else if (enumValue == "dated")
+                else if (enumValue == 2)
                 {
                     return ScheduleTypes.Dated;
                 }
-                else if (enumValue == "weekly")
-                {
-                    return ScheduleTypes.Weekly;
-                }
-                else if (enumValue == "relative")
+                else if (enumValue == 3)
                 {
                     return ScheduleTypes.Relative;
                 }
@@ -178,50 +183,55 @@ namespace VesperApp.Models
             {
                 if (value is ScheduleTypes.Continues)
                 {
-                    writer.WriteStringValue("continues");
-                }
-                else if (value is ScheduleTypes.Triggered)
-                {
-                    writer.WriteStringValue("trigger");
+                    writer.WriteNumberValue(0);
                 }
                 else if (value is ScheduleTypes.Daily)
                 {
-                    writer.WriteStringValue("daily");
+                    writer.WriteNumberValue(1);
                 }
                 else if (value is ScheduleTypes.Dated)
                 {
-                    writer.WriteStringValue("dated");
-                }
-                else if (value is ScheduleTypes.Weekly)
-                {
-                    writer.WriteStringValue("weekly");
+                    writer.WriteNumberValue(2);
                 }
                 else if (value is ScheduleTypes.Relative)
                 {
-                    writer.WriteStringValue("relative");
+                    writer.WriteNumberValue(3);
                 }
                 else
                 {
-                    writer.WriteStringValue("?");
+                    writer.WriteNumberValue(0);
                 }
             }
         }
 
 
-        public class VesperDateTimeConverter : JsonConverter<DateTime>
+        public class VesperDateTimeConverter : JsonConverter<DateTime?>
         {
             private readonly string Format;
             public VesperDateTimeConverter(string format)
             {
                 Format = format;
             }
-            public override void Write(Utf8JsonWriter writer, DateTime date, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, DateTime? date, JsonSerializerOptions options)
             {
-                writer.WriteStringValue(date.ToString(Format));
+                if (date == null)
+                {
+                    writer.WriteStringValue(String.Empty);
+                }
+                else
+                {
+                    writer.WriteStringValue(date?.ToString(Format));
+                }
             }
-            public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override DateTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
-                return DateTime.ParseExact(reader.GetString(), Format, null);
+                string? s = reader.GetString();
+                if (s == null || s?.Length == 0)
+                {
+                    return null;
+                }
+
+                return DateTime.ParseExact(s, Format, null);
             }
         }
         /*

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace VesperApp.Models
 {
     
-    public class IMU10Driver : ConfigurationDeviceDriver
+    public class ConfigIMU10Driver : ConfigurationDeviceDriver
     {
         public const UInt32 BITMASK_ACC_ON = 0x01;
         public const UInt32 BITMASK_GYRO_ON = 0x02;
@@ -21,7 +21,7 @@ namespace VesperApp.Models
         private bool isStartup = true;
         private ArrayList atts = new ArrayList();
 
-        public IMU10Driver() : base("IMU10", "Innertial Motion Unit sensor with 10 degrees of freedom")
+        public ConfigIMU10Driver() : base("IMU10", "Innertial Motion Unit sensor with 10 degrees of freedom")
         {
             this.imu_range = 0;
 

@@ -295,6 +295,9 @@ namespace VesperApp.Services
                 {
                     try
                     {
+                        if(this._serialPort.IsOpen == true)
+                            this._serialPort.Close();
+
                         this._serialPort.PortName = s;
                         this._serialPort.ReadTimeout = 100;
                         this._serialPort.WriteTimeout = 100;

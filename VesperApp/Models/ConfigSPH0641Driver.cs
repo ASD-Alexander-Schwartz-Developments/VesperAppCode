@@ -6,10 +6,26 @@ using System.Text.Json.Serialization;
 
 namespace VesperApp.Models
 {
+    public enum HPF_VALUES { MDF_HPS_OFF = 0, MDF_HPF_CUTOFF_0_000625FPCM = 1, MDF_HPF_CUTOFF_0_00125FPCM = 2, MDF_HPF_CUTOFF_0_0025FPCM = 3, MDF_HPF_CUTOFF_0_0095FPCM = 4}
+
     public class ConfigSPH0641Driver : ConfigurationDeviceDriver
     {
-        public const UInt32 BITMASK_MIKE_RESOLUTION = 0x01;
         public const UInt32 BITMASK_MIKE_LED = 0x02;
+        public const UInt32 SAMPLING_RATE_MASTERCLOCK = 4800000;
+
+        public const UInt32 MAX_SAMPLING_RATE = 400000;
+        public const UInt32 MIN_SAMPLING_RATE = 2344;
+
+        public const Int16 MAX_GAIN_DB = 72;
+        public const Int16 MIN_GAIN_DB = -48;
+
+
+        private UInt32 thresholdup;
+        private UInt32 thresholddown;
+        private bool cic4;
+        private bool digital_filter;
+        private UInt16 gain;
+        private UInt16 hpf;
 
         public ConfigSPH0641Driver() : base("SPH0641", "Vesper/Pipistrelle V4 Ultrasonic microphone recording")
         {
@@ -17,47 +33,128 @@ namespace VesperApp.Models
             this.FileSize = MemoryBufferSize*512;
         }
 
-        private UInt32 threshold_level;
 
-        [DisplayName("Threshold"),
+        [DisplayName("Threshold Up"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger. Threshold scale is normalized 0-4095. Note that when non-zero, Window Length defined time to record on threshold detection and Window Rate - time to wait after recording for Window Length time.")]
-        [JsonPropertyName("threshold")]
-        public UInt32 Threshold
+        DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
+        [JsonPropertyName("thresup")]
+        public UInt32 ThresholdUp
         {
-            get { return this.threshold_level; }
+            get { return this.thresholdup; }
             set
             {
                 if (value > 2047)
                     throw new ArgumentException("Maximum threshold level is 2047");
                 else
-                    this.threshold_level = value;
+                    this.thresholdup = value;
 
             }
         }
 
-        [DisplayName("Mike sampler resolution"),
-        TypeConverter(typeof(MikeResolutionConverter)),
+        [DisplayName("Threshold Down"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("All data sampled at 12bit however saving data to the disk can be downsampled to 8bit or kept 12bit (saved as 16bit right justified samples)")]
-        [JsonIgnore]
-        public string Resolution12bit
+        DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
+        [JsonPropertyName("thresdn")]
+        public UInt32 ThresholdDown
         {
-            get
-            {
-                if ((this.bitmask & BITMASK_MIKE_RESOLUTION) == BITMASK_MIKE_RESOLUTION)
-                    return MikeResolutionConverter.MIKE_RES_12BIT;
-                else
-                    return MikeResolutionConverter.MIKE_RES_8BIT;
-            }
+            get { return this.thresholddown; }
             set
             {
-                if (value == MikeResolutionConverter.MIKE_RES_12BIT)
-                    this.bitmask |= BITMASK_MIKE_RESOLUTION;
+                if (value > 2047)
+                    throw new ArgumentException("Maximum threshold level is 2047");
                 else
-                    this.bitmask &= ~(BITMASK_MIKE_RESOLUTION);
+                    this.thresholddown = value;
+
             }
         }
+
+        
+
+        private UInt32 CheckSamplingRate(UInt32 ovalue, UInt32 nvalue)
+        {
+            UInt32 rval = nvalue;
+            /*if(nvalue == 0)
+            {
+                rval = 0;
+            }
+            else if(nvalue <= MAX_SAMPLING_RATE && nvalue > MIN_SAMPLING_RATE)
+            {
+                UInt32 decimation_factor = SAMPLING_RATE_MASTERCLOCK / nvalue;
+
+                rval = SAMPLING_RATE_MASTERCLOCK / decimation_factor;
+            }
+            else
+            {
+                rval = MIN_SAMPLING_RATE;
+            }
+            */
+            return rval;
+        }
+
+
+        private Int16 CalcGainFromDB(Int16 ovalue, Int16 nvalue)
+        {
+            Int16 rval = ovalue;
+            /*
+            if (nvalue <= MAX_GAIN_DB && nvalue > MIN_GAIN_DB)
+            {
+                UInt16 decimation_factor = (UInt16)(SAMPLING_RATE_MASTERCLOCK / (Int16)nvalue);
+
+                rval = (UInt16)(SAMPLING_RATE_MASTERCLOCK / (UInt16)decimation_factor);
+            }
+            */
+            return rval;
+        }
+
+
+
+
+        [CategoryAttribute("Ultrasonic Mike specific Settings"),
+        DescriptionAttribute("Use CIC4 filter by default if enabled. Otherwise, default is CIC5."),
+        DisplayName("Use CIC4 Digital Filter")]
+        [JsonPropertyName("cic4")]
+        [Browsable(true)]
+        public bool UseCic4Filter
+        {
+            get => cic4;
+            set
+            {
+                cic4 = value;
+                OnPropertyChanged();
+            }
+        }
+
+
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
+        DisplayName("Sample Rate [1]")]
+        [JsonIgnore]
+        [Browsable(true)]
+        public override UInt32 SampleRate1
+        {
+            get => SampleRate[1];
+            set
+            {
+                SampleRate[1] = CheckSamplingRate(SampleRate[1], value);
+                OnPropertyChanged();
+            }
+        }
+
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
+        DisplayName("Sample Rate [2]")]
+        [JsonIgnore]
+        [Browsable(true)]
+        public override UInt32 SampleRate2
+        {
+            get => SampleRate[2];
+            set
+            {
+                SampleRate[2] = CheckSamplingRate(SampleRate[2], value);
+                OnPropertyChanged();
+            }
+        }
+
 
         [DisplayName("Mike activity LED indication"),
         TypeConverter(typeof(bool)),
@@ -81,6 +178,11 @@ namespace VesperApp.Models
                     this.bitmask &= ~(BITMASK_MIKE_LED);
             }
         }
+
+
+
+
+
 
     }
 

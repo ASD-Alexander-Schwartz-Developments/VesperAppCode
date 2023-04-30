@@ -7,10 +7,12 @@
              x:Class="VesperApp.Controls.DeviceDriverPropertyGrid"
 	         xmlns:vm="using:VesperApp.ViewModels"
 			 xmlns:controls="using:VesperApp.Controls"
-			 xmlns:c="using:Avalonia.Collections">
+			 xmlns:serv="using:VesperApp.Services"
+			 xmlns:c="using:Avalonia.Collections"
+			 xmlns:sys="using:System">
 
 
-	<DockPanel Margin="1">
+	<DockPanel Margin="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 			<Border BorderBrush="{DynamicResource ThemeBorderMidBrush}" BorderThickness="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 				<DataGrid Items="{Binding PropertiesView}"
@@ -22,22 +24,23 @@
 						  HorizontalAlignment="Stretch"
 						  VerticalScrollBarVisibility="Auto"
 						  HorizontalScrollBarVisibility="Auto"
-						  Margin="1" Padding="1">
+						  Margin="5,5,5,5" Padding="1">
 					<DataGrid.Styles>
 						<Style Selector="TextBlock">
 							<Setter Property="TextWrapping" Value="WrapWithOverflow" />
+							<Setter Property="VerticalAlignment" Value="Center" />
 						</Style>
 					</DataGrid.Styles>
 					<DataGrid.Columns>
-						<DataGridTextColumn Width="160" Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
-						<DataGridTemplateColumn Width="120" Header="Value">
+						<DataGridTextColumn Width="*" MinWidth="80" Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
+						<DataGridTemplateColumn Width="*" MinWidth="80" Header="Value">
 							<DataGridTemplateColumn.CellTemplate>
 								<DataTemplate DataType="vm:DriverPropertyViewModel">
-									<TextBlock Text="{Binding Value, StringFormat='{}{0}'}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+									<TextBlock Text="{Binding Value, StringFormat='{}{0}'}" VerticalAlignment="Center" HorizontalAlignment="Stretch" />
 								</DataTemplate>
 							</DataGridTemplateColumn.CellTemplate>
 						</DataGridTemplateColumn>
-						<DataGridTextColumn Width="360" Header="Description" Binding="{Binding Description}"/>
+						<DataGridTextColumn Width="2*" Header="Description" Binding="{Binding Description}" MinWidth="100"/>
 					</DataGrid.Columns>
 				</DataGrid>
 			</Border>

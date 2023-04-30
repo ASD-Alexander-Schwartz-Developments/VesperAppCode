@@ -1,7 +1,9 @@
-﻿using System;
+﻿using DynamicData.Tests;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -72,6 +74,7 @@ namespace VesperApp.Models
             this.rawData4 = ldrv.rawData4;
             this.bitmask = ldrv.bitmask;
         }
+
 
 
         [JsonPropertyName("name"), JsonPropertyOrder(0)]
@@ -401,7 +404,7 @@ namespace VesperApp.Models
                 return typeof(ConfigurationDeviceDriver).IsAssignableFrom(type);
             }
 
-            public override ConfigurationDeviceDriver Read(
+            public override ConfigurationDeviceDriver? Read(
                 ref Utf8JsonReader reader,
                 Type typeToConvert,
                 JsonSerializerOptions options)
@@ -413,10 +416,16 @@ namespace VesperApp.Models
                     throw new JsonException();
                 }
 
-                if (!rd.Read()
-                        || rd.TokenType != JsonTokenType.PropertyName
+                if(!rd.Read()) 
+                {
+                    Debug.WriteLine("Couldn't read json stream");
+                    throw new JsonException();
+                }
+
+                if (rd.TokenType != JsonTokenType.PropertyName
                         || rd.GetString() != "name")
                 {
+                    Debug.WriteLine("Bad token - " + rd.GetString() + " of type - " + rd.TokenType.ToString() );
                     throw new JsonException();
                 }
 
@@ -428,33 +437,46 @@ namespace VesperApp.Models
                 string? typeDiscriminator = rd.GetString();
                 if (typeDiscriminator == null) throw new JsonException();
 
-                ConfigurationDeviceDriver baseClass;
+                ConfigurationDeviceDriver? baseClass = null;
 
 
                 switch (typeDiscriminator?.ToUpper())
                 {
                     case "ACLYS":
-                        baseClass = (ConfigACLYSDriver)JsonSerializer.Deserialize(ref reader, typeof(ConfigACLYSDriver));
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigACLYSDriver));
                         break;
-                    /*                case "MC34":
-                                        if (!reader.Read() || reader.GetString() != "TypeValue")
-                                        {
-                                            throw new JsonException();
-                                        }
-                                        if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
-                                        {
-                                            throw new JsonException();
-                                        }
-                                        baseClass = (DerivedB)JsonSerializer.Deserialize(ref reader, typeof(DerivedB));
-                                        break;*/
-                    default:
-                        throw new NotSupportedException();
+                    case "SPH0641":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigSPH0641Driver));
+                        break;
+                    case "SPU0410":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigSPU0410Driver));
+                        break;
+                    case "TPRH31":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigTPRH31Driver));
+                        break;
+                    case "ADS1115":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigADS1115Driver));
+                        break;
+                    case "ALS3001D":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigALS3001DDriver));
+                        break;
+                    case "ATLAS":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigATLASDriver));
+                        break;
+                    case "IMU10":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigIMU10Driver));
+                        break; 
+                    case "LED":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLEDDriver));
+                        break;
+                    case "LEPTON":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLeptonDriver));
+                        break;
+                    case "NANOACC":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigNanotagAcc));
+                        break;
                 }
 
-                /*if (!reader.Read() || reader.TokenType != JsonTokenType.EndObject)
-                {
-                    throw new JsonException();
-                }*/
 
                 return baseClass;
             }
@@ -464,26 +486,51 @@ namespace VesperApp.Models
                 ConfigurationDeviceDriver value,
                 JsonSerializerOptions options)
             {
-                //            writer.WriteStartObject();
-
                 if (value is ConfigACLYSDriver aclysDriver)
                 {
-                    //                writer.WriteNumber("name", (int)TypeDiscriminator.DerivedA);
-                    //                writer.WritePropertyName("TypeValue");
                     JsonSerializer.Serialize(writer, aclysDriver);
                 }
-                /*else if (value is DerivedB derivedB)
+                else if (value is ConfigSPH0641Driver sphDriver)
                 {
-                    writer.WriteNumber("TypeDiscriminator", (int)TypeDiscriminator.DerivedB);
-                    writer.WritePropertyName("TypeValue");
-                    JsonSerializer.Serialize(writer, derivedB);
-                }*/
-                else
+                    JsonSerializer.Serialize(writer, sphDriver);
+                }
+                else if (value is ConfigSPU0410Driver spuDriver)
                 {
-                    throw new NotSupportedException();
+                    JsonSerializer.Serialize(writer, spuDriver);
+                }
+                else if (value is ConfigTPRH31Driver tprh31Driver)
+                {
+                    JsonSerializer.Serialize(writer, tprh31Driver);
+                }
+                else if (value is ConfigADS1115Driver adsDriver)
+                {
+                    JsonSerializer.Serialize(writer, adsDriver);
+                }
+                else if (value is ConfigALS3001DDriver alsDriver)
+                {
+                    JsonSerializer.Serialize(writer, alsDriver);
+                }
+                else if (value is ConfigATLASDriver atlasDriver)
+                {
+                    JsonSerializer.Serialize(writer, atlasDriver);
+                }
+                else if (value is ConfigIMU10Driver imuDriver)
+                {
+                    JsonSerializer.Serialize(writer, imuDriver);
+                }
+                else if (value is ConfigLEDDriver ledDriver)
+                {
+                    JsonSerializer.Serialize(writer, ledDriver);
+                }
+                else if (value is ConfigLeptonDriver leptonDriver)
+                {
+                    JsonSerializer.Serialize(writer, leptonDriver);
+                }
+                else if (value is ConfigNanotagAcc nanoaccDriver)
+                {
+                    JsonSerializer.Serialize(writer, nanoaccDriver);
                 }
 
-                //            writer.WriteEndObject();
             }
         }
 

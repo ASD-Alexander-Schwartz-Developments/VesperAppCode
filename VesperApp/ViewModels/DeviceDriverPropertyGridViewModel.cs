@@ -21,7 +21,6 @@ namespace VesperApp.ViewModels
         private DriverPropertyViewModel ? _selectedProperty;
         object ? _devicedriver;
 
-
         public DeviceDriverPropertyGridViewModel()
         {
             //var view = new DataGridCollectionView(new List<object>());
@@ -224,8 +223,12 @@ namespace VesperApp.ViewModels
         {
             public static PropertyComparer Instance { get; } = new PropertyComparer();
 
-            public int Compare(PropertyViewModel x, PropertyViewModel y)
+            public int Compare(PropertyViewModel? x, PropertyViewModel? y)
             {
+                if(x == null && y == null) return 0;
+                if(y == null) return -1;
+                if(x == null) return 1;
+
                 var groupX = GroupIndex(x.Group);
                 var groupY = GroupIndex(y.Group);
 

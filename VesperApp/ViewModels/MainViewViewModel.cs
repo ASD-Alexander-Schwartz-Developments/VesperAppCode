@@ -31,6 +31,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage.FileIO;
 using ASDWaveLib;
 using static VesperApp.Models.ConfigurationJSON;
+using System.Net.Http;
 
 /// <summary>
 /// //// {Binding Description, StringFormat='Description: {0}'}
@@ -121,6 +122,7 @@ namespace VesperApp.ViewModels
 
 
         private System.Timers.Timer? _timer;
+        private System.Timers.Timer? _timerClock;
         private bool IsClosing = false;
 
 
@@ -231,6 +233,14 @@ namespace VesperApp.ViewModels
         {
             //MainWindowContext = App.MainWindow;
             _globalDockAdapter = new DockAdapter();
+            
+            _timer = new System.Timers.Timer();
+            _timer.Elapsed += _timer_Elapsed;
+            _timer.Interval = 2150;
+
+            _timerClock = new System.Timers.Timer();
+            _timerClock.Elapsed += _timerClock_Elapsed;
+            _timerClock.Interval = 1000;
 
             //ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
 
@@ -383,7 +393,7 @@ namespace VesperApp.ViewModels
                     {
                         string[]? files = await openFileDialog.ShowAsync(App.MainWindow);
 
-                        if (files != null && files[0] != null)
+                        if (files != null && files.Length > 0 && files[0] != null)
                         {
                             try
                             {
@@ -393,7 +403,6 @@ namespace VesperApp.ViewModels
                             catch (Exception e) { }
                         }
                     }
-
                 }
             });
 
@@ -467,11 +476,6 @@ namespace VesperApp.ViewModels
             ManualGPSParserCommand = ReactiveCommand.CreateFromTask(ParseNanotagSnaps);
             #endregion
 
-            _timer = new System.Timers.Timer();
-            _timer.Elapsed += _timer_Elapsed;
-            _timer.Interval = 2000;
-            _timer.Start();
-
             _globalDockAdapter.ConnectionEvent += _globalDockAdapter_ConnectionEvent;
             _deviceUsbAdapter = null;
 
@@ -487,16 +491,23 @@ namespace VesperApp.ViewModels
             DriverEditorGridViewModel = new DeviceDriverPropertyGridViewModel();
 			DownloadCheckCommand = ReactiveCommand.Create(DownloadCheck);
 			LaterCommand = ReactiveCommand.Create(closeFlyout);
-			IsUpdateAvailable = CheckUpdate();
+
+            _timer.Start();
+            _timerClock.Start();
+
+
+            IsUpdateAvailable = CheckUpdate().Result;
 		}
-		//Update Software Methods 
 
-		#region Variables 
 
-		WebClient webClient;
-		WebResponse response;
-		WebRequest request;
-		public string fileName => "vesperAppSetup.msi";
+        //Update Software Methods 
+
+        #region Variables 
+
+        HttpClient httpClient;
+        HttpResponseMessage response;
+        HttpRequestMessage request;
+		public string fileName => "VesperAppSetup.msi";
 		private string latestServerBuildVersion;
 		private string currentIntallBuildVersion;
 		public string directoryName = "Vesper";
@@ -507,17 +518,32 @@ namespace VesperApp.ViewModels
 		//Check For the Updates 
 
 		#region Checks for the update 
-		private bool CheckUpdate()
+		private async Task<bool> CheckUpdate()
 		{
 			bool status = false;
 			try
 			{
 				XmlDocument doc1 = new XmlDocument();
 				doc1.Load(baseUrl + onlineConfig);
+                
+                if(doc1.DocumentElement == null) 
+                {
+                    return false;
+                }
+
 				XmlElement Fileroot = doc1.DocumentElement;
 
 				latestServerBuildVersion = Fileroot.InnerText;
-				currentIntallBuildVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                Version? v = Assembly.GetExecutingAssembly().GetName().Version;
+
+                if(v == null)
+                {
+                    currentIntallBuildVersion = string.Empty;
+                }
+                else
+                {
+                    currentIntallBuildVersion = v.ToString();
+                }
 
 				if (latestServerBuildVersion == currentIntallBuildVersion)
 				{
@@ -529,13 +555,17 @@ namespace VesperApp.ViewModels
 				{
 					var latest = latestServerBuildVersion.Split(".")?.Select(int.Parse)?.ToList();
 					var current = currentIntallBuildVersion.Split(".")?.Select(int.Parse)?.ToList();
-					for (int i = 0; i < latest.Count; i++)
-					{
-						if (latest[i] > current[i])
-						{
-							status = true;
-						}
-					}
+
+                    if (latest != null && current != null)
+                    {
+                        for (int i = 0; i < latest.Count; i++)
+                        {
+                            if (latest[i] > current[i])
+                            {
+                                status = true;
+                            }
+                        }
+                    }
 					if (status)
 					{
 						#region If file is already downloaded in local System then Directly commands Install
@@ -551,9 +581,9 @@ namespace VesperApp.ViewModels
 								#region Check if File ALready file SIze
 
 
-								webClient = new System.Net.WebClient();
-								webClient.OpenRead(baseUrl + directoryName + latestServerBuildVersion + "/" + fileName);
-								Int64 SeverFileSize = Convert.ToInt64(webClient.ResponseHeaders["Content-Length"]);
+								httpClient = new HttpClient();
+                                response = await httpClient.GetAsync(baseUrl + directoryName + latestServerBuildVersion + "/" + fileName);
+								Int64 SeverFileSize = Convert.ToInt64(response.Content.Headers.ContentLength);
 								string downloadFile = root + "/" + directoryName + "/" + directoryName + latestServerBuildVersion;
 								FileInfo file = new FileInfo(System.IO.Path.Combine(downloadFile, fileName));
 								var localFileSize = file.Length;
@@ -603,13 +633,13 @@ namespace VesperApp.ViewModels
 		//Checks Server File Present or not
 		public bool ServerFileCheck()
 		{
-			webClient = new WebClient();
+			httpClient = new HttpClient();
 
-			string installerFile = baseUrl + "Vesper" + latestServerBuildVersion + "/vesperAppSetup.msi";
-			request = WebRequest.Create(new Uri(installerFile));
+			string installerFile = baseUrl + "Vesper" + latestServerBuildVersion + "/VesperAppSetup.msi";
+			request = new HttpRequestMessage(HttpMethod.Get, installerFile);
 			try
 			{
-				response = request.GetResponse();
+				response = httpClient.SendAsync(request).Result;
 			}
 			catch (WebException ex)
 			{
@@ -640,7 +670,7 @@ namespace VesperApp.ViewModels
 		#region Download And Check
 
 		#region Download File And Install File 
-		public void DownloadCheck()
+		public async void DownloadCheck()
 		{
 			try
 			{
@@ -660,23 +690,20 @@ namespace VesperApp.ViewModels
 						Directory.CreateDirectory(System.IO.Path.Combine(vesperAppFolder, subDirectory));
 						if (Directory.Exists(System.IO.Path.Combine(vesperAppFolder, subDirectory)))
 						{
-							//Path.Combine(vesperAppFolder + subDirectory);
 							var latestversionDirectory = System.IO.Path.Combine(vesperAppFolder, subDirectory);
-							webClient = new WebClient();
-							webClient.DownloadFileAsync(new Uri(baseUrl + Downloadfolder + fileName), System.IO.Path.Combine(latestversionDirectory, fileName));
+							httpClient = new HttpClient();
 							IsdownloadButtonEnable = false;
 							isdownload = false;
 							isdownloading = true;
 							IsUpdateAvailable = false;
 							IsFlyoutopen();
-							webClient.DownloadFileCompleted += Wc_DownloadFileCompleted;
+                            byte[] fileBytes = await httpClient.GetByteArrayAsync((new Uri(baseUrl + Downloadfolder + fileName)).ToString());
+                            Wc_DownloadFileCompleted(System.IO.Path.Combine(latestversionDirectory, fileName), fileBytes);
 						}
-					}
+					}  
 					else
 					{
-
 						//Check For Sub Directory 
-
 						var subDirectory = directoryName + latestServerBuildVersion;
 						string latestversionDirectory = System.IO.Path.Combine(vesperAppFolder, subDirectory);
 
@@ -684,86 +711,57 @@ namespace VesperApp.ViewModels
 						{
 							Directory.CreateDirectory(System.IO.Path.Combine(vesperAppFolder, subDirectory));
 
-							webClient = new WebClient();
-							webClient.DownloadFileAsync(new Uri(baseUrl + Downloadfolder + fileName), System.IO.Path.Combine(latestversionDirectory, fileName));
+                            httpClient = new HttpClient();
 							IsdownloadButtonEnable = false;
 							isdownload = false;
 							isdownloading = true;
 							IsUpdateAvailable = false;
 							IsFlyoutopen();
-							webClient.DownloadFileCompleted += Wc_DownloadFileCompleted;
+                            byte[] fileBytes = await httpClient.GetByteArrayAsync((new Uri(baseUrl + Downloadfolder + fileName)).ToString());
+                            Wc_DownloadFileCompleted(System.IO.Path.Combine(latestversionDirectory, fileName), fileBytes);
 						}
 						else
 						{
 							if (!File.Exists(System.IO.Path.Combine(latestversionDirectory, fileName)))
 							{
-								webClient = new WebClient();
-								webClient.DownloadFileAsync(new Uri(baseUrl + Downloadfolder + fileName), System.IO.Path.Combine(latestversionDirectory, fileName));
+                                httpClient = new HttpClient();
 								IsdownloadButtonEnable = false;
 								isdownload = false;
 								isdownloading = true;
 								IsUpdateAvailable = false;
 								IsFlyoutopen();
-								webClient.DownloadFileCompleted += Wc_DownloadFileCompleted;
-							}
+                                byte[] fileBytes = await httpClient.GetByteArrayAsync((new Uri(baseUrl + Downloadfolder + fileName)).ToString());
+                                Wc_DownloadFileCompleted(System.IO.Path.Combine(latestversionDirectory, fileName), fileBytes);
+                            }
 
 
-							//check file size for fail download
-							if (File.Exists(System.IO.Path.Combine(latestversionDirectory, fileName)))
+                            //check file size for fail download
+                            if (File.Exists(System.IO.Path.Combine(latestversionDirectory, fileName)))
 							{
-								//var localFileSize = (((byte)Path.Combine(latestversionDirectory, fileName).Length));
-								System.Net.WebClient wc = new System.Net.WebClient();
-								wc.OpenRead(baseUrl + Downloadfolder + fileName);
-								Int64 SeverFileSize = Convert.ToInt64(wc.ResponseHeaders["Content-Length"]);
-
-								FileInfo file = new FileInfo(System.IO.Path.Combine(latestversionDirectory, fileName));
-								var localFileSize = file.Length;
-								if (localFileSize != SeverFileSize)
+								string installPath = System.IO.Path.Combine(latestversionDirectory, installerFile);
+								if (!File.Exists(installPath))
 								{
-									string filePath = System.IO.Path.Combine(latestversionDirectory, fileName);
-									if (File.Exists(filePath))
-										File.Delete(filePath);
-
-									wc.DownloadFileAsync(new Uri(baseUrl + Downloadfolder + fileName), System.IO.Path.Combine(latestversionDirectory, fileName));
-									IsdownloadButtonEnable = false;
-									isdownload = false;
-									isdownloading = true;
-									IsUpdateAvailable = false;
-									IsFlyoutopen();
-									wc.DownloadFileCompleted += Wc_DownloadFileCompleted;
-								}
-
-								else
-								{
-									if (localFileSize == SeverFileSize)
+									using (StreamWriter w = new StreamWriter(installPath))
 									{
-										string installPath = System.IO.Path.Combine(latestversionDirectory, installerFile);
-										if (!File.Exists(installPath))
-										{
-											using (StreamWriter w = new StreamWriter(installPath))
-											{
-												//w.WriteLine("start cmd ");
-												w.WriteLine("cd " + latestversionDirectory);
-												w.WriteLine(fileName);
-												w.WriteLine("exit");
-												w.Close();
-											}
-										}
-										ProcessStartInfo pi = new ProcessStartInfo(installPath);
-										pi.WindowStyle = ProcessWindowStyle.Hidden;
-										pi.Arguments = installPath;
-										pi.UseShellExecute = true;
-										pi.WorkingDirectory = installPath;
-										pi.FileName = installPath;
-										pi.Verb = "OPEN";
-										Process.Start(pi);
-
-
-
-										Environment.Exit(0);
-
+										//w.WriteLine("start cmd ");
+										w.WriteLine("cd " + latestversionDirectory);
+										w.WriteLine(fileName);
+										w.WriteLine("exit");
+										w.Close();
 									}
 								}
+								ProcessStartInfo pi = new ProcessStartInfo(installPath);
+								pi.WindowStyle = ProcessWindowStyle.Hidden;
+								pi.Arguments = installPath;
+								pi.UseShellExecute = true;
+								pi.WorkingDirectory = installPath;
+								pi.FileName = installPath;
+								pi.Verb = "OPEN";
+								Process.Start(pi);
+
+
+
+								Environment.Exit(0);
 							}
 						}
 					}
@@ -777,12 +775,13 @@ namespace VesperApp.ViewModels
 		#endregion
 
 		#region Download File Complete 
-		private void Wc_DownloadFileCompleted(object? sender, AsyncCompletedEventArgs e)
-
+		private void Wc_DownloadFileCompleted(string outputPath, byte[] fileBytes)
 		{
 			try
 			{
-				DownloadContent = "Install";
+                File.WriteAllBytes(outputPath, fileBytes);
+
+                DownloadContent = "Install";
 
 				IsdownloadButtonEnable = true;
 				isdownload = true;
@@ -887,7 +886,7 @@ namespace VesperApp.ViewModels
                                 options.WriteIndented = false;
                                 options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
                                 options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
-                                options.Converters.Add(new VesperDateTimeConverter("yyyy-MM-dd hh:mm:dd"));
+                                options.Converters.Add(new VesperDateTimeConverter("yyyy-MM-dd hh:mm:ss"));
                                 configurationJSONInstance.DeviceDrivers.Clear();
                                 if (DriversViewModel != null)
                                 {
@@ -902,6 +901,24 @@ namespace VesperApp.ViewModels
                                         configurationJSONInstance.Schedule.Add(item);
 
                                     configurationJSONInstance.ScheduleType = ScheduleViewModel.SelectedScheduleType;
+
+                                    if (ScheduleViewModel.PowerOnText.Length > 0)
+                                    {
+                                        if (ScheduleViewModel.IsPowerOnRelative == false)
+                                        {
+                                            DateTime? dt = null;
+                                            try
+                                            {
+                                                dt = DateTime.Parse(ScheduleViewModel.PowerOnText);
+                                            }
+                                            catch (Exception ex) { }
+
+                                            if (dt != null)
+                                            {
+                                                configurationJSONInstance.PowerOn = dt;
+                                            }
+                                        }
+                                    }
                                 }
 
                                 json = JsonSerializer.Serialize<ConfigurationJSON>(configurationJSONInstance, options);
@@ -969,7 +986,7 @@ namespace VesperApp.ViewModels
                 options.WriteIndented = false;
                 options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
                 options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
-                options.Converters.Add(new VesperDateTimeConverter("yyyy-MM-dd hh:mm:dd"));
+                options.Converters.Add(new VesperDateTimeConverter("yyyy-MM-dd hh:mm:ss"));
                 ConfigurationJSON? config = null;
                 try
                 {
@@ -1477,18 +1494,22 @@ namespace VesperApp.ViewModels
 
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
+            if (IsConnected == true && IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false)
+            {
+                var scan_nano = Task.Run( async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
+                var scan_vesp = Task.Run(async () => await ScanFor(Vesper.VendorId, Vesper.ProductId));
+                var scan_comport = Task.Run(async () => await ScanForComport());
+            }
+        }
+
+        private void _timerClock_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
             if (IsClockUTC == false)
                 TextDateTimeNow = DateTime.Now.ToShortDateString() + " " + DateTime.Now.ToLongTimeString();
             else
                 TextDateTimeNow = DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToLongTimeString();
 
-            if (IsConnected == true && IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false)
-            {
-                var scan_nano = Task.Run( async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
-                var scan_comport = Task.Run(async () => await ScanForComport());
-            }
-
-            if(IsConnected == true && IsDeviceConnected == true)
+            if (IsConnected == true && IsDeviceConnected == true)
             {
                 var ping_device = Task.Run(async () =>
                 {
@@ -1499,7 +1520,6 @@ namespace VesperApp.ViewModels
                 });
             }
         }
-
 
 
         public Avalonia.Controls.Window? MainWindowContext { get; }
@@ -1574,9 +1594,11 @@ namespace VesperApp.ViewModels
 
                     case DeviceTypes.Vesper:
                         await DriversViewModel.UpdateDeviceDriverCollection(Vesper.SupportedDeviceDrivers);
+                        configurationJSONInstance.Name = "vesper";
                         break;
                     case DeviceTypes.Pipistrelle:
                         await DriversViewModel.UpdateDeviceDriverCollection(Pipistrelle.SupportedDeviceDrivers);
+                        configurationJSONInstance.Name = "vesper";
                         break;
                     default:
                         await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());

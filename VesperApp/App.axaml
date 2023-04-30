@@ -108,6 +108,11 @@
 			<Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
 		</Style>
 
+		<Style Selector="NumericUpDown">
+			<Setter Property="TextInputOptions.ContentType" Value="Digits" />
+		</Style>
+
+
 
 		<Style Selector="TabControl">
 			<Setter Property="Background" Value="#F0F0F0"/>

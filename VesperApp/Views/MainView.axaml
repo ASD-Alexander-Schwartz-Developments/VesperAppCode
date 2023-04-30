@@ -402,17 +402,15 @@
 						</StackPanel>
 
 						<ScrollViewer Grid.Column="0" Grid.Row="1" BorderThickness="1" BorderBrush="Cornsilk">
-							<StackPanel  Orientation="Vertical"	Margin="0,16,0,0" HorizontalAlignment="Stretch">
-								<Expander ExpandDirection="Down" Header="Schedule" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-									<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}"/>
-								</Expander>
-								<Expander ExpandDirection="Down" Header="Drivers" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-									<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
-										<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="1,10,1,1"/>
-										<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="10,10,10,10"/>
-									</StackPanel>
-								</Expander>
-							</StackPanel>
+							<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+								  ColumnDefinitions="*,2*" RowDefinitions="*,*"  Margin="5" ShowGridLines="false"
+									Background="{DynamicResource ThemeControlHighBrush}">
+
+								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}" Padding="5,5,5,5" Margin="5" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2"/>
+								<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="5,5,5,5" Margin="5" Grid.Row="1" Grid.Column="0"/>
+								<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="5,5,5,5" Margin="5" Grid.Row="1" Grid.Column="1"/>
+
+							</Grid>
 						</ScrollViewer>
 					</Grid>
 				</TabItem>
