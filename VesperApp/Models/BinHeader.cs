@@ -94,6 +94,7 @@ namespace VesperApp.Models
                     else ss = 59;
 
                     milisecs *= -1;
+                    //milisecs = 1000 + milisecs;
                 }
 
                 dateTime = new DateTime(y, m, d, hh, mm, ss, (int)Math.Round(milisecs));
