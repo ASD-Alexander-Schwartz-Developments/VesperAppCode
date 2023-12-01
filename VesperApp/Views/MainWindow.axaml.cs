@@ -12,9 +12,6 @@ namespace VesperApp.Views
         public MainWindow()
         {
             InitializeComponent();
-#if DEBUG
-            this.AttachDevTools();
-#endif
 
             System.Version? v = Assembly.GetExecutingAssembly().GetName().Version;
 
@@ -40,11 +37,11 @@ namespace VesperApp.Views
             SetValue(MinHeightProperty, this.Height);
         }
 
-
+        /*
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
-        }
+        }*/
 
 
     }

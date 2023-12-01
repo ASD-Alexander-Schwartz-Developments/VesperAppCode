@@ -1,6 +1,5 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Controls.Selection;
-using MessageBox.Avalonia.DTO;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
@@ -9,6 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using VesperApp.Models;
+using MsBox.Avalonia.Dto;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
 
 namespace VesperApp.ViewModels
 {
@@ -42,19 +44,19 @@ namespace VesperApp.ViewModels
             {
                 if(SelectedScheduleType == ScheduleTypes.Continues)
                 {
-                    var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                    var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
                     new MessageBoxStandardParams
                     {
-                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                        ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
                         ContentTitle = "New Schedule Entry",
                         ContentHeader = "Not able to create new entry",
                         ContentMessage = "Continues schedule types just run forever",
                         SizeToContent = SizeToContent.WidthAndHeight,
                         WindowIcon = App.MainWindow?.Icon,
-                        Icon = MessageBox.Avalonia.Enums.Icon.Info
+                        Icon = MsBox.Avalonia.Enums.Icon.Info
                     });
 
-                    await messageBoxStandardWindow.ShowDialog(App.MainWindow);
+                    await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow);
                 }
                 else if(SelectedScheduleType == ScheduleTypes.Daily)
                 {
@@ -152,36 +154,36 @@ namespace VesperApp.ViewModels
             {
                 if (_selectedIndex == -1 || _selectedIndex > ScheduleEventsList.Count)
                 {
-                    var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                    var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
                     new MessageBoxStandardParams
                     {
-                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                        ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
                         ContentTitle = "Delete Schedule Entry",
                         ContentHeader = "Not able to delete entry",
                         ContentMessage = "Please selec entry to delete first",
                         SizeToContent = SizeToContent.WidthAndHeight,
                         WindowIcon = App.MainWindow?.Icon,
-                        Icon = MessageBox.Avalonia.Enums.Icon.Info
+                        Icon = MsBox.Avalonia.Enums.Icon.Info
                     });
 
-                    await messageBoxStandardWindow.ShowDialog(App.MainWindow);
+                    await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow);
 
                 }
                 else
                 {
-                    var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                    var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
                     new MessageBoxStandardParams
                     {
-                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.YesNoCancel,
+                        ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.YesNoCancel,
                         ContentTitle = "Delete Schedule Entry",
                         ContentHeader = "Do you really want to delete this entry?",
                         ContentMessage = ScheduleEventsList[_selectedIndex].Alarm.ToString() + " " + ScheduleEventsList[_selectedIndex].Configuration.ToString(),
                         SizeToContent = SizeToContent.WidthAndHeight,
                         WindowIcon = App.MainWindow?.Icon,
-                        Icon = MessageBox.Avalonia.Enums.Icon.Question
+                        Icon = MsBox.Avalonia.Enums.Icon.Question
                     });
 
-                    if(await messageBoxStandardWindow.ShowDialog(App.MainWindow) == MessageBox.Avalonia.Enums.ButtonResult.Yes)
+                    if(await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow) == MsBox.Avalonia.Enums.ButtonResult.Yes)
                         ScheduleEventsList.RemoveAt(_selectedIndex);
                 }
             });

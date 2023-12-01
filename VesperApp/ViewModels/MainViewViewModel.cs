@@ -2,7 +2,6 @@ using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using MessageBox.Avalonia;
 using System.Reactive.Linq;
 using System.Windows.Input;
 using VesperApp.Views;
@@ -18,7 +17,6 @@ using System.Text.Json;
 using System.Diagnostics;
 using Avalonia.Controls;
 using System.IO;
-using MessageBox.Avalonia.DTO;
 using System.Reactive;
 using Avalonia;
 using System.Linq;
@@ -30,8 +28,12 @@ using Avalonia.Controls.Platform;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage.FileIO;
 using ASDWaveLib;
-using static VesperApp.Models.ConfigurationJSON;
 using System.Net.Http;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Dto;
+using MsBox.Avalonia.Enums;
+using static VesperApp.Models.ConfigurationJSON;
+
 
 /// <summary>
 /// //// {Binding Description, StringFormat='Description: {0}'}
@@ -445,18 +447,18 @@ namespace VesperApp.ViewModels
 
             NewConfigCommand = ReactiveCommand.CreateFromTask(async () =>
             {
-                var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
                 new MessageBoxStandardParams
                 {
-                    ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.YesNoCancel,
+                    ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.YesNoCancel,
                     ContentTitle = "New Configuration",
                     ContentHeader = "Do you want to open new configuration?",
                     ContentMessage = "By pressing Yes you will loose and unsaved changes.",
-                    WindowIcon = App.MainWindow.Icon,
-                    Icon = MessageBox.Avalonia.Enums.Icon.Question
+                    WindowIcon = App.MainWindow?.Icon,
+                    Icon = MsBox.Avalonia.Enums.Icon.Question
                 });
 
-                if(await messageBoxStandardWindow.ShowDialog(MainWindowContext) == MessageBox.Avalonia.Enums.ButtonResult.Yes)
+                if(await messageBoxStandardWindow.ShowWindowDialogAsync(MainWindowContext) == MsBox.Avalonia.Enums.ButtonResult.Yes)
                 {
                     CreateNewConfigurationInstance();
                 }
@@ -469,6 +471,8 @@ namespace VesperApp.ViewModels
             BinaryFilesExtractor = ReactiveCommand.CreateFromTask(RunBinaryParser);
 
             ManualAudioParserCommand = ReactiveCommand.CreateFromTask(DecodeAudio);
+
+            ManualMotionParserCommand = ReactiveCommand.CreateFromTask(DecodeMotionInnertial);
 
             #endregion
 
@@ -807,7 +811,7 @@ namespace VesperApp.ViewModels
 		{
 			try
 			{
-				updateFlyout = new Flyout() { Placement = FlyoutPlacementMode.Bottom };
+				updateFlyout = new Flyout() /*{ Placement = Flyout.P  FlyoutPlacementMode.Bottom }*/;
 				var ParentStack = new StackPanel() { Orientation = Avalonia.Layout.Orientation.Vertical, Spacing = 3, Height = 60, Width = 200 };
 				var txtDownloadavalable = new TextBlock() { Text = VersionUpdateMessage, FontWeight = Avalonia.Media.FontWeight.ExtraBold, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
 				var childStack = new StackPanel() { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 20, Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
@@ -878,7 +882,7 @@ namespace VesperApp.ViewModels
                         IStorageFile? file = dialog.Result;
 
                         //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
-                        if (file is not null && file.CanOpenWrite)
+                        if (file is not null)
                         {
                             file.OpenWriteAsync().ContinueWith(delegate (Task<Stream> task)
                             {
@@ -1052,125 +1056,142 @@ namespace VesperApp.ViewModels
 
             if (OperatingSystem.IsWindows())
             {
-                OpenFolderDialog openFolderDialog = new OpenFolderDialog();
-
-                openFolderDialog.Title = "Select Folder containing the DAT Snaps";
-
-                string? path = await openFolderDialog.ShowAsync(App.MainWindow);
-
-                if (path != null && path.Length > 0)
+                FolderPickerOpenOptions options = new()
                 {
-                    System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo(Directory.GetCurrentDirectory() + @"\CG\GeoTag\GeoTag.exe");
-                    psi.Arguments = "-t --download=\"" + path + "\" --decode=\"" + path + "\\decode\" --geotagengine=\"" + Directory.GetCurrentDirectory() + "\\CG\\GeoTagEngine\\GeoTagEngine.exe\" --pattern=snap.*.dat";
+                    Title = "Select FOLDER containing GPS snap .dat files to decode",
+                    AllowMultiple = false,
+                };
 
-                    //psi.RedirectStandardOutput = true;
-                    //psi.RedirectStandardError = true;
-                    //psi.RedirectStandardInput = true;
-                    psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized;
-                    psi.UseShellExecute = true;
-                    psi.CreateNoWindow = false;
-                    System.Diagnostics.Process? ischk = null;
-                    System.IO.StreamReader ischkout;
-                    System.IO.StreamReader ischkerr;
+                Task<IReadOnlyList<IStorageFolder>> dialog = RootTopLevel!.StorageProvider!.OpenFolderPickerAsync(options);
 
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFolder>> dialogs)
+                {
                     try
                     {
-                        ischk = System.Diagnostics.Process.Start(psi);
-                    }
-                    catch(Exception excp)
-                    {
-                        ischk = null;
-                    }
+                        IReadOnlyList<IStorageFolder> folders = dialog.Result;
+                        string? path = null;
 
-                    if (ischk != null)
-                    {
-
-                        string ?error, msg = "";
-                        int index1, index2, current;
-                        double percent = 0;
-
-//                        this.Log("Starting " + bar.Name, 1, true);
-
-                        await Task.Delay(1000);
-                        //ischkout = ischk.StandardOutput;
-                        //ischkerr = ischk.StandardError;
-
-                        bool done = false;
-
-                        await Task.Run( async () =>
+                        if (folders.Count > 0)
                         {
-                            while (ischk.HasExited == false && done == false)
+                            path = folders[0].TryGetLocalPath();
+                        }
+
+                        if (path != null && path.Length > 0)
+                        {
+                            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo(Directory.GetCurrentDirectory() + @"\CG\GeoTag\GeoTag.exe");
+                            psi.Arguments = "-t --download=\"" + path + "\" --decode=\"" + path + "\\decode\" --geotagengine=\"" + Directory.GetCurrentDirectory() + "\\CG\\GeoTagEngine\\GeoTagEngine.exe\" --pattern=snap.*.dat";
+
+                            //psi.RedirectStandardOutput = true;
+                            //psi.RedirectStandardError = true;
+                            //psi.RedirectStandardInput = true;
+                            psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized;
+                            psi.UseShellExecute = true;
+                            psi.CreateNoWindow = false;
+                            System.Diagnostics.Process? ischk = null;
+                            System.IO.StreamReader ischkout;
+                            System.IO.StreamReader ischkerr;
+
+                            try
                             {
-                                await Task.Delay(200);
-
-/*                              await Task.Delay(1000);
-                                error = ischkerr.ReadLine();
-
-                                if (error != null)
-                                {
-                                    if (error.Contains("Set: decode 00%")) // isolate the number of decoded files to calculate progress
-                                    {
-
-                                        index1 = error.IndexOf('(');
-                                        index2 = error.IndexOf('/') - 1;
-
-                                        if (index1 > 0)
-                                        {
-                                            msg = error.Substring(index1 + 1, index2 - index1);
-                                            current = Int32.Parse(msg);
-//                                            percent = Math.Ceiling((current / total) * 100);
-
-//                                            if (Convert.ToInt32(percent) <= 99)
-//                                                bar.Percent = Convert.ToInt32(percent);
-                                        }
-                                    }
-                                    else if (error.Contains("7Z.exe"))
-                                    {
-                                        done = true;
-                                    }
-                                    else if (error.Contains("Graceful termination complete"))
-                                    {
-                                        done = true;
-                                    }
-                                }*/
+                                ischk = System.Diagnostics.Process.Start(psi);
                             }
-                        });
-                    }
-                    else
-                    {
-                        var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
-                            new MessageBoxStandardParams
+                            catch (Exception excp)
                             {
-                                ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
-                                ContentTitle = "GPS Snap Parser",
-                                ContentHeader = "Could not start parser",
-                                ContentMessage = "SNAP Parser executable not found or access denied",
-                                Icon = MessageBox.Avalonia.Enums.Icon.Warning,
-                                WindowIcon = App.MainWindow.Icon,
-                            });
+                                ischk = null;
+                            }
 
-                        await messageBoxStandardWindow.ShowDialog(App.MainWindow);
+                            if (ischk != null)
+                            {
 
+                                string? error, msg = "";
+                                int index1, index2, current;
+                                double percent = 0;
+
+                                //                        this.Log("Starting " + bar.Name, 1, true);
+
+                                await Task.Delay(1000);
+                                //ischkout = ischk.StandardOutput;
+                                //ischkerr = ischk.StandardError;
+
+                                bool done = false;
+
+                                await Task.Run(async () =>
+                                {
+                                    while (ischk.HasExited == false && done == false)
+                                    {
+                                        await Task.Delay(200);
+
+                                        /*                              await Task.Delay(1000);
+                                                                        error = ischkerr.ReadLine();
+
+                                                                        if (error != null)
+                                                                        {
+                                                                            if (error.Contains("Set: decode 00%")) // isolate the number of decoded files to calculate progress
+                                                                            {
+
+                                                                                index1 = error.IndexOf('(');
+                                                                                index2 = error.IndexOf('/') - 1;
+
+                                                                                if (index1 > 0)
+                                                                                {
+                                                                                    msg = error.Substring(index1 + 1, index2 - index1);
+                                                                                    current = Int32.Parse(msg);
+                                        //                                            percent = Math.Ceiling((current / total) * 100);
+
+                                        //                                            if (Convert.ToInt32(percent) <= 99)
+                                        //                                                bar.Percent = Convert.ToInt32(percent);
+                                                                                }
+                                                                            }
+                                                                            else if (error.Contains("7Z.exe"))
+                                                                            {
+                                                                                done = true;
+                                                                            }
+                                                                            else if (error.Contains("Graceful termination complete"))
+                                                                            {
+                                                                                done = true;
+                                                                            }
+                                                                        }*/
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                var messageBoxStandardWindow = MsBox.Avalonia.MessageBoxManager.GetMessageBoxStandard(
+                                    new MessageBoxStandardParams
+                                    {
+                                        ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
+                                        ContentTitle = "GPS Snap Parser",
+                                        ContentHeader = "Could not start parser",
+                                        ContentMessage = "SNAP Parser executable not found or access denied",
+                                        Icon = MsBox.Avalonia.Enums.Icon.Warning,
+                                        WindowIcon = App.MainWindow?.Icon,
+                                    });
+
+                                await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow);
+
+                            }
+
+                            //bar.Percent = 100;
+                            //this.Log(bar.Name + " Done!", 1, true);
+                        }
                     }
-
-                    //bar.Percent = 100;
-                    //this.Log(bar.Name + " Done!", 1, true);
+                    catch { }
                 }
             }
             else
             {
-                var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
                     new MessageBoxStandardParams
                     {
-                        ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                        ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
                         ContentTitle = "GPS Snap Parser",
                         ContentHeader = "Could not start parser",
                         ContentMessage = "SNAP Parser is currently available only on MS Windows OS",
-                        Icon = MessageBox.Avalonia.Enums.Icon.Warning,
-                        WindowIcon = App.MainWindow.Icon,
+                        Icon = MsBox.Avalonia.Enums.Icon.Warning,
+                        WindowIcon = App.MainWindow?.Icon,
                     });
 
-                await messageBoxStandardWindow.ShowDialog(App.MainWindow);
+                await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow);
             }
 
             return await Task.FromResult(result);
@@ -1198,7 +1219,11 @@ namespace VesperApp.ViewModels
                             Patterns = new[]{"*U.bin"},
                             MimeTypes = new[]{"bin/*"}
                         },
-
+                        new("Motion (Innertial) Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*M.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
                     },
                     AllowMultiple = true,
                 };
@@ -1219,12 +1244,14 @@ namespace VesperApp.ViewModels
                             percent += percentDelta;
                             BinaryParserPercent = (int)percent;
                             //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
-                            if (file is not null && file.CanOpenRead)
+                            if (file is not null)
                             {
-                                if (file.TryGetUri(out var uri) == true)
+                                string? lp = file.TryGetLocalPath();
+
+                                if (lp is not null)
                                 {
-                                    string? currentDirectory = Path.GetDirectoryName(uri.LocalPath);
-                                    string? currentFilename = Path.GetFileName(uri.LocalPath).ToUpper();
+                                    string? currentDirectory = Path.GetDirectoryName(lp);
+                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
 
                                     if (currentDirectory != null && currentFilename != null)
                                     {
@@ -1237,7 +1264,7 @@ namespace VesperApp.ViewModels
                                                 Directory.CreateDirectory(fullPathOnly);
                                             }
 
-                                            await BinaryParser.ExtractVesperSnap(uri.LocalPath, fullPathOnly, new TimeSpan(0, 0, 0));
+                                            await BinaryParser.ExtractVesperSnap(lp, fullPathOnly, new TimeSpan(0, 0, 0));
                                         }
                                         else if(currentFilename.Contains("U.BIN"))
                                         {
@@ -1248,7 +1275,18 @@ namespace VesperApp.ViewModels
                                                 Directory.CreateDirectory(fullPathOnly);
                                             }
 
-                                            await BinaryParser.StripSplit(uri.LocalPath, fullPathOnly, 0);
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("M.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "IMU";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
                                         }
                                     }
                                 }
@@ -1307,24 +1345,26 @@ namespace VesperApp.ViewModels
                             percent += percentDelta;
                             BinaryParserPercent = (int)percent;
                             //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
-                            if (file is not null && file.CanOpenRead)
+                            if (file is not null)
                             {
-                                if (file.TryGetUri(out var uri) == true)
+                                string? lp = file.TryGetLocalPath();
+
+                                if (lp is not null)
                                 {
-                                    string? currentDirectory = Path.GetDirectoryName(uri.LocalPath);
-                                    string? currentFilename = Path.GetFileName(uri.LocalPath).ToUpper();
+                                    string? currentDirectory = Path.GetDirectoryName(lp);
+                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
                                     string metadata = string.Empty;
 
                                     if (currentDirectory != null && currentFilename != null)
                                     {
-                                        if(File.Exists(uri.LocalPath + ".txt"))                         /// Check if metadata exists
+                                        if(File.Exists(lp + ".txt"))                         /// Check if metadata exists
                                         {
-                                            metadata = File.ReadAllText(uri.LocalPath + ".txt", Encoding.UTF8) ?? string.Empty;
+                                            metadata = File.ReadAllText(lp + ".txt", Encoding.UTF8) ?? string.Empty;
                                         }
 
-                                        using (WaveFile wf = new WaveFile(uri.LocalPath, metadata))
+                                        using (WaveFile wf = new WaveFile(lp, metadata))
                                         {
-                                            byte[] databuf = File.ReadAllBytes(uri.LocalPath);
+                                            byte[] databuf = File.ReadAllBytes(lp);
 
                                             wf.Open();
                                             wf.WriteWave(databuf);
@@ -1348,6 +1388,83 @@ namespace VesperApp.ViewModels
 
             return retval;
         }
+
+
+        private async Task<bool> DecodeMotionInnertial()
+        {
+            bool retval = false;
+
+            try
+            {
+                FilePickerOpenOptions options = new()
+                {
+                    Title = "Select parsed IMU10 binary recording files to convert to CSV...",
+
+                    FileTypeFilter = new List<FilePickerFileType>
+                    {
+                        new("Audio binary (.MBN) ")
+                        {
+                            Patterns = new[]{"*-*.MBN"},
+                            MimeTypes = new[]{"bin/*"}
+                        }
+                    },
+                    AllowMultiple = true,
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+                        double percentDelta = 100 / files.Count;
+                        double percent = 0;
+                        foreach (var file in files)
+                        {
+                            percent += percentDelta;
+                            //BinaryParserPercent = (int)percent;
+                            //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
+                            if (file is not null)
+                            {
+                                string? lp = file.TryGetLocalPath();
+
+                                if (lp is not null)
+                                {
+                                    string? currentDirectory = Path.GetDirectoryName(lp);
+                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
+                                    string metadata = string.Empty;
+
+                                    if (currentDirectory != null && currentFilename != null)
+                                    {
+                                        using (WaveFile wf = new WaveFile(lp, metadata))
+                                        {
+                                            byte[] databuf = File.ReadAllBytes(lp);
+
+                                            wf.Open();
+                                            wf.WriteWave(databuf);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        //BinaryParserPercent = 100;
+                        await Task.Delay(250);
+                        //BinaryParserIsRunning = false;
+
+                    }
+                    catch (Exception e) { Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+
+
+
+            }
+            catch { retval = true; }
+
+            return retval;
+        }
+
+
 
 
 
@@ -1532,6 +1649,7 @@ namespace VesperApp.ViewModels
         public ICommand? BinaryFilesExtractor { get; }
         
         public ICommand? ManualAudioParserCommand { get; }
+        public ICommand? ManualMotionParserCommand { get; }
 
         public ICommand? ConnectDisconnectDeviceCommand { get; }
         public ICommand? SleepDeviceCommand { get; }
@@ -1651,10 +1769,7 @@ namespace VesperApp.ViewModels
                 // If not, then we try getting the provider from the root TopLevel instance. (Web, the designer preview,...)
                 //TODO doesn't work. I have ho idea how to get a TopLevel instance in a Web, preview or Android/iOS environment.
                 MainWindow? mainWindow = (MainWindow?)App.MainWindow;
-                _storageProvider = mainWindow != null ? mainWindow.StorageProvider
-                    : RootTopLevel != null ? AvaloniaLocator.Current.GetService<IStorageProviderFactory>()
-                        ?.CreateProvider(RootTopLevel)
-                                           : null;
+                _storageProvider = mainWindow != null ? mainWindow.StorageProvider : null;
 
                 if (_storageProvider == null)
                     throw new InvalidOperationException("StorageProvider platform implementation is not available.");

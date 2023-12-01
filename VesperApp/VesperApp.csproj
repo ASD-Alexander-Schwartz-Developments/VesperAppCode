@@ -17,8 +17,6 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
-		<AvaloniaXaml Remove="Controls\ApolloContextMenu.axaml" />
-		<AvaloniaXaml Remove="Themes\FluentCalendarControl.axaml" />
 		<None Remove=".gitignore" />
 		<None Remove="Assets\ASD-LOGO-01.png" />
 		<None Remove="Assets\connected.png" />
@@ -32,11 +30,6 @@
 		<None Remove="Assets\rotation.png" />
 		<None Remove="Assets\update.png" />
 		<None Remove="Assets\updated.png" />
-	</ItemGroup>
-	<ItemGroup>
-		<AvaloniaResource Include="Themes\FluentCalendarControl.axaml">
-			<Generator>MSBuild:UpdateDesignTimeXaml</Generator>
-		</AvaloniaResource>
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="Assets\bat.ico" />
@@ -55,18 +48,17 @@
 		<TrimmableAssembly Include="Avalonia.Themes.Default" />
 	</ItemGroup>
 	<ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.0.0-preview4" />
-		<PackageReference Include="Avalonia.Controls.DataGrid" Version="11.0.0-preview4" />
-		<PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview4" />
+    <PackageReference Include="Avalonia" Version="11.0.5" />
+		<PackageReference Include="Avalonia.Controls.DataGrid" Version="11.0.5" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.0.5" />
 		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.0-preview4" />
-		<PackageReference Include="Avalonia.ReactiveUI" Version="11.0.0-preview4" />
-		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.0-preview4" />
-		<PackageReference Include="CalendarControl.Avalonia" Version="11.0.0-preview4" />
+		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.5" />
+		<PackageReference Include="Avalonia.ReactiveUI" Version="11.0.5" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.5" />
+		<PackageReference Include="CalendarControl.Avalonia" Version="11.0.5" />
 		<PackageReference Include="FTD2XX.Net" Version="1.2.1" />
-		<PackageReference Include="MessageBox.Avalonia" Version="2.3.1-prev2" />
-		<PackageReference Include="System.IO.Ports" Version="7.0.0" />
-		<PackageReference Include="XamlNameReferenceGenerator" Version="1.4.2" />
+		<PackageReference Include="MessageBox.Avalonia" Version="3.1.5.1" />
+		<PackageReference Include="System.IO.Ports" Version="8.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\ASDLibUSBWrapper\ASDLibUSBWrapper.csproj" />
@@ -84,9 +76,6 @@
 		</AvaloniaResource>
 	</ItemGroup>
 	<ItemGroup>
-		<Compile Update="Controls\ConnectToggle.axaml.cs">
-			<DependentUpon>ConnectToggle.axaml</DependentUpon>
-		</Compile>
 		<Compile Update="Controls\DeviceDriverPropertyGrid.axaml.cs">
 			<DependentUpon>DeviceDriverPropertyGrid.axaml</DependentUpon>
 		</Compile>
@@ -103,21 +92,6 @@
 		</None>
 		<None Update="FirmwareUpdater\**">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Update="Views\LaunchpadInfo.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</None>
-		<None Update="Views\LaunchpadWindow.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</None>
-		<None Update="Views\MessageWindow.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</None>
-		<None Update="Views\PatternWindow.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</None>
-		<None Update="Views\PreferencesWindow.xaml">
-			<Generator>MSBuild:Compile</Generator>
 		</None>
 	</ItemGroup>
 </Project>

@@ -138,9 +138,9 @@ namespace VesperApp.Services
             {
                 first_letter = 'A';
             }
-            else if (check.Contains('I'))
+            else if (check.Contains('M'))
             {
-                first_letter = 'I';
+                first_letter = 'M';
             }
             else if (check.Contains('S'))
             {

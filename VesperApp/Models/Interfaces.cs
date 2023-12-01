@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 
 
-namespace VesperApp.Models {
-    public interface ISelect {
+namespace VesperApp.Models 
+{
+    public interface ISelect 
+    {
         ISelectViewer IInfo { get; }
 
         ISelectParent IParent { get; }
@@ -16,7 +18,8 @@ namespace VesperApp.Models {
         void Dispose();
     }
 
-    public interface ISelectViewer {
+    public interface ISelectViewer 
+    {
         void Deselect();
         void Select();
 
@@ -77,9 +80,8 @@ namespace VesperApp.Models {
         string ProcessedName { get; }
     }
 
-    public interface IRenamable: IControl, ISelectViewer {
-        //RenameManager Rename { get; }
-
+    public interface IRenamable: ISelectViewer 
+    {
         ISelect Item { get; }
         ISelectParent ItemParent { get; }
 

@@ -16,9 +16,6 @@ namespace VesperApp.Views
         public DockPickWindow()
         {
             InitializeComponent();
-#if DEBUG
-            this.AttachDevTools();
-#endif
 
             //            this.WhenActivated(d => d(ViewModel!.CloseAndConnect.Subscribe<VesperApp.Models.DockDeviceInfo>(Close)));
 
@@ -79,7 +76,11 @@ namespace VesperApp.Views
                 dc.TerminateScan();
             }
 
-            e.Cancel = false;
+            if(e is not  null)
+            {
+                e.Cancel = false;
+            }
+            
         }
     }
 }

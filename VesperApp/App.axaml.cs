@@ -29,9 +29,6 @@ namespace VesperApp
 
         public static void WindowClosed(Window sender)
         {
-            if (sender is SplashWindow)
-            {
-            }
         }
 
 

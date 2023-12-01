@@ -20,7 +20,7 @@
 	<DockPanel>
 		<StackPanel DockPanel.Dock="Top" Orientation="Vertical">
 			<ProgressBar Height="15" IsIndeterminate="True" IsEnabled="{Binding IsBusy}" />
-			<ListBox Height="350" x:Name="listDocks" Items="{Binding Docks}" SelectionMode="Single" Selection="{Binding SelectedDock}" HorizontalAlignment="Stretch">
+			<ListBox Height="350" x:Name="listDocks" ItemsSource="{Binding Docks}" SelectionMode="Single" Selection="{Binding SelectedDock}" HorizontalAlignment="Stretch">
 				<ListBox.Styles>
 					<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
 					<Style Selector="ListBoxItem">

@@ -21,10 +21,10 @@ namespace VesperApp.Views
 //            _connectToggle = this.Get<ConnectToggle>("ConnectToggle");
             //this.WhenActivated(d => d(ViewModel!.ShowDockPickDialog.RegisterHandler(DoShowDockPickDialogAsync)));
         }
-
+        /*
         void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
-        }
+        }*/
     }
 }

@@ -11,7 +11,7 @@
 	<DockPanel HorizontalAlignment="Left" VerticalAlignment="Stretch">
 		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch" DockPanel.Dock="Left">
 			<Border BorderBrush="Black" BorderThickness="1" VerticalAlignment="Stretch">
-				<ListBox Items="{Binding DeviceDriversCollection}"
+				<ListBox ItemsSource="{Binding DeviceDriversCollection}"
 							x:Name="listSupportedDeviceDriversList"
 							Margin="1,1,1,1"
 							SelectionMode="Single"

@@ -7,12 +7,18 @@ namespace VesperApp
 {
     public class ViewLocator : IDataTemplate
     {
-        public IControl Build(object data)
+        public Control Build(object? data)
         {
-            var name = data.GetType().FullName!.Replace("ViewModel", "View");
-            var type = Type.GetType(name);
+            var name = data?.GetType().FullName!.Replace("ViewModel", "View");
 
-            if (type != null)
+            Type? type = null;
+            if(name is not null)
+            {
+                type = Type.GetType(name);
+            }
+            
+
+            if (type is not null)
             {
                 return (Control)Activator.CreateInstance(type)!;
             }
@@ -22,7 +28,7 @@ namespace VesperApp
             }
         }
 
-        public bool Match(object data)
+        public bool Match(object? data)
         {
             return data is ViewModelBase;
         }

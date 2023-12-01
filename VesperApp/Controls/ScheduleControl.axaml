@@ -17,7 +17,7 @@
 					  SelectedIndex="0" Margin="1"
 					  VerticalAlignment="Center"
 					  Width="120"
-					  Items="{Binding Source={m:EnumBindingSource {x:Type m:ScheduleTypes}}}"
+					  ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:ScheduleTypes}}}"
 					  SelectionChanged="OnSelectionChanged_ScheduleType"/>
 		</StackPanel>
 
@@ -54,7 +54,7 @@
 						  VerticalAlignment="Center"
 						  Width="100"
 						  SelectedItem="{Binding SelectedConfiguration, Mode=TwoWay}"
-						  Items="{Binding Source={m:EnumBindingSource {x:Type m:WorkingConfiguration}}}"/>
+						  ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:WorkingConfiguration}}}"/>
 			</StackPanel>
 			<StackPanel Margin="1,28,10,10" Spacing="5" Orientation="Horizontal" HorizontalAlignment="Center">
 				<Button x:Name="btnApply" HorizontalAlignment="Center" Margin="0" Command="{Binding CommandApplyButton}">
@@ -78,7 +78,7 @@
 			<Label Content="Operating Schedule Alarms"/>
 			<Border BorderBrush="AntiqueWhite" BorderThickness="1">
 			<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-			<ListBox Items="{Binding ScheduleEventsList}" 
+			<ListBox ItemsSource="{Binding ScheduleEventsList}" 
 					 x:Name="listScheduleEventsList" 
 					 Margin="1,1,1,1" 
 					 SelectionMode="Single" 

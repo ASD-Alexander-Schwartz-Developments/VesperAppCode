@@ -94,38 +94,7 @@
 			
 		<Border BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="2" BorderThickness="1,1,1,1"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
 			<Grid ColumnDefinitions="*,100" RowDefinitions="*,40" ShowGridLines="false">
-				<!--
-				<DataGrid Name="listLoggerDevices" Items="{Binding LoggerDevices}" AutoGenerateColumns="False" SelectedItem="{Binding SelectedLoggerDevice}">
-					<DataGrid.Columns>
-						<DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="2*" />
-						<DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
-						<DataGridTextColumn Header="HWID" Binding="{Binding HwId}" Width="*" />
-						<DataGridTextColumn Header="FWID" Binding="{Binding FwId}" Width="*"  />
-						<DataGridTextColumn Header="Date Time" Binding="{Binding LocalDateTime}" Width="2*" />
-
-						<DataGridTemplateColumn Header="Disk">
-							<DataGridTemplateColumn.CellTemplate>
-								<DataTemplate DataType="m:LoggerDevice">
-									<StackPanel>
-										<TextBlock Text="{Binding DiskSize, StringFormat='{}{0}GB'}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-										<TextBlock Text="{Binding DiskOccupancy, StringFormat='{}{0}%'}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-									</StackPanel>
-								</DataTemplate>
-							</DataGridTemplateColumn.CellTemplate>
-						</DataGridTemplateColumn>
-
-						<DataGridTemplateColumn Header="Battery">
-							<DataGridTemplateColumn.CellTemplate>
-								<DataTemplate DataType="m:LoggerDevice">
-									<TextBlock Text="{Binding BatteryChargePercent, StringFormat='{}{0}%'}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-								</DataTemplate>
-							</DataGridTemplateColumn.CellTemplate>
-						</DataGridTemplateColumn>
-
-					</DataGrid.Columns>
-				</DataGrid>-->
-
-				<ListBox x:Name="listLoggerDevices" Items="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}" ScrollViewer.VerticalScrollBarVisibility="Auto">
+				<ListBox x:Name="listLoggerDevices" ItemsSource="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}" ScrollViewer.VerticalScrollBarVisibility="Auto">
 					<ListBox.Styles>
 						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
 						<Style Selector="ListBoxItem">
@@ -259,14 +228,16 @@
 				</StackPanel>
 
 				<StackPanel Spacing="1" Orientation="Horizontal" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2">
-					<ListBox Items="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}" 
-							 SelectionMode="Multiple,Toggle" Width="120" 
+					<ListBox ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}" 
+							 SelectionMode="Multiple,Toggle" 
 							 Selection="{Binding DevicesFiltersSelection}" 
-							 Background="{DynamicResource ThemeControlMidHighBrush}"
+							 Background="{DynamicResource ThemeAccentBrush4}"
 							 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 						<ListBox.ItemTemplate>
 							<DataTemplate>
-								<Border CornerRadius="3" Margin="1,3,10,3" Padding="3,3,3,3" BorderBrush="{DynamicResource ThemeBorderMidBrush}" BorderThickness="1">
+								<Border CornerRadius="3" Margin="1,3,10,3" Padding="3,3,3,3" 
+										BorderBrush="{DynamicResource ThemeBorderMidBrush}" 
+										BorderThickness="{DynamicResource ThemeBorderThickness}">
 									<TextBlock FontWeight="Medium" Text="{Binding .}" TextWrapping="Wrap"/>
 								</Border>
 							</DataTemplate>
@@ -278,42 +249,7 @@
 			</Grid>
 		</Border>
 					
-		
-		
-		
-		
-		<!--
-		<Border BorderBrush="{DynamicResource ThemeForegroundLowBrush}" CornerRadius="3" Grid.Column="0" Grid.Row="2" HorizontalAlignment="Stretch" Padding="0,5">
-			<StackPanel Spacing="0,5" Orientation="Vertical" Background="{DynamicResource ThemeControlDarkenBrush}">
-				
-				<StackPanel Spacing="5" HorizontalAlignment="Center">
-					<Button Padding="10" x:Name="btnRecordings">
-						<TextBlock Text="{Binding ConnectionStatus}"/>
-					</Button>
-				</StackPanel>
-				
-				<StackPanel Spacing="5" HorizontalAlignment="Center">
-					<Button Padding="10" x:Name="btnConfigs">
-						<TextBlock Text="{Binding ConnectionStatus}"/>
-					</Button>
-				</StackPanel>
 
-				<StackPanel Spacing="5" HorizontalAlignment="Center">
-					<Button Padding="10" x:Name="btnProperties">
-						<TextBlock Text="{Binding ConnectionStatus}"/>
-					</Button>
-				</StackPanel>
-
-				<StackPanel Spacing="5" HorizontalAlignment="Center">
-					<Button Padding="10" x:Name="btnHelp">
-						<TextBlock Text="{Binding ConnectionStatus}"/>
-					</Button>
-				</StackPanel>
-
-
-			</StackPanel>
-		</Border>
-		-->
 		<Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="3" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2" HorizontalAlignment="Stretch" Padding="1,1,1,1">
 			<TabControl TabStripPlacement="Left" VerticalContentAlignment="Stretch">
 				<TabItem>
@@ -338,6 +274,15 @@
 										<Image Stretch="Fill" Width="42" Height="42">
 											<Image.Source>
 												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.sound_source_filled}" />
+											</Image.Source>
+										</Image>
+									</StackPanel>
+								</Button>
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualMotionParserCommand}" x:Name="bParseImu" ToolTip.Tip="IMU (Innertial Motion Unit) Sensor Decoder">
+									<StackPanel Orientation="Horizontal">
+										<Image Stretch="Fill" Width="42" Height="42">
+											<Image.Source>
+												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.directions_filled}" />
 											</Image.Source>
 										</Image>
 									</StackPanel>
@@ -397,7 +342,7 @@
 								Margin="1"
 								VerticalAlignment="Center"
 								Width="120"
-								Items="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}"
+								ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}"
 								SelectedItem="{Binding SelectedDeviceType}"/>
 						</StackPanel>
 

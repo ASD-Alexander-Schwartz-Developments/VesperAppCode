@@ -55,10 +55,10 @@ namespace VesperApp.Controls
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
                                 {
                                     [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = dt, Path = "GetEnumValues()" },
                                     Margin = new Thickness(0),
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
                                     VerticalAlignment = VerticalAlignment.Stretch,
-                                    Items = dt.GetEnumValues()
                                 }); 
 
                                 col.CellEditingTemplate = template;

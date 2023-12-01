@@ -6,11 +6,14 @@ using System.Threading.Tasks;
 using ASDLibUSBWrapper;
 using System.IO.Ports;
 using Avalonia.Threading;
-using MessageBox.Avalonia.DTO;
 using ReactiveUI;
 using VesperApp.Services;
 using Splat;
 using System.Diagnostics.Metrics;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Dto;
+using MsBox.Avalonia.Enums;
+using MsBox.Avalonia.Models;
 
 namespace VesperApp.Models
 {
@@ -846,18 +849,18 @@ namespace VesperApp.Models
                         }
                         else
                         {
-                            var messageBoxStandardWindow = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(
+                            var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
                             new MessageBoxStandardParams
                             {
-                                ButtonDefinitions = MessageBox.Avalonia.Enums.ButtonEnum.Ok,
+                                ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
                                 ContentTitle = "Download Data Failed",
                                 ContentHeader = etype,
                                 ContentMessage = error,
-                                WindowIcon = App.MainWindow.Icon,
-                                Icon = MessageBox.Avalonia.Enums.Icon.Error
+                                WindowIcon = App.MainWindow?.Icon,
+                                Icon = MsBox.Avalonia.Enums.Icon.Error
                             });
 
-                            await messageBoxStandardWindow.ShowDialog(App.MainWindow);
+                            await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow);
 
                         }
                     });
