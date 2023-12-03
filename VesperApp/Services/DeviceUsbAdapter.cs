@@ -238,7 +238,7 @@ namespace VesperApp.Services
                                     break;
                             } while (--i > 0);
 
-                            Debug.WriteLine("Opened " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
+                            Debug.WriteLine("Opened " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X") + "SN:" + device.Info.SerialNumber);
                             device.Close();
 
                             var dev = new LoggerDevice(this._context, (UsbDevice)device);

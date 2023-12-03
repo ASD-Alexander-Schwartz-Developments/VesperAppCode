@@ -17,11 +17,11 @@
 
 
 	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,75"  Margin="5" ShowGridLines="false" 
-		  Background="{DynamicResource ThemeBorderMidBrush}">
+		  Background="{DynamicResource ThemeBorderLowBrush}">
 		
 		
 		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" 
-					Background="{DynamicResource ThemeControlMidHighBrush}" >
+					Background="{DynamicResource ThemeControlLowBrush}" >
 			
 			<StackPanel Spacing="1" VerticalAlignment="Center" >
 				<Button Margin="10" Command="{Binding ConnectDisconnectDockCommand}" x:Name="ConnectToggle">

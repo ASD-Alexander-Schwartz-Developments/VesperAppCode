@@ -19,7 +19,7 @@ namespace VesperApp.Models
         private UInt32 battery_capacity;
         private DateTime ?wake_up_time;                  // time to turn on when no magnet mode
         private ScheduleTypes schedule_type;
-
+        private UInt32? clock_drift;
         private List<ConfigScheduleJSONItem> schedule;
         private List<ConfigurationDeviceDriver> drivers;
 
@@ -33,7 +33,7 @@ namespace VesperApp.Models
             this.schedule_type = ScheduleTypes.Continues;
 
             this.wake_up_time = null;
-
+            this.clock_drift = null;
             this.schedule = new List<ConfigScheduleJSONItem>();
             this.drivers = new List<ConfigurationDeviceDriver>();
         }
@@ -47,6 +47,7 @@ namespace VesperApp.Models
             this.MinimumSupportedHardware = newconf.minimum_supported_hw;
             this.wake_up_time = newconf.wake_up_time;
             this.ScheduleType = newconf.schedule_type;
+            this.clock_drift = newconf.clock_drift;
             this.Schedule.Clear();
             this.Schedule.AddRange(newconf.Schedule);
             this.DeviceDrivers.Clear();
@@ -65,6 +66,16 @@ namespace VesperApp.Models
             set { this.name = value; }
         }
 
+        [JsonPropertyName("cdrift"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [CategoryAttribute("Clock Drift compensation"),
+        DefaultValueAttribute(typeof(UInt32?), null),
+        DisplayName("Clock Drift"),
+        DescriptionAttribute("Clock drift constant")]
+        public UInt32? CDrift
+        {
+            get { return this.clock_drift; }
+            set { this.clock_drift = value; }
+        }
 
         [JsonPropertyName("scheduleType")]
         [CategoryAttribute("General configuration"),
@@ -113,7 +124,7 @@ namespace VesperApp.Models
             set { this.battery_capacity = value; }
         }
 
-
+        [JsonConverter(typeof(VesperDateTimeConverter))]
         [JsonPropertyName("poweron")]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(DateTime?), ""),
@@ -208,6 +219,14 @@ namespace VesperApp.Models
         public class VesperDateTimeConverter : JsonConverter<DateTime?>
         {
             private readonly string Format;
+
+            public override bool HandleNull => true;
+
+            public VesperDateTimeConverter()
+            {
+                Format = "yyyy-MM-dd hh:mm:ss";
+            }
+
             public VesperDateTimeConverter(string format)
             {
                 Format = format;
@@ -226,12 +245,15 @@ namespace VesperApp.Models
             public override DateTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 string? s = reader.GetString();
-                if (s == null || s?.Length == 0)
+
+                if (s == null || reader.TokenType == JsonTokenType.Null || s?.Length == 0)
                 {
                     return null;
                 }
-
-                return DateTime.ParseExact(s, Format, null);
+                else
+                {
+                    return DateTime.ParseExact(s, Format, null);
+                }
             }
         }
         /*

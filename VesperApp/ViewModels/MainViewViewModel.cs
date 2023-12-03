@@ -908,23 +908,36 @@ namespace VesperApp.ViewModels
 
                                     if (ScheduleViewModel.PowerOnText.Length > 0)
                                     {
+                                        DateTime? dt = null;
+                                        try
+                                        {
+                                            dt = DateTime.Parse(ScheduleViewModel.PowerOnText);
+                                        }
+                                        catch (Exception ex) 
+                                        {
+                                            dt = null;
+                                        }
+
                                         if (ScheduleViewModel.IsPowerOnRelative == false)
                                         {
-                                            DateTime? dt = null;
-                                            try
-                                            {
-                                                dt = DateTime.Parse(ScheduleViewModel.PowerOnText);
-                                            }
-                                            catch (Exception ex) { }
-
                                             if (dt != null)
                                             {
                                                 configurationJSONInstance.PowerOn = dt;
                                             }
                                         }
+                                        else
+                                        {
+                                            if (dt != null)
+                                            {
+                                                DateTime dt1 = (DateTime)dt;
+
+                                                configurationJSONInstance.PowerOn = new DateTime(0,
+                                                    0, (dt == null ? 0 : dt1.Day), dt1.Hour, dt1.Minute, dt1.Second);
+                                            }
+                                        }
                                     }
                                 }
-
+                                
                                 json = JsonSerializer.Serialize<ConfigurationJSON>(configurationJSONInstance, options);
 
                                 if (json.Length > 0)
@@ -994,7 +1007,7 @@ namespace VesperApp.ViewModels
                 ConfigurationJSON? config = null;
                 try
                 {
-                    config = JsonSerializer.Deserialize<ConfigurationJSON>(jsonString, options)!;
+                    config = JsonSerializer.Deserialize<ConfigurationJSON>(jsonString, options);
                 }
                 catch (Exception ex)
                 {
@@ -1176,7 +1189,7 @@ namespace VesperApp.ViewModels
                         }
                     }
                     catch { }
-                }
+                });
             }
             else
             {
@@ -1437,19 +1450,17 @@ namespace VesperApp.ViewModels
 
                                     if (currentDirectory != null && currentFilename != null)
                                     {
-                                        using (WaveFile wf = new WaveFile(lp, metadata))
+                                        byte[] data = File.ReadAllBytes(lp);
+                                        using (IMU10Parser ip = new IMU10Parser(lp, data, DateTime.Now, 1023))
                                         {
-                                            byte[] databuf = File.ReadAllBytes(lp);
-
-                                            wf.Open();
-                                            wf.WriteWave(databuf);
+                                            ip.WriteFile();
                                         }
                                     }
                                 }
                             }
                         }
                         //BinaryParserPercent = 100;
-                        await Task.Delay(250);
+                        await Task.Delay(100);
                         //BinaryParserIsRunning = false;
 
                     }
@@ -1702,24 +1713,30 @@ namespace VesperApp.ViewModels
         {
             if (_seldeviceType != null)
             {
-                configurationJSONInstance.Name = (string)_seldeviceType.ToString();
+                //configurationJSONInstance.Name = (string)_seldeviceType.ToString();
 
                 switch (_seldeviceType)
                 {
                     case DeviceTypes.Nanotag:
                         await DriversViewModel.UpdateDeviceDriverCollection(Nanotag.SupportedDeviceDrivers);
+                        configurationJSONInstance.Name = "nanotag";
+                        configurationJSONInstance.CDrift = null;
                         break;
 
                     case DeviceTypes.Vesper:
                         await DriversViewModel.UpdateDeviceDriverCollection(Vesper.SupportedDeviceDrivers);
                         configurationJSONInstance.Name = "vesper";
+                        configurationJSONInstance.CDrift = 32999;
                         break;
                     case DeviceTypes.Pipistrelle:
                         await DriversViewModel.UpdateDeviceDriverCollection(Pipistrelle.SupportedDeviceDrivers);
                         configurationJSONInstance.Name = "vesper";
+                        configurationJSONInstance.CDrift = 32999;
                         break;
                     default:
                         await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
+                        configurationJSONInstance.Name = "vesper";
+                        configurationJSONInstance.CDrift = null;
                         break;
                 }
             }

@@ -283,7 +283,7 @@ namespace VesperApp.Models
 
         private bool imu_lp_mode;
 
-
+#if false
         [TypeConverter(typeof(IMU10SamplingModes)),
         DisplayName("Sampling Modes"),
         CategoryAttribute("IMU10 specific Settings")]
@@ -342,7 +342,7 @@ namespace VesperApp.Models
                 }
             }
         }
-
+#endif
 
         [DisplayName("Enable BAR"),
         CategoryAttribute("IMU10 specific Settings"),

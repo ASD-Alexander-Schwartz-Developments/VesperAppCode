@@ -1,25 +1,37 @@
 ﻿using Avalonia.Animation;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace VesperApp.Services
 {
-    public class IMU10Parser
+    public class IMU10Parser : IDisposable
     {
         const byte Header = 0x55;
         const byte FlagsAcc = 0x01;
         const byte FlagsGyro = 0x02;
         const byte FlagsMag = 0x04;
         const byte FlagsBar = 0x08;
+        const int bytes_in_sensor = 4 * 3;          // 4bytes for float x 3 axis
 
-        public IMU10Parser(byte[] data, DateTime dtStart) 
+        private string Filename;
+        private bool IsOpened;
+
+        private List<string>? csv_lines;
+
+        public IMU10Parser(string filename, byte[] data, DateTime dtStart, UInt16 subsec_frac) 
         { 
             if(data == null) throw new ArgumentNullException("data");
 
             if (data.Length == 0) throw new ArgumentException("Data Cannot be empty");
+
+            Filename = filename;
+
+            csv_lines = new List<string>();
+            csv_lines.Add(IMU10RecordLine.HeaderText());
 
             int index = 0;
 
@@ -38,19 +50,36 @@ namespace VesperApp.Services
                     byte sec = (byte)(data[index]);
                     index++;
                     UInt16 subsec = (UInt16)((UInt16)data[index] + (UInt16)((UInt16)data[index+1] << 8));
+                    double milisecs = 1000.0 * ((double)((double)subsec_frac - (double)subsec) / (double)((double)subsec_frac + 1.0));
+                    line.Timestamp = new DateTime(dtStart.Year, dtStart.Month, dtStart.Day, dtStart.Hour, (int)min, (int)sec, (int)milisecs);
                     index += 2;
 
-                    if((line.Flags & FlagsAcc) == FlagsAcc && (index < data.Length - 6))
+                    if (((line.Flags & FlagsGyro) == FlagsGyro) && (index < data.Length - bytes_in_sensor))
                     {
-                        
+                        line.GY_X = (double)Utils.FFromBytes(data, index);
+                        index += 4;
+                        line.GY_Y = (double)Utils.FFromBytes(data, index);
+                        index += 4;
+                        line.GY_Z = (double)Utils.FFromBytes(data, index);
+                        index += 4;
                     }
-                    if (((line.Flags & FlagsGyro) == FlagsGyro) && (index < data.Length - 6))
+                    if ((line.Flags & FlagsAcc) == FlagsAcc && (index < data.Length - bytes_in_sensor))
                     {
-
+                        line.XL_X = (double)Utils.FFromBytes(data, index);
+                        index += 4;
+                        line.XL_Y = (double)Utils.FFromBytes(data, index);
+                        index += 4;
+                        line.XL_Z = (double)Utils.FFromBytes(data, index);
+                        index += 4;
                     }
-                    if (((line.Flags & FlagsMag) == FlagsMag) && (index < data.Length - 6))
+                    if (((line.Flags & FlagsMag) == FlagsMag) && (index < data.Length - bytes_in_sensor))
                     {
-
+                        line.Mag_X = (double)Utils.FFromBytes(data, index);
+                        index += 4;
+                        line.Mag_Y = (double)Utils.FFromBytes(data, index);
+                        index += 4;
+                        line.Mag_Z = (double)Utils.FFromBytes(data, index);
+                        index += 4;
                     }
                     if (((line.Flags & FlagsBar) == FlagsBar) && (index < data.Length-4))
                     {
@@ -59,11 +88,49 @@ namespace VesperApp.Services
                         line.Pressure = (double)((UInt16)((UInt16)data[index] + (UInt16)((UInt16)data[index + 1] << 8)));
                         index += 2;
                     }
+                    csv_lines.Add(line.ToString());
+                }
+                else
+                {
+                    index++;
                 }
             }
         }
 
+        public void Dispose()
+        {
+            if (csv_lines != null)
+            {
+                csv_lines.Clear();
+                csv_lines = null;
+            }
+        }
+
+        public async void WriteFile()
+        {
+            if(csv_lines == null) { return; }
+            if(csv_lines.Count < 2) { return; }
+
+            try
+            {
+                string fname = Filename + ".csv";
+                if (File.Exists(fname) == true)
+                {
+                    File.Delete(fname);
+                }
+
+                await File.AppendAllLinesAsync(fname, csv_lines.ToArray());
+                IsOpened = true;
+            }
+            catch (Exception ex)
+            {
+                IsOpened = false;
+            }
+            IsOpened = false;            
+        }
     }
+
+
 
 
 
@@ -86,7 +153,7 @@ namespace VesperApp.Services
         public double Temperature { get; set; }
         public double Pressure { get; set; }
 
-        public string HeaderText()
+        public static string HeaderText()
         {
             return "Time,Acc X [mg],Acc Y [mg],Acc Z [mg],Gyro X [dps],Gyro Y [dps],Gyro Z [dps],Mag X [mGauss],Mag Y [mGauss],Mag Z [mGauss],Temperature [C],Bar Pressure [hPa]";
         }
@@ -107,7 +174,7 @@ namespace VesperApp.Services
                 Mag_X.ToString("F4") + "," +
                 Mag_Y.ToString("F4") + "," +
                 Mag_Z.ToString("F4") + "," +
-                Temperature.ToString("F2") +
+                Temperature.ToString("F2") + "," +
                 Pressure.ToString("F1");
         }
     }
