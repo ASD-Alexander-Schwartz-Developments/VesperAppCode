@@ -58,10 +58,20 @@
             "ComponentsUrl" = "8:"
                 "Items"
                 {
-                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.CoreRuntime.6.0.x64"
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.DesktopRuntime.8.0.Arm64"
                     {
-                    "Name" = "8:.NET Runtime 6.0.16 (x64)"
-                    "ProductCode" = "8:Microsoft.NetCore.CoreRuntime.6.0.x64"
+                    "Name" = "8:.NET Desktop Runtime 8.0.0 (Arm64)"
+                    "ProductCode" = "8:Microsoft.NetCore.DesktopRuntime.8.0.Arm64"
+                    }
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.DesktopRuntime.8.0.x64"
+                    {
+                    "Name" = "8:.NET Desktop Runtime 8.0.0 (x64)"
+                    "ProductCode" = "8:Microsoft.NetCore.DesktopRuntime.8.0.x64"
+                    }
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.DesktopRuntime.8.0.x86"
+                    {
+                    "Name" = "8:.NET Desktop Runtime 8.0.0 (x86)"
+                    "ProductCode" = "8:Microsoft.NetCore.DesktopRuntime.8.0.x86"
                     }
                 }
             }
@@ -90,10 +100,20 @@
             "ComponentsUrl" = "8:"
                 "Items"
                 {
-                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.CoreRuntime.6.0.x64"
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.DesktopRuntime.8.0.Arm64"
                     {
-                    "Name" = "8:.NET Runtime 6.0.14 (x64)"
-                    "ProductCode" = "8:Microsoft.NetCore.CoreRuntime.6.0.x64"
+                    "Name" = "8:.NET Desktop Runtime 8.0.0 (Arm64)"
+                    "ProductCode" = "8:Microsoft.NetCore.DesktopRuntime.8.0.Arm64"
+                    }
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.DesktopRuntime.8.0.x64"
+                    {
+                    "Name" = "8:.NET Desktop Runtime 8.0.0 (x64)"
+                    "ProductCode" = "8:Microsoft.NetCore.DesktopRuntime.8.0.x64"
+                    }
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.DesktopRuntime.8.0.x86"
+                    {
+                    "Name" = "8:.NET Desktop Runtime 8.0.0 (x86)"
+                    "ProductCode" = "8:Microsoft.NetCore.DesktopRuntime.8.0.x86"
                     }
                 }
             }
@@ -233,12 +253,12 @@
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
         "ProductVersion" = "8:1.0.10"
-        "Manufacturer" = "8:Vesper Pvt Ltd."
+        "Manufacturer" = "8:A.S.D"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
         "Title" = "8:Vesper App Setup"
         "Subject" = "8:"
-        "ARPCONTACT" = "8:Alex"
+        "ARPCONTACT" = "8:A.S.D"
         "Keywords" = "8:"
         "ARPCOMMENTS" = "8:"
         "ARPURLINFOABOUT" = "8:"
@@ -246,7 +266,7 @@
         "ARPIconIndex" = "3:0"
         "SearchPath" = "8:"
         "UseSystemSearchPath" = "11:TRUE"
-        "TargetPlatform" = "3:0"
+        "TargetPlatform" = "3:1"
         "PreBuildEvent" = "8:"
         "PostBuildEvent" = "8:"
         "RunPostBuildEvent" = "3:0"
@@ -779,7 +799,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_A547B31840C74F448DCBC757B010FA42"
             {
-            "SourcePath" = "8:..\\VesperApp\\obj\\Release\\net6.0\\apphost.exe"
+            "SourcePath" = "8:..\\VesperApp\\obj\\Debug\\net8.0\\apphost.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_19F0F7653F00439EB8F579545EACE798"

@@ -15,7 +15,6 @@ namespace VesperApp.Models
 
         public ConfigLeptonDriver() : base("LEPTON", "Lepton thermal camera")
         {
-            this.MemoryBufferSize = 9840;
             this.FileSize = 0;
         }
 

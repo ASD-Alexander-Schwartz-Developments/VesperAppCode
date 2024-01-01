@@ -11,7 +11,6 @@ namespace VesperApp.Models
     {
         public ConfigADS1115Driver() : base("ADS1115", "Low datarate analog to digital converter")
         {
-            this.MemoryBufferSize = 2 * 1024;
             this.FileSize = 1 * 1024 * 1024;
         }
 

@@ -16,7 +16,8 @@ namespace VesperApp.Models
         public const UInt32 BITMASK_GYRO_ON = 0x02;
         public const UInt32 BITMASK_MAG_ON = 0x04;
         public const UInt32 BITMASK_BAR_ON = 0x08;
-        public const UInt32 BITMASK_LP_ON = 0x10;
+        private const UInt32 IMU10_BITMASK_LED = 0x20;
+
 
         private bool isStartup = true;
         private ArrayList atts = new ArrayList();
@@ -25,18 +26,13 @@ namespace VesperApp.Models
         {
             this.imu_range = 0;
 
-            this.MemoryBufferSize = 4 * 1024 + 256;
             this.FileSize = 512 * 1024;
-
-            imu_sample_rate = new UInt32[3];
-
         }
 
         private UInt32 imu_range;
 
 
-        [TypeConverter(typeof(IMU10AccRanges)),
-        DisplayName("ACC Dynamic Range"),
+        [DisplayName("ACC Dynamic Range"),
         CategoryAttribute("IMU10 specific Settings"),
         Browsable(false)]
         [JsonPropertyName("imuRange")]
@@ -46,305 +42,26 @@ namespace VesperApp.Models
             set { this.imu_range = value; }
         }
 
-        private UInt32[] imu_sample_rate;
-
-        public override UInt32[] SampleRate
-        {
-            get
-            {
-                this.imu_sample_rate[1] = imu_sample_rate1;
-                this.imu_sample_rate[2] = imu_sample_rate2;
-                return this.imu_sample_rate;
-            }
-            set
-            {
-                this.imu_sample_rate = value;
-                imu_sample_rate1 = imu_sample_rate[1];
-                imu_sample_rate2 = imu_sample_rate[2];
-            }
-        }
-
-        private UInt32 imu_sample_rate1;
-        private UInt32 imu_sample_rate2;
-
-
-        [TypeConverter(typeof(IMU10SamplingRates)),
-        DisplayName("Sample Rate - Configuration 1"),
-        CategoryAttribute("IMU10 specific Settings")]
+        [Browsable(true)]
         [JsonIgnore]
-        public string ImuSampleRate
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Should LED indicate activity is this driver"),
+        DisplayName("LED Activity")]
+        public override bool IsLEDActive
         {
-            get
-            {
-                if (this.imu_sample_rate1 == 0)
-                    this.imu_sample_rate1 = 1;
-                return GetIMU10SampleRate(this.imu_sample_rate1);
-            }
+            get => ((Bitmask & IMU10_BITMASK_LED) == IMU10_BITMASK_LED);
             set
             {
-
-                if (imu_lp_mode)
-                {
-                    this.imu_sample_rate1 = 11;
-                    return;
-                }
-
-                switch (value)
-                {
-                    case IMU10SamplingRates.IMU10_R12:
-                        this.imu_sample_rate1 = 1;
-                        break;
-                    case IMU10SamplingRates.IMU10_R26:
-                        this.imu_sample_rate1 = 2;
-                        break;
-                    case IMU10SamplingRates.IMU10_R52:
-                        this.imu_sample_rate1 = 3;
-                        break;
-                    case IMU10SamplingRates.IMU10_R104:
-                        this.imu_sample_rate1 = 4;
-                        break;
-                    case IMU10SamplingRates.IMU10_R208:
-                        this.imu_sample_rate1 = 5;
-                        break;
-                    case IMU10SamplingRates.IMU10_R416:
-                        this.imu_sample_rate1 = 6;
-                        break;
-                    case IMU10SamplingRates.IMU10_R833:
-                        this.imu_sample_rate1 = 7;
-                        break;
-                    case IMU10SamplingRates.IMU10_R1666:
-                        this.imu_sample_rate1 = 8;
-                        break;
-                    case IMU10SamplingRates.IMU10_R3332:
-                        this.imu_sample_rate1 = 9;
-                        break;
-                    case IMU10SamplingRates.IMU10_R6664:
-                        this.imu_sample_rate1 = 10;
-                        break;
-                    default:
-                        this.imu_sample_rate1 = 1;
-                        ;
-                        break;
-                }
+                if (value == true)
+                    Bitmask |= IMU10_BITMASK_LED;
+                else
+                    Bitmask &= ~((UInt32)IMU10_BITMASK_LED);
             }
         }
 
-        [TypeConverter(typeof(IMU10SamplingRates)),
-        DisplayName("Sample Rate - Configuration 2"),
-        CategoryAttribute("IMU10 specific Settings")]
-        [JsonIgnore]
-        public string ImuSampleRate2
-        {
-            get
-            {
-                if (this.imu_sample_rate2 == 0)
-                    this.imu_sample_rate2 = 1;
-                return GetIMU10SampleRate(this.imu_sample_rate2);
-            }
-            set
-            {
-
-                //this.imu_sample_rate2 &= 0x0000FFFF;
-
-                if (imu_lp_mode)
-                {
-                    this.imu_sample_rate2 = 11;
-                    return;
-                }
-
-                switch (value)
-                {
-                    case IMU10SamplingRates.IMU10_R12:
-                        this.imu_sample_rate2 = 1;
-                        break;
-                    case IMU10SamplingRates.IMU10_R26:
-                        this.imu_sample_rate2 = 2;
-                        break;
-                    case IMU10SamplingRates.IMU10_R52:
-                        this.imu_sample_rate2 = 3;
-                        break;
-                    case IMU10SamplingRates.IMU10_R104:
-                        this.imu_sample_rate2 = 4;
-                        break;
-                    case IMU10SamplingRates.IMU10_R208:
-                        this.imu_sample_rate2 = 5;
-                        break;
-                    case IMU10SamplingRates.IMU10_R416:
-                        this.imu_sample_rate2 = 6;
-                        break;
-                    case IMU10SamplingRates.IMU10_R833:
-                        this.imu_sample_rate2 = 7;
-                        break;
-                    case IMU10SamplingRates.IMU10_R1666:
-                        this.imu_sample_rate2 = 8;
-                        break;
-                    case IMU10SamplingRates.IMU10_R3332:
-                        this.imu_sample_rate2 = 9;
-                        break;
-                    case IMU10SamplingRates.IMU10_R6664:
-                        this.imu_sample_rate2 = 10;
-                        break;
-                    default:
-                        this.imu_sample_rate2 = 1;
-                        ;
-                        break;
-                }
-            }
-        }
-
-        private string GetIMU10SampleRate(uint sr)
-        {
-            string tmp = "";
-
-            if (!imu_lp_mode && sr == 11)
-            {
-                imu_sample_rate1 = 1;
-                imu_sample_rate2 = 1;
-                sr = 1;
-            }
-
-            switch (sr)
-            {
-                case 1:
-                    tmp = IMU10SamplingRates.IMU10_R12;
-                    break;
-                case 2:
-                    tmp = IMU10SamplingRates.IMU10_R26;
-                    break;
-                case 3:
-                    tmp = IMU10SamplingRates.IMU10_R52;
-                    break;
-                case 4:
-                    tmp = IMU10SamplingRates.IMU10_R104;
-                    break;
-                case 5:
-                    tmp = IMU10SamplingRates.IMU10_R208;
-                    break;
-                case 6:
-                    tmp = IMU10SamplingRates.IMU10_R416;
-                    break;
-                case 7:
-                    tmp = IMU10SamplingRates.IMU10_R833;
-                    break;
-                case 8:
-                    tmp = IMU10SamplingRates.IMU10_R1666;
-                    break;
-                case 9:
-                    tmp = IMU10SamplingRates.IMU10_R3332;
-                    break;
-                case 10:
-                    tmp = IMU10SamplingRates.IMU10_R6664;
-                    break;
-                case 11:
-                    tmp = "1Hz";
-                    break;
-                default:
-                    tmp = IMU10SamplingRates.IMU10_R12;
-                    break;
-            }
-
-            return tmp;
-        }
-
-        //[DisplayName("Sample Rate - Configuration 1"),
-        //CategoryAttribute("IMU10 specific Settings")]
-        //[JsonIgnore]
-        //[PropertyOrder(1)]
-        //[PropertyAttributesProvider("UnhiddenAttributeProvider")]
-        //[ReadOnly(true)]
-        //public string ImuLPSampleRate1
-        //{
-        //    get
-        //    {
-        //        imu_sample_rate1 = 10;
-        //        imu_sample_rate2 = 10;
-        //        return "1Hz";
-        //    }
-        //}
-
-        //[DisplayName("Sample Rate - Configuration 2"),
-        //CategoryAttribute("IMU10 specific Settings")]
-        //[JsonIgnore]
-        //[PropertyOrder(1)]
-        //[PropertyAttributesProvider("UnhiddenAttributeProvider")]
-        //[ReadOnly(true)]
-        //public string ImuLPSampleRate2
-        //{
-        //    get
-        //    {
-        //        imu_sample_rate1 = 10;
-        //        imu_sample_rate2 = 10;
-        //        return "1Hz";
-        //    }
-        //}
-
-
-
-
-        private bool imu_lp_mode;
-
-#if false
-        [TypeConverter(typeof(IMU10SamplingModes)),
-        DisplayName("Sampling Modes"),
-        CategoryAttribute("IMU10 specific Settings")]
-        [JsonIgnore]
-        public string ImuLowPower
-        {
-            get
-            {
-                //Console.WriteLine("LP get");
-
-                if (imu_lp_mode || ((this.bitmask & BITMASK_LP_ON) == BITMASK_LP_ON))
-                {
-                    imu_lp_mode = true;
-                    MagON = false;
-                    GyroON = false;
-                    imu_sample_rate1 = 11;
-                    imu_sample_rate2 = 11;
-
-                    if (isStartup)
-                    {
-                        while (atts.Count > 0)
-                        {
-                            //ReadOnlyAttributeProvider((MyConfigGridTypeConverter.PropertyAttributes)atts[0]);
-
-                            atts.RemoveAt(0);
-                        }
-                        //string tmp;
-                        //tmp = ImuLPSampleRate1;
-                        //tmp = ImuLPSampleRate2;
-
-                        isStartup = false;
-                    }
-
-                    return IMU10SamplingModes.IMU10_LP;
-                }
-                return IMU10SamplingModes.IMU10_NP;
-            }
-            set
-            {
-                //Console.WriteLine("LP set");
-
-                switch (value)
-                {
-                    case IMU10SamplingModes.IMU10_NP:
-                        {
-                            imu_lp_mode = false;
-                            this.bitmask &= ~(BITMASK_LP_ON);
-                        }
-                        break;
-                    case IMU10SamplingModes.IMU10_LP:
-                        {
-                            imu_lp_mode = true;
-                            this.bitmask |= BITMASK_LP_ON;
-                        }
-                        break;
-                }
-            }
-        }
-#endif
 
         [DisplayName("Enable BAR"),
+        Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
         DescriptionAttribute("Enable Barometer sensor inside IMU10 module")]
         [JsonIgnore]
@@ -368,6 +85,7 @@ namespace VesperApp.Models
         }
 
         [DisplayName("Enable ACC"),
+        Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
         DescriptionAttribute("Enable Accelerometer sensor inside IMU10 module")]
         [JsonIgnore]
@@ -391,6 +109,7 @@ namespace VesperApp.Models
         }
 
         [DisplayName("Enable GYRO"),
+        Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
         DescriptionAttribute("Enable Gyro sensor inside IMU10 module")]
         [JsonIgnore]
@@ -414,6 +133,7 @@ namespace VesperApp.Models
         }
 
         [DisplayName("Enable Magnetometer"),
+        Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
         DescriptionAttribute("Enable Magnetometer sensor inside IMU10 module")]
         [JsonIgnore]
@@ -436,116 +156,73 @@ namespace VesperApp.Models
             }
         }
 
-        [TypeConverter(typeof(IMU10AccRanges)),
-        DisplayName("ACC Dynamic Range"),
+        [DisplayName("ACC Dynamic Range"),
+        Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
         DescriptionAttribute("Choose dynamic range for accelerometer sensor (in G)")]
         [JsonIgnore]
-        public string AccRange
+        public IMU10AccRanges AccRange
         {
             get
             {
-                string tmp = "";
-                switch (((UInt16)((this.imu_range >> 16) & 0xFFFF)))
-                {
-                    case 0:
-                        tmp = IMU10AccRanges.IMU10_G2;
-                        break;
-                    case 1:
-                        tmp = IMU10AccRanges.IMU10_G4;
-                        break;
-                    case 2:
-                        tmp = IMU10AccRanges.IMU10_G8;
-                        break;
-                    case 3:
-                        tmp = IMU10AccRanges.IMU10_G16;
-                        break;
-                    default:
-                        tmp = IMU10AccRanges.IMU10_G2;
-                        break;
-                }
-
-                return tmp;
+                return IMU10AccRanges.CreateFromValue((UInt16)((this.imu_range >> 16) & 0xFFFF));
             }
             set
             {
                 this.imu_range &= 0x0000FFFF;
 
-                switch (value)
+                switch (value.Value)
                 {
-                    case IMU10AccRanges.IMU10_G2:
-                        this.imu_range |= (0 << 16);
+                    case IMU10AccRanges.IMU10_G2N:
+                        this.imu_range |= (IMU10AccRanges.IMU10_G2N << 16);
                         break;
-                    case IMU10AccRanges.IMU10_G4:
-                        this.imu_range |= (1 << 16);
+                    case IMU10AccRanges.IMU10_G4N:
+                        this.imu_range |= (IMU10AccRanges.IMU10_G4N << 16);
                         break;
-                    case IMU10AccRanges.IMU10_G8:
-                        this.imu_range |= (2 << 16);
+                    case IMU10AccRanges.IMU10_G8N:
+                        this.imu_range |= (IMU10AccRanges.IMU10_G8N << 16);
                         break;
-                    case IMU10AccRanges.IMU10_G16:
-                        this.imu_range |= (3 << 16);
+                    case IMU10AccRanges.IMU10_G16N:
+                        this.imu_range |= (IMU10AccRanges.IMU10_G16N << 16);
                         break;
                     default:
-                        this.imu_range |= (0 << 16);
+                        this.imu_range |= (IMU10AccRanges.IMU10_G2N << 16);
                         break;
                 }
             }
         }
 
-        [TypeConverter(typeof(IMU10GyroRanges)),
-        DisplayName("GYRO Dynamic Range"),
+        [DisplayName("GYRO Dynamic Range"),
+        Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
         DescriptionAttribute("Choose dynamic range for gyro sensor (in degrees / second)")]
         [JsonIgnore]
-        public string GyroRange
+        public IMU10GyroRanges GyroRange
         {
             get
             {
-                string tmp = "";
-                switch (((UInt16)((this.imu_range) & 0xFFFF)))
-                {
-                    case 0:
-                        tmp = IMU10GyroRanges.IMU10_D125;
-                        break;
-                    case 1:
-                        tmp = IMU10GyroRanges.IMU10_D250;
-                        break;
-                    case 2:
-                        tmp = IMU10GyroRanges.IMU10_D500;
-                        break;
-                    case 3:
-                        tmp = IMU10GyroRanges.IMU10_D1000;
-                        break;
-                    case 4:
-                        tmp = IMU10GyroRanges.IMU10_D2000;
-                        break;
-                    default:
-                        tmp = IMU10GyroRanges.IMU10_D125;
-                        break;
-                }
-
-                return tmp;
+                return IMU10GyroRanges.CreateFromValue((UInt16)((this.imu_range) & 0xFFFF));
             }
             set
             {
                 this.imu_range &= 0xFFFF0000;
 
-                switch (value)
+                switch (value.Value)
                 {
-                    case IMU10GyroRanges.IMU10_D125:
-                        this.imu_range |= (0);
+                    case IMU10GyroRanges.IMU10_D125N:
+                        this.imu_range |= (IMU10GyroRanges.IMU10_D125N);
                         break;
-                    case IMU10GyroRanges.IMU10_D250:
-                        this.imu_range |= (1);
+                    case IMU10GyroRanges.IMU10_D250N:
+                        this.imu_range |= (IMU10GyroRanges.IMU10_D250N);
                         break;
-                    case IMU10GyroRanges.IMU10_D500:
-                        this.imu_range |= (2);
+                    case IMU10GyroRanges.IMU10_D500N:
+                        this.imu_range |= (IMU10GyroRanges.IMU10_D500N);
                         break;
-                    case IMU10GyroRanges.IMU10_D1000:
-                        this.imu_range |= (3);
+                    case IMU10GyroRanges.IMU10_D1000N:
+                        this.imu_range |= (IMU10GyroRanges.IMU10_D1000N);
                         break;
-                    case IMU10GyroRanges.IMU10_D2000:
-                        this.imu_range |= (4);
+                    case IMU10GyroRanges.IMU10_D2000N:
+                        this.imu_range |= (IMU10GyroRanges.IMU10_D2000N);
                         break;
                     default:
                         this.imu_range |= (0 << 16);
@@ -553,123 +230,144 @@ namespace VesperApp.Models
                 }
             }
         }
-
     }
 
 
 
 
-    public class IMU10AccRanges : StringConverter
+    public class IMU10AccRanges
     {
+        public const ushort IMU10_G2N = 0;
+        public const ushort IMU10_G4N = 1;
+        public const ushort IMU10_G8N = 2;
+        public const ushort IMU10_G16N = 3;
+
         public const string IMU10_G2 = "±2g";
         public const string IMU10_G4 = "±4g";
         public const string IMU10_G8 = "±8g";
         public const string IMU10_G16 = "±16g";
 
-        public override bool GetStandardValuesSupported(
-                           ITypeDescriptorContext ? context)
+        private static readonly string[] listOfConstants = { IMU10_G2, IMU10_G4, IMU10_G8, IMU10_G16 };
+
+        public static string[] ListOfLength
         {
-            return true;
+            get => listOfConstants;
+        }
+
+        public static IMU10AccRanges CreateFromValue(ushort v)
+        {
+            return new IMU10AccRanges(v);
         }
 
 
-        public override StandardValuesCollection
-                     GetStandardValues(ITypeDescriptorContext ? context)
+        public IMU10AccRanges(ushort value)
         {
-            return new StandardValuesCollection(new string[] {
-                IMU10_G2,
-                IMU10_G4,
-                IMU10_G8,
-                IMU10_G16});
-        }
-    }
-
-    public class IMU10SamplingRates : StringConverter
-    {
-        public const string IMU10_R12 = "12.5Hz";
-        public const string IMU10_R26 = "26Hz";
-        public const string IMU10_R52 = "52Hz";
-        public const string IMU10_R104 = "104Hz";
-        public const string IMU10_R208 = "208Hz";
-        public const string IMU10_R416 = "416Hz";
-        public const string IMU10_R833 = "833Hz";
-        public const string IMU10_R1666 = "1666Hz";
-        public const string IMU10_R3332 = "3332Hz";
-        public const string IMU10_R6664 = "6664Hz";
-
-
-        public override bool GetStandardValuesSupported(
-                           ITypeDescriptorContext ? context)
-        {
-            return true;
+            this.value = value;
         }
 
 
-        public override StandardValuesCollection
-                     GetStandardValues(ITypeDescriptorContext ? context)
+        private ushort value;
+
+        public ushort Value
         {
-            return new StandardValuesCollection(new string[] {
-                IMU10_R12,
-                IMU10_R26,
-                IMU10_R52,
-                IMU10_R104,
-                IMU10_R208,
-                IMU10_R416,
-                IMU10_R833,
-                IMU10_R1666,
-                IMU10_R3332,
-                IMU10_R6664
-            });
+            get => value;
+            set => this.value = value;
+        }
+
+        public override string ToString()
+        {
+            string r = IMU10_G2;
+
+            if (value == IMU10_G4N)
+            {
+                r = IMU10_G4;
+            }
+            else if (value == IMU10_G8N)
+            {
+                r = IMU10_G8;
+            }
+            else if (value == IMU10_G16N)
+            {
+                r = IMU10_G16;
+            }
+            else
+            {
+                value = IMU10_G2N;
+            }
+
+            return r;
         }
     }
 
-    public class IMU10SamplingModes : StringConverter
+
+    public class IMU10GyroRanges
     {
-        public const string IMU10_LP = "Low power mode";
-        public const string IMU10_NP = "Normal power mode";
+        public const ushort IMU10_D125N = 0;
+        public const ushort IMU10_D250N = 1;
+        public const ushort IMU10_D500N = 2;
+        public const ushort IMU10_D1000N = 3;
+        public const ushort IMU10_D2000N = 4;
 
-        public override bool GetStandardValuesSupported(
-                           ITypeDescriptorContext ? context)
-        {
-            return true;
-        }
-
-
-        public override StandardValuesCollection
-                     GetStandardValues(ITypeDescriptorContext ? context)
-        {
-            return new StandardValuesCollection(new string[] {
-                IMU10_LP,
-                IMU10_NP
-            });
-        }
-    }
-
-    public class IMU10GyroRanges : StringConverter
-    {
         public const string IMU10_D125 = "±125dps";
         public const string IMU10_D250 = "±250dps";
         public const string IMU10_D500 = "±500dps";
         public const string IMU10_D1000 = "±1000dps";
         public const string IMU10_D2000 = "±2000dps";
 
-        public override bool GetStandardValuesSupported(
-                           ITypeDescriptorContext ? context)
+        private static readonly string[] listOfConstants = { IMU10_D125, IMU10_D250, IMU10_D500, IMU10_D1000, IMU10_D2000 };
+
+        public static string[] ListOfLength
         {
-            return true;
+            get => listOfConstants;
+        }
+
+        public static IMU10GyroRanges CreateFromValue(ushort v)
+        {
+            return new IMU10GyroRanges(v);
         }
 
 
-        public override StandardValuesCollection
-                     GetStandardValues(ITypeDescriptorContext ? context)
+        public IMU10GyroRanges(ushort value)
         {
-            return new StandardValuesCollection(new string[] {
-                IMU10_D125,
-                IMU10_D250,
-                IMU10_D500,
-                IMU10_D1000,
-                IMU10_D2000});
+            this.value = value;
         }
+
+
+        private ushort value;
+
+        public ushort Value
+        {
+            get => value;
+            set => this.value = value;
+        }
+
+        public override string ToString()
+        {
+            string r = IMU10_D125;
+
+            if (value == IMU10_D250N)
+            {
+                r = IMU10_D250;
+            }
+            else if (value == IMU10_D500N)
+            {
+                r = IMU10_D500;
+            }
+            else if (value == IMU10_D1000N)
+            {
+                r = IMU10_D1000;
+            }
+            else if (value == IMU10_D2000N)
+            {
+                r = IMU10_D2000;
+            }
+            else
+            {
+                value = IMU10_D125N;
+            }
+
+            return r;
+        }
+
     }
-
 }

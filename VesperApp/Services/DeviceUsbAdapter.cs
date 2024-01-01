@@ -308,7 +308,9 @@ namespace VesperApp.Services
                         byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER,
                             0, new byte[0], 0);
                         this._serialPort.Write(buffer, 0, buffer.Length);
-                        Thread.Sleep(30);
+                        
+                        await Task.Delay(75);
+
                         buffer = new byte[16];
                         if (this._serialPort.Read(buffer, 0, buffer.Length) >= 8)
                         {

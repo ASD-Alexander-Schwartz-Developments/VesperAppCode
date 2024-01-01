@@ -116,7 +116,7 @@ namespace VesperApp.Models
 								sConfiguration.devices_list[i].sampleRate1 = config.DeviceDrivers[i].SampleRate[1];
 								sConfiguration.devices_list[i].sampleRate2 = config.DeviceDrivers[i].SampleRate[2];
 								sConfiguration.devices_list[i].controlBitmask = config.DeviceDrivers[i].Bitmask;
-								sConfiguration.devices_list[i].memorySize = config.DeviceDrivers[i].MemoryBufferSize;
+								///sConfiguration.devices_list[i].memorySize = config.DeviceDrivers[i].MemoryBufferSize;	/// deprecated
 								sConfiguration.devices_list[i].RawData1 = config.DeviceDrivers[i].RawData1;
 								sConfiguration.devices_list[i].RawData2 = config.DeviceDrivers[i].RawData2;
 								sConfiguration.devices_list[i].RawData3 = config.DeviceDrivers[i].RawData3;

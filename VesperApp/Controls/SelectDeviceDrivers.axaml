@@ -2,15 +2,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
+             mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="300"
  	         xmlns:vm="using:VesperApp.ViewModels"
 			 xmlns:m="using:VesperApp.Models"
 			 xmlns:c="using:VesperApp.Controls"
              x:Class="VesperApp.Controls.SelectDeviceDrivers"
-			 MinHeight="300" MaxWidth="450">
+			 MinHeight="300" MaxWidth="465">
 	<DockPanel HorizontalAlignment="Left" VerticalAlignment="Stretch">
 		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch" DockPanel.Dock="Left">
-			<Border BorderBrush="Black" BorderThickness="1" VerticalAlignment="Stretch">
+			<Border BorderThickness="3" VerticalAlignment="Stretch" BorderBrush="#909090">
 				<ListBox ItemsSource="{Binding DeviceDriversCollection}"
 							x:Name="listSupportedDeviceDriversList"
 							Margin="1,1,1,1"
@@ -22,7 +22,6 @@
 							MaxWidth="450"
 							HorizontalAlignment="Stretch"
 							VerticalAlignment="Stretch"
-							Background="{DynamicResource ThemeControlMidHighBrush}"
 							ScrollViewer.HorizontalScrollBarVisibility="Disabled" >
 					<ListBox.ItemTemplate>
 						<DataTemplate DataType="m:ConfigurationDeviceDriver">
@@ -32,14 +31,14 @@
 									<ColumnDefinition Width="2*" />
 								</Grid.ColumnDefinitions>
 								<CheckBox Grid.Column="0" 
-											Margin="1"
+											Margin="0,0,0,1"
 											IsChecked="{Binding IsChecked}"
 											Content="{Binding Name}"
 											VerticalAlignment="Center"/>
 								<TextBlock Grid.Column="1"
-										    Margin="1"
+										    Margin="1,0,0,0"
 											Text="{Binding Description}"
-										TextWrapping="WrapWithOverflow"
+											TextWrapping="WrapWithOverflow"
 											TextAlignment="Left"
 											VerticalAlignment="Center"/>
 									
@@ -53,6 +52,7 @@
 					<Setter Property="Width" Value="200"/>
 					<Setter Property="Height" Value="30"/>-->
 							<Setter Property="HorizontalAlignment" Value="Stretch"/>
+							<Setter Property="FontSize" Value="10"/>
 						</Style>
 					</ListBox.Styles>
 				</ListBox>

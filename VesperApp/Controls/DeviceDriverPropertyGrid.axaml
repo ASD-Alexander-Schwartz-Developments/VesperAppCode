@@ -14,7 +14,7 @@
 
 	<DockPanel Margin="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 		<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-			<Border BorderBrush="{DynamicResource ThemeBorderMidBrush}" BorderThickness="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+			<Border BorderThickness="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 				<DataGrid ItemsSource="{Binding PropertiesView}"
 					BorderThickness="1"
 					RowBackground="Transparent"

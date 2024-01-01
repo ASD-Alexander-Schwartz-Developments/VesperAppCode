@@ -229,24 +229,6 @@ namespace VesperApp.Models
         }
 
 
-
-
-
-        [JsonPropertyName("memorySize")]
-        [Browsable(true)]
-        [CategoryAttribute("Advanced configuration"),
-        DescriptionAttribute("Size (in Bytes) of memory buffer containing sensor samples"),
-        DisplayName("Memory Size")]
-        public virtual UInt32 MemoryBufferSize
-        {
-            get { return this.mem_size; }
-            set 
-            { 
-                this.mem_size = value;
-                OnPropertyChanged();
-            }
-        }
-
         [JsonPropertyName("fileSize")]
         [Browsable(true)]
         [CategoryAttribute("Advanced configuration"),
@@ -254,10 +236,14 @@ namespace VesperApp.Models
         DisplayName("File Size")]
         public virtual UInt32 FileSize
         {
-            get { return this.file_size; }
-            set 
+            get 
             { 
-                this.file_size = value;
+                return this.file_size; 
+            }
+            set 
+            {
+                UInt32 fixed_size = value / 4;
+                this.file_size = fixed_size * 4;
                 OnPropertyChanged();
             }
         }

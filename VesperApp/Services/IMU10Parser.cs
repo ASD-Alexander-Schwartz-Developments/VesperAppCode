@@ -162,7 +162,7 @@ namespace VesperApp.Services
         {
             if (Header != 0x55) return "Bad Row";
 
-            string dt = Timestamp.ToShortDateString() + Timestamp.ToString("HH:mm:ss.FFF");
+            string dt = Timestamp.ToShortDateString() + " " + Timestamp.ToString("HH:mm:ss.FFF");
 
             return dt + "," +
                 XL_X.ToString("F4") + "," +

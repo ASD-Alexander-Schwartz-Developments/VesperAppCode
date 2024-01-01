@@ -14,17 +14,22 @@ namespace VesperApp.ViewModels
     {
         private readonly object _target;
         private Type ? _type;
+        private Type? _convertToType;
         private object ? _value;
         //private string _priority;
         private string _group;
+        private bool _visible;
 
         public DriverPropertyViewModel(object o, PropertyInfo property)
         {
             _target = o;
+            _visible = false;
             Property = property;
             _group = "General Properties";
             Name = property.Name;
             Description = "";
+            _convertToType = null;
+
             object[] attrs = property.GetCustomAttributes(true);
             foreach (object attr in attrs)
             {
@@ -47,10 +52,18 @@ namespace VesperApp.ViewModels
                 }
             }
 
+
+            TypeConverterAttribute? converterAttr = property.GetCustomAttribute<TypeConverterAttribute>(true);
+            if(converterAttr != null)
+            {
+                _convertToType = Type.GetType(converterAttr.ConverterTypeName);
+            }
+
             BrowsableAttribute? visibleAttr = property.GetCustomAttribute<BrowsableAttribute>(true);
             if(visibleAttr != null)
             {
                 Debug.WriteLine(property.Name + " " + visibleAttr.Browsable.ToString());
+                _visible = visibleAttr.Browsable;
             }
 
             _type = property.PropertyType;
@@ -63,6 +76,7 @@ namespace VesperApp.ViewModels
         public override object Key => Property;
         public override string Name { get; }
 
+        public Type? ConvertToType => _convertToType;
         public override string Description { get; }
 
         //public bool IsAttached => Property.PropertyType.is;
@@ -98,8 +112,13 @@ namespace VesperApp.ViewModels
                     //this.RaiseAndSetIfChanged(ref _type, _value?.GetType());
 
                     //var convertedValue = ConvertFromString(value, Property.PropertyType);
-                    Property.SetValue(_target, _value);
-                    //_target.SetValue(Property, convertedValue);
+                    if (_value is not null)
+                    {
+                        Property.SetValue(_target, _value);
+                        //_target.SetValue(Property, convertedValue);
+
+                        Debug.WriteLine(value!.ToString());
+                    }
                 }
                 catch { }
             }

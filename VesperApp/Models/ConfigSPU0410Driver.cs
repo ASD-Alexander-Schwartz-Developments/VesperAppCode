@@ -13,7 +13,6 @@ namespace VesperApp.Models
 
         public ConfigSPU0410Driver() : base("SPU0410", "Ultrasonic microphone recording")
         {
-            this.MemoryBufferSize = 60 * 1024;
             this.FileSize = 4 * 1024 * 1024;
         }
 

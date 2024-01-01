@@ -29,8 +29,7 @@ namespace VesperApp.Models
 
         public ConfigSPH0641Driver() : base("SPH0641", "Vesper/Pipistrelle V4 Ultrasonic microphone recording")
         {
-            this.MemoryBufferSize = 63 * 1024;
-            this.FileSize = MemoryBufferSize*512;
+            this.FileSize = 8 * 1024 * 1024;
         }
 
 

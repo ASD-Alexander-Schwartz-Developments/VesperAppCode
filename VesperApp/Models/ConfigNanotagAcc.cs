@@ -11,7 +11,6 @@ namespace VesperApp.Models
         public const UInt32 BITMASK_NANOTAGACC_GPSTRIGGER = 0x80000000;
         public ConfigNanotagAcc() : base("NANOACC", "Nanotag on board Accelerometer")
         {
-            this.MemoryBufferSize = 0;
             this.FileSize = 0;
         }
 
@@ -20,13 +19,6 @@ namespace VesperApp.Models
         {
             get { return this.file_size; }
             set { this.file_size = value; }
-        }
-
-        [Browsable(false)]
-        public override UInt32 MemoryBufferSize
-        {
-            get { return this.mem_size; }
-            set { this.mem_size = value; }
         }
 
 

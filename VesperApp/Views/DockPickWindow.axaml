@@ -31,14 +31,13 @@
 			
 				<ListBox.ItemTemplate>
 					<DataTemplate DataType="m:DockDeviceInfo">
-						<Border Background="AliceBlue" CornerRadius="4" Padding="7">
+						<Border CornerRadius="4" Padding="7">
 							<StackPanel HorizontalAlignment="Stretch">
 								<TextBlock Padding="3" Text="{Binding Id, StringFormat='S/N: {0}'}"/>
 								<TextBlock Padding="3" Text="{Binding Text, StringFormat='Name: {0}'}"/>
 								<TextBlock Padding="3" Text="{Binding Description, StringFormat='Description: {0}'}"/>
 							</StackPanel>
 						</Border>
-					
 					</DataTemplate>
 				</ListBox.ItemTemplate>
 			</ListBox>

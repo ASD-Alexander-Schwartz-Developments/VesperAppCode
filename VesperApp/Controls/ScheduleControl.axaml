@@ -5,13 +5,13 @@
 	         xmlns:vm="using:VesperApp.ViewModels"
 			 xmlns:m="using:VesperApp.Models"
 			 xmlns:c="using:VesperApp.Controls"
-             mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="340"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="340"
              x:Class="VesperApp.Controls.ScheduleControl"
-			 MinHeight="340" BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderMidBrush}">
+			 MinHeight="340" MaxWidth="800" BorderThickness="1">
 
 	
 	<DockPanel Margin="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-		<StackPanel Background="{DynamicResource ThemeControlMidHighBrush}" Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
+		<StackPanel Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
 			<Label Margin="20,10" Content="Select Schedule Type" VerticalAlignment="Center"/>
 			<ComboBox x:Name="comboScheduleType"
 					  SelectedIndex="0" Margin="1"
@@ -74,9 +74,9 @@
 			</StackPanel>
 		</StackPanel>
 
-		<StackPanel Margin="1,10,30,0" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="265" DockPanel.Dock="Left">
+		<StackPanel Margin="1,10,30,0" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Stretch" MinWidth="265" DockPanel.Dock="Left">
 			<Label Content="Operating Schedule Alarms"/>
-			<Border BorderBrush="AntiqueWhite" BorderThickness="1">
+			<Border BorderThickness="1">
 			<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 			<ListBox ItemsSource="{Binding ScheduleEventsList}" 
 					 x:Name="listScheduleEventsList" 
@@ -86,8 +86,7 @@
 					 MinWidth="260"
 					 MinHeight="200"
 					 HorizontalAlignment="Stretch"
-					 VerticalAlignment="Stretch"
-					 Background="{DynamicResource ThemeControlMidHighBrush}">
+					 VerticalAlignment="Stretch">
 				<ListBox.ItemTemplate>
 					<DataTemplate DataType="m:ConfigScheduleJSONItem">
 						<Grid>
@@ -95,8 +94,8 @@
 								<ColumnDefinition Width="*" />
 							</Grid.ColumnDefinitions>
 							<StackPanel Margin="1,1,1,1" Orientation="Horizontal" Spacing="5">
-								<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontFamily="Lato" FontSize="12" />
-								<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontFamily="Lato" FontSize="12" />
+								<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontFamily="Lato" FontSize="14" />
+								<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontFamily="Lato" FontSize="14" />
 							</StackPanel>
 						</Grid>
 					</DataTemplate>

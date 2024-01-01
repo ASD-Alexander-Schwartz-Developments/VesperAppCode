@@ -12,10 +12,7 @@ namespace VesperApp.Models
 
         public ConfigATLASDriver() : base("ATLAS", "ATLAS system trasceiver")
         {
-
-            this.MemoryBufferSize = 0;
             this.FileSize = 0;
-
         }
 
 
@@ -26,12 +23,6 @@ namespace VesperApp.Models
             set { this.file_size = value; }
         }
 
-        [Browsable(false)]
-        public override UInt32 MemoryBufferSize
-        {
-            get { return this.mem_size; }
-            set { this.mem_size = value; }
-        }
 
         private UInt32 pingRate;
 

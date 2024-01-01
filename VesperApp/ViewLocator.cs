@@ -16,7 +16,6 @@ namespace VesperApp
             {
                 type = Type.GetType(name);
             }
-            
 
             if (type is not null)
             {

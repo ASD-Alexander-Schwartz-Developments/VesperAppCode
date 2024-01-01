@@ -7,18 +7,22 @@
         <local:ViewLocator/>
     </Application.DataTemplates>
 
-    <Application.Styles>
+	<Application.Resources>
+		<FontFamily x:Key="NunitoFont">avares://GoogleFonts/Assets/Fonts#Assistant</FontFamily>
+	</Application.Resources>
+
+	<Application.Styles>
 		<FluentTheme/>
 		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
 		<StyleInclude Source="avares://VesperApp/Assets/FluentUiIcons_Filled.xaml"/>
 		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
 
 		<Style Selector="Window">
-			<Setter Property="FontFamily" Value="Open Sans" />
-			<Setter Property="FontSize" Value="10"/>
-			<!--<Setter Property="HasSystemDecorations" Value="true" />-->
+			<Setter Property="FontFamily" Value="Assistant" />
+			<Setter Property="FontSize" Value="12"/>
 		</Style>
-
+		
+		<!--
 		<Style Selector=":is(Control)">
 			<Setter Property="Focusable" Value="false"/>
 		</Style>
@@ -27,14 +31,15 @@
 			<Setter Property="FontFamily" Value="Lato" />
 			<Setter Property="FontSize" Value="12"/>
 		</Style>
-
+-->
 
 		<Style Selector="Button">
-			<Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderMidBrush}" />
-			<Setter Property="Background" Value="{DynamicResource ThemeControlHighBrush}" />
-			<Setter Property="FontSize" Value="11"/>
+			<!--<Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderMidBrush}" />-->
+			<!--<Setter Property="Background" Value="{DynamicResource ThemeControlHighBrush}" />-->
+			<!--<Setter Property="FontSize" Value="11"/>-->
 		</Style>
 
+		<!--
 		<Style Selector="Button:pointerover /template/ ContentPresenter">
 			<Setter Property="BorderBrush" Value="{DynamicResource ThemeButtonEnabledBrush}"/>
 		</Style>
@@ -53,7 +58,6 @@
 
 		<Style Selector="ComboBox">
 			<Setter Property="Cursor" Value="Hand" />
-			<Setter Property="Background" Value="{DynamicResource ThemeControlHighBrush}" />
 			<Setter Property="FontSize" Value="11"/>
 		</Style>
 
@@ -71,18 +75,18 @@
 		<Style Selector="TextBlock.DockControls">
 			<Setter Property="FontSize" Value="10"/>
 		</Style>
-
+-->
 		<Style Selector="ListBoxItem">
-			<Setter Property="FontSize" Value="10"/>
+			<!--<Setter Property="FontSize" Value="10"/>-->
 		</Style>
-
+<!--
 		<Style Selector="TextBlock.tbTabHeader">
 			<Setter Property="FontSize" Value="12"/>
 			<Setter Property="FontWeight" Value="Bold"/>
 			<Setter Property="Margin" Value="5"/>
-			<Setter Property="Padding" Value="0,10,0,10"/>
+			<Setter Property="Padding" Value="10"/>
 		</Style>
-		
+-->
 
 		<Style Selector="StackPanel.collapseAnimation">
 			<Setter Property="Transitions">
@@ -93,7 +97,7 @@
 		</Style>
 
 		<Style Selector="StackPanel.stlToolbar">
-			<Setter Property="Background" Value="#2B579A"/>	<!--Blueish-->
+			<Setter Property="Background" Value="#2B579A"/>
 			<Setter Property="Transitions">
 				<Transitions>
 					<DoubleTransition Property="Opacity" Duration="0:0:0.2" />
@@ -102,55 +106,58 @@
 		</Style>
 
 
-
-		<Style Selector="ToolTip">
-			<Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
-		</Style>
-
 		<Style Selector="NumericUpDown">
 			<Setter Property="TextInputOptions.ContentType" Value="Digits" />
 		</Style>
-
-
-
+		
+		
+		<!--
 		<Style Selector="TabControl">
 			<Setter Property="Background" Value="#F0F0F0"/>
-		</Style>
+		</Style>-->
+		
 		<Style Selector="TabControl WrapPanel">
 			<Setter Property="Background" Value="#2B579A"/>
+			<Setter Property="Margin" Value="0,0,0,0"/>
 		</Style>
 
 		<Style Selector="TabItem">
-			<Setter Property="FontSize" Value="10"/>
-			<Setter Property="Height" Value="34"/>
-			<Setter Property="VerticalAlignment" Value="Center"/>
-			<Setter Property="Background" Value="#2B579A"/>
-			<Setter Property="Foreground" Value="#F0F0F0"/>
+			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<!--<Setter Property="Height" Value="34"/>-->
+			<Setter Property="VerticalAlignment" Value="Stretch"/>
+			<!--><Setter Property="Background" Value="#2B579A"/>-->
+			<Setter Property="Foreground" Value="#909090"/>
 			<Setter Property="Margin" Value="0 0 0 0"/>
-			<Setter Property="Padding" Value="10 0"/>
+			<Setter Property="Padding" Value="20"/>
 		</Style>
 
 		<Style Selector="TabItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-			<Setter Property="Background" Value="#124078"/>
+			<Setter Property="Foreground" Value="#124078"/>
 		</Style>
 
 		<Style Selector="TabItem:focus">
-			<Setter Property="Foreground" Value="#2B579A"/>
+			<Setter Property="Foreground" Value="#F0F0F0"/>
 			<Setter Property="Margin" Value="0 0 0 0"/>
-			<Setter Property="Padding" Value="10 0"/>
+			<Setter Property="Padding" Value="20"/>
 		</Style>
 		<Style Selector="TabItem:focus /template/ ContentPresenter#PART_ContentPresenter">
-			<Setter Property="Background" Value="#f0f0f0"/>
+			<!--<Setter Property="Background" Value="#f0f0f0"/>-->
 		</Style>
 
 		<Style Selector="TabItem:selected">
-			<Setter Property="Foreground" Value="#2B579A"/>
+			<Setter Property="Foreground" Value="#F0F0F0"/>
 			<Setter Property="Margin" Value="0 0 0 0"/>
-			<Setter Property="Padding" Value="10 0"/>
+			<Setter Property="Padding" Value="20"/>
 		</Style>
 		<Style Selector="TabItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-			<Setter Property="Background" Value="#f0f0f0"/>
+			<!--<Setter Property="Background" Value="#f0f0f0"/>-->
 		</Style>
+
+		<Style Selector="Border.tabBorder">
+			<Setter Property="BorderBrush" Value="#124078"/>
+		</Style>
+		
 	</Application.Styles>
 
 	<NativeMenu.Menu>

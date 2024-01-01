@@ -4,9 +4,16 @@ using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Markup.Xaml.Templates;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using VesperApp.Models;
+using VesperApp.Services;
 using VesperApp.ViewModels;
 
 namespace VesperApp.Controls
@@ -49,20 +56,53 @@ namespace VesperApp.Controls
                         if (selectedDriverProperty.PropType != null)
                         {
                             Type dt = selectedDriverProperty.PropType;
-                            
-                            if (selectedDriverProperty.IsEnum)
+                            Type? ctt = selectedDriverProperty.ConvertToType;
+
+                            if (dt == typeof(AclysSnapLength))
                             {
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
                                 {
                                     [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
-                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = dt, Path = "GetEnumValues()" },
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = AclysSnapLength.ListOfLength, StringFormat="{}{0}" },
                                     Margin = new Thickness(0),
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
                                     VerticalAlignment = VerticalAlignment.Stretch,
-                                }); 
+                                    IsDropDownOpen = true
+                                });
 
                                 col.CellEditingTemplate = template;
-                            }/*
+                            }
+                            else if (dt == typeof(IMU10AccRanges))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = IMU10AccRanges.ListOfLength, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(IMU10GyroRanges))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = IMU10GyroRanges.ListOfLength, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template; 
+                            }
+
+
+                            /*
                             else if( dt == typeof(UInt32) || dt == typeof(double) || dt == typeof(decimal) || dt == typeof(UInt16))
                             {
                                 //Binding b = new Binding("Value", BindingMode.TwoWay);

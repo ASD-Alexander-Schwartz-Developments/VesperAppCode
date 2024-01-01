@@ -22,6 +22,28 @@ namespace VesperApp.Views
             this.Closing += Unloading_DockPickWindow;
             this.Closed += Closed_DockPickWindow;
             this.btnChooseClose.Click += BtnChooseClose_Click;
+            this.listDocks.DoubleTapped += ListDocks_DoubleTapped;
+        }
+
+        private void ListDocks_DoubleTapped(object? sender, Avalonia.Input.TappedEventArgs e)
+        {
+            e.Handled = true;
+
+            if (this.DataContext != null)
+            {
+                DockPickWindowViewModel dc = (DockPickWindowViewModel)this.DataContext;
+                if (dc.SelectedDock != null)
+                {
+                    if (dc.SelectedDock.SelectedItem != null)
+                    {
+                        Close(dc.SelectedDock.SelectedItem);
+                        return;
+                    }
+                }
+            }
+
+//            Close();
+
         }
 
         private void BtnChooseClose_Click(object? sender, RoutedEventArgs e)
@@ -39,7 +61,7 @@ namespace VesperApp.Views
                 }
             }
 
-            Close();
+//            Close();
         }
 
         /*

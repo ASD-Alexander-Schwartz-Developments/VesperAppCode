@@ -6,9 +6,9 @@
 		xmlns:m="using:VesperApp.Models"
 		xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
 		xmlns:Controls="using:VesperApp.Controls"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="560"
-		MinWidth="800"
-		MinHeight="560"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
+		MinWidth="1200"
+		MinHeight="600"
         x:Class="VesperApp.Views.MainView">
 
     <Design.DataContext>
@@ -16,12 +16,10 @@
     </Design.DataContext>
 
 
-	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,75"  Margin="5" ShowGridLines="false" 
-		  Background="{DynamicResource ThemeBorderLowBrush}">
+	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,50"  Margin="5" ShowGridLines="true">
 		
 		
-		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" 
-					Background="{DynamicResource ThemeControlLowBrush}" >
+		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal">
 			
 			<StackPanel Spacing="1" VerticalAlignment="Center" >
 				<Button Margin="10" Command="{Binding ConnectDisconnectDockCommand}" x:Name="ConnectToggle">
@@ -59,12 +57,8 @@
 						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Device Exit Boot" IsVisible="{Binding IsDeviceBoot0Mode}" Classes="DockControls"/>
 					</StackPanel>
 				</Button>
-
 			</StackPanel>
 
-			<Separator />
-			<Separator />
-			<Separator />
 				
 			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Vertical">
 				<TextBlock HorizontalAlignment="Right" x:Name="textDateTime" VerticalAlignment="Center" Padding="10,2,2,4" Text="{Binding TextDateTimeNow}" FontFamily="Roboto" FontSize="14"/>
@@ -92,8 +86,8 @@
 		
 		
 			
-		<Border BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="2" BorderThickness="1,1,1,1"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
-			<Grid ColumnDefinitions="*,100" RowDefinitions="*,40" ShowGridLines="false">
+		<Border CornerRadius="5" BorderThickness="3"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" BorderBrush="#909090">
+			<Grid ColumnDefinitions="*,100" RowDefinitions="*,40" ShowGridLines="true">
 				<ListBox x:Name="listLoggerDevices" ItemsSource="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}" ScrollViewer.VerticalScrollBarVisibility="Auto">
 					<ListBox.Styles>
 						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
@@ -104,8 +98,8 @@
 					</ListBox.Styles>
 					<ListBox.Template>
 						<ControlTemplate>
-							<DockPanel LastChildFill="True" Background="{DynamicResource ThemeControlMidHighBrush}"> 
-								<Grid DockPanel.Dock="Top" Height="30" ShowGridLines="false" Background="{DynamicResource ThemeBorderMidBrush}">
+							<DockPanel LastChildFill="True" > 
+								<Grid DockPanel.Dock="Top" Height="30" ShowGridLines="true" >
 									<Grid.ColumnDefinitions>
 										<ColumnDefinition MinWidth="100" Width="*"></ColumnDefinition>
 										<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
@@ -117,19 +111,12 @@
 										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 									</Grid.ColumnDefinitions>
 									<Label Grid.Column="0" FontWeight="Bold">Serial Number</Label>
-									<Separator/>
 									<Label Grid.Column="1" FontWeight="Bold">Name</Label>
-									<Separator/>
 									<Label Grid.Column="2" FontWeight="Bold">Nickname</Label>
-									<Separator/>
 									<Label Grid.Column="3" FontWeight="Bold">HwId</Label>
-									<Separator/>
 									<Label Grid.Column="4" FontWeight="Bold">FwId</Label>
-									<Separator/>
 									<Label Grid.Column="5" FontWeight="Bold">Date Time</Label>
-									<Separator/>
 									<Label Grid.Column="6" FontWeight="Bold">Disk Info</Label>
-									<Separator/>
 									<Label Grid.Column="7" FontWeight="Bold">Batt</Label>
 								</Grid>
 								<ItemsPresenter></ItemsPresenter>
@@ -150,19 +137,12 @@
 									<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 								</Grid.ColumnDefinitions>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="0" TextWrapping="Wrap" Padding="1" Text="{Binding SerialNumber}" TextAlignment="Left"/>
-								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="1" TextWrapping="Wrap" Padding="1" Text="{Binding Name}" TextAlignment="Left"/>
-								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="2" TextWrapping="Wrap" Padding="1" Text="{Binding Nickname}" TextAlignment="Left"/>
-								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="3" TextWrapping="Wrap" Padding="1" Text="{Binding HwId}" TextAlignment="Left"/>
-								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="4" TextWrapping="Wrap" Padding="1" Text="{Binding FwId}" TextAlignment="Left"/>
-								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="5" TextWrapping="Wrap" Padding="1" Text="{Binding LocalDateTime}" TextAlignment="Left"/>
-								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="6" TextWrapping="Wrap" Padding="1" Text="{Binding DiskStatus}" TextAlignment="Left"/>
-								<Separator/>
 								<TextBlock HorizontalAlignment="Stretch" Grid.Column="7" TextWrapping="Wrap" Padding="1" Text="{Binding BatteryChargePercent}" TextAlignment="Left"/>
 							</Grid>
 						</DataTemplate>
@@ -231,13 +211,10 @@
 					<ListBox ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}" 
 							 SelectionMode="Multiple,Toggle" 
 							 Selection="{Binding DevicesFiltersSelection}" 
-							 Background="{DynamicResource ThemeAccentBrush4}"
 							 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 						<ListBox.ItemTemplate>
 							<DataTemplate>
-								<Border CornerRadius="3" Margin="1,3,10,3" Padding="3,3,3,3" 
-										BorderBrush="{DynamicResource ThemeBorderMidBrush}" 
-										BorderThickness="{DynamicResource ThemeBorderThickness}">
+								<Border CornerRadius="3" Margin="1,3,10,3" Padding="3,3,3,3" >
 									<TextBlock FontWeight="Medium" Text="{Binding .}" TextWrapping="Wrap"/>
 								</Border>
 							</DataTemplate>
@@ -250,13 +227,13 @@
 		</Border>
 					
 
-		<Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="3" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2" HorizontalAlignment="Stretch" Padding="1,1,1,1">
-			<TabControl TabStripPlacement="Left" VerticalContentAlignment="Stretch">
+		<Border Classes="tabBorder" BorderThickness="3" CornerRadius="5" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2" HorizontalAlignment="Stretch" Padding="0">
+			<TabControl TabStripPlacement="Left" VerticalContentAlignment="Stretch" HorizontalAlignment="Stretch">
 				<TabItem>
 					<TabItem.Header>
 						<TextBlock Classes="tbTabHeader" Text="Recordings" HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
 					</TabItem.Header>
-						<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="false">
+						<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="true">
 							<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal"
 										HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 										ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -304,7 +281,7 @@
 					<TabItem.Header>
 						<TextBlock Classes="tbTabHeader" Text="Config" HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
 					</TabItem.Header>
-					<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="false">
+					<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="true">
 						<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal" 
 									HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
 									ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -346,10 +323,9 @@
 								SelectedItem="{Binding SelectedDeviceType}"/>
 						</StackPanel>
 
-						<ScrollViewer Grid.Column="0" Grid.Row="1" BorderThickness="1" BorderBrush="Cornsilk">
+						<ScrollViewer Grid.Column="0" Grid.Row="1" BorderThickness="1">
 							<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-								  ColumnDefinitions="*,2*" RowDefinitions="*,*"  Margin="5" ShowGridLines="false"
-									Background="{DynamicResource ThemeControlHighBrush}">
+								  ColumnDefinitions="*,2*" RowDefinitions="*,*"  Margin="5" ShowGridLines="false">
 
 								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}" Padding="5,5,5,5" Margin="5" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2"/>
 								<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="5,5,5,5" Margin="5" Grid.Row="1" Grid.Column="0"/>
@@ -379,9 +355,9 @@
 				</TabItem>
 			</TabControl>
 		</Border>
-		<Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorderHighBrush}" CornerRadius="5" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Padding="0,1">
+		<Border BorderThickness="1" CornerRadius="5" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Padding="0,1">
 			<Grid Margin="1">
-				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="{DynamicResource ThemeControlHighlightHighColor}" x:Name="textLogWindow" Text="{Binding IsConnected}"/>
+				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" x:Name="textLogWindow" Text="{Binding IsConnected}"/>
 			</Grid>
 		</Border>		
 	</Grid>

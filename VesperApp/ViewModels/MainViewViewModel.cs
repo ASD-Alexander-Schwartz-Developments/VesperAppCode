@@ -33,6 +33,7 @@ using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
 using static VesperApp.Models.ConfigurationJSON;
+using System.Runtime.InteropServices;
 
 
 /// <summary>
@@ -66,6 +67,13 @@ namespace VesperApp.ViewModels
 
         private int binaryParserPercent = 0;
 
+
+
+        public SelectionModel<DeviceTypes> DevicesFiltersSelection
+        { 
+            get; 
+            set; 
+        } = new SelectionModel<DeviceTypes>();
 
 
         public bool IsConnected
@@ -385,8 +393,8 @@ namespace VesperApp.ViewModels
 
             UploadDeviceConfig = ReactiveCommand.CreateFromTask(async () =>
             {
-                if (SelectedLoggerDevice != null)
-                {
+               // if (SelectedLoggerDevice != null)
+               // {
                     OpenFileDialog openFileDialog = new OpenFileDialog();
 
                     openFileDialog.Title = "Choose Configuration File to Upload";
@@ -400,12 +408,12 @@ namespace VesperApp.ViewModels
                             try
                             {
                                 string jsonString = File.ReadAllText(files[0]);
-                                await SelectedLoggerDevice.UploadConfigFile(jsonString);
+                                await SelectedLoggerDevice!.UploadConfigFile(jsonString);
                             }
                             catch (Exception e) { }
                         }
                     }
-                }
+                //}
             });
 
             SetDateTimeDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -499,6 +507,18 @@ namespace VesperApp.ViewModels
             _timer.Start();
             _timerClock.Start();
 
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                osFolder = "Windows";
+            }
+            else if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                osFolder = "Linux";
+            }
+            else if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                osFolder = "MacOS";
+            }
 
             IsUpdateAvailable = CheckUpdate().Result;
 		}
@@ -515,14 +535,15 @@ namespace VesperApp.ViewModels
 		private string latestServerBuildVersion;
 		private string currentIntallBuildVersion;
 		public string directoryName = "Vesper";
+        public string osFolder = "Windows";
 		public string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        /*http://downloads.asd-tech.com/downloads/Windows/Vesper1.0.0.15/VesperAppSetup.msi*/
+        #endregion
 
-		#endregion
+        //Check For the Updates 
 
-		//Check For the Updates 
-
-		#region Checks for the update 
-		private async Task<bool> CheckUpdate()
+        #region Checks for the update 
+        private async Task<bool> CheckUpdate()
 		{
 			bool status = false;
 			try
@@ -584,9 +605,8 @@ namespace VesperApp.ViewModels
 							{
 								#region Check if File ALready file SIze
 
-
 								httpClient = new HttpClient();
-                                response = await httpClient.GetAsync(baseUrl + directoryName + latestServerBuildVersion + "/" + fileName);
+                                response = await httpClient.GetAsync(baseUrl + osFolder + "/" + directoryName + latestServerBuildVersion + "/" + fileName);
 								Int64 SeverFileSize = Convert.ToInt64(response.Content.Headers.ContentLength);
 								string downloadFile = root + "/" + directoryName + "/" + directoryName + latestServerBuildVersion;
 								FileInfo file = new FileInfo(System.IO.Path.Combine(downloadFile, fileName));
@@ -599,7 +619,6 @@ namespace VesperApp.ViewModels
 									isdownloading = false;
 									IsUpdateAvailable = false;
 									IsFlyoutopen();
-
 								}
 								else
 								{
@@ -639,7 +658,9 @@ namespace VesperApp.ViewModels
 		{
 			httpClient = new HttpClient();
 
-			string installerFile = baseUrl + "Vesper" + latestServerBuildVersion + "/VesperAppSetup.msi";
+            return false;
+
+			string installerFile = baseUrl + osFolder + "/" + directoryName + latestServerBuildVersion + "/VesperAppSetup.msi";
 			request = new HttpRequestMessage(HttpMethod.Get, installerFile);
 			try
 			{
