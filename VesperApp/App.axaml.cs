@@ -24,7 +24,7 @@ namespace VesperApp
         {
             instance = this;
             AvaloniaXamlLoader.Load(this);
-            Styles.Add(new VesperApp.Themes.Light());
+           // Styles.Add(new VesperApp.Themes.Light());
         }
 
         public static void WindowClosed(Window sender)

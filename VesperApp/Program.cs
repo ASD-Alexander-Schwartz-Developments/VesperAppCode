@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Logging;
 using Avalonia.ReactiveUI;
 using System;
 using System.Reflection;
@@ -19,7 +20,11 @@ namespace VesperApp
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
-                .LogToTrace()
+#if DEBUG
+                .LogToTrace(LogEventLevel.Debug, LogArea.Property, LogArea.Binding)
+#else
+                .LogToTrace(LogEventLevel.Warning)
+#endif
                 .UseReactiveUI();
     }
 }

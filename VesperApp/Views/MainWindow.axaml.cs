@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using System;
+using System.Diagnostics;
 using System.Reflection;
 using VesperApp.ViewModels;
 
@@ -19,6 +21,8 @@ namespace VesperApp.Views
 
             this.Title += " - v" + version;
 
+
+
             //this.mainView.textLogWindow.Text= version;
         }
 
@@ -35,6 +39,23 @@ namespace VesperApp.Views
             // Don't want our window to be able to get any smaller than this.
             SetValue(MinWidthProperty, this.Width);
             SetValue(MinHeightProperty, this.Height);
+
+            string logname = "VesperApp" + DateTime.Now.ToShortDateString() + "_" + DateTime.Now.ToShortTimeString() + ".log";
+            logname = logname.Replace('/', '_');
+            logname = logname.Replace(':', '_');
+
+            TextWriterTraceListener lst = new TextWriterTraceListener(logname, "VesperAppLogListener");
+            lst.TraceOutputOptions = TraceOptions.DateTime;
+
+            Trace.Listeners.Add(lst);
+            Trace.TraceInformation("VesperApp Opened");
+            // You must close or flush the trace to empty the output buffer.
+            Trace.Flush();
+        }
+
+        private void Window_Closed(object? sender, System.EventArgs e)
+        {
+            Trace.Flush();
         }
 
         /*
