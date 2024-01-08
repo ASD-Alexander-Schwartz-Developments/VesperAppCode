@@ -34,6 +34,7 @@ using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
 using static VesperApp.Models.ConfigurationJSON;
 using System.Runtime.InteropServices;
+using System.Collections;
 
 
 /// <summary>
@@ -1472,7 +1473,31 @@ namespace VesperApp.ViewModels
                                     if (currentDirectory != null && currentFilename != null)
                                     {
                                         byte[] data = File.ReadAllBytes(lp);
-                                        using (IMU10Parser ip = new IMU10Parser(lp, data, DateTime.Now, 1023))
+
+                                        DateTime dtStart = DateTime.Now;
+
+                                        ArrayList arrayList = Utils.scan(currentFilename, "M%d_%d_%d_%d_%d_%d_%d");
+
+                                        if(arrayList.Count == 7) 
+                                        {
+                                            int? year = (int?)arrayList[0];
+                                            int? month = (int?)arrayList[1];
+                                            int? day = (int?)arrayList[2];
+                                            int? hr = (int?)arrayList[3];
+                                            int? mn = (int?)arrayList[4];
+                                            int? sec = (int?)arrayList[5];
+                                            int? sbs = (int?)arrayList[6];
+
+                                            if (year != null && month != null && day != null &&
+                                                    hr != null && mn != null && sec != null && sbs != null)
+                                            {
+
+                                                dtStart = new DateTime((int)year, (int)month, (int)day, (int)hr,
+                                                    (int)mn, (int)sec, (int)sbs);
+                                            }
+                                        }
+
+                                        using (IMU10Parser ip = new IMU10Parser(lp, data, dtStart, 1023))
                                         {
                                             ip.WriteFile();
                                         }
