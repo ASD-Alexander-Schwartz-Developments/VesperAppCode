@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using static VesperApp.Models.ConfigurationJSON;
 
 namespace VesperApp.Models
 {
@@ -11,7 +12,7 @@ namespace VesperApp.Models
         private DateTime time;
         private WorkingConfiguration config_index;
 
-        [JsonPropertyName("time")]
+        [JsonPropertyName("time"), JsonConverter(typeof(VesperDateTimeAlarmConverter))]
         public DateTime Alarm
         {
             get { return this.time; }
@@ -44,5 +45,40 @@ namespace VesperApp.Models
             }
         }
 
+    }
+
+
+    public class VesperDateTimeAlarmConverter : JsonConverter<DateTime>
+    {
+        private readonly string Format;
+
+        public override bool HandleNull => false;
+
+        public VesperDateTimeAlarmConverter()
+        {
+            Format = "yyyy-MM-dd hh:mm:ss";
+        }
+
+        public VesperDateTimeAlarmConverter(string format)
+        {
+            Format = format;
+        }
+        public override void Write(Utf8JsonWriter writer, DateTime date, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(date.ToString(Format));
+        }
+        public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            string? s = reader.GetString();
+
+            if (s == null || reader.TokenType == JsonTokenType.Null || s?.Length == 0)
+            {
+                return DateTime.MinValue;
+            }
+            else
+            {
+                return DateTime.ParseExact(s!, Format, null);
+            }
+        }
     }
 }

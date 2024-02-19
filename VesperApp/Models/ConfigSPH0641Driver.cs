@@ -6,8 +6,6 @@ using System.Text.Json.Serialization;
 
 namespace VesperApp.Models
 {
-    public enum HPF_VALUES { MDF_HPS_OFF = 0, MDF_HPF_CUTOFF_0_000625FPCM = 1, MDF_HPF_CUTOFF_0_00125FPCM = 2, MDF_HPF_CUTOFF_0_0025FPCM = 3, MDF_HPF_CUTOFF_0_0095FPCM = 4}
-
     public class ConfigSPH0641Driver : ConfigurationDeviceDriver
     {
         public const UInt32 BITMASK_MIKE_LED = 0x02;
@@ -23,7 +21,6 @@ namespace VesperApp.Models
         private UInt32 thresholdup;
         private UInt32 thresholddown;
         private bool cic4;
-        private bool digital_filter;
         private UInt16 gain;
         private UInt16 hpf;
 
@@ -36,7 +33,7 @@ namespace VesperApp.Models
         [DisplayName("Threshold Up"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
-        [JsonPropertyName("thresup")]
+        [JsonPropertyName("thresup"), JsonPropertyOrder(20)]
         public UInt32 ThresholdUp
         {
             get { return this.thresholdup; }
@@ -53,7 +50,7 @@ namespace VesperApp.Models
         [DisplayName("Threshold Down"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
-        [JsonPropertyName("thresdn")]
+        [JsonPropertyName("thresdn"), JsonPropertyOrder(21)]
         public UInt32 ThresholdDown
         {
             get { return this.thresholddown; }
@@ -111,7 +108,7 @@ namespace VesperApp.Models
         [CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Use CIC4 filter by default if enabled. Otherwise, default is CIC5."),
         DisplayName("Use CIC4 Digital Filter")]
-        [JsonPropertyName("cic4")]
+        [JsonPropertyName("cic4"), JsonPropertyOrder(22)]
         [Browsable(true)]
         public bool UseCic4Filter
         {
@@ -122,6 +119,105 @@ namespace VesperApp.Models
                 OnPropertyChanged();
             }
         }
+
+
+        private UInt16 digitalFilter;
+
+
+        [DisplayName("Digital Filter"),
+        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        Browsable(false)]
+        [JsonPropertyName("filter"), JsonPropertyOrder(23)]
+        public UInt16 DFilter
+        {
+            get { return this.digitalFilter; }
+            set { this.digitalFilter = value; }
+        }
+
+        [DisplayName("Enable Digital Filter"),
+        TypeConverter(typeof(bool)),
+        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        DescriptionAttribute("Enables Digital LPF with /4 decimation ratio"),
+        Browsable(true)]
+        [JsonIgnore]
+        public bool EnableDigitalFilter
+        {
+            get
+            {
+                if (this.digitalFilter == 257)
+                    return true;
+                else
+                    return false;
+            }
+            set
+            {
+                if (value == true)
+                    this.digitalFilter = 257;
+                else
+                    this.digitalFilter = 256;
+
+                OnPropertyChanged();
+            }
+        }
+
+        [DisplayName("HPF"),
+        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        Browsable(false)]
+        [JsonPropertyName("hpf"), JsonPropertyOrder(24)]
+        public UInt16 HPF
+        {
+            get { return this.hpf; }
+            set { this.hpf = value; }
+        }
+
+        [DisplayName("High Pass Filter"),
+        TypeConverter(typeof(SPH0641Hpf)),
+        Browsable(true),
+        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        DescriptionAttribute("Programmable High pass Filter cutoff -3dB frequency")]
+        [JsonIgnore]
+        public SPH0641Hpf HighPassFilter
+        {
+            get
+            {
+                return SPH0641Hpf.CreateFromValue(this.HPF);
+            }
+            set
+            {
+                this.HPF = value.Value;
+                OnPropertyChanged();
+            }
+        }
+
+        [DisplayName("GAIN"),
+        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        Browsable(false)]
+        [JsonPropertyName("gain"), JsonPropertyOrder(25)]
+        public UInt16 GAIN
+        {
+            get { return this.gain; }
+            set { this.gain = value; }
+        }
+
+        [DisplayName("Programmable Gain"),
+        TypeConverter(typeof(SPH0641Gain)),
+        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        DescriptionAttribute("Programmable Gain"),
+        Browsable(true)]
+        [JsonIgnore]
+        public SPH0641Gain Gain
+        {
+            get
+            {
+                return SPH0641Gain.CreateFromValue((byte)this.GAIN);
+            }
+            set
+            {
+                this.gain = (UInt16)value.Value;
+                OnPropertyChanged();
+            }
+        }
+
 
 
         [CategoryAttribute("Standard configuration"),
@@ -177,14 +273,171 @@ namespace VesperApp.Models
                     this.bitmask &= ~(BITMASK_MIKE_LED);
             }
         }
+    }
 
 
+    public class SPH0641Hpf
+    {
+        /*
+         * • 0.000625 x FS
+           • 0.00125 x FS
+           • 0.00250 x FS
+           • 0.00950 x FS
+         * */
+
+        public const ushort HPF_OFF = 0;
+        public const ushort HPF_000625 = 1;
+        public const ushort HPF_00125 = 2;
+        public const ushort HPF_00250 = 3;
+        public const ushort HPF_00950 = 4;
+
+        public const string HPF_OFF_S = "HPF OFF";
+        public const string HPF_000625_S = "F(-3db) = 0.000625 x FS";
+        public const string HPF_00125_S = "F(-3db) = 0.00125 x FS";
+        public const string HPF_00250_S = "F(-3db) = 0.00250 x FS";
+        public const string HPF_00950_S = "F(-3db) = 0.00950 x FS";
+        private static readonly SPH0641Hpf[] listOfOptions = 
+        { 
+            new SPH0641Hpf(HPF_OFF),
+            new SPH0641Hpf(HPF_000625),
+            new SPH0641Hpf(HPF_00125),
+            new SPH0641Hpf(HPF_00250),
+            new SPH0641Hpf(HPF_00950) 
+        };
+
+        public static SPH0641Hpf[] ListOfOptions
+        {
+            get => listOfOptions;
+        }
+        public static SPH0641Hpf CreateFromValue(ushort v)
+        {
+            return new SPH0641Hpf(v);
+        }
 
 
+        public SPH0641Hpf(ushort value)
+        {
+            this.value = value;
+        }
 
+
+        private ushort value;
+
+        public ushort Value
+        {
+            get => value;
+            set => this.value = value;
+        }
+
+        public override string ToString()
+        {
+            string r = HPF_OFF_S;
+
+            if (value == HPF_000625)
+            {
+                r = HPF_000625_S;
+            }
+            else if (value == HPF_00125)
+            {
+                r = HPF_00125_S;
+            }
+            else if (value == HPF_00250)
+            {
+                r = HPF_00250_S;
+            }
+            else if (value == HPF_00950)
+            {
+                r = HPF_00950_S;
+            }
+            else
+            {
+                value = HPF_000625;
+            }
+
+            return r;
+        }
 
     }
 
+
+
+    public class SPH0641Gain
+    {
+        private static readonly string[] listOfOptions =
+        {
+                /*0x20*/
+                "-48.2dB", "-44.6dB", "-42.1dB", "-38.6dB", "-36.1dB", "-32.6dB",
+                "-30.1dB", "-26.6dB", "-24.1dB", "-20.6dB", "-18.1dB", "-14.5dB", "-12.0dB", "-8.5dB",
+                "-6.0dB", "-2.5dB",
+                /*0*/
+                "0.0dB", "+3.5dB", "+6.0dB", "+9.5dB", "+12.0dB", "+15.6dB", "+18.1dB", "+21.6dB",
+                "+24.1dB", "+27.6dB", "+30.1dB", "+33.6dB", "+36.1dB", "+39.6dB", "+42.1dB", "+45.7dB",
+                "+48.2dB", "+51.7dB", "+54.2dB", "+57.7dB", "+60.2dB", "+63.7dB", "+66.2dB", "+69.7dB",
+                "+72.2dB", "N/A"
+        };
+
+        public static SPH0641Gain[] ListOfOptions
+        {
+            get
+            {
+                SPH0641Gain[] list = new SPH0641Gain[listOfOptions.Length];
+
+
+                for(int i = 0; i < listOfOptions.Length; i++)
+                {
+                    list[i] = SPH0641Gain.CreateFromValue((byte)i) as SPH0641Gain;
+                }
+
+                return list;
+            }
+        }
+        public static SPH0641Gain CreateFromValue(byte v)
+        {
+            return new SPH0641Gain(v);
+        }
+
+
+        public SPH0641Gain(byte value)
+        {
+            this.value = value;
+        }
+
+
+        private byte value;
+
+        public byte Value
+        {
+            get => value;
+            set
+            {
+                if (value >= 0 && value < 0x10)
+                {
+                    this.value = (byte)(value + 0x20);
+                }
+                else if (value < 41)
+                {
+                    this.value = (byte)(value - 0x10);
+                }
+                else
+                {
+                    this.value = (byte)(0x2F);
+                }
+
+                this.value = value;
+            }
+        }
+
+        public override string ToString()
+        {
+
+            if (this.value >= 0 && this.value < 0x19)
+                return listOfOptions[this.value + 0x10];
+            else if (this.value >= 0x20 && this.value < 0x30)
+                return listOfOptions[this.value - 0x20];
+            else
+                return "N/A";
+        }
+    }
 
 
 

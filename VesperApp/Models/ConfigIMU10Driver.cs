@@ -35,7 +35,7 @@ namespace VesperApp.Models
         [DisplayName("ACC Dynamic Range"),
         CategoryAttribute("IMU10 specific Settings"),
         Browsable(false)]
-        [JsonPropertyName("imuRange")]
+        [JsonPropertyName("imuRange"), JsonPropertyOrder(20)]
         public UInt32 ImuRange
         {
             get { return this.imu_range; }
@@ -56,6 +56,8 @@ namespace VesperApp.Models
                     Bitmask |= IMU10_BITMASK_LED;
                 else
                     Bitmask &= ~((UInt32)IMU10_BITMASK_LED);
+
+                OnPropertyChanged();
             }
         }
 
@@ -81,6 +83,8 @@ namespace VesperApp.Models
                     this.bitmask |= BITMASK_BAR_ON;
                 else
                     this.bitmask &= ~(BITMASK_BAR_ON);
+
+                OnPropertyChanged();
             }
         }
 
@@ -105,6 +109,8 @@ namespace VesperApp.Models
                     this.bitmask |= BITMASK_ACC_ON;
                 else
                     this.bitmask &= ~(BITMASK_ACC_ON);
+
+                OnPropertyChanged();
             }
         }
 
@@ -129,6 +135,8 @@ namespace VesperApp.Models
                     this.bitmask |= BITMASK_GYRO_ON;
                 else
                     this.bitmask &= ~(BITMASK_GYRO_ON);
+
+                OnPropertyChanged();
             }
         }
 
@@ -153,6 +161,8 @@ namespace VesperApp.Models
                     this.bitmask |= BITMASK_MAG_ON;
                 else
                     this.bitmask &= ~(BITMASK_MAG_ON);
+
+                OnPropertyChanged();
             }
         }
 
@@ -189,6 +199,7 @@ namespace VesperApp.Models
                         this.imu_range |= (IMU10AccRanges.IMU10_G2N << 16);
                         break;
                 }
+                OnPropertyChanged();
             }
         }
 
@@ -228,6 +239,7 @@ namespace VesperApp.Models
                         this.imu_range |= (0 << 16);
                         break;
                 }
+                OnPropertyChanged();
             }
         }
     }
@@ -247,9 +259,15 @@ namespace VesperApp.Models
         public const string IMU10_G8 = "±8g";
         public const string IMU10_G16 = "±16g";
 
-        private static readonly string[] listOfConstants = { IMU10_G2, IMU10_G4, IMU10_G8, IMU10_G16 };
+        private static readonly IMU10AccRanges[] listOfConstants = 
+        { 
+            new IMU10AccRanges(IMU10_G2N),
+            new IMU10AccRanges(IMU10_G4N),
+            new IMU10AccRanges(IMU10_G8N),
+            new IMU10AccRanges(IMU10_G16N) 
+        };
 
-        public static string[] ListOfLength
+        public static IMU10AccRanges[] ListOfLength
         {
             get => listOfConstants;
         }
@@ -314,9 +332,16 @@ namespace VesperApp.Models
         public const string IMU10_D1000 = "±1000dps";
         public const string IMU10_D2000 = "±2000dps";
 
-        private static readonly string[] listOfConstants = { IMU10_D125, IMU10_D250, IMU10_D500, IMU10_D1000, IMU10_D2000 };
+        private static readonly IMU10GyroRanges[] listOfConstants = 
+        { 
+            new IMU10GyroRanges(IMU10_D125N),
+            new IMU10GyroRanges(IMU10_D250N),
+            new IMU10GyroRanges(IMU10_D500N),
+            new IMU10GyroRanges(IMU10_D1000N),
+            new IMU10GyroRanges(IMU10_D2000N) 
+        };
 
-        public static string[] ListOfLength
+        public static IMU10GyroRanges[] ListOfLength
         {
             get => listOfConstants;
         }

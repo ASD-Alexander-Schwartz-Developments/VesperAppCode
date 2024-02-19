@@ -244,15 +244,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Vesper App "
-        "ProductCode" = "8:{C179C411-6252-4065-A616-77A5686BB756}"
-        "PackageCode" = "8:{63CC89CF-029F-46F8-8E3D-4C48E9B7ABB5}"
+        "ProductCode" = "8:{A5257A2C-00E8-40E2-8796-CE9AED74736A}"
+        "PackageCode" = "8:{87167CF7-8557-4455-9FF5-7927CFB4726F}"
         "UpgradeCode" = "8:{D1BAE3B6-C234-4C45-8ECB-4920D914B927}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.0.10"
+        "ProductVersion" = "8:1.0.15"
         "Manufacturer" = "8:A.S.D"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -501,8 +501,7 @@
                             "Type" = "3:8"
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
-                            "Setting" = "3:2"
-                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
+                            "Setting" = "3:0"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "CopyrightWarning"
@@ -550,8 +549,7 @@
                             "Type" = "3:8"
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
-                            "Setting" = "3:2"
-                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
+                            "Setting" = "3:0"
                             "UsePlugInResources" = "11:TRUE"
                             }
                         }
@@ -573,8 +571,7 @@
                             "Type" = "3:8"
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
-                            "Setting" = "3:2"
-                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
+                            "Setting" = "3:0"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "InstallAllUsersVisible"
@@ -719,8 +716,7 @@
                             "Type" = "3:8"
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
-                            "Setting" = "3:2"
-                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
+                            "Setting" = "3:0"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "ShowProgress"
@@ -764,8 +760,7 @@
                             "Type" = "3:8"
                             "ContextData" = "8:Bitmap"
                             "Attributes" = "3:4"
-                            "Setting" = "3:2"
-                            "Value" = "8:_F38D3228D2814C45B69D5D2771E95392"
+                            "Setting" = "3:0"
                             "UsePlugInResources" = "11:TRUE"
                             }
                             "UpdateText"
@@ -799,7 +794,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_A547B31840C74F448DCBC757B010FA42"
             {
-            "SourcePath" = "8:..\\VesperApp\\obj\\Debug\\net8.0\\apphost.exe"
+            "SourcePath" = "8:..\\VesperApp\\obj\\Release\\net8.0\\apphost.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_19F0F7653F00439EB8F579545EACE798"

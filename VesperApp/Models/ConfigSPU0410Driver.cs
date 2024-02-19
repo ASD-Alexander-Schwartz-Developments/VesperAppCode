@@ -21,7 +21,7 @@ namespace VesperApp.Models
         [DisplayName("Threshold"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger. Threshold scale is normalized 0-4095. Note that when non-zero, Window Length defined time to record on threshold detection and Window Rate - time to wait after recording for Window Length time.")]
-        [JsonPropertyName("threshold")]
+        [JsonPropertyName("threshold"), JsonPropertyOrder(20)]
         public UInt32 Threshold
         {
             get { return this.threshold_level; }

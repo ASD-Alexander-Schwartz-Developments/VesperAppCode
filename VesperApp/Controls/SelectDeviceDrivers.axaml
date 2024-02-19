@@ -31,9 +31,11 @@
 								<TextBlock Grid.Column="1"
 										    Margin="3"
 											Text="{Binding Description}"
-											TextWrapping="WrapWithOverflow"
+											TextWrapping="Wrap"
 											TextAlignment="Left"
-											VerticalAlignment="Center"/>
+											VerticalAlignment="Center" 
+										    HorizontalAlignment="Stretch"
+										    ToolTip.Tip="{Binding Description}"/>
 									
 							</Grid>
 						</DataTemplate>
@@ -41,8 +43,7 @@
 					<ListBox.Styles>
 						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
 						<Style Selector="ListBoxItem">
-							<Setter Property="Height" Value="50"/>
-							<Setter Property="HorizontalAlignment" Value="Stretch"/>
+							<Setter Property="Height" Value="60"/>
 							<Setter Property="FontSize" Value="14"/>
 						</Style>
 					</ListBox.Styles>

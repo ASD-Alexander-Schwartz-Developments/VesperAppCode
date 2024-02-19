@@ -16,7 +16,7 @@
     </Design.DataContext>
 
 
-	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,50"  Margin="5" ShowGridLines="true">
+	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,50"  Margin="5" ShowGridLines="False">
 		
 		
 		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal">
@@ -87,7 +87,7 @@
 		
 			
 		<Border CornerRadius="5" BorderThickness="3"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" BorderBrush="#909090">
-			<Grid ColumnDefinitions="*,100" RowDefinitions="*,40" ShowGridLines="true">
+			<Grid ColumnDefinitions="*,100" RowDefinitions="*,40" ShowGridLines="false">
 				<ListBox x:Name="listLoggerDevices" ItemsSource="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}" ScrollViewer.VerticalScrollBarVisibility="Auto">
 					<ListBox.Styles>
 						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
@@ -99,7 +99,7 @@
 					<ListBox.Template>
 						<ControlTemplate>
 							<DockPanel LastChildFill="True" > 
-								<Grid DockPanel.Dock="Top" Height="30" ShowGridLines="true" >
+								<Grid DockPanel.Dock="Top" Height="30" ShowGridLines="false" >
 									<Grid.ColumnDefinitions>
 										<ColumnDefinition MinWidth="100" Width="*"></ColumnDefinition>
 										<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
@@ -110,14 +110,14 @@
 										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 									</Grid.ColumnDefinitions>
-									<Label Grid.Column="0" FontWeight="Bold">Serial Number</Label>
-									<Label Grid.Column="1" FontWeight="Bold">Name</Label>
-									<Label Grid.Column="2" FontWeight="Bold">Nickname</Label>
-									<Label Grid.Column="3" FontWeight="Bold">HwId</Label>
-									<Label Grid.Column="4" FontWeight="Bold">FwId</Label>
-									<Label Grid.Column="5" FontWeight="Bold">Date Time</Label>
-									<Label Grid.Column="6" FontWeight="Bold">Disk Info</Label>
-									<Label Grid.Column="7" FontWeight="Bold">Batt</Label>
+									<Label Grid.Column="0" FontWeight="Bold" HorizontalAlignment="Center">Serial Number</Label>
+									<Label Grid.Column="1" FontWeight="Bold" HorizontalAlignment="Center">Name</Label>
+									<Label Grid.Column="2" FontWeight="Bold" HorizontalAlignment="Center">Nickname</Label>
+									<Label Grid.Column="3" FontWeight="Bold" HorizontalAlignment="Center">HwId</Label>
+									<Label Grid.Column="4" FontWeight="Bold" HorizontalAlignment="Center">FwId</Label>
+									<Label Grid.Column="5" FontWeight="Bold" HorizontalAlignment="Center">Date Time</Label>
+									<Label Grid.Column="6" FontWeight="Bold" HorizontalAlignment="Center">Disk Info</Label>
+									<Label Grid.Column="7" FontWeight="Bold" HorizontalAlignment="Center">Batt</Label>
 								</Grid>
 								<ItemsPresenter></ItemsPresenter>
 							</DockPanel>
@@ -326,8 +326,7 @@
 						<ScrollViewer Grid.Column="0" Grid.Row="1" BorderThickness="1">
 							<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 								  ColumnDefinitions="*,2*" RowDefinitions="*,*"  Margin="5" ShowGridLines="false">
-
-								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}" Padding="5,5,5,5" Margin="5" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2"/>
+								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}" Padding="5,5,5,50" Margin="5" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2"/>
 								<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="5,5,5,5" Margin="5" Grid.Row="1" Grid.Column="0"/>
 								<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="5,5,5,5" Margin="5" Grid.Row="1" Grid.Column="1"/>
 
@@ -341,7 +340,7 @@
 					</TabItem.Header>
 
 					<StackPanel>
-						<TextBlock Text="Hello3"/>
+						<TextBlock Text="Coming Soon"/>
 					</StackPanel>
 				</TabItem>
 				<TabItem>

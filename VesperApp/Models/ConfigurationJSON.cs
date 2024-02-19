@@ -55,7 +55,7 @@ namespace VesperApp.Models
         }
 
 
-        [JsonPropertyName("name")]
+        [JsonPropertyName("name"), JsonPropertyOrder(0)]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(string), "vesper"),
         DisplayName("Device Name"),
@@ -66,7 +66,7 @@ namespace VesperApp.Models
             set { this.name = value; }
         }
 
-        [JsonPropertyName("cdrift"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("cdrift"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(2)]
         [CategoryAttribute("Clock Drift compensation"),
         DefaultValueAttribute(typeof(UInt32?), null),
         DisplayName("Clock Drift"),
@@ -77,7 +77,7 @@ namespace VesperApp.Models
             set { this.clock_drift = value; }
         }
 
-        [JsonPropertyName("scheduleType")]
+        [JsonPropertyName("scheduleType"), JsonPropertyOrder(3)]
         [CategoryAttribute("General configuration"),
         DisplayName("Schedule Type"),
         DescriptionAttribute("Sampling schedule type - Daily/Weekly/Continues/Custom. Details in Schedule.")]
@@ -90,7 +90,7 @@ namespace VesperApp.Models
             }
         }
 
-        [JsonPropertyName("magnetOff")]
+        [JsonPropertyName("magnetOff"), JsonPropertyOrder(4)]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(bool), "true"),
         DisplayName("Allow Magnet Turn-Off"),
@@ -102,7 +102,7 @@ namespace VesperApp.Models
             set { this.is_magnet_off_enabled = value; }
         }
 
-        [JsonPropertyName("minhw")]
+        [JsonPropertyName("minhw"), JsonPropertyOrder(1)]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(string), "4.0"),
         DisplayName("Minimal Version"),
@@ -113,7 +113,7 @@ namespace VesperApp.Models
             set { this.minimum_supported_hw = value; }
         }
 
-        [JsonPropertyName("battery")]
+        [JsonPropertyName("battery"), JsonPropertyOrder(5)]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(UInt32), "60"),
         DisplayName("Battery Capacity"),
@@ -124,7 +124,7 @@ namespace VesperApp.Models
             set { this.battery_capacity = value; }
         }
 
-        [JsonConverter(typeof(VesperDateTimeConverter))]
+        [JsonConverter(typeof(VesperDateTimeConverter)), JsonPropertyOrder(6)]
         [JsonPropertyName("poweron")]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(DateTime?), ""),
@@ -139,7 +139,7 @@ namespace VesperApp.Models
 
         [CategoryAttribute("General configuration"),
         DisplayName("Schedule"),
-        DescriptionAttribute("Plan sampling schedule details")]
+        DescriptionAttribute("Plan sampling schedule details"), JsonPropertyOrder(7)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [JsonPropertyName("schedule")]
         public List<ConfigScheduleJSONItem> Schedule
@@ -150,7 +150,7 @@ namespace VesperApp.Models
 
         [CategoryAttribute("General configuration"),
         DisplayName("Sensors"),
-        DescriptionAttribute("Control and configure which sensors will be active")]
+        DescriptionAttribute("Control and configure which sensors will be active"), JsonPropertyOrder(8)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [JsonPropertyName("devices")]
         public List<ConfigurationDeviceDriver> DeviceDrivers
@@ -252,10 +252,15 @@ namespace VesperApp.Models
                 }
                 else
                 {
-                    return DateTime.ParseExact(s, Format, null);
+                    return DateTime.ParseExact(s!, Format, null);
                 }
             }
         }
+
+
+
+
+
         /*
 
         [Fact]

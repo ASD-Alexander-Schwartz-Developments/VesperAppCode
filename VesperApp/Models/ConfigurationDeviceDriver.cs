@@ -93,7 +93,7 @@ namespace VesperApp.Models
             //set { this.name = value; }
         }
 
-        [JsonPropertyName("sampleRate")]
+        [JsonPropertyName("sampleRate"), JsonPropertyOrder(1)]
         [Browsable(false)]
         public virtual UInt32[] SampleRate
         {
@@ -138,7 +138,7 @@ namespace VesperApp.Models
         }
 
 
-        [JsonPropertyName("wLen")]
+        [JsonPropertyName("wLen"), JsonPropertyOrder(2)]
         [Browsable(false)]
         public UInt32[] WindowLength
         {
@@ -184,7 +184,7 @@ namespace VesperApp.Models
         }
 
 
-        [JsonPropertyName("wRate")]
+        [JsonPropertyName("wRate"), JsonPropertyOrder(3)]
         [Browsable(false)]
         public UInt32[] WindowRate
         {
@@ -229,7 +229,7 @@ namespace VesperApp.Models
         }
 
 
-        [JsonPropertyName("fileSize")]
+        [JsonPropertyName("fileSize"), JsonPropertyOrder(10)]
         [Browsable(true)]
         [CategoryAttribute("Advanced configuration"),
         DescriptionAttribute("Size (in Bytes) of a single file containing sensor samples, once file reaches this side, it's timestamped, closed and new file is opened"),
@@ -249,7 +249,7 @@ namespace VesperApp.Models
         }
 
         [Browsable(false)]
-        [JsonPropertyName("bitmask")]
+        [JsonPropertyName("bitmask"), JsonPropertyOrder(5)]
         public virtual UInt32 Bitmask
         {
             get { return this.bitmask; }
