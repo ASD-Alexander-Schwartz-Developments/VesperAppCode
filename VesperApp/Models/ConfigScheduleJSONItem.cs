@@ -56,7 +56,7 @@ namespace VesperApp.Models
 
         public VesperDateTimeAlarmConverter()
         {
-            Format = "yyyy-MM-dd hh:mm:ss";
+            Format = "yyyy-MM-dd HH:mm:ss";
         }
 
         public VesperDateTimeAlarmConverter(string format)

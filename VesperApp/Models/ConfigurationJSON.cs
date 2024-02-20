@@ -224,7 +224,7 @@ namespace VesperApp.Models
 
             public VesperDateTimeConverter()
             {
-                Format = "yyyy-MM-dd hh:mm:ss";
+                Format = "yyyy-MM-dd HH:mm:ss";
             }
 
             public VesperDateTimeConverter(string format)

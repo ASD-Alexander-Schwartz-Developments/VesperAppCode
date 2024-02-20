@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using VesperApp.Models;
+using static VesperApp.Models.ConfigurationJSON;
 
 namespace VesperApp.Models
 {
@@ -59,7 +60,10 @@ namespace VesperApp.Models
 			options.WriteIndented = false;
 			options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
 			options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
-			ConfigurationJSON? config = null;
+            options.Converters.Add(new VesperDateTimeConverter());
+            options.Converters.Add(new VesperDateTimeAlarmConverter());
+
+            ConfigurationJSON? config = null;
 			bool ok = false;
 
 			byte[] buffer = new byte[0];

@@ -912,7 +912,8 @@ namespace VesperApp.ViewModels
                                 options.WriteIndented = false;
                                 options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
                                 options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
-                                options.Converters.Add(new VesperDateTimeConverter("yyyy-MM-dd hh:mm:ss"));
+                                options.Converters.Add(new VesperDateTimeConverter());
+                                options.Converters.Add(new VesperDateTimeAlarmConverter());
                                 configurationJSONInstance.DeviceDrivers.Clear();
                                 if (DriversViewModel != null)
                                 {
@@ -1025,7 +1026,8 @@ namespace VesperApp.ViewModels
                 options.WriteIndented = false;
                 options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
                 options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
-                options.Converters.Add(new VesperDateTimeConverter("yyyy-MM-dd hh:mm:ss"));
+                options.Converters.Add(new VesperDateTimeConverter());
+                options.Converters.Add(new VesperDateTimeAlarmConverter());
                 ConfigurationJSON? config = null;
                 try
                 {
