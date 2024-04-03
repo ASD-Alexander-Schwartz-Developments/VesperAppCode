@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using VesperApp.Models;
 using ASDLibUSBWrapper;
 using System.Diagnostics;
 using System.Threading;
 using System.IO.Ports;
+using System.Linq;
 
 
 namespace VesperApp.Services
@@ -16,7 +15,6 @@ namespace VesperApp.Services
     {
         readonly List<Models.LoggerDevice> _loggerDevices;
 
-        DockDevice _connectedDock;
         UsbContext _context;
         LoggerDevice ? _device;
 
@@ -27,10 +25,9 @@ namespace VesperApp.Services
         SerialPort? _serialPort;
 
 
-        public DeviceUsbAdapter(DockDevice connectedDock)
+        public DeviceUsbAdapter()
         {
             _loggerDevices = new List<Models.LoggerDevice>();
-            _connectedDock = connectedDock;
 
             _context = new UsbContext();
             _device = null;
@@ -227,7 +224,6 @@ namespace VesperApp.Services
                     if (device != null && device.VendorId == vendorid && device.ProductId == prodid)
                     {
                         Debug.WriteLine("Match " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
-
                         if (device.TryOpen() == true)
                         {
                             int i = 10;
@@ -302,35 +298,38 @@ namespace VesperApp.Services
                         this._serialPort.ReadTimeout = 100;
                         this._serialPort.WriteTimeout = 100;
                         this._serialPort.Open();
-                        Debug.WriteLine("Opened " + s);
-                        /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
-
-                        byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER,
-                            0, new byte[0], 0);
-                        this._serialPort.Write(buffer, 0, buffer.Length);
-                        
-                        await Task.Delay(75);
-
-                        buffer = new byte[16];
-                        if (this._serialPort.Read(buffer, 0, buffer.Length) >= 8)
+                        if (this._serialPort.IsOpen)
                         {
-                            int i;
-                            for(i = 0; i < buffer.Length; i++)
-                            {
-                                if (buffer[i] == 0x5A)
-                                    break;
-                            }
-                            if (buffer[i] == 0x5A && buffer[i+2] == (byte)MessageTypes.VESPER_GET_VER)             /// need to implement something real here
-                            {
-                                byte major = (byte)(buffer[i + 4]);
-                                byte minor = (byte)(buffer[i + 5]);
-                                uint serial = (uint)((uint)buffer[i+6] + ((uint)buffer[i+7] << 8) + ((uint)buffer[i+8] << 16) + ((uint)buffer[i+9] << 24));
-                                DeviceTypes type = (DeviceTypes)buffer[i+10];
+                            Debug.WriteLine("Opened " + s);
+                            /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
 
-                                var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial);
+                            byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER,
+                                0, new byte[0], 0);
+                            this._serialPort.Write(buffer, 0, buffer.Length);
 
-                                if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
-                                    this._loggerDevices.Add(dev);
+                            await Task.Delay(75);
+
+                            buffer = new byte[16];
+                            if (this._serialPort.Read(buffer, 0, buffer.Length) >= 8)
+                            {
+                                int i;
+                                for (i = 0; i < buffer.Length; i++)
+                                {
+                                    if (buffer[i] == 0x5A)
+                                        break;
+                                }
+                                if (buffer[i] == 0x5A && buffer[i + 2] == (byte)MessageTypes.VESPER_GET_VER)             /// need to implement something real here
+                                {
+                                    byte major = (byte)(buffer[i + 4]);
+                                    byte minor = (byte)(buffer[i + 5]);
+                                    uint serial = (uint)((uint)buffer[i + 6] + ((uint)buffer[i + 7] << 8) + ((uint)buffer[i + 8] << 16) + ((uint)buffer[i + 9] << 24));
+                                    DeviceTypes type = (DeviceTypes)buffer[i + 10];
+
+                                    var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial);
+
+                                    if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
+                                        this._loggerDevices.Add(dev);
+                                }
                             }
                         }
                     }
@@ -342,6 +341,22 @@ namespace VesperApp.Services
                     { 
                         this._serialPort.Close();
                         Debug.WriteLine("Closed " + s);
+                    }
+                }
+
+                List<string> _names = comports.ToList();
+
+                for(int i = 0; i < this._loggerDevices.Count; i++)
+                {
+                    if (_loggerDevices[i].IsComportDevice)
+                    {
+                        if (_names.Exists((d) => d.Equals(_loggerDevices[i].ComPort)) == false) 
+                        {
+                            Debug.WriteLine("Remove " + _loggerDevices[i].Name);
+                            _loggerDevices.RemoveAt(i);
+                            i = 0;
+                            break;
+                        }
                     }
                 }
             }

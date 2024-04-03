@@ -10,7 +10,8 @@ namespace VesperApp.Models
     {
         Nanotag = 0,
         Vesper = 1,
-        Pipistrelle = 2
+        Pipistrelle = 2,
+        Kol = 3
     }
 
     public enum WorkingConfiguration : UInt32 

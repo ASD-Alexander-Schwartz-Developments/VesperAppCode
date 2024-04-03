@@ -150,7 +150,7 @@
 				</ListBox>
 
 
-				<StackPanel IsEnabled="{Binding IsConnected}" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Spacing="5" Margin="10,1,1,1" HorizontalAlignment="Center">
+				<StackPanel IsEnabled="True" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Spacing="5" Margin="10,1,1,1" HorizontalAlignment="Center">
 
 					<Button Margin="1" Height="30" Command="{Binding ConnectDisconnectDeviceCommand}" x:Name="DeviceConnectButton">
 						<StackPanel Orientation="Horizontal">

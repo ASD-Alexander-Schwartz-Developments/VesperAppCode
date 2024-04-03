@@ -388,7 +388,7 @@ namespace VesperApp.Services
                 if (d.FTDIDevice.OpenBySerialNumber(d.Info.Id) == FTD2XX_NET.FTDI.FT_STATUS.FT_OK)
                 {
                     _connectedDock = d;
-                    r = true;
+                    r = await SetBits(false, false, false);
                 }
             }
 

@@ -35,6 +35,7 @@ using MsBox.Avalonia.Enums;
 using static VesperApp.Models.ConfigurationJSON;
 using System.Runtime.InteropServices;
 using System.Collections;
+using System.Globalization;
 
 
 /// <summary>
@@ -47,8 +48,8 @@ namespace VesperApp.ViewModels
 {
     public class MainViewViewModel : ViewModelBase
     {
-        private DockAdapter? _globalDockAdapter;
-        private DeviceUsbAdapter? _deviceUsbAdapter;
+        private DockAdapter _globalDockAdapter;
+        private DeviceUsbAdapter _deviceUsbAdapter;
         private ConfigurationJSON configurationJSONInstance;
 
 
@@ -210,41 +211,15 @@ namespace VesperApp.ViewModels
 		}
 
 		#endregion
-/*
-		public MainViewViewModel()
+
+
+        public MainViewViewModel()
         {
-            _globalDockAdapter = null;
-            MainWindowContext = null;
-            //ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
-
-            ConnectDisconnectDockCommand = null;
-            EnableDeviceDockCommand = null;
-            Boot0ModeDockCommand = null;
-            ResetDeviceDockCommand = null;
-            BootloaderDeviceCommand = null;
-            NewConfigCommand = null;
-            LoadConfigCommand = null;
-            SaveConfigCommand = null;
-            ManualGPSParserCommand = null;
-
-            _timer = null;
-            LoggerDevices = new ObservableCollection<LoggerDevice>();
-            _deviceUsbAdapter = null;
-            SelectedLoggerDevice = null;
-            configurationJSONInstance = new ConfigurationJSON();
-            ScheduleViewModel = new ScheduleControlViewModel(configurationJSONInstance.Schedule);
-            DriversViewModel = new SelectDeviceDriverViewModel(new List<ConfigurationDeviceDriver>());
-            DriverEditorGridViewModel = new DeviceDriverPropertyGridViewModel();
-			DownloadCheckCommand = ReactiveCommand.Create(DownloadCheck);
-			LaterCommand = ReactiveCommand.Create(closeFlyout);
-			IsUpdateAvailable = CheckUpdate();
-		}*/
-
-        public MainViewViewModel(/*Avalonia.Controls.Window mainWindowContext*/)
-        {
-            //MainWindowContext = App.MainWindow;
             _globalDockAdapter = new DockAdapter();
-            
+            _globalDockAdapter.ConnectionEvent += _globalDockAdapter_ConnectionEvent;
+            _deviceUsbAdapter = new DeviceUsbAdapter();
+            _deviceUsbAdapter.ConnectionEvent += _deviceUsbAdapter_ConnectionEvent;
+
             _timer = new System.Timers.Timer();
             _timer.Elapsed += _timer_Elapsed;
             _timer.Interval = 2150;
@@ -394,28 +369,67 @@ namespace VesperApp.ViewModels
 
             UploadDeviceConfig = ReactiveCommand.CreateFromTask(async () =>
             {
-               // if (SelectedLoggerDevice != null)
-               // {
-                    OpenFileDialog openFileDialog = new OpenFileDialog();
+                // if (SelectedLoggerDevice != null)
+                // {
 
-                    openFileDialog.Title = "Choose Configuration File to Upload";
-                    openFileDialog.AllowMultiple = false;
-                    if (App.MainWindow != null)
+                FilePickerOpenOptions foptions = new()
+                {
+                    Title = "Upload configuration file ...",
+                    AllowMultiple = false,
+
+                    FileTypeFilter = new List<FilePickerFileType>
                     {
-                        string[]? files = await openFileDialog.ShowAsync(App.MainWindow);
-
-                        if (files != null && files.Length > 0 && files[0] != null)
+                        new("Configuration JSON file (.json)")
                         {
-                            try
+                            Patterns = new[]{"*.json"},
+                            MimeTypes = new[]{"JSON/*"},
+                            AppleUniformTypeIdentifiers = new[]{"utf8PlainText"}
+                        }
+                    },
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(foptions);
+
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+
+                        if (files != null)
+                        {
+                            var file = files.FirstOrDefault();
+
+                            if (file != null)
                             {
-                                string jsonString = File.ReadAllText(files[0]);
+                                string jsonString = string.Empty;
+                                try
+                                {
+                                    string? lp = file.TryGetLocalPath();
+                                    if (lp != null)
+                                    {
+                                        jsonString = File.ReadAllText(lp);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Debug.WriteLine(ex.Message);
+                                    jsonString = string.Empty;
+                                }
+
                                 await SelectedLoggerDevice!.UploadConfigFile(jsonString);
                             }
-                            catch (Exception e) { }
                         }
                     }
-                //}
+                    catch (Exception ec)
+                    {
+                        Debug.WriteLine(ec.Message);
+                    }
+
+                });
             });
+
 
             SetDateTimeDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
@@ -489,8 +503,6 @@ namespace VesperApp.ViewModels
             ManualGPSParserCommand = ReactiveCommand.CreateFromTask(ParseNanotagSnaps);
             #endregion
 
-            _globalDockAdapter.ConnectionEvent += _globalDockAdapter_ConnectionEvent;
-            _deviceUsbAdapter = null;
 
             LoggerDevices = new ObservableCollection<LoggerDevice>();
             SelectedLoggerDevice = null;
@@ -934,7 +946,14 @@ namespace VesperApp.ViewModels
                                         DateTime? dt = null;
                                         try
                                         {
-                                            dt = DateTime.Parse(ScheduleViewModel.PowerOnText);
+                                            if(ScheduleViewModel.IsPowerOnRelative)
+                                            {
+                                                dt = DateTime.ParseExact(ScheduleViewModel.PowerOnText, "dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.NoCurrentDateDefault);
+                                            }
+                                            else
+                                            {
+                                                dt = DateTime.ParseExact(ScheduleViewModel.PowerOnText, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.NoCurrentDateDefault);
+                                            }
                                         }
                                         catch (Exception ex) 
                                         {
@@ -954,8 +973,8 @@ namespace VesperApp.ViewModels
                                             {
                                                 DateTime dt1 = (DateTime)dt;
 
-                                                configurationJSONInstance.PowerOn = new DateTime(0,
-                                                    0, (dt == null ? 0 : dt1.Day), dt1.Hour, dt1.Minute, dt1.Second);
+                                                configurationJSONInstance.PowerOn = new DateTime(2000,
+                                                    1, dt1.Day, dt1.Hour, dt1.Minute, dt1.Second);
                                             }
                                         }
                                     }
@@ -1002,88 +1021,126 @@ namespace VesperApp.ViewModels
         private async Task<bool> LoadConfiguration()
         {
             bool ok = false;
-
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-
-            openFileDialog.Title = "Choose Configuration File to load";
-            openFileDialog.AllowMultiple = false;
-            string[]? files = await openFileDialog.ShowAsync(App.MainWindow);
-
-            if (files != null && files[0] != null)
+            FilePickerOpenOptions foptions = new()
             {
-                string jsonString = "";
+                Title = "Load configuration file ...",
+                AllowMultiple = false,
+
+                FileTypeFilter = new List<FilePickerFileType>
+                {
+                    new("Configuration JSON file (.json)")
+                    {
+                        Patterns = new[]{"*.json"},
+                        MimeTypes = new[]{"JSON/*"},
+                        AppleUniformTypeIdentifiers = new[]{"utf8PlainText"}
+                    }
+                },
+            };
+
+            Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(foptions);
+
+            await dialog.ContinueWith(delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+            {
                 try
                 {
-                    jsonString = File.ReadAllText(files[0]);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                    jsonString = "";
-                }
+                    IReadOnlyList<IStorageFile?> files = dialog.Result;
 
-                var options = new JsonSerializerOptions();
-                options.WriteIndented = false;
-                options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
-                options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
-                options.Converters.Add(new VesperDateTimeConverter());
-                options.Converters.Add(new VesperDateTimeAlarmConverter());
-                ConfigurationJSON? config = null;
-                try
-                {
-                    config = JsonSerializer.Deserialize<ConfigurationJSON>(jsonString, options);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex);
-                }
-                finally
-                { }
-
-                if (config != null)
-                {
-                    if (config.Name == DeviceTypes.Nanotag.ToString())                   // it's a nanotag configuration
+                    if (files != null)
                     {
-                        this.SelectedDeviceType = DeviceTypes.Nanotag;
-                    }
-                    else if (config.Name == DeviceTypes.Vesper.ToString())
-                    {
-                        this.SelectedDeviceType = DeviceTypes.Vesper;
-                    }
-                    else if (config.Name == DeviceTypes.Pipistrelle.ToString())
-                    {
-                        this.SelectedDeviceType = DeviceTypes.Pipistrelle;
-                    }
-                    else
-                    {
-                        this.SelectedDeviceType = null;
-                    }
+                        var file = files.FirstOrDefault();
 
-
-                    if (this.SelectedDeviceType != null && DriversViewModel != null)
-                    {
-                        configurationJSONInstance = config;
-
-                        //DriversViewModel.DeviceDriversCollection.Clear();
-                        DriversViewModel.ActiveDeviceDriversCollection.Clear();
-
-                        foreach (ConfigurationDeviceDriver drv in config.DeviceDrivers)
+                        if (file != null)
                         {
-                            int index = DriversViewModel.DeviceDriversCollection.IndexOf(drv);
-
-                            if (index >= 0 && index < DriversViewModel.DeviceDriversCollection.Count)
+                            string jsonString = string.Empty;
+                            try
                             {
-                                DriversViewModel.DeviceDriversCollection[index].Load(drv);
-                                DriversViewModel.DeviceDriversCollection[index].IsChecked = true;
+                                string? lp = file.TryGetLocalPath();
+                                if (lp != null)
+                                {
+                                    jsonString = File.ReadAllText(lp);
+                                }
                             }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine(ex.Message);
+                                jsonString = string.Empty;
+                            }
+
+                            var options = new JsonSerializerOptions();
+                            options.WriteIndented = false;
+                            options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
+                            options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+                            options.Converters.Add(new VesperDateTimeConverter());
+                            options.Converters.Add(new VesperDateTimeAlarmConverter());
+                            ConfigurationJSON? config = null;
+                            try
+                            {
+                                config = JsonSerializer.Deserialize <ConfigurationJSON>(jsonString, options);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine(ex);
+                            }
+                            finally
+                            { }
+
+                            if (config != null)
+                            {
+                                if (config.Name == DeviceTypes.Nanotag.ToString())                   // it's a nanotag configuration
+                                {
+                                    this.SelectedDeviceType = DeviceTypes.Nanotag;
+                                }
+                                else if (config.Name == DeviceTypes.Vesper.ToString())
+                                {
+                                    this.SelectedDeviceType = DeviceTypes.Vesper;
+                                }
+                                else if (config.Name == DeviceTypes.Pipistrelle.ToString())
+                                {
+                                    this.SelectedDeviceType = DeviceTypes.Pipistrelle;
+                                }
+                                else if (config.Name == DeviceTypes.Kol.ToString())
+                                {
+                                    this.SelectedDeviceType = DeviceTypes.Kol;
+                                }
+                                else
+                                {
+                                    this.SelectedDeviceType = null;
+                                }
+
+
+                                if (this.SelectedDeviceType != null && DriversViewModel != null)
+                                {
+                                    configurationJSONInstance = config;
+
+                                    //DriversViewModel.DeviceDriversCollection.Clear();
+                                    DriversViewModel.ActiveDeviceDriversCollection.Clear();
+
+                                    foreach (ConfigurationDeviceDriver drv in config.DeviceDrivers)
+                                    {
+                                        int index = DriversViewModel.DeviceDriversCollection.IndexOf(drv);
+
+                                        if (index >= 0 && index < DriversViewModel.DeviceDriversCollection.Count)
+                                        {
+                                            DriversViewModel.DeviceDriversCollection[index].Load(drv);
+                                            DriversViewModel.DeviceDriversCollection[index].IsChecked = true;
+                                        }
+                                    }
+                                }
+
+                            }
+
                         }
                     }
                 }
-            }
+                catch (Exception ex)
+                {
+
+                }
+            });
 
             ok = true;
 
-            return await Task.FromResult(ok);
+            return ok;
         }
 
 
@@ -1560,22 +1617,10 @@ namespace VesperApp.ViewModels
             if (e.IsConnected != IsConnected)
             {
                 if (e.IsConnected == true && e.Dock != null)
-                {
-                    _deviceUsbAdapter = new DeviceUsbAdapter(e.Dock);
-                    _deviceUsbAdapter.ConnectionEvent += _deviceUsbAdapter_ConnectionEvent;
+                {                  
                 }
                 else
                 {
-                    if (_deviceUsbAdapter != null)
-                    {
-                        try
-                        {
-                            _deviceUsbAdapter.ConnectionEvent -= _deviceUsbAdapter_ConnectionEvent;
-                            _deviceUsbAdapter.Dispose();
-                            _deviceUsbAdapter = null;
-                        }
-                        catch { }
-                    }
                 }
 
                 IsConnected = e.IsConnected;
@@ -1593,7 +1638,7 @@ namespace VesperApp.ViewModels
         {
             if (_deviceUsbAdapter != null)
             {
-                var devices = await _deviceUsbAdapter.ScanDevicesAsync((uint)vid,(uint)pid, true);
+                var devices = await _deviceUsbAdapter.ScanDevicesAsync((uint)vid,(uint)pid, false);
                 foreach (LoggerDevice logDevice in devices)
                 {
                     if (LoggerDevices.Contains(logDevice) == false)
@@ -1670,11 +1715,10 @@ namespace VesperApp.ViewModels
 
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            if (IsConnected == true && IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false)
+            if (IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false)
             {
-                var scan_nano = Task.Run( async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
-                var scan_vesp = Task.Run(async () => await ScanFor(Vesper.VendorId, Vesper.ProductId));
-                var scan_comport = Task.Run(async () => await ScanForComport());
+                    var scan_nano = Task.Run(async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
+                    var scan_comport = Task.Run(async () => await ScanForComport());
             }
         }
 
@@ -1685,13 +1729,17 @@ namespace VesperApp.ViewModels
             else
                 TextDateTimeNow = DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToLongTimeString();
 
-            if (IsConnected == true && IsDeviceConnected == true)
+            if (IsDeviceConnected == true && SelectedLoggerDevice != null)
             {
                 var ping_device = Task.Run(async () =>
                 {
                     if (SelectedLoggerDevice != null)
                     {
-                        await SelectedLoggerDevice.GetInfo();
+                        if(await SelectedLoggerDevice.GetInfo() == false)
+                        {
+                            await SelectedLoggerDevice.Disconnect();
+                            SelectedLoggerDevice = null;
+                        }
                     }
                 });
             }

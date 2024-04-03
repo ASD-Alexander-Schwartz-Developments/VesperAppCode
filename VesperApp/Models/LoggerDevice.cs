@@ -40,6 +40,7 @@ namespace VesperApp.Models
 
         public bool IsComportDevice => ((_usbDevice == null) && (_comport != null));
 
+        public string ComPort => (_comport != null) ? _comport.PortName : string.Empty;
         public string? SerialNumber { get => _serialnumber; }
         public string? Name { get => _name; }
 
@@ -105,6 +106,9 @@ namespace VesperApp.Models
 
                 case DeviceTypes.Pipistrelle:
                     _name = "PIPISTRELLE";
+                    break;
+                case DeviceTypes.Kol:
+                    _name = "KOL";
                     break;
                 default:
                     _name = "Unknown";
@@ -248,10 +252,12 @@ namespace VesperApp.Models
                 string nanotag = "NANOTAG";
                 string vesper = "VESPER";
                 string pipistrelle = "PIPISTRELLE";
+                string kol = "KOL";
 
                 if (nu.Contains(nanotag)) _type = DeviceTypes.Nanotag;
                 else if (nu.Contains(vesper)) _type = DeviceTypes.Vesper;
                 else if (nu.Contains(pipistrelle)) _type = DeviceTypes.Pipistrelle;
+                else if (nu.Contains(kol)) _type = DeviceTypes.Kol;
             }
             else
             {
@@ -270,6 +276,8 @@ namespace VesperApp.Models
                     break;
 
                 case DeviceTypes.Pipistrelle:
+                    break;
+                case DeviceTypes.Kol:
                     break;
             }
 
@@ -397,6 +405,11 @@ namespace VesperApp.Models
                 r = this._comport.IsRunning;
             }
             else if(_type == DeviceTypes.Pipistrelle && this._comport != null)
+            {
+                this._comport.Start();
+                r = this._comport.IsRunning;
+            }
+            else if (_type == DeviceTypes.Kol && this._comport != null)
             {
                 this._comport.Start();
                 r = this._comport.IsRunning;
@@ -595,6 +608,7 @@ namespace VesperApp.Models
                 Debug.WriteLine("Prepare Get Flags request array");
                 this._comport.SendToDevice(buffer, 0, buffer.Length);
                 Debug.WriteLine("Sent Get Flags request");
+                res = true;
             }
 
             return await Task.FromResult(res);
