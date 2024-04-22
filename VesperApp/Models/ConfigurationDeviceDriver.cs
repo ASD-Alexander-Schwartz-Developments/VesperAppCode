@@ -451,7 +451,10 @@ namespace VesperApp.Models
                         break;
                     case "IMU10":
                         baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigIMU10Driver));
-                        break; 
+                        break;
+                    case "IMU10HT":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigIMU10Driver));
+                        break;
                     case "LED":
                         baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLEDDriver));
                         break;
@@ -460,6 +463,9 @@ namespace VesperApp.Models
                         break;
                     case "NANOACC":
                         baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigNanotagAcc));
+                        break;
+                    case "KOL":
+                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigKOLDriver));
                         break;
                 }
 
@@ -504,6 +510,10 @@ namespace VesperApp.Models
                 {
                     JsonSerializer.Serialize(writer, imuDriver);
                 }
+                else if (value is ConfigIMU10HTDriver imuHTDriver)
+                {
+                    JsonSerializer.Serialize(writer, imuHTDriver);
+                }
                 else if (value is ConfigLEDDriver ledDriver)
                 {
                     JsonSerializer.Serialize(writer, ledDriver);
@@ -515,6 +525,10 @@ namespace VesperApp.Models
                 else if (value is ConfigNanotagAcc nanoaccDriver)
                 {
                     JsonSerializer.Serialize(writer, nanoaccDriver);
+                }
+                else if (value is ConfigKOLDriver kolDriver)
+                {
+                    JsonSerializer.Serialize(writer, kolDriver);
                 }
 
             }

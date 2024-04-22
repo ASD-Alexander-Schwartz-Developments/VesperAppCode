@@ -100,6 +100,34 @@ namespace VesperApp.Controls
 
                                 col.CellEditingTemplate = template; 
                             }
+                            else if (dt == typeof(IMU10HTAccRanges))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = IMU10HTAccRanges.ListOfLength, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(IMU10HTGyroRanges))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = IMU10HTGyroRanges.ListOfLength, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
                             else if (dt == typeof(SPH0641Gain))
                             {
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
@@ -120,6 +148,34 @@ namespace VesperApp.Controls
                                 {
                                     [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
                                     [!ComboBox.ItemsSourceProperty] = new Binding { Source = SPH0641Hpf.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(KOLGain))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = KOLGain.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(KOLHpf))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = KOLHpf.ListOfOptions, StringFormat = "{}{0}" },
                                     Margin = new Thickness(0),
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
                                     VerticalAlignment = VerticalAlignment.Stretch,

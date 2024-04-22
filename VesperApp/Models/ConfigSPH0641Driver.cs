@@ -34,6 +34,7 @@ namespace VesperApp.Models
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
         [JsonPropertyName("thresup"), JsonPropertyOrder(20)]
+        [Browsable(true)]
         public UInt32 ThresholdUp
         {
             get { return this.thresholdup; }
@@ -51,6 +52,7 @@ namespace VesperApp.Models
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
         [JsonPropertyName("thresdn"), JsonPropertyOrder(21)]
+        [Browsable(true)]
         public UInt32 ThresholdDown
         {
             get { return this.thresholddown; }

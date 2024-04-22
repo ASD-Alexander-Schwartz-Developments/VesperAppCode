@@ -18,13 +18,12 @@ namespace VesperApp.Models
         public const Int16 MIN_GAIN_DB = -48;
 
 
-        private UInt32 thresholdup;
-        private UInt32 thresholddown;
+        private UInt16 thresholdup;
+        private UInt16 thresholddown;
         private bool cic4;
         private UInt16 gain;
         private UInt16 hpf;
-        private bool enableNorthSouthPair;
-        private bool enableEastWestPair;
+        private UInt16 num_mikes;
 
         public ConfigKOLDriver() : base("KOL", "KOL - Scientific Audio Configuration")
         {
@@ -32,29 +31,18 @@ namespace VesperApp.Models
         }
 
 
-        [DisplayName("Enable North/South"),
+        [DisplayName("Number of Active Microphones"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Control recording of North/South Mike pair")]
-        [JsonPropertyName("enablens"), JsonPropertyOrder(20)]
-        public bool EnableNorthSouthPair
+        DescriptionAttribute("Set number of micrphones for sampling")]
+        [JsonPropertyName("mikeon"), JsonPropertyOrder(20)]
+        [Browsable(true)]
+        public UInt16 MikesOn
         {
-            get { return this.enableNorthSouthPair; }
+            get { return this.num_mikes; }
             set
             {
-                this.enableNorthSouthPair = value;
-            }
-        }
-
-        [DisplayName("Enable East/West"),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Control recording of East/West Mike pair")]
-        [JsonPropertyName("enableew"), JsonPropertyOrder(20)]
-        public bool EnableEastWestPair
-        {
-            get { return this.enableEastWestPair; }
-            set
-            {
-                this.enableEastWestPair = value;
+                this.num_mikes = value;
+                OnPropertyChanged();
             }
         }
 
@@ -62,8 +50,9 @@ namespace VesperApp.Models
         [DisplayName("Threshold Up"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
-        [JsonPropertyName("thresup"), JsonPropertyOrder(20)]
-        public UInt32 ThresholdUp
+        [JsonPropertyName("thresup"), JsonPropertyOrder(21)]
+        [Browsable(true)]
+        public UInt16 ThresholdUp
         {
             get { return this.thresholdup; }
             set
@@ -72,15 +61,16 @@ namespace VesperApp.Models
                     throw new ArgumentException("Maximum threshold level is 2047");
                 else
                     this.thresholdup = value;
-
+                OnPropertyChanged();
             }
         }
 
         [DisplayName("Threshold Down"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
-        [JsonPropertyName("thresdn"), JsonPropertyOrder(21)]
-        public UInt32 ThresholdDown
+        [JsonPropertyName("thresdn"), JsonPropertyOrder(22)]
+        [Browsable(true)]
+        public UInt16 ThresholdDown
         {
             get { return this.thresholddown; }
             set
@@ -89,7 +79,7 @@ namespace VesperApp.Models
                     throw new ArgumentException("Maximum threshold level is 2047");
                 else
                     this.thresholddown = value;
-
+                OnPropertyChanged();
             }
         }
 
@@ -137,7 +127,7 @@ namespace VesperApp.Models
         [CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Use CIC4 filter by default if enabled. Otherwise, default is CIC5."),
         DisplayName("Use CIC4 Digital Filter")]
-        [JsonPropertyName("cic4"), JsonPropertyOrder(22)]
+        [JsonPropertyName("cic4"), JsonPropertyOrder(23)]
         [Browsable(true)]
         public bool UseCic4Filter
         {
@@ -156,7 +146,7 @@ namespace VesperApp.Models
         [DisplayName("Digital Filter"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         Browsable(false)]
-        [JsonPropertyName("filter"), JsonPropertyOrder(23)]
+        [JsonPropertyName("filter"), JsonPropertyOrder(24)]
         public UInt16 DFilter
         {
             get { return this.digitalFilter; }
@@ -192,7 +182,7 @@ namespace VesperApp.Models
         [DisplayName("HPF"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         Browsable(false)]
-        [JsonPropertyName("hpf"), JsonPropertyOrder(24)]
+        [JsonPropertyName("hpf"), JsonPropertyOrder(25)]
         public UInt16 HPF
         {
             get { return this.hpf; }
@@ -218,10 +208,10 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("GAIN"),
+        [DisplayName("Gain"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         Browsable(false)]
-        [JsonPropertyName("gain"), JsonPropertyOrder(25)]
+        [JsonPropertyName("gain"), JsonPropertyOrder(26)]
         public UInt16 GAIN
         {
             get { return this.gain; }

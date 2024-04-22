@@ -944,11 +944,12 @@ namespace VesperApp.ViewModels
                                     if (ScheduleViewModel.PowerOnText.Length > 0)
                                     {
                                         DateTime? dt = null;
+                                        TimeSpan? ts = null;
                                         try
                                         {
                                             if(ScheduleViewModel.IsPowerOnRelative)
                                             {
-                                                dt = DateTime.ParseExact(ScheduleViewModel.PowerOnText, "dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.NoCurrentDateDefault);
+                                                ts = TimeSpan.ParseExact(ScheduleViewModel.PowerOnText, @"dd\ hh\:mm\:ss", CultureInfo.InvariantCulture, TimeSpanStyles.None);
                                             }
                                             else
                                             {
@@ -969,12 +970,10 @@ namespace VesperApp.ViewModels
                                         }
                                         else
                                         {
-                                            if (dt != null)
+                                            if (ts != null)
                                             {
-                                                DateTime dt1 = (DateTime)dt;
-
                                                 configurationJSONInstance.PowerOn = new DateTime(2000,
-                                                    1, dt1.Day, dt1.Hour, dt1.Minute, dt1.Second);
+                                                    1, ts.Value.Days, ts.Value.Hours, ts.Value.Minutes, ts.Value.Seconds);
                                             }
                                         }
                                     }
@@ -1829,6 +1828,12 @@ namespace VesperApp.ViewModels
                         configurationJSONInstance.Name = "vesper";
                         configurationJSONInstance.CDrift = 32999;
                         break;
+                    case DeviceTypes.Kol:
+                        await DriversViewModel.UpdateDeviceDriverCollection(Kol.SupportedDeviceDrivers);
+                        configurationJSONInstance.Name = "KOL";
+                        configurationJSONInstance.CDrift = 32999;
+                        break;
+
                     default:
                         await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
                         configurationJSONInstance.Name = "vesper";
