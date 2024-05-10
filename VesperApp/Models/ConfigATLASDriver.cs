@@ -16,7 +16,7 @@ namespace VesperApp.Models
         }
 
 
-        [Browsable(false)]
+        [Browsable(false), JsonPropertyOrder(22)]
         public override UInt32 FileSize
         {
             get { return this.file_size; }
@@ -28,7 +28,7 @@ namespace VesperApp.Models
 
         [DisplayName("ATLAS Receiver/Transmitters ping rate (in ms)"),
         CategoryAttribute("ATLAS Receiver/Transmitters specific Settings")]
-        [JsonPropertyName("pRate")]
+        [JsonPropertyName("pRate"), JsonPropertyOrder(23)]
         public UInt32 PingRate
         {
             get

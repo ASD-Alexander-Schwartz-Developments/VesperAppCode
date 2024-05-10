@@ -12,7 +12,8 @@ namespace VesperApp.Models
         public const UInt32 SAMPLING_RATE_MASTERCLOCK = 4800000;
 
         public const UInt32 MAX_SAMPLING_RATE = 100000;
-        public const UInt32 MIN_SAMPLING_RATE = 2344;
+        public const UInt32 MIN_SAMPLING_RATE = 4800;
+        public const UInt32 DEF_SAMPLING_RATE = 48000;
 
         public const Int16 MAX_GAIN_DB = 72;
         public const Int16 MIN_GAIN_DB = -48;
@@ -36,12 +37,16 @@ namespace VesperApp.Models
         DescriptionAttribute("Set number of micrphones for sampling")]
         [JsonPropertyName("mikeon"), JsonPropertyOrder(20)]
         [Browsable(true)]
-        public UInt16 MikesOn
+        public UInt32 MikesOn
         {
-            get { return this.num_mikes; }
+            get { return (UInt32)this.num_mikes; }
             set
             {
-                this.num_mikes = value;
+                if (value > 4)
+                    this.num_mikes = 4;
+                else
+                    this.num_mikes = (UInt16)value;
+
                 OnPropertyChanged();
             }
         }
@@ -52,15 +57,15 @@ namespace VesperApp.Models
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
         [JsonPropertyName("thresup"), JsonPropertyOrder(21)]
         [Browsable(true)]
-        public UInt16 ThresholdUp
+        public UInt32 ThresholdUp
         {
-            get { return this.thresholdup; }
+            get { return (UInt32)this.thresholdup; }
             set
             {
                 if (value > 2047)
                     throw new ArgumentException("Maximum threshold level is 2047");
                 else
-                    this.thresholdup = value;
+                    this.thresholdup = (UInt16)value;
                 OnPropertyChanged();
             }
         }
@@ -70,15 +75,15 @@ namespace VesperApp.Models
         DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
         [JsonPropertyName("thresdn"), JsonPropertyOrder(22)]
         [Browsable(true)]
-        public UInt16 ThresholdDown
+        public UInt32 ThresholdDown
         {
-            get { return this.thresholddown; }
+            get { return (UInt32)this.thresholddown; }
             set
             {
                 if (value > 2047)
                     throw new ArgumentException("Maximum threshold level is 2047");
                 else
-                    this.thresholddown = value;
+                    this.thresholddown = (UInt16)value;
                 OnPropertyChanged();
             }
         }
@@ -88,7 +93,7 @@ namespace VesperApp.Models
         private UInt32 CheckSamplingRate(UInt32 ovalue, UInt32 nvalue)
         {
             UInt32 rval = nvalue;
-            /*if(nvalue == 0)
+           /* if(nvalue == 0)
             {
                 rval = 0;
             }
@@ -100,7 +105,7 @@ namespace VesperApp.Models
             }
             else
             {
-                rval = MIN_SAMPLING_RATE;
+                rval = DEF_SAMPLING_RATE;
             }
             */
             return rval;
@@ -370,7 +375,7 @@ namespace VesperApp.Models
             }
             else
             {
-                value = HPF_000625;
+                value = HPF_OFF;
             }
 
             return r;

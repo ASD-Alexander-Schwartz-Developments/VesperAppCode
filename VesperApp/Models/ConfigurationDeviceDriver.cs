@@ -229,7 +229,7 @@ namespace VesperApp.Models
         }
 
 
-        [JsonPropertyName("fileSize"), JsonPropertyOrder(10)]
+        [JsonPropertyName("fileSize"), JsonPropertyOrder(30)]
         [Browsable(true)]
         [CategoryAttribute("Advanced configuration"),
         DescriptionAttribute("Size (in Bytes) of a single file containing sensor samples, once file reaches this side, it's timestamped, closed and new file is opened"),
@@ -461,6 +461,9 @@ namespace VesperApp.Models
                     case "LEPTON":
                         baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLeptonDriver));
                         break;
+                    case "PROXTIT":
+                        baseClass = (ConfigProxtitDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigProxtitDriver));
+                        break;
                     case "NANOACC":
                         baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigNanotagAcc));
                         break;
@@ -521,6 +524,10 @@ namespace VesperApp.Models
                 else if (value is ConfigLeptonDriver leptonDriver)
                 {
                     JsonSerializer.Serialize(writer, leptonDriver);
+                }
+                else if (value is ConfigProxtitDriver proxtitDriver)
+                {
+                    JsonSerializer.Serialize(writer, proxtitDriver);
                 }
                 else if (value is ConfigNanotagAcc nanoaccDriver)
                 {

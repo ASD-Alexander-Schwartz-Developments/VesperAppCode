@@ -1033,6 +1033,45 @@ namespace VesperApp.Models
                                 file.Close();
                             }
                         }
+                        else if (f_preamble == preamnle_ok &&
+                            page_type == NAND_FS_SNAP_PAGE_TYPE &&
+                            snapType == 'A')
+                        {
+                            string outfolder = path + "ACC\\";
+
+                            //                        if (outfolder.EndsWith("\\") == false)
+                            //outfolder += "\\";
+
+                            string filename;//= String.Format("{0}\\{1}.bin",
+                                            //                    new object[] {
+                                            //                    outfolder, "G"+snapID.ToString("D6")});
+
+                            DateTime dt = Nanotag.FromTimestamp(snapTimestamp, snapSubsecond);
+
+                            filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}.abn",
+                                new object[] {
+                                    outfolder, "NACC.", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second});
+
+                            Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);
+
+                            using (System.IO.FileStream file = new FileStream(filename, FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite))
+                            {
+                                if (file.Length < (snapPagesInSnap * 4096))
+                                    file.SetLength(snapPagesInSnap * 4096);
+
+                                file.Seek(snapIndex * 4096, SeekOrigin.Begin);
+                                file.Write(bytes, 0, 4096);
+                                file.Flush();
+                                file.Close();
+                            }
+                        }
+                        else if (f_preamble == preamnle_ok &&
+                            page_type == NAND_FS_SNAP_PAGE_TYPE &&
+                            snapType == 'S' &&
+                            snapIndex < snapPagesInSnap)
+                        {
+
+                        }
                     }
                     else
                     {

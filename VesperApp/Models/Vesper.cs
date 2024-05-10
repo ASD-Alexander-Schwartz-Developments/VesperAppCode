@@ -31,9 +31,9 @@ namespace VesperApp.Models
             { new ConfigIMU10Driver() },
             { new ConfigIMU10HTDriver() },
             { new ConfigTPRH31Driver() },
-			{ new ConfigALS3001DDriver() }
-
-		};
+			{ new ConfigALS3001DDriver() },
+            { new ConfigProxtitDriver() }
+        };
 
 		public static UInt32 ToTimestamp(DateTime dt)
         {

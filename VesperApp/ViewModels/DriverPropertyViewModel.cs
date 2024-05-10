@@ -117,7 +117,7 @@ namespace VesperApp.ViewModels
                         Property.SetValue(_target, _value);
                         //_target.SetValue(Property, convertedValue);
 
-                        Debug.WriteLine(value!.ToString());
+                        Console.WriteLine("Property Value set: " + value!.ToString());
                     }
                 }
                 catch { }

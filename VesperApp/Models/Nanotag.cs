@@ -50,9 +50,10 @@ namespace VesperApp.Models
 			{ new ConfigLEDDriver() },
 			{ new ConfigTPRH31Driver() },
 			{ new ConfigNanotagAcc() },
-			{ new ConfigALS3001DDriver() }
+			{ new ConfigALS3001DDriver() },
+            { new ConfigProxtitDriver() }
 
-		};
+        };
 
 		public static byte [] ConfigBinaryConverter(string json)
         {

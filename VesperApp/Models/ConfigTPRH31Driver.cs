@@ -14,18 +14,5 @@ namespace VesperApp.Models
         {
             this.FileSize = 0;
         }
-
-        [Browsable(false)]
-        public override UInt32 FileSize
-        {
-            get { return this.file_size; }
-            set { this.file_size = value; }
-        }
-
-
-        public override string ToString()
-        {
-            return "VT03-TPRH31";
-        }
     }
 }

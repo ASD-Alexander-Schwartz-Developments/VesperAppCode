@@ -36,6 +36,7 @@ using static VesperApp.Models.ConfigurationJSON;
 using System.Runtime.InteropServices;
 using System.Collections;
 using System.Globalization;
+using Avalonia.Metadata;
 
 
 /// <summary>
@@ -210,8 +211,9 @@ namespace VesperApp.ViewModels
 			set => this.RaiseAndSetIfChanged(ref _updateFlyout, value);
 		}
 
-		#endregion
+        #endregion
 
+        private bool __downloading_nanotag_data = false;
 
         public MainViewViewModel()
         {
@@ -336,23 +338,53 @@ namespace VesperApp.ViewModels
                 }
             });
 
+            
+
             DownloadDeviceData = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (SelectedLoggerDevice != null)
                 {
-                    OpenFolderDialog openFolderDialog = new OpenFolderDialog();
-                    openFolderDialog.Title = "Select output folder for downloaded data";
-
-                    if (App.MainWindow != null)
+                    FolderPickerOpenOptions foptions = new()
                     {
-                        string? path = await openFolderDialog.ShowAsync((MainWindow)App.MainWindow);
+                        Title = "Selec Folder to download data into ...",
+                        AllowMultiple = false,
+                    };
 
-                        bool ok = await SelectedLoggerDevice.DownloadPages(path);
 
-                        if (!ok)
+                    Task<IReadOnlyList<IStorageFolder>> dialog = RootTopLevel!.StorageProvider!.OpenFolderPickerAsync(foptions);
+
+                    if (dialog.Result.Count > 0)
+                    {
+                        await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFolder>> dialogs)
                         {
-                            ///// show error
-                        }
+                            __downloading_nanotag_data = true;
+
+                            try
+                            {
+                                IReadOnlyList<IStorageFolder> folders = dialog.Result;
+                                string? path = null;
+
+                                if (folders.Count > 0)
+                                {
+                                    path = folders[0].TryGetLocalPath();
+                                }
+
+                                bool ok = await SelectedLoggerDevice.DownloadPages(path);
+
+                                if (!ok)
+                                {
+                                    ///// show error
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+
+                            }
+                            finally
+                            {
+                                __downloading_nanotag_data = false;
+                            }
+                        });
                     }
                 }
             });
@@ -1714,7 +1746,7 @@ namespace VesperApp.ViewModels
 
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            if (IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false)
+            if (IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false && __downloading_nanotag_data == false)
             {
                     var scan_nano = Task.Run(async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
                     var scan_comport = Task.Run(async () => await ScanForComport());
@@ -1728,7 +1760,7 @@ namespace VesperApp.ViewModels
             else
                 TextDateTimeNow = DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToLongTimeString();
 
-            if (IsDeviceConnected == true && SelectedLoggerDevice != null)
+            if (IsDeviceConnected == true && SelectedLoggerDevice != null && __downloading_nanotag_data == false)
             {
                 var ping_device = Task.Run(async () =>
                 {

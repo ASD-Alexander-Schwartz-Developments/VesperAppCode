@@ -49,7 +49,7 @@ namespace VesperApp.Controls
                 {
                     selectedDriverProperty = (DriverPropertyViewModel)obj;
 
-                    Debug.WriteLine("Selected: " + obj.ToString() + " Type=" + obj.GetType().ToString());
+                    //Debug.WriteLine("Selected: " + obj.ToString() + " Type=" + obj.GetType().ToString());
 
                     if (col != null)
                     {
