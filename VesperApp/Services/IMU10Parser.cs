@@ -22,7 +22,7 @@ namespace VesperApp.Services
 
         private List<string>? csv_lines;
 
-        public IMU10Parser(string filename, byte[] data, DateTime dtStart, UInt16 subsec_frac) 
+        public IMU10Parser(string filename, byte[] data, DateTime dtStart, UInt16 subsec_frac, UInt32 ms_sample) 
         { 
             if(data == null) throw new ArgumentNullException("data");
 
@@ -34,24 +34,36 @@ namespace VesperApp.Services
             csv_lines.Add(IMU10RecordLine.HeaderText());
 
             int index = 0;
+            DateTime ts = dtStart;
 
             while(index < data.Length)
             {
-                if (data[index] == Header)
+                if (data[index] == Header && index + 6 < data.Length)
                 {
                     IMU10RecordLine line = new IMU10RecordLine();
-
+                    ts = ts.Add(TimeSpan.FromMilliseconds(ms_sample));
                     line.Header = Header;
                     index++;
                     line.Flags = data[index];
                     index++;
-                    byte min = (byte)(data[index]);
+                    line.Minute = (data[index]);
                     index++;
-                    byte sec = (byte)(data[index]);
+                    line.Second = (data[index]);
                     index++;
                     UInt16 subsec = (UInt16)((UInt16)data[index] + (UInt16)((UInt16)data[index+1] << 8));
-                    double milisecs = 1000.0 * ((double)((double)subsec_frac - (double)subsec) / (double)((double)subsec_frac + 1.0));
-                    line.Timestamp = new DateTime(dtStart.Year, dtStart.Month, dtStart.Day, dtStart.Hour, (int)min, (int)sec, (int)milisecs);
+
+                    if(subsec > subsec_frac)
+                    {
+                        Console.WriteLine("333");
+                    }
+
+                    int ms = (int)(1000.0 * ((double)((double)subsec_frac - (double)subsec) / (double)((double)subsec_frac + 1.0)));
+                    if(ms < 0)
+                    {
+                        ms += 1000;
+                        line.Second--;
+                    }
+                    line.Timestamp = ts;
                     index += 2;
 
                     if (((line.Flags & FlagsGyro) == FlagsGyro) && (index < data.Length - bytes_in_sensor))
@@ -140,6 +152,10 @@ namespace VesperApp.Services
         public byte Flags { get; set; }
         public DateTime Timestamp { get; set; }
 
+        public uint Minute { get; set; }
+        public uint Second { get; set; }
+        public uint Milisecond { get; set; }
+
         public double XL_X { get; set; }
         public double XL_Y { get; set; }
         public double XL_Z { get; set; }
@@ -155,7 +171,7 @@ namespace VesperApp.Services
 
         public static string HeaderText()
         {
-            return "Time,Acc X [mg],Acc Y [mg],Acc Z [mg],Gyro X [dps],Gyro Y [dps],Gyro Z [dps],Mag X [mGauss],Mag Y [mGauss],Mag Z [mGauss],Temperature [C],Bar Pressure [hPa]";
+            return "Time,Minute,Second,Milisecond,Acc X [mg],Acc Y [mg],Acc Z [mg],Gyro X [dps],Gyro Y [dps],Gyro Z [dps],Mag X [mGauss],Mag Y [mGauss],Mag Z [mGauss],Temperature [C],Bar Pressure [hPa]";
         }
 
         public override string ToString()
@@ -165,6 +181,9 @@ namespace VesperApp.Services
             string dt = Timestamp.ToShortDateString() + " " + Timestamp.ToString("HH:mm:ss.FFF");
 
             return dt + "," +
+                Minute.ToString() + "," +
+                Second.ToString() + "," +
+                Milisecond.ToString() + "," +
                 XL_X.ToString("F4") + "," +
                 XL_Y.ToString("F4") + "," +
                 XL_Z.ToString("F4") + "," +

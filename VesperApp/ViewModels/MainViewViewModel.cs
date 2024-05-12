@@ -529,6 +529,10 @@ namespace VesperApp.ViewModels
 
             ManualMotionParserCommand = ReactiveCommand.CreateFromTask(DecodeMotionInnertial);
 
+            ManualAlsParserCommand = ReactiveCommand.CreateFromTask(DecodeAls);
+
+            ManualTprhParserCommand = ReactiveCommand.CreateFromTask(DecodeTprh);
+
             #endregion
 
             #region Parser Commands
@@ -1527,7 +1531,7 @@ namespace VesperApp.ViewModels
 
                     FileTypeFilter = new List<FilePickerFileType>
                     {
-                        new("Audio binary (.MBN) ")
+                        new("Inertial Motion binary files (.MBN) ")
                         {
                             Patterns = new[]{"*-*.MBN"},
                             MimeTypes = new[]{"bin/*"}
@@ -1558,10 +1562,42 @@ namespace VesperApp.ViewModels
                                 {
                                     string? currentDirectory = Path.GetDirectoryName(lp);
                                     string? currentFilename = Path.GetFileName(lp).ToUpper();
-                                    string metadata = string.Empty;
+                                    string? metadata = currentFilename + ".txt";
+                                    uint ms_sample = 0;
 
-                                    if (currentDirectory != null && currentFilename != null)
+                                    if (currentDirectory != null && currentFilename != null && metadata != null)
                                     {
+                                        metadata = currentDirectory + "/" + metadata;
+                                        if (File.Exists(metadata))
+                                        {
+                                            string header_metadata = File.ReadAllText(metadata);
+
+                                            if (header_metadata.Contains("SampleRate:"))
+                                            {
+                                                string[] lines = header_metadata.Split(new char[] { '\n', '\r' });
+
+                                                foreach(string line in lines)
+                                                {
+                                                    string l = line.Trim();
+
+                                                    if(l.Contains("SampleRate:"))
+                                                    {
+                                                        string val = l.Substring(l.IndexOf(":") + 1);
+
+                                                        if(val.Length > 0)
+                                                        {
+                                                            uint vv = 0;
+                                                            if (uint.TryParse(val, out vv))
+                                                            {
+                                                                ms_sample = 1000 / vv;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }                                                
+                                            }
+                                        }
+
                                         byte[] data = File.ReadAllBytes(lp);
 
                                         DateTime dtStart = DateTime.Now;
@@ -1587,7 +1623,7 @@ namespace VesperApp.ViewModels
                                             }
                                         }
 
-                                        using (IMU10Parser ip = new IMU10Parser(lp, data, dtStart, 1023))
+                                        using (IMU10Parser ip = new IMU10Parser(lp, data, dtStart, 1023, ms_sample))
                                         {
                                             ip.WriteFile();
                                         }
@@ -1613,7 +1649,259 @@ namespace VesperApp.ViewModels
 
 
 
+        private async Task<bool> DecodeAls()
+        {
+            bool retval = false;
 
+            try
+            {
+                FilePickerOpenOptions options = new()
+                {
+                    Title = "Select parsed TPRH31 binary recording files to convert to CSV...",
+
+                    FileTypeFilter = new List<FilePickerFileType>
+                    {
+                        new("Temperature/Humidity binary files (.RBN) ")
+                        {
+                            Patterns = new[]{"*-*.RBN"},
+                            MimeTypes = new[]{"bin/*"}
+                        }
+                    },
+                    AllowMultiple = true,
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+                        double percentDelta = 100 / files.Count;
+                        double percent = 0;
+                        foreach (var file in files)
+                        {
+                            percent += percentDelta;
+                            //BinaryParserPercent = (int)percent;
+                            if (file is not null)
+                            {
+                                string? lp = file.TryGetLocalPath();
+
+                                if (lp is not null)
+                                {
+                                    string? currentDirectory = Path.GetDirectoryName(lp);
+                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
+                                    string? metadata = currentFilename + ".txt";
+                                    uint ms_sample = 0;
+
+                                    if (currentDirectory != null && currentFilename != null && metadata != null)
+                                    {
+                                        metadata = currentDirectory + "/" + metadata;
+                                        if (File.Exists(metadata))
+                                        {
+                                            string header_metadata = File.ReadAllText(metadata);
+
+                                            if (header_metadata.Contains("SampleRate:"))
+                                            {
+                                                string[] lines = header_metadata.Split(new char[] { '\n', '\r' });
+
+                                                foreach (string line in lines)
+                                                {
+                                                    string l = line.Trim();
+
+                                                    if (l.Contains("SampleRate:"))
+                                                    {
+                                                        string val = l.Substring(l.IndexOf(":") + 1);
+
+                                                        if (val.Length > 0)
+                                                        {
+                                                            uint vv = 0;
+                                                            if (uint.TryParse(val, out vv))
+                                                            {
+                                                                ms_sample = 1000 / vv;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        byte[] data = File.ReadAllBytes(lp);
+
+                                        DateTime dtStart = DateTime.Now;
+
+                                        ArrayList arrayList = Utils.scan(currentFilename, "L%d_%d_%d_%d_%d_%d_%d");
+
+                                        if (arrayList.Count == 7)
+                                        {
+                                            int? year = (int?)arrayList[0];
+                                            int? month = (int?)arrayList[1];
+                                            int? day = (int?)arrayList[2];
+                                            int? hr = (int?)arrayList[3];
+                                            int? mn = (int?)arrayList[4];
+                                            int? sec = (int?)arrayList[5];
+                                            int? sbs = (int?)arrayList[6];
+
+                                            if (year != null && month != null && day != null &&
+                                                    hr != null && mn != null && sec != null && sbs != null)
+                                            {
+
+                                                dtStart = new DateTime((int)year, (int)month, (int)day, (int)hr,
+                                                    (int)mn, (int)sec, (int)sbs);
+                                            }
+                                        }
+
+                                        using (ALSParser ip = new ALSParser(lp, data, dtStart, 1023, ms_sample))
+                                        {
+                                            ip.WriteFile();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        //BinaryParserPercent = 100;
+                        await Task.Delay(100);
+                        //BinaryParserIsRunning = false;
+
+                    }
+                    catch (Exception e) { Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+
+
+
+            }
+            catch { retval = true; }
+
+            return retval;
+        }
+
+        private async Task<bool> DecodeTprh()
+        {
+            bool retval = false;
+
+            try
+            {
+                FilePickerOpenOptions options = new()
+                {
+                    Title = "Select parsed TPRH31 binary recording files to convert to CSV...",
+
+                    FileTypeFilter = new List<FilePickerFileType>
+                    {
+                        new("Temperature/Humidity binary files (.RBN) ")
+                        {
+                            Patterns = new[]{"*-*.RBN"},
+                            MimeTypes = new[]{"bin/*"}
+                        }
+                    },
+                    AllowMultiple = true,
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+                        double percentDelta = 100 / files.Count;
+                        double percent = 0;
+                        foreach (var file in files)
+                        {
+                            percent += percentDelta;
+                            //BinaryParserPercent = (int)percent;
+                            if (file is not null)
+                            {
+                                string? lp = file.TryGetLocalPath();
+
+                                if (lp is not null)
+                                {
+                                    string? currentDirectory = Path.GetDirectoryName(lp);
+                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
+                                    string? metadata = currentFilename + ".txt";
+                                    uint ms_sample = 0;
+
+                                    if (currentDirectory != null && currentFilename != null && metadata != null)
+                                    {
+                                        metadata = currentDirectory + "/" + metadata;
+                                        if (File.Exists(metadata))
+                                        {
+                                            string header_metadata = File.ReadAllText(metadata);
+
+                                            if (header_metadata.Contains("SampleRate:"))
+                                            {
+                                                string[] lines = header_metadata.Split(new char[] { '\n', '\r' });
+
+                                                foreach (string line in lines)
+                                                {
+                                                    string l = line.Trim();
+
+                                                    if (l.Contains("SampleRate:"))
+                                                    {
+                                                        string val = l.Substring(l.IndexOf(":") + 1);
+
+                                                        if (val.Length > 0)
+                                                        {
+                                                            uint vv = 0;
+                                                            if (uint.TryParse(val, out vv))
+                                                            {
+                                                                ms_sample = 1000 / vv;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        byte[] data = File.ReadAllBytes(lp);
+
+                                        DateTime dtStart = DateTime.Now;
+
+                                        ArrayList arrayList = Utils.scan(currentFilename, "R%d_%d_%d_%d_%d_%d_%d");
+
+                                        if (arrayList.Count == 7)
+                                        {
+                                            int? year = (int?)arrayList[0];
+                                            int? month = (int?)arrayList[1];
+                                            int? day = (int?)arrayList[2];
+                                            int? hr = (int?)arrayList[3];
+                                            int? mn = (int?)arrayList[4];
+                                            int? sec = (int?)arrayList[5];
+                                            int? sbs = (int?)arrayList[6];
+
+                                            if (year != null && month != null && day != null &&
+                                                    hr != null && mn != null && sec != null && sbs != null)
+                                            {
+
+                                                dtStart = new DateTime((int)year, (int)month, (int)day, (int)hr,
+                                                    (int)mn, (int)sec, (int)sbs);
+                                            }
+                                        }
+
+                                        using (TPHParser ip = new TPHParser(lp, data, dtStart, 1023, ms_sample))
+                                        {
+                                            ip.WriteFile();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        //BinaryParserPercent = 100;
+                        await Task.Delay(100);
+                        //BinaryParserIsRunning = false;
+
+                    }
+                    catch (Exception e) { Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+
+
+
+            }
+            catch { retval = true; }
+
+            return retval;
+        }
 
         private void DriversViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
@@ -1785,15 +2073,14 @@ namespace VesperApp.ViewModels
         public ICommand? Boot0ModeDockCommand { get; }
         public ICommand? EnableDeviceDockCommand { get; }
         public ICommand? BinaryFilesExtractor { get; }
-        
         public ICommand? ManualAudioParserCommand { get; }
         public ICommand? ManualMotionParserCommand { get; }
-
+        public ICommand? ManualAlsParserCommand { get; }
+        public ICommand? ManualTprhParserCommand { get; }
         public ICommand? ConnectDisconnectDeviceCommand { get; }
         public ICommand? SleepDeviceCommand { get; }
         public ICommand? ArmSleepDeviceCommand { get; }
         public ICommand? FormatDeviceCommand { get; }
-        
         public ICommand? BootloaderDeviceCommand { get; }
         public ICommand? SetDateTimeDeviceCommand { get; }
         public ICommand? UploadDeviceConfig { get; }

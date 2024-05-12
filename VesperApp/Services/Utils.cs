@@ -46,6 +46,51 @@ namespace VesperApp.Services
             return r;
         }
 
+        public static byte BCD2BIN(byte bcdNumber)
+        {
+            byte digit1 = (byte)(bcdNumber >> 4);
+            byte digit2 = (byte)(bcdNumber & 0x0f);
+
+            return (byte)(digit1 * 10 + digit2);
+        }
+
+        public static int ExtractDateTimeSlowSensors(byte[] buffer, int offset, UInt16 subsecond_frac, out DateTime dt)
+        {
+            int i = offset;
+            DateTime dateTime = DateTime.MinValue;
+            dt = dateTime;
+
+            if (i + 10 < buffer.Length)
+            {
+                int m = BCD2BIN(buffer[i++]);
+                int d = BCD2BIN(buffer[i++]);
+                int y = BCD2BIN(buffer[i++]);
+                i++;
+                int hh = BCD2BIN(buffer[i++]);
+                int mm = BCD2BIN(buffer[i++]);
+                int ss = BCD2BIN(buffer[i++]);
+                i++;
+                y += 2000;
+                UInt16 subsecond = (UInt16)(((UInt16)buffer[i++]) + ((UInt16)buffer[i++] << 8));
+
+                double milisecs = 1000.0 * ((double)((double)subsecond_frac - (double)subsecond) / (double)((double)subsecond_frac + 1.0));
+
+                if (milisecs < 0)
+                {
+                    if (ss > 0) ss--;
+                    else ss = 59;
+
+                    milisecs *= -1;
+                    //milisecs = 1000 + milisecs;
+                }
+
+                dateTime = new DateTime(y, m, d, hh, mm, ss, (int)Math.Round(milisecs));
+                dt = dateTime;
+            }
+
+            return 10;
+        }
+
 
         public static ArrayList scan(string s, string fmt)
         {

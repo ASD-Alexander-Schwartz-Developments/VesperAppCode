@@ -339,7 +339,7 @@ namespace VesperApp.Services
                     }
                     finally
                     { 
-                        this._serialPort.Close();
+                        this._serialPort?.Close();
                         Debug.WriteLine("Closed " + s);
                     }
                 }

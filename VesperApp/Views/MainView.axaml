@@ -255,6 +255,24 @@
 										</Image>
 									</StackPanel>
 								</Button>
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualTprhParserCommand}" x:Name="bParseTprh" ToolTip.Tip="Teperature/Humidity Decoder">
+									<StackPanel Orientation="Horizontal">
+										<Image Stretch="Fill" Width="42" Height="42">
+											<Image.Source>
+												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.temperature_filled}" />
+											</Image.Source>
+										</Image>
+									</StackPanel>
+								</Button>
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualAlsParserCommand}" x:Name="bParseAls" ToolTip.Tip="Ambient Light Decoder">
+									<StackPanel Orientation="Horizontal">
+										<Image Stretch="Fill" Width="42" Height="42">
+											<Image.Source>
+												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.flashlight_filled}" />
+											</Image.Source>
+										</Image>
+									</StackPanel>
+								</Button>
 								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualMotionParserCommand}" x:Name="bParseImu" ToolTip.Tip="IMU (Innertial Motion Unit) Sensor Decoder">
 									<StackPanel Orientation="Horizontal">
 										<Image Stretch="Fill" Width="42" Height="42">
