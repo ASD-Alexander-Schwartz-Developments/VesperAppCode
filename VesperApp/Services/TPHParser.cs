@@ -47,9 +47,9 @@ namespace VesperApp.Services
                     line.Timestamp = dt; 
 
                     line.Temperature = (double)((UInt16)((UInt16)data[index + 1] + (UInt16)((UInt16)data[index] << 8)));
-                    index += 2;
+                    index += 3;
                     line.RelativeHumidity = (double)((UInt16)((UInt16)data[index + 1] + (UInt16)((UInt16)data[index] << 8)));
-                    index += 2;
+                    index += 3;
 
                     line.RelativeHumidity = 100.0 * (line.RelativeHumidity / 65535.0);
                     line.Temperature = -45 + 175 * (line.Temperature / 65535.0);

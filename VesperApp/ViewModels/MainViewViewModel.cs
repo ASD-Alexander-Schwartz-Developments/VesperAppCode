@@ -1337,7 +1337,12 @@ namespace VesperApp.ViewModels
                     Title = "Select binary files to extract data from...",
                     //SuggestedStartLocation =,
                     FileTypeFilter = new List<FilePickerFileType> 
-                    { 
+                    {
+                        new("All binary files (.bin) ")
+                        {
+                            Patterns = new[]{"*.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
                         new("GPS Snap (.bin) ")
                         {
                             Patterns = new[]{"*G.bin"},
@@ -1351,6 +1356,36 @@ namespace VesperApp.ViewModels
                         new("Motion (Innertial) Recording (.bin) ")
                         {
                             Patterns = new[]{"*M.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Ambient Light Level (Lux) Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*L.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Temperature and Relative Humidity Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*R.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Biopotentials (EEG/EMG/ECG) Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*E.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Aux Analog sensor Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*S.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Proximity Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*X.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Self Log Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*O.bin"},
                             MimeTypes = new[]{"bin/*"}
                         },
                     },
@@ -1417,6 +1452,73 @@ namespace VesperApp.ViewModels
 
                                             await BinaryParser.StripSplit(lp, fullPathOnly, 0);
                                         }
+                                        else if (currentFilename.Contains("E.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "EXG";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("R.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "TPRH";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("L.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "ALS";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("X.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "PRX";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("O.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "LOG";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("S.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "SNS";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+
                                     }
                                 }
                             }
@@ -1517,7 +1619,6 @@ namespace VesperApp.ViewModels
 
             return retval;
         }
-
 
         private async Task<bool> DecodeMotionInnertial()
         {
@@ -1647,8 +1748,6 @@ namespace VesperApp.ViewModels
             return retval;
         }
 
-
-
         private async Task<bool> DecodeAls()
         {
             bool retval = false;
@@ -1661,9 +1760,9 @@ namespace VesperApp.ViewModels
 
                     FileTypeFilter = new List<FilePickerFileType>
                     {
-                        new("Temperature/Humidity binary files (.RBN) ")
+                        new("Ambient Light (Lux) recording files (.LBN) ")
                         {
-                            Patterns = new[]{"*-*.RBN"},
+                            Patterns = new[]{"*-*.LBN"},
                             MimeTypes = new[]{"bin/*"}
                         }
                     },
@@ -1718,7 +1817,7 @@ namespace VesperApp.ViewModels
                                                             uint vv = 0;
                                                             if (uint.TryParse(val, out vv))
                                                             {
-                                                                ms_sample = 1000 / vv;
+                                                                ms_sample = vv;
                                                                 break;
                                                             }
                                                         }
@@ -1845,7 +1944,7 @@ namespace VesperApp.ViewModels
                                                             uint vv = 0;
                                                             if (uint.TryParse(val, out vv))
                                                             {
-                                                                ms_sample = 1000 / vv;
+                                                                ms_sample = vv;
                                                                 break;
                                                             }
                                                         }

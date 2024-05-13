@@ -46,7 +46,7 @@ namespace VesperApp.Services
                     index += Utils.ExtractDateTimeSlowSensors(data, index, subsec_frac, out dt);
                     line.Timestamp = dt; 
 
-                    UInt16 R = ((UInt16)((UInt16)data[index + 1] + (UInt16)((UInt16)data[index] << 8)));
+                    UInt16 R = ((UInt16)((UInt16)data[index] + (UInt16)((UInt16)data[index+1] << 8)));
                     UInt16 E = (UInt16)(R >> 12);
                     R &= (1 << 12) - 1;
                     line.Lux = (double)(0.01 * Math.Pow(2.0, E)) * R;

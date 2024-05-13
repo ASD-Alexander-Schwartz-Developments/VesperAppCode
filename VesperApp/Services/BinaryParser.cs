@@ -142,13 +142,29 @@ namespace VesperApp.Services
             {
                 first_letter = 'M';
             }
-            else if (check.Contains('S'))
+            else if (check.Contains('E'))
             {
                 first_letter = 'E';
             }
             else if (check.Contains('S'))
             {
                 first_letter = 'S';
+            }
+            else if (check.Contains('O'))           /// log
+            {
+                first_letter = 'O';
+            }
+            else if (check.Contains('R'))
+            {
+                first_letter = 'R';
+            }
+            else if (check.Contains('L'))
+            {
+                first_letter = 'L';
+            }
+            else if (check.Contains('X'))
+            {
+                first_letter = 'X';
             }
             else
             {

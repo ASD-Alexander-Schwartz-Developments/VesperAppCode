@@ -62,10 +62,10 @@ namespace VesperApp.Services
 
             if (i + 10 < buffer.Length)
             {
+                i++;
                 int m = BCD2BIN(buffer[i++]);
                 int d = BCD2BIN(buffer[i++]);
                 int y = BCD2BIN(buffer[i++]);
-                i++;
                 int hh = BCD2BIN(buffer[i++]);
                 int mm = BCD2BIN(buffer[i++]);
                 int ss = BCD2BIN(buffer[i++]);
@@ -82,6 +82,11 @@ namespace VesperApp.Services
 
                     milisecs *= -1;
                     //milisecs = 1000 + milisecs;
+                }
+
+                if(milisecs > 999 || milisecs < 0)
+                {
+                    Console.WriteLine("dd");
                 }
 
                 dateTime = new DateTime(y, m, d, hh, mm, ss, (int)Math.Round(milisecs));
