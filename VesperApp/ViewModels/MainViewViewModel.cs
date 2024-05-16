@@ -961,6 +961,7 @@ namespace VesperApp.ViewModels
                                 options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
                                 options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
                                 options.Converters.Add(new VesperDateTimeConverter());
+                                options.Converters.Add(new VesperPowerOnConverter());
                                 options.Converters.Add(new VesperDateTimeAlarmConverter());
                                 configurationJSONInstance.DeviceDrivers.Clear();
                                 if (DriversViewModel != null)
@@ -979,39 +980,12 @@ namespace VesperApp.ViewModels
 
                                     if (ScheduleViewModel.PowerOnText.Length > 0)
                                     {
-                                        DateTime? dt = null;
-                                        TimeSpan? ts = null;
-                                        try
-                                        {
-                                            if(ScheduleViewModel.IsPowerOnRelative)
-                                            {
-                                                ts = TimeSpan.ParseExact(ScheduleViewModel.PowerOnText, @"dd\ hh\:mm\:ss", CultureInfo.InvariantCulture, TimeSpanStyles.None);
-                                            }
-                                            else
-                                            {
-                                                dt = DateTime.ParseExact(ScheduleViewModel.PowerOnText, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.NoCurrentDateDefault);
-                                            }
-                                        }
-                                        catch (Exception ex) 
-                                        {
-                                            dt = null;
-                                        }
-
-                                        if (ScheduleViewModel.IsPowerOnRelative == false)
-                                        {
-                                            if (dt != null)
-                                            {
-                                                configurationJSONInstance.PowerOn = dt;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (ts != null)
-                                            {
-                                                configurationJSONInstance.PowerOn = new DateTime(2000,
-                                                    1, ts.Value.Days, ts.Value.Hours, ts.Value.Minutes, ts.Value.Seconds);
-                                            }
-                                        }
+                                        configurationJSONInstance.PowerOn.IsRelative = ScheduleViewModel.IsPowerOnRelative;
+                                        configurationJSONInstance.PowerOn.PowerOn = ScheduleViewModel.PowerOnText;
+                                    }
+                                    else
+                                    {
+                                        configurationJSONInstance.PowerOn = new PowerOnTime();
                                     }
                                 }
                                 
@@ -1106,6 +1080,7 @@ namespace VesperApp.ViewModels
                             options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
                             options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
                             options.Converters.Add(new VesperDateTimeConverter());
+                            options.Converters.Add(new VesperPowerOnConverter());
                             options.Converters.Add(new VesperDateTimeAlarmConverter());
                             ConfigurationJSON? config = null;
                             try
@@ -1121,19 +1096,21 @@ namespace VesperApp.ViewModels
 
                             if (config != null)
                             {
-                                if (config.Name == DeviceTypes.Nanotag.ToString())                   // it's a nanotag configuration
+                                string cn = config.Name.ToLower();
+
+                                if (cn == DeviceTypes.Nanotag.ToString().ToLower())                   // it's a nanotag configuration
                                 {
                                     this.SelectedDeviceType = DeviceTypes.Nanotag;
                                 }
-                                else if (config.Name == DeviceTypes.Vesper.ToString())
+                                else if (cn == DeviceTypes.Vesper.ToString().ToLower())
                                 {
                                     this.SelectedDeviceType = DeviceTypes.Vesper;
                                 }
-                                else if (config.Name == DeviceTypes.Pipistrelle.ToString())
+                                else if (cn == DeviceTypes.Pipistrelle.ToString().ToLower())
                                 {
                                     this.SelectedDeviceType = DeviceTypes.Pipistrelle;
                                 }
-                                else if (config.Name == DeviceTypes.Kol.ToString())
+                                else if (cn == DeviceTypes.Kol.ToString().ToLower())
                                 {
                                     this.SelectedDeviceType = DeviceTypes.Kol;
                                 }
@@ -1162,6 +1139,10 @@ namespace VesperApp.ViewModels
                                     }
                                 }
 
+                                ScheduleViewModel.IsPowerOnRelative = configurationJSONInstance.PowerOn.IsRelative;
+                                ScheduleViewModel.PowerOnText = configurationJSONInstance.PowerOn.PowerOn;
+
+                                // TODO: Load schedule
                             }
 
                         }
@@ -2232,29 +2213,29 @@ namespace VesperApp.ViewModels
                 {
                     case DeviceTypes.Nanotag:
                         await DriversViewModel.UpdateDeviceDriverCollection(Nanotag.SupportedDeviceDrivers);
-                        configurationJSONInstance.Name = "nanotag";
+                        configurationJSONInstance.Name = "Nanotag";
                         configurationJSONInstance.CDrift = null;
                         break;
 
                     case DeviceTypes.Vesper:
                         await DriversViewModel.UpdateDeviceDriverCollection(Vesper.SupportedDeviceDrivers);
-                        configurationJSONInstance.Name = "vesper";
+                        configurationJSONInstance.Name = "Vesper";
                         configurationJSONInstance.CDrift = 32999;
                         break;
                     case DeviceTypes.Pipistrelle:
                         await DriversViewModel.UpdateDeviceDriverCollection(Pipistrelle.SupportedDeviceDrivers);
-                        configurationJSONInstance.Name = "vesper";
+                        configurationJSONInstance.Name = "Vesper";
                         configurationJSONInstance.CDrift = 32999;
                         break;
                     case DeviceTypes.Kol:
                         await DriversViewModel.UpdateDeviceDriverCollection(Kol.SupportedDeviceDrivers);
-                        configurationJSONInstance.Name = "KOL";
+                        configurationJSONInstance.Name = "Kol";
                         configurationJSONInstance.CDrift = 32999;
                         break;
 
                     default:
                         await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
-                        configurationJSONInstance.Name = "vesper";
+                        configurationJSONInstance.Name = "Vesper";
                         configurationJSONInstance.CDrift = null;
                         break;
                 }

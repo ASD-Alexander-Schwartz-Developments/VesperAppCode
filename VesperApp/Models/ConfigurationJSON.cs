@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
+using System.Globalization;
+using System.Collections;
+using VesperApp.Services;
 
 namespace VesperApp.Models
 {
@@ -17,7 +20,7 @@ namespace VesperApp.Models
         private bool is_magnet_off_enabled;
         //private string schedule_type;                   // 0 = continues, 1 = daily, 2 = weekly, 3 = absolute
         private UInt32 battery_capacity;
-        private DateTime ?wake_up_time;                  // time to turn on when no magnet mode
+        private PowerOnTime wake_up_time;                  // time to turn on when no magnet mode
         private ScheduleTypes schedule_type;
         private UInt32? clock_drift;
         private List<ConfigScheduleJSONItem> schedule;
@@ -32,7 +35,7 @@ namespace VesperApp.Models
             this.battery_capacity = 60;
             this.schedule_type = ScheduleTypes.Continues;
 
-            this.wake_up_time = null;
+            this.wake_up_time = new PowerOnTime();
             this.clock_drift = null;
             this.schedule = new List<ConfigScheduleJSONItem>();
             this.drivers = new List<ConfigurationDeviceDriver>();
@@ -124,13 +127,12 @@ namespace VesperApp.Models
             set { this.battery_capacity = value; }
         }
 
-        [JsonConverter(typeof(VesperDateTimeConverter)), JsonPropertyOrder(6)]
+        [JsonPropertyOrder(6)]
         [JsonPropertyName("poweron")]
         [CategoryAttribute("General configuration"),
-        DefaultValueAttribute(typeof(DateTime?), ""),
         DisplayName("Device Power on time"),
         DescriptionAttribute("Name of the device model that should use this configuration")]
-        public DateTime? PowerOn
+        public PowerOnTime PowerOn
         {
             get { return this.wake_up_time; }
             set { this.wake_up_time = value; }
@@ -160,7 +162,112 @@ namespace VesperApp.Models
         }
 
 
+        public class PowerOnTime
+        {
+            [JsonIgnore]
+            public bool IsRelative { get; set; }
 
+            [JsonIgnore]
+            public string PowerOn
+            {
+                get
+                {
+                    return pwon;
+                }
+                set
+                {
+                    try
+                    {
+                        if (IsRelative == true)
+                        {
+                            relativeOffset = TimeSpan.ParseExact(value, @"dd\ hh\:mm\:ss", CultureInfo.InvariantCulture, TimeSpanStyles.None);
+                        }
+                        else
+                        {
+                            absoluteOffset = DateTime.ParseExact(value, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.NoCurrentDateDefault);
+                        }
+
+                        pwon = value;
+                    }
+                    catch
+                    {
+
+                    }
+                }
+            }
+
+            private string pwon;
+            private TimeSpan? relativeOffset;
+            private DateTime? absoluteOffset;
+
+            public PowerOnTime()
+            {
+                this.absoluteOffset = null;
+                this.relativeOffset = null;
+                IsRelative = true;
+                pwon = string.Empty;
+            }
+            public PowerOnTime(string s)
+            {
+                this.absoluteOffset = null;
+                this.relativeOffset = null;
+                IsRelative = true;
+                pwon = string.Empty;
+
+                if (s != null && s.Length > 0)
+                {
+                    ArrayList arrayList = Utils.scan(s, "%u-%u-%u %u:%u:%u");
+
+                    if(arrayList != null && arrayList.Count == 6)
+                    {
+                        if (arrayList[0] != null && arrayList[1] != null && arrayList[2] != null &&
+                            arrayList[3] != null && arrayList[4] != null && arrayList[5] != null)
+                        {
+                            uint yr = (uint)arrayList[0]!;
+                            uint mt = (uint)arrayList[1]!;
+                            uint dy = (uint)arrayList[2]!;
+                            uint hr = (uint)arrayList[3]!;
+                            uint mn = (uint)arrayList[4]!;
+                            uint sc = (uint)arrayList[5]!;
+
+                            if (yr == (uint)2000)
+                            {
+                                IsRelative = true;
+
+                                PowerOn = dy.ToString("00") +
+                                            " " + hr.ToString("00") +
+                                            ":" + mn.ToString("00") +
+                                            ":" + sc.ToString("00");
+                            }
+                            else
+                            {
+                                IsRelative = false;
+                                PowerOn = s;
+                            }
+                        }
+                    }
+                }
+            }
+
+            public override string ToString()
+            {
+                if(IsRelative && relativeOffset != null)
+                {
+                    return "2000-00-" + relativeOffset.Value.Days.ToString("00") + 
+                        " " + relativeOffset.Value.Hours.ToString("00") + 
+                        ":" + relativeOffset.Value.Minutes.ToString("00") +
+                        ":" + relativeOffset.Value.Seconds.ToString("00");
+                }
+                else if(!IsRelative && absoluteOffset != null)
+                {
+                    return absoluteOffset.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    return string.Empty;
+                }
+            }
+        }
 
         // A converter for a specific Enum.
         public class ScheduleTypesEnumConverter : JsonConverter<ScheduleTypes>
@@ -257,6 +364,30 @@ namespace VesperApp.Models
             }
         }
 
+        public class VesperPowerOnConverter : JsonConverter<PowerOnTime>
+        {
+            public VesperPowerOnConverter()
+            {
+            }
+
+            public override void Write(Utf8JsonWriter writer, PowerOnTime date, JsonSerializerOptions options)
+            {
+                writer.WriteStringValue(date.ToString());
+            }
+            public override PowerOnTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                string? s = reader.GetString();
+
+                if (s == null || reader.TokenType == JsonTokenType.Null || s?.Length == 0)
+                {
+                    return new PowerOnTime();
+                }
+                else
+                {
+                    return new PowerOnTime(s);
+                }
+            }
+        }
 
 
 
