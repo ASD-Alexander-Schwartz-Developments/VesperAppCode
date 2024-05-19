@@ -7,8 +7,8 @@
 			 xmlns:m="using:VesperApp.Models"
 			 xmlns:c="using:VesperApp.Controls"
              x:Class="VesperApp.Controls.SelectDeviceDrivers"
-			 MinHeight="300" MaxWidth="750">
-	<Border BorderThickness="5" BorderBrush="#909090" HorizontalAlignment="Stretch" Padding="2" CornerRadius="5">
+			 MinHeight="150" MaxWidth="750" MaxHeight="280">
+	<Border BorderThickness="5" BorderBrush="#909090" HorizontalAlignment="Stretch" Padding="2" CornerRadius="5" VerticalAlignment="Stretch">
 				<ListBox ItemsSource="{Binding DeviceDriversCollection}"
 							x:Name="listSupportedDeviceDriversList"
 							Margin="1,1,1,1"
@@ -43,7 +43,7 @@
 					<ListBox.Styles>
 						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
 						<Style Selector="ListBoxItem">
-							<Setter Property="Height" Value="60"/>
+							<Setter Property="Height" Value="40"/>
 							<Setter Property="FontSize" Value="14"/>
 						</Style>
 					</ListBox.Styles>

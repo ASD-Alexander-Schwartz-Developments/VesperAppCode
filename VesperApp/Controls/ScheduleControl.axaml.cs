@@ -9,13 +9,16 @@ namespace VesperApp.Controls
 {
     public partial class ScheduleControl : UserControl
     {
-        DatePicker picker;
+        DatePicker? picker;
         public ScheduleControl()
         {
             InitializeComponent();
 
             picker = this.FindControl<DatePicker>("dpDate");
-            picker.SelectedDate = new DateTimeOffset(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified));
+            if (picker != null)
+            {
+                picker.SelectedDate = new DateTimeOffset(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified));
+            }
         }
 
         private void InitializeComponent()

@@ -40,22 +40,36 @@ namespace VesperApp.Models
         {
             get 
             { 
-                return AclysSnapLength.CreateFromValue(base.RawData1); 
+                return AclysSnapLength.CreateFromValue(this.snap_size); 
             }
             set 
             { 
-                base.RawData1 = value.Value; 
+                this.snap_size = value.Value; 
             }
         }
 
-        [JsonPropertyName("snapSize")]
+        [JsonPropertyName("snapSize"), JsonPropertyOrder(20)]
         [Browsable(false)]
+
         public uint JsonSnapSize
         {
-            get => base.RawData1;
-            set => base.RawData1 = (uint)value;
+            get => this.snap_size;
+            set => this.snap_size = value;
+        }
+
+        private uint snap_size;
+
+        public override void Load(ConfigurationDeviceDriver ldrv)
+        {
+            if (ldrv is not null)
+            {
+                base.Load(ldrv);
+                this.SnapSize = (ldrv as ConfigACLYSDriver)!.SnapSize;
+            }
         }
     }
+
+
 
 
 
@@ -71,9 +85,15 @@ namespace VesperApp.Models
         private const string LS256 = "256 [ms]";
         private const string LS512 = "512[ms]";
 
-        private static readonly string[] listOfConstants = {LS64, LS128, LS256, LS512 };
+        private static readonly AclysSnapLength[] listOfConstants = 
+        {
+            CreateFromValue(SNAP64ms),
+            CreateFromValue(SNAP128ms),
+            CreateFromValue(SNAP256ms),
+            CreateFromValue(SNAP512ms),
+        };
 
-        public static string[] ListOfLength
+        public static AclysSnapLength[] ListOfLength
         {
             get => listOfConstants;
         }

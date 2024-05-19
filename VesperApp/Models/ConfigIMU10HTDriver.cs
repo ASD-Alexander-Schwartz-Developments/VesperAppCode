@@ -29,6 +29,19 @@ namespace VesperApp.Models
             this.FileSize = 512 * 1024;
         }
 
+        public override void Load(ConfigurationDeviceDriver ldrv)
+        {
+            if (ldrv is not null)
+            {
+                ConfigIMU10HTDriver driver = (ldrv as ConfigIMU10HTDriver)!;
+
+                base.Load(ldrv);
+                this.ImuRange = driver.ImuRange;
+            }
+        }
+
+
+
         private UInt32 imu_range;
 
 

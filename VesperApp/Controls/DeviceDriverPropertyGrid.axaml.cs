@@ -184,6 +184,90 @@ namespace VesperApp.Controls
 
                                 col.CellEditingTemplate = template;
                             }
+                            else if (dt == typeof(EXGCompThOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXGCompThOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(EXGGainOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXGGainOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(EXGMuxOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXGMuxOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(EXGSampleRateOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXGSampleRateOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(EXGTestFrequencyOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXGTestFrequencyOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(EXGWCTOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXGWCTOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
 
 
                             /*

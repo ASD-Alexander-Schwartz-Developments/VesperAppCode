@@ -513,7 +513,7 @@ namespace VesperApp.ViewModels
                     Icon = MsBox.Avalonia.Enums.Icon.Question
                 });
 
-                if(await messageBoxStandardWindow.ShowWindowDialogAsync(MainWindowContext) == MsBox.Avalonia.Enums.ButtonResult.Yes)
+                if(await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow) == MsBox.Avalonia.Enums.ButtonResult.Yes)
                 {
                     CreateNewConfigurationInstance();
                 }
@@ -1048,7 +1048,7 @@ namespace VesperApp.ViewModels
 
             Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(foptions);
 
-            await dialog.ContinueWith(delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+            await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
             {
                 try
                 {
@@ -1139,10 +1139,20 @@ namespace VesperApp.ViewModels
                                     }
                                 }
 
-                                ScheduleViewModel.IsPowerOnRelative = configurationJSONInstance.PowerOn.IsRelative;
-                                ScheduleViewModel.PowerOnText = configurationJSONInstance.PowerOn.PowerOn;
+                                ScheduleViewModel.ScheduleEventsList.Clear();
+                                ScheduleViewModel.SelectedScheduleType = configurationJSONInstance.ScheduleType;
+                                if(configurationJSONInstance.Schedule.Count > 0)
+                                {
+                                    foreach(ConfigScheduleJSONItem jSONItem in configurationJSONInstance.Schedule)
+                                    {
+                                        ScheduleViewModel.ScheduleEventsList.Add(jSONItem);
+                                    }
+                                }
 
-                                // TODO: Load schedule
+                                ScheduleViewModel.IsPowerOnRelative = configurationJSONInstance.PowerOn.IsRelative;
+                                await Task.Delay(100);
+                                ScheduleViewModel.PowerOnText = configurationJSONInstance.PowerOn.PowerOn;
+                                await Task.Delay(100);
                             }
 
                         }

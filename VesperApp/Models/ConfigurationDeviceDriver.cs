@@ -63,7 +63,7 @@ namespace VesperApp.Models
         }
 
 
-        public void Load(ConfigurationDeviceDriver ldrv)
+        public virtual void Load(ConfigurationDeviceDriver ldrv)
         {
             this.sample_rate = ldrv.sample_rate;
             this.window_rate = ldrv.window_rate;
@@ -432,43 +432,46 @@ namespace VesperApp.Models
                         baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigACLYSDriver));
                         break;
                     case "SPH0641":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigSPH0641Driver));
+                        baseClass = (ConfigSPH0641Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigSPH0641Driver));
                         break;
                     case "SPU0410":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigSPU0410Driver));
+                        baseClass = (ConfigSPU0410Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigSPU0410Driver));
                         break;
                     case "TPRH31":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigTPRH31Driver));
+                        baseClass = (ConfigTPRH31Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigTPRH31Driver));
                         break;
                     case "ADS1115":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigADS1115Driver));
+                        baseClass = (ConfigADS1115Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigADS1115Driver));
                         break;
                     case "ALS3001D":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigALS3001DDriver));
+                        baseClass = (ConfigALS3001DDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigALS3001DDriver));
+                        break;
+                    case "EXG48":
+                        baseClass = (ConfigEXG48Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigEXG48Driver));
                         break;
                     case "ATLAS":
                         baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigATLASDriver));
                         break;
                     case "IMU10":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigIMU10Driver));
+                        baseClass = (ConfigIMU10Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigIMU10Driver));
                         break;
                     case "IMU10HT":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigIMU10Driver));
+                        baseClass = (ConfigIMU10HTDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigIMU10HTDriver));
                         break;
                     case "LED":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLEDDriver));
+                        baseClass = (ConfigLEDDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLEDDriver));
                         break;
                     case "LEPTON":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLeptonDriver));
+                        baseClass = (ConfigLeptonDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLeptonDriver));
                         break;
                     case "PROXTIT":
                         baseClass = (ConfigProxtitDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigProxtitDriver));
                         break;
                     case "NANOACC":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigNanotagAcc));
+                        baseClass = (ConfigNanotagAcc?)JsonSerializer.Deserialize(ref reader, typeof(ConfigNanotagAcc));
                         break;
                     case "KOL":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigKOLDriver));
+                        baseClass = (ConfigKOLDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigKOLDriver));
                         break;
                 }
 
@@ -536,6 +539,10 @@ namespace VesperApp.Models
                 else if (value is ConfigKOLDriver kolDriver)
                 {
                     JsonSerializer.Serialize(writer, kolDriver);
+                }
+                else if (value is ConfigEXG48Driver exg48Driver)
+                {
+                    JsonSerializer.Serialize(writer, exg48Driver);
                 }
 
             }

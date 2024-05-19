@@ -6,9 +6,9 @@
 		xmlns:m="using:VesperApp.Models"
 		xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
 		xmlns:Controls="using:VesperApp.Controls"
-        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
 		MinWidth="1200"
-		MinHeight="600"
+		MinHeight="800"
         x:Class="VesperApp.Views.MainView">
 
     <Design.DataContext>
@@ -341,15 +341,24 @@
 								SelectedItem="{Binding SelectedDeviceType}"/>
 						</StackPanel>
 
-						<ScrollViewer Grid.Column="0" Grid.Row="1" BorderThickness="1">
-							<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-								  ColumnDefinitions="*,2*" RowDefinitions="*,*"  Margin="5" ShowGridLines="false">
-								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}" Padding="5,5,5,50" Margin="5" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2"/>
-								<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" Padding="5,5,5,5" Margin="5" Grid.Row="1" Grid.Column="0"/>
-								<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" Padding="5,5,5,5" Margin="5" Grid.Row="1" Grid.Column="1"/>
-
-							</Grid>
-						</ScrollViewer>
+						<StackPanel Grid.Column="0" Grid.Row="1">
+							<Expander VerticalAlignment="Top" HorizontalAlignment="Stretch">
+								<Expander.Header>
+									Schedule
+								</Expander.Header>
+								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="1" Margin="1" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2"/>
+							</Expander>
+							<Expander VerticalAlignment="Bottom" HorizontalAlignment="Stretch" VerticalContentAlignment="Stretch">
+								<Expander.Header>
+									Sensors
+								</Expander.Header>
+								<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+								  ColumnDefinitions="*,2*" Margin="5" ShowGridLines="False">
+									<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="1" Margin="1" Grid.Row="0" Grid.Column="0"/>
+									<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="1" Margin="1" Grid.Row="0" Grid.Column="1"/>
+								</Grid>
+							</Expander>
+						</StackPanel>
 					</Grid>
 				</TabItem>
 				<TabItem>

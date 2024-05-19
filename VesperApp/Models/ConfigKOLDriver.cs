@@ -32,6 +32,23 @@ namespace VesperApp.Models
         }
 
 
+        public override void Load(ConfigurationDeviceDriver ldrv)
+        {
+            if (ldrv is not null)
+            {
+                ConfigKOLDriver driver = (ldrv as ConfigKOLDriver)!;
+
+                base.Load(ldrv);
+                this.ThresholdUp = driver.ThresholdUp;
+                this.ThresholdDown = driver.ThresholdDown;
+                this.UseCic4Filter = driver.UseCic4Filter;
+                this.Gain = driver.Gain;
+                this.MikesOn = driver.MikesOn;
+                this.HPF = driver.HPF;
+            }
+        }
+
+
         [DisplayName("Number of Active Microphones"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Set number of micrphones for sampling")]

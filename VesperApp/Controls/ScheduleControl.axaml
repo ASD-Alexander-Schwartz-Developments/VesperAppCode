@@ -7,12 +7,12 @@
 			 xmlns:c="using:VesperApp.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="340"
              x:Class="VesperApp.Controls.ScheduleControl"
-			 MinHeight="340" MaxWidth="800" BorderThickness="1">
+			 MinHeight="300" MaxWidth="800" BorderThickness="1">
 
-	<Border BorderThickness="5" BorderBrush="#909090" HorizontalAlignment="Stretch" Padding="2" CornerRadius="5" VerticalAlignment="Stretch">
+	<Border BorderThickness="3" BorderBrush="#909090" HorizontalAlignment="Stretch" Padding="1" CornerRadius="5" VerticalAlignment="Stretch">
 		<DockPanel Margin="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 			<StackPanel Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
-				<Label Margin="20,10" Content="Select Schedule Type" VerticalAlignment="Center"/>
+				<Label Margin="20,5" Content="Select Schedule Type" VerticalAlignment="Center"/>
 				<ComboBox x:Name="comboScheduleType"
 						  SelectedIndex="0" Margin="1"
 						  VerticalAlignment="Center"
@@ -27,11 +27,11 @@
 						Is Relative 
 					</CheckBox>
 					<Label Content="Power ON trigger time"/>
-					<MaskedTextBox Text="{Binding PowerOnText}" Mask="{Binding PowerOnEditMask}" Focusable="True"/>
+					<MaskedTextBox x:Name="maskPoweron" Text="{Binding PowerOnText, Mode=TwoWay}" Mask="{Binding PowerOnEditMask}" Focusable="True"/>
 				</StackPanel>
 			</StackPanel>
 
-			<StackPanel Margin="1,10,30,0" Orientation="Vertical" DockPanel.Dock="Right" IsEnabled="{Binding IsAddingNewEntry}">
+			<StackPanel Margin="1,10,10,0" Orientation="Vertical" DockPanel.Dock="Right" IsEnabled="{Binding IsAddingNewEntry}">
 				<StackPanel Orientation="Vertical" VerticalAlignment="Center">
 					<DatePicker IsEnabled="{Binding IsDateEnabled}" 
 								MonthVisible="{Binding IsMonthVisible}"
@@ -74,9 +74,9 @@
 				</StackPanel>
 			</StackPanel>
 
-			<StackPanel Margin="1,10,30,0" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Stretch" MinWidth="265" DockPanel.Dock="Left">
+			<StackPanel Margin="1,10,10,0" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Stretch" MinWidth="265" DockPanel.Dock="Left">
 				<Label Content="Operating Schedule Alarms"/>
-				<Border BorderThickness="1">
+				<Border BorderThickness="2">
 				<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 				<ListBox ItemsSource="{Binding ScheduleEventsList}" 
 						 x:Name="listScheduleEventsList" 
@@ -84,7 +84,7 @@
 						 SelectionMode="Single" 
 						 SelectedIndex="{Binding SelectedIndex}"
 						 MinWidth="260"
-						 MinHeight="200"
+						 MinHeight="160"
 						 HorizontalAlignment="Stretch"
 						 VerticalAlignment="Stretch">
 					<ListBox.ItemTemplate>

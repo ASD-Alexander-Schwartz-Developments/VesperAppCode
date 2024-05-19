@@ -29,6 +29,7 @@ namespace VesperApp.Models
             { new ConfigIMU10HTDriver() },
             { new ConfigTPRH31Driver() },
 			{ new ConfigALS3001DDriver() },
+            { new ConfigEXG48Driver() },
             { new ConfigProxtitDriver() }
         };
 
