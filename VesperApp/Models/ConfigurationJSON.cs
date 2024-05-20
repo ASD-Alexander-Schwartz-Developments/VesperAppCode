@@ -30,15 +30,18 @@ namespace VesperApp.Models
         {
             this.name = valid_name;
             this.minimum_supported_hw = valid_minimum_supported_hw;
+            this.MinimumSupportedHardware = valid_minimum_supported_hw;
 
-            this.is_magnet_off_enabled = true;
-            this.battery_capacity = 60;
-            this.schedule_type = ScheduleTypes.Continues;
+            this.IsMagnetOffEnabled = true;
+            this.BatteryCapacity = 60;
+            this.ScheduleType = ScheduleTypes.Continues;
 
             this.wake_up_time = new PowerOnTime();
             this.clock_drift = null;
             this.schedule = new List<ConfigScheduleJSONItem>();
             this.drivers = new List<ConfigurationDeviceDriver>();
+            this.Schedule.Clear();
+            this.DeviceDrivers.Clear();
         }
 
 
@@ -86,7 +89,10 @@ namespace VesperApp.Models
         DescriptionAttribute("Sampling schedule type - Daily/Weekly/Continues/Custom. Details in Schedule.")]
         public ScheduleTypes ScheduleType
         {
-            get { return this.schedule_type; }
+            get 
+            { 
+                return this.schedule_type; 
+            }
             set
             {
                 this.schedule_type = value;                         // should trigger emptying of all schedule!!!

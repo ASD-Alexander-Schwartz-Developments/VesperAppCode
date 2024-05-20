@@ -533,6 +533,8 @@ namespace VesperApp.ViewModels
 
             ManualTprhParserCommand = ReactiveCommand.CreateFromTask(DecodeTprh);
 
+            ManualEXG48ParserCommand = ReactiveCommand.CreateFromTask(DecodeEXG48);
+
             #endregion
 
             #region Parser Commands
@@ -916,6 +918,8 @@ namespace VesperApp.ViewModels
             configurationJSONInstance.Load(new ConfigurationJSON());
 
             await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
+            ScheduleViewModel.SelectedScheduleType = ScheduleTypes.Continues;
+            ScheduleViewModel.ScheduleEventsList.Clear();
         }
 
 
@@ -1077,7 +1081,7 @@ namespace VesperApp.ViewModels
 
                             var options = new JsonSerializerOptions();
                             options.WriteIndented = false;
-                            options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
+                            options.Converters.Add(new ScheduleTypesEnumConverter());
                             options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
                             options.Converters.Add(new VesperDateTimeConverter());
                             options.Converters.Add(new VesperPowerOnConverter());
@@ -1993,6 +1997,140 @@ namespace VesperApp.ViewModels
             return retval;
         }
 
+
+        private async Task<bool> DecodeEXG48()
+        {
+            bool retval = false;
+
+            try
+            {
+                FilePickerOpenOptions options = new()
+                {
+                    Title = "Select parsed EXG48 binary recording files to convert to CSV...",
+
+                    FileTypeFilter = new List<FilePickerFileType>
+                    {
+                        new("Biopotential binary files (.EBN) ")
+                        {
+                            Patterns = new[]{"*-*.EBN"},
+                            MimeTypes = new[]{"bin/*"}
+                        }
+                    },
+                    AllowMultiple = true,
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+                        double percentDelta = 100 / files.Count;
+                        double percent = 0;
+                        foreach (var file in files)
+                        {
+                            percent += percentDelta;
+                            //BinaryParserPercent = (int)percent;
+                            //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
+                            if (file is not null)
+                            {
+                                string? lp = file.TryGetLocalPath();
+
+                                if (lp is not null)
+                                {
+                                    string? currentDirectory = Path.GetDirectoryName(lp);
+                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
+                                    string? metadata = currentFilename + ".txt";
+                                    uint us_sample = 0;
+
+                                    if (currentDirectory != null && currentFilename != null && metadata != null)
+                                    {
+                                        metadata = currentDirectory + "/" + metadata;
+                                        if (File.Exists(metadata))
+                                        {
+                                            string header_metadata = File.ReadAllText(metadata);
+
+                                            if (header_metadata.Contains("SampleRate:"))
+                                            {
+                                                string[] lines = header_metadata.Split(new char[] { '\n', '\r' });
+
+                                                foreach (string line in lines)
+                                                {
+                                                    string l = line.Trim();
+
+                                                    if (l.Contains("SampleRate:"))
+                                                    {
+                                                        string val = l.Substring(l.IndexOf(":") + 1);
+
+                                                        if (val.Length > 0)
+                                                        {
+                                                            uint vv = 0;
+                                                            if (uint.TryParse(val, out vv))
+                                                            {
+                                                                us_sample = 1000 / vv;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        byte[] data = File.ReadAllBytes(lp);
+
+                                        DateTime dtStart = DateTime.Now;
+
+                                        ArrayList arrayList = Utils.scan(currentFilename, "E%d_%d_%d_%d_%d_%d_%d");
+
+                                        if (arrayList.Count == 7)
+                                        {
+                                            int? year = (int?)arrayList[0];
+                                            int? month = (int?)arrayList[1];
+                                            int? day = (int?)arrayList[2];
+                                            int? hr = (int?)arrayList[3];
+                                            int? mn = (int?)arrayList[4];
+                                            int? sec = (int?)arrayList[5];
+                                            int? sbs = (int?)arrayList[6];
+
+                                            if (year != null && month != null && day != null &&
+                                                    hr != null && mn != null && sec != null && sbs != null)
+                                            {
+
+                                                dtStart = new DateTime((int)year, (int)month, (int)day, (int)hr,
+                                                    (int)mn, (int)sec, (int)sbs);
+                                            }
+                                        }
+
+                                        using (EXG48Parser ip = new EXG48Parser(lp, data, dtStart, 1, us_sample))
+                                        {
+                                            ip.WriteFile();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        //BinaryParserPercent = 100;
+                        await Task.Delay(100);
+                        //BinaryParserIsRunning = false;
+
+                    }
+                    catch (Exception e) { Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+
+
+
+            }
+            catch { retval = true; }
+
+            return retval;
+        }
+
+
+
+
+
+
         private void DriversViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if(e.PropertyName == "SelectedDeviceDriver")
@@ -2167,6 +2305,7 @@ namespace VesperApp.ViewModels
         public ICommand? ManualMotionParserCommand { get; }
         public ICommand? ManualAlsParserCommand { get; }
         public ICommand? ManualTprhParserCommand { get; }
+        public ICommand? ManualEXG48ParserCommand { get; }
         public ICommand? ConnectDisconnectDeviceCommand { get; }
         public ICommand? SleepDeviceCommand { get; }
         public ICommand? ArmSleepDeviceCommand { get; }

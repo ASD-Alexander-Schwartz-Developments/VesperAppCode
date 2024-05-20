@@ -20,7 +20,16 @@ namespace VesperApp.Services
 
             return result;
         }
+        public static Int32 FromBytesS24bitMSB(byte[] bytes, int startindex)
+        {
+            uint result = 0;
 
+            result |= (uint)bytes[startindex + 0] << 8;
+            result |= (uint)bytes[startindex + 1] << 16;
+            result |= (uint)bytes[startindex + 2] << 24;
+
+            return (Int32)result;
+        }
 
         public static float FFromBytes(byte[] bytes, int startindex)
         {

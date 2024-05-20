@@ -389,5 +389,7 @@ namespace VesperApp.ViewModels
         public ICommand CommandApplyButton { get; }
         public ICommand CommandRejectButton { get; }
 
+
+
     }
 }

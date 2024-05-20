@@ -1883,6 +1883,17 @@ namespace VesperApp.Models
             "x12",
         };
 
+        private static readonly double[] listOfMults =
+        {
+            6.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            8.0,
+            12.0,
+        };
+
         public static EXGGainOptions[] ListOfOptions
         {
             get
@@ -1918,6 +1929,13 @@ namespace VesperApp.Models
             {
                 this.value = value;
             }
+        }
+
+        static public double ToMultiplier(byte v)
+        {
+            int index = v & 0x07;
+
+            return listOfMults[index];
         }
 
         public override string ToString()

@@ -18,6 +18,7 @@
 						  VerticalAlignment="Center"
 						  Width="120"
 						  ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:ScheduleTypes}}}"
+						  SelectedItem="{Binding SelectedScheduleType, Mode=TwoWay}"
 						  SelectionChanged="OnSelectionChanged_ScheduleType"/>
 			</StackPanel>
 
