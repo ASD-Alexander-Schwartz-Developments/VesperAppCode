@@ -11,7 +11,7 @@ namespace VesperApp.Services
 {
     public class NanoAccParser : IDisposable
     {
-        public const byte Header = 0xAE;
+        public const byte Header = 0xAC;
         const int bytes_in_sensor = 9;          // 
 
         private string Filename;
@@ -37,47 +37,50 @@ namespace VesperApp.Services
             {
                 if (index + bytes_in_sensor < data.Length)
                 {
-                    NanoAccParserRecordLine line = new NanoAccParserRecordLine();
-                    ts = ts.Add(TimeSpan.FromMilliseconds(ms_sample));
-                    line.Timestamp = ts;
-
-                    short lx = Utils.SFromBytes(data, index);
-                    index += 2;
-                    short ly = Utils.SFromBytes(data, index);
-                    index += 2;
-                    short lz = Utils.SFromBytes(data, index);
-                    index += 2;
-
-                    byte range = data[index++];
-                    index += 2;
-
-                    line.Header = Header;
-
-                    double Slope = 2.0 / 65536.0;
-
-                    switch(range)
+                    if (data[index++] == Header)
                     {
-                        case 0:
-                            Slope = 2.0 / 65536.0;
-                            break;
-                        case 1:
-                            Slope = 4.0 / 65536.0;
-                            break;
-                        case 2:
-                            Slope = 8.0 / 65536.0;
-                            break;
-                        case 3:
-                            Slope = 16.0 / 65536.0;
-                            break;
-                        default:    
-                            break;
-                    }
-                    Console.WriteLine(Slope.ToString("F2"));
-                    line.XL_X = (double)lx * Slope;
-                    line.XL_Y = (double)ly * Slope;
-                    line.XL_Z = (double)lz * Slope;
+                        NanoAccParserRecordLine line = new NanoAccParserRecordLine();
+                        ts = ts.Add(TimeSpan.FromMilliseconds(ms_sample));
+                        line.Timestamp = ts;
 
-                    csv_lines.Add(line.ToString());
+                        short lx = Utils.SFromBytes(data, index);
+                        index += 2;
+                        short ly = Utils.SFromBytes(data, index);
+                        index += 2;
+                        short lz = Utils.SFromBytes(data, index);
+                        index += 2;
+
+                        byte range = data[index++];
+                        index += 2;
+
+                        line.Header = Header;
+
+                        double Slope = 4.0 / 65536.0;
+
+                        switch(range)
+                        {
+                            case 0:
+                                Slope = 4.0 / 65536.0;
+                                break;
+                            case 1:
+                                Slope = 8.0 / 65536.0;
+                                break;
+                            case 2:
+                                Slope = 16.0 / 65536.0;
+                                break;
+                            case 3:
+                                Slope = 8.0 / 65536.0;
+                                break;
+                            default:    
+                                break;
+                        }
+                        Console.WriteLine(Slope.ToString("F2"));
+                        line.XL_X = (double)lx * Slope*1000;
+                        line.XL_Y = (double)ly * Slope * 1000;
+                        line.XL_Z = (double)lz * Slope * 1000;
+
+                        csv_lines.Add(line.ToString());
+                    }
                 }
                 else
                 {
@@ -142,7 +145,7 @@ namespace VesperApp.Services
 
         public override string ToString()
         {
-            if (Header != 0xAE) return "Bad Row";
+            if (Header != 0xAC) return "Bad Row";
 
             string dt = Timestamp.ToShortDateString() + " " + Timestamp.ToString("HH:mm:ss.FFF");
 

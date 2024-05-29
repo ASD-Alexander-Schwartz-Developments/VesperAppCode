@@ -1056,10 +1056,6 @@ namespace VesperApp.Models
 
                             using (System.IO.FileStream file = new FileStream(filename, FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite))
                             {
-                                if (file.Length < (snapPagesInSnap * 4096))
-                                    file.SetLength(snapPagesInSnap * 4096);
-
-                                file.Seek(snapIndex * 4096, SeekOrigin.Begin);
                                 file.Write(bytes, 0, 4096);
                                 file.Flush();
                                 file.Close();
