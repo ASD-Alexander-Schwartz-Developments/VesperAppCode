@@ -55,6 +55,28 @@ namespace VesperApp.Services
             return r;
         }
 
+        public static short SFromBytes(byte[] bytes, int startindex)
+        {
+            byte[] rev = new byte[2];
+
+            if (BitConverter.IsLittleEndian == false)
+            {
+                rev[0] = (byte)bytes[startindex + 1];
+                rev[1] = (byte)bytes[startindex + 0];
+            }
+            else
+            {
+                rev[0] = (byte)bytes[startindex + 0];
+                rev[1] = (byte)bytes[startindex + 1];
+            }
+
+            short r = (short)((ushort)(rev[1] << 8 | rev[0]));
+
+            return r;
+        }
+
+
+
         public static byte BCD2BIN(byte bcdNumber)
         {
             byte digit1 = (byte)(bcdNumber >> 4);

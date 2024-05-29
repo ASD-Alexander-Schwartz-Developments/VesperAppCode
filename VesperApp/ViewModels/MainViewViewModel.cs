@@ -1623,7 +1623,7 @@ namespace VesperApp.ViewModels
             {
                 FilePickerOpenOptions options = new()
                 {
-                    Title = "Select parsed IMU10 binary recording files to convert to CSV...",
+                    Title = "Select parsed IMU10/NanoACC binary recording files to convert to CSV...",
 
                     FileTypeFilter = new List<FilePickerFileType>
                     {
@@ -1631,7 +1631,13 @@ namespace VesperApp.ViewModels
                         {
                             Patterns = new[]{"*-*.MBN"},
                             MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Nanotag Accelerometer binary files (.ABN) ")
+                        {
+                            Patterns = new[]{"*.ABN"},
+                            MimeTypes = new[]{"bin/*"}
                         }
+
                     },
                     AllowMultiple = true,
                 };
@@ -1652,55 +1658,96 @@ namespace VesperApp.ViewModels
                             //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
                             if (file is not null)
                             {
-                                string? lp = file.TryGetLocalPath();
-
-                                if (lp is not null)
+                                if (file.Name.ToUpper().Contains(".MBN"))
                                 {
-                                    string? currentDirectory = Path.GetDirectoryName(lp);
-                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
-                                    string? metadata = currentFilename + ".txt";
-                                    uint ms_sample = 0;
+                                    string? lp = file.TryGetLocalPath();
 
-                                    if (currentDirectory != null && currentFilename != null && metadata != null)
+                                    if (lp is not null)
                                     {
-                                        metadata = currentDirectory + "/" + metadata;
-                                        if (File.Exists(metadata))
+                                        string? currentDirectory = Path.GetDirectoryName(lp);
+                                        string? currentFilename = Path.GetFileName(lp).ToUpper();
+                                        string? metadata = currentFilename + ".txt";
+                                        uint ms_sample = 0;
+
+                                        if (currentDirectory != null && currentFilename != null && metadata != null)
                                         {
-                                            string header_metadata = File.ReadAllText(metadata);
-
-                                            if (header_metadata.Contains("SampleRate:"))
+                                            metadata = currentDirectory + "/" + metadata;
+                                            if (File.Exists(metadata))
                                             {
-                                                string[] lines = header_metadata.Split(new char[] { '\n', '\r' });
+                                                string header_metadata = File.ReadAllText(metadata);
 
-                                                foreach(string line in lines)
+                                                if (header_metadata.Contains("SampleRate:"))
                                                 {
-                                                    string l = line.Trim();
+                                                    string[] lines = header_metadata.Split(new char[] { '\n', '\r' });
 
-                                                    if(l.Contains("SampleRate:"))
+                                                    foreach (string line in lines)
                                                     {
-                                                        string val = l.Substring(l.IndexOf(":") + 1);
+                                                        string l = line.Trim();
 
-                                                        if(val.Length > 0)
+                                                        if (l.Contains("SampleRate:"))
                                                         {
-                                                            uint vv = 0;
-                                                            if (uint.TryParse(val, out vv))
+                                                            string val = l.Substring(l.IndexOf(":") + 1);
+
+                                                            if (val.Length > 0)
                                                             {
-                                                                ms_sample = 1000 / vv;
-                                                                break;
+                                                                uint vv = 0;
+                                                                if (uint.TryParse(val, out vv))
+                                                                {
+                                                                    ms_sample = 1000 / vv;
+                                                                    break;
+                                                                }
                                                             }
                                                         }
                                                     }
-                                                }                                                
+                                                }
+                                            }
+
+                                            byte[] data = File.ReadAllBytes(lp);
+
+                                            DateTime dtStart = DateTime.Now;
+
+                                            ArrayList arrayList = Utils.scan(currentFilename, "M%d_%d_%d_%d_%d_%d_%d");
+
+                                            if (arrayList.Count == 7)
+                                            {
+                                                int? year = (int?)arrayList[0];
+                                                int? month = (int?)arrayList[1];
+                                                int? day = (int?)arrayList[2];
+                                                int? hr = (int?)arrayList[3];
+                                                int? mn = (int?)arrayList[4];
+                                                int? sec = (int?)arrayList[5];
+                                                int? sbs = (int?)arrayList[6];
+
+                                                if (year != null && month != null && day != null &&
+                                                        hr != null && mn != null && sec != null && sbs != null)
+                                                {
+
+                                                    dtStart = new DateTime((int)year, (int)month, (int)day, (int)hr,
+                                                        (int)mn, (int)sec, (int)sbs);
+                                                }
+                                            }
+
+                                            using (IMU10Parser ip = new IMU10Parser(lp, data, dtStart, 1023, ms_sample))
+                                            {
+                                                ip.WriteFile();
                                             }
                                         }
+                                    }
+                                }
+                                else if (file.Name.ToUpper().Contains(".ABN"))
+                                {
+                                    string? lp = file.TryGetLocalPath();
 
+                                    if (lp is not null)
+                                    {
                                         byte[] data = File.ReadAllBytes(lp);
 
                                         DateTime dtStart = DateTime.Now;
+                                        string? currentFilename = Path.GetFileName(lp).ToUpper();
+                                        uint ms_sample = 0;
+                                        ArrayList arrayList = Utils.scan(currentFilename, "NACC%d_%d_%d_%d_%d_%d_%d");
 
-                                        ArrayList arrayList = Utils.scan(currentFilename, "M%d_%d_%d_%d_%d_%d_%d");
-
-                                        if(arrayList.Count == 7) 
+                                        if (arrayList.Count == 7)
                                         {
                                             int? year = (int?)arrayList[0];
                                             int? month = (int?)arrayList[1];
@@ -1719,7 +1766,7 @@ namespace VesperApp.ViewModels
                                             }
                                         }
 
-                                        using (IMU10Parser ip = new IMU10Parser(lp, data, dtStart, 1023, ms_sample))
+                                        using (NanoAccParser ip = new NanoAccParser(lp, data, dtStart, 1023, ms_sample))
                                         {
                                             ip.WriteFile();
                                         }

@@ -96,8 +96,6 @@ namespace VesperApp.Services
 
 
 
-
-
     internal class ALSRecordLine
     {
         public byte Header { get; set; }

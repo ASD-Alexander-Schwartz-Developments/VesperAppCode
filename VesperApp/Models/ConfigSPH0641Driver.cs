@@ -353,7 +353,7 @@ namespace VesperApp.Models
             }
             else
             {
-                value = HPF_000625;
+                value = HPF_OFF;
             }
 
             return r;
