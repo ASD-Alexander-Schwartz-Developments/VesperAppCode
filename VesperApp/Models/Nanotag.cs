@@ -59,9 +59,11 @@ namespace VesperApp.Models
         {
 			var options = new JsonSerializerOptions();
 			options.WriteIndented = false;
-			options.Converters.Add(new ConfigurationJSON.ScheduleTypesEnumConverter());
-			options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+
+            options.Converters.Add(new ScheduleTypesEnumConverter());
+            options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
             options.Converters.Add(new VesperDateTimeConverter());
+            options.Converters.Add(new VesperPowerOnConverter());
             options.Converters.Add(new VesperDateTimeAlarmConverter());
 
             ConfigurationJSON? config = null;
