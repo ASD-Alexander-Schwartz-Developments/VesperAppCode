@@ -29,8 +29,6 @@ namespace VesperApp.Models
         }
 
 
-
-
         [CategoryAttribute("ACLYS specific Settings"),
         DisplayName("Snap Size"),
         DescriptionAttribute("Size (in ms) of a single GPS snap. The longer the snap - the better the positioning in expense of power consumption")]

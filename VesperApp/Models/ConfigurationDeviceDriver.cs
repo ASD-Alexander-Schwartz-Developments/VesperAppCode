@@ -15,6 +15,7 @@ namespace VesperApp.Models
     public class ConfigurationDeviceDriver : INotifyPropertyChanged, IEquatable<ConfigurationDeviceDriver>
     {
         public const UInt32 BITMASK_LED = 0x01;
+        public const UInt32 BITMASK_ACC_TRG = 0x1000;
 
         private string name;
         private string description;
@@ -276,6 +277,24 @@ namespace VesperApp.Models
                     Bitmask &= ~((UInt32)BITMASK_LED);
             }
         }
+
+        [Browsable(true)]
+        [JsonIgnore]
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Should Listen to Accelerometer Trigger source"),
+        DisplayName("ACC Trigger Enable")]
+        public virtual bool EnAccTrig
+        {
+            get => ((Bitmask & BITMASK_ACC_TRG) == BITMASK_ACC_TRG);
+            set
+            {
+                if (value == true)
+                    Bitmask |= BITMASK_ACC_TRG;
+                else
+                    Bitmask &= ~((UInt32)BITMASK_ACC_TRG);
+            }
+        }
+
 
 
         [Browsable(false)]

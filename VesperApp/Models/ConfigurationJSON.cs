@@ -202,6 +202,44 @@ namespace VesperApp.Models
                 }
             }
 
+
+            public UInt32 ToNanotagDateTime()
+            {
+                UInt32 ret = 0xFFFFFFFF;
+
+                if (IsRelative && relativeOffset != null)
+                {
+                    int year = Nanotag.REFERENCE_YEAR;
+                    int month = 0;
+
+                    UInt32 yr = (UInt32)((UInt32)year << 26);
+                    UInt32 mt = (UInt32)((UInt32)month << 22);
+                    UInt32 dy = (UInt32)((UInt32)relativeOffset.Value.Days << 17);
+                    UInt32 hr = (UInt32)((UInt32)relativeOffset.Value.Hours << 12);
+                    UInt32 mn = (UInt32)((UInt32)relativeOffset.Value.Minutes << 6);
+                    UInt32 sc = (UInt32)((UInt32)relativeOffset.Value.Seconds);
+
+                    ret = yr | mt | dy | hr | mn | sc;
+                }
+                else if (!IsRelative && absoluteOffset != null)
+                {
+                    int year = (absoluteOffset.Value.Year > Nanotag.REFERENCE_YEAR) ? 
+                        absoluteOffset.Value.Year - Nanotag.REFERENCE_YEAR : Nanotag.REFERENCE_YEAR;
+
+                    UInt32 yr = (UInt32)((UInt32)year << 26);
+                    UInt32 mt = (UInt32)((UInt32)absoluteOffset.Value.Month << 22);
+                    UInt32 dy = (UInt32)((UInt32)absoluteOffset.Value.Day << 17);
+                    UInt32 hr = (UInt32)((UInt32)absoluteOffset.Value.Hour << 12);
+                    UInt32 mn = (UInt32)((UInt32)absoluteOffset.Value.Minute << 6);
+                    UInt32 sc = (UInt32)((UInt32)absoluteOffset.Value.Second);
+
+                    ret = yr | mt | dy | hr | mn | sc;
+                }
+
+                return ret;
+
+            }
+
             private string pwon;
             private TimeSpan? relativeOffset;
             private DateTime? absoluteOffset;

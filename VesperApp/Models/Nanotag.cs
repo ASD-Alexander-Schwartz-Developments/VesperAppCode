@@ -55,7 +55,32 @@ namespace VesperApp.Models
 
         };
 
-		public static byte [] ConfigBinaryConverter(string json)
+		public static ushort ConvertNanotagScheduleType(ScheduleTypes scheduleType)
+		{
+			if(scheduleType == ScheduleTypes.Continues) 
+			{
+				return 0;
+			}
+
+            if (scheduleType == ScheduleTypes.Dated)
+            {
+                return 2;
+            }
+
+            if (scheduleType == ScheduleTypes.Daily)
+            {
+                return 3;
+            }
+
+            if (scheduleType == ScheduleTypes.Relative)
+            {
+                return 5;
+            }
+
+			return 0;
+        }
+
+        public static byte [] ConfigBinaryConverter(string json)
         {
 			var options = new JsonSerializerOptions();
 			options.WriteIndented = false;
@@ -104,9 +129,10 @@ namespace VesperApp.Models
 					sConfiguration.general.battery_capacity = (ushort)config.BatteryCapacity;
 					sConfiguration.general.config_rev = 0;
 					sConfiguration.general.reference_year = 2020;
-					sConfiguration.general.Schedule_type = (ushort)config.ScheduleType;
+					sConfiguration.general.Schedule_type = ConvertNanotagScheduleType(config.ScheduleType);
+					sConfiguration.general.poweron = config.PowerOn.ToNanotagDateTime();
 
-					if (sConfiguration.devices_list != null)
+                    if (sConfiguration.devices_list != null)
 					{
 						for (i = 0; i < MAX_LOADED_DEVICES; i++)
 						{
@@ -165,7 +191,6 @@ namespace VesperApp.Models
             {
 
             }
-
 
 			return buffer;
         }
@@ -340,7 +365,8 @@ namespace VesperApp.Models
 		public UInt16 battery_capacity;
 		public UInt16 reference_year;
 		public UInt16 Schedule_type;                                        // 0=continues, 1=first_trigger,  2=dated, 3 = daily, 4 = weekly, 5 = relative
-		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 54)]
+        public UInt32 poweron;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 50)]
 		public byte[]res;
 		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
 		public byte[]reserved2;
