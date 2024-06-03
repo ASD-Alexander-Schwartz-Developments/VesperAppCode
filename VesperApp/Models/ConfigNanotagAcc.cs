@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace VesperApp.Models
 {
-    internal class ConfigNanotagAcc : ConfigurationDeviceDriver
+    public class ConfigNanotagAcc : ConfigurationDeviceDriver
     {
         public const UInt32 BITMASK_NANOTAGACC_GPSTRIGGER = 0x2000;
         public ConfigNanotagAcc() : base("NANOACC", "Nanotag on board Accelerometer")
@@ -17,7 +17,8 @@ namespace VesperApp.Models
         [DisplayName("Enable GPS Trigger"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Enables Acc to be used as GPS trigger on motion detection")]
+        DescriptionAttribute("Enables Acc to be used as GPS trigger on motion detection"),
+        Browsable(true)]
         [JsonIgnore]
         public bool EnableGPSTrigger
         {
@@ -47,7 +48,8 @@ namespace VesperApp.Models
         [DisplayName("Dynamic Range"),
         TypeConverter(typeof(NanoAccRanges)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Accelerometer Dynamic Range")]
+        DescriptionAttribute("Accelerometer Dynamic Range"),
+        Browsable(true)]
         [JsonIgnore]
         public NanoAccRanges Range
         {
@@ -85,7 +87,8 @@ namespace VesperApp.Models
         [DisplayName("Mode"),
         TypeConverter(typeof(NanoAccOpMode)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Accelerometer Operating Mode")]
+        DescriptionAttribute("Accelerometer Operating Mode"),
+        Browsable(true)]
         [JsonIgnore]
         public NanoAccOpMode Mode
         {
@@ -122,7 +125,8 @@ namespace VesperApp.Models
         [DisplayName("Trigger Threshold"),
         TypeConverter(typeof(uint)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Accelerometer Trigger Threshold in mg")]
+        DescriptionAttribute("Accelerometer Trigger Threshold in mg"),
+        Browsable(true)]
         [JsonPropertyName("threshold"), JsonPropertyOrder(22)]
         public uint Threshold
         {
@@ -142,7 +146,8 @@ namespace VesperApp.Models
         [DisplayName("Trigger Deadtime"),
         TypeConverter(typeof(uint)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Accelerometer Trigger deadtime in seconds")]
+        DescriptionAttribute("Accelerometer Trigger deadtime in seconds"),
+        Browsable(true)]
         [JsonPropertyName("deadtime"), JsonPropertyOrder(23)]
         public UInt32 Deadtime
         {
@@ -195,7 +200,7 @@ namespace VesperApp.Models
             new NanoAccRanges(NACC_G16N)
         };
 
-        public static NanoAccRanges[] ListOfLength
+        public static NanoAccRanges[] ListOfOptions
         {
             get => listOfConstants;
         }
@@ -260,7 +265,7 @@ namespace VesperApp.Models
             new NanoAccOpMode(NACC_ODBA)
         };
 
-        public static NanoAccOpMode[] ListOfLength
+        public static NanoAccOpMode[] ListOfOptions
         {
             get => listOfConstants;
         }

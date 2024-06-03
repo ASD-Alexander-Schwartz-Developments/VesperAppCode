@@ -268,7 +268,34 @@ namespace VesperApp.Controls
 
                                 col.CellEditingTemplate = template;
                             }
+                            else if (dt == typeof(NanoAccOpMode))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = NanoAccOpMode.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
 
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(NanoAccRanges))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = NanoAccRanges.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
 
                             /*
                             else if( dt == typeof(UInt32) || dt == typeof(double) || dt == typeof(decimal) || dt == typeof(UInt16))
