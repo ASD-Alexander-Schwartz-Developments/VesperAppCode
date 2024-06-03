@@ -43,6 +43,7 @@ namespace VesperApp.Models
             set 
             { 
                 this.snap_size = value.Value; 
+                base.RawData1 = this.snap_size;
             }
         }
 
@@ -52,7 +53,11 @@ namespace VesperApp.Models
         public uint JsonSnapSize
         {
             get => this.snap_size;
-            set => this.snap_size = value;
+            set
+            {
+                this.snap_size = value;
+                base.RawData1 = this.snap_size;
+            }
         }
 
         private uint snap_size;
@@ -66,8 +71,6 @@ namespace VesperApp.Models
             }
         }
     }
-
-
 
 
 
