@@ -9,7 +9,7 @@ namespace VesperApp.Models
     
     public class ConfigProxtitDriver : ConfigurationDeviceDriver
     {
-        public ConfigProxtitDriver() : base("Proxtit", "Proxtit wireless trasceiver")
+        public ConfigProxtitDriver() : base("PROXTIT", "Proxtit wireless trasceiver")
         {
             this.FileSize = 0;
         }
