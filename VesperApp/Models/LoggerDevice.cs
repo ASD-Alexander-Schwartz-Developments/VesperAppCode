@@ -1094,7 +1094,7 @@ namespace VesperApp.Models
             }
 
             // Optimization for a common success case.
-            if (Object.ReferenceEquals(this, ld))
+            if (Object.ReferenceEquals(this, ld!))
             {
                 return true;
             }

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Text;
 using System.Threading.Tasks;
 using VesperApp.Models;
@@ -241,78 +242,151 @@ namespace VesperApp.Services
                         }
                     }
 
-                    foreach(BinTimestamp timestamp in binTimestamps)
+                    if (binTimestamps.Count > 0)
                     {
-                        if (timestamp != null)
+                        foreach (BinTimestamp timestamp in binTimestamps)
                         {
-                            if (timestamp.StartHeader != null && timestamp.EndHeader != null)
+                            if (timestamp != null)
                             {
-                                if (folder == null)
-                                    wn = "";
-                                else
-                                    wn = folder + Path.DirectorySeparatorChar;
-                                
-                                wn += timestamp.StartHeader.ToString();
-                                wn += '-' + timestamp.EndHeader.ToString();                               
-                                wn += "." + first_letter + "BN";
-                                string metadata_filename = wn + ".txt";
-
-                                string metadata = string.Empty;
-
-                                if (File.Exists(wn) == false)
+                                if (timestamp.StartHeader != null && timestamp.EndHeader != null)
                                 {
-                                    if(File.Exists(metadata_filename) == true)
-                                    {
-                                        File.Delete(metadata_filename);
-                                    }
+                                    if (folder == null)
+                                        wn = "";
+                                    else
+                                        wn = folder + Path.DirectorySeparatorChar;
 
-                                    if(binaryTypeHeader != null)
-                                    {
-                                        metadata += ("DeviceID:" + binaryTypeHeader.UId.ToString("X") + Environment.NewLine);
-                                        metadata += ("HWID:" + binaryTypeHeader.HwId.ToString("X") + Environment.NewLine);
-                                        metadata += ("FWID:" + binaryTypeHeader.FwId.ToString("X") + Environment.NewLine);
-                                        metadata += ("Sensor:" + binaryTypeHeader.DeviceDriverName + Environment.NewLine);
-                                        metadata += ("SampleRate:" + binaryTypeHeader.SamplingRate + Environment.NewLine);
-                                        metadata += ("WinRate:" + binaryTypeHeader.WindowRate + Environment.NewLine);
-                                        metadata += ("WinLen:" + binaryTypeHeader.WindowLength + Environment.NewLine);
-                                        metadata += ("Config0:" + binaryTypeHeader.Configuration0.ToString("X") + Environment.NewLine);
-                                        metadata += ("Config1:" + binaryTypeHeader.Configuration1.ToString("X") + Environment.NewLine);
-                                        metadata += ("Config2:" + binaryTypeHeader.Configuration2.ToString("X") + Environment.NewLine);
-                                        metadata += ("Config3:" + binaryTypeHeader.Configuration3.ToString("X") + Environment.NewLine);
-                                        metadata += ("Bitmask:" + binaryTypeHeader.Bitmask.ToString("X") + Environment.NewLine);
+                                    wn += timestamp.StartHeader.ToString();
+                                    wn += '-' + timestamp.EndHeader.ToString();
+                                    wn += "." + first_letter + "BN";
+                                    string metadata_filename = wn + ".txt";
 
-                                        if (timestamp.SyncTimestamps != null)
+                                    string metadata = string.Empty;
+
+                                    if (File.Exists(wn) == false)
+                                    {
+                                        if (File.Exists(metadata_filename) == true)
                                         {
-                                            foreach (BinHeader binh in timestamp.SyncTimestamps)
-                                            {
-                                                metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy hh:mm:ss.FFF") + ":" + (binh.StartPosition/2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
-                                            }
+                                            File.Delete(metadata_filename);
                                         }
 
-                                        File.WriteAllText(metadata_filename, metadata, Encoding.UTF8);
-                                    }
-                                    
-                                    using (FileStream fs = File.OpenWrite(wn))
-                                    {
-                                        if (timestamp.SyncTimestamps == null || timestamp.SyncTimestamps.Count == 0)
+                                        if (binaryTypeHeader != null)
                                         {
-                                            fs.Write(databuffer, timestamp.StartHeader.StartPosition, timestamp.EndHeader.StartPosition - timestamp.StartHeader.StartPosition);
-                                        }
-                                        else
-                                        {
-                                            fs.Write(databuffer, timestamp.StartHeader.StartPosition, timestamp.SyncTimestamps[0].StartPosition - timestamp.StartHeader.StartPosition);
+                                            metadata += ("DeviceID:" + binaryTypeHeader.UId.ToString("X") + Environment.NewLine);
+                                            metadata += ("HWID:" + binaryTypeHeader.HwId.ToString("X") + Environment.NewLine);
+                                            metadata += ("FWID:" + binaryTypeHeader.FwId.ToString("X") + Environment.NewLine);
+                                            metadata += ("Sensor:" + binaryTypeHeader.DeviceDriverName + Environment.NewLine);
+                                            metadata += ("SampleRate:" + binaryTypeHeader.SamplingRate + Environment.NewLine);
+                                            metadata += ("WinRate:" + binaryTypeHeader.WindowRate + Environment.NewLine);
+                                            metadata += ("WinLen:" + binaryTypeHeader.WindowLength + Environment.NewLine);
+                                            metadata += ("Config0:" + binaryTypeHeader.Configuration0.ToString("X") + Environment.NewLine);
+                                            metadata += ("Config1:" + binaryTypeHeader.Configuration1.ToString("X") + Environment.NewLine);
+                                            metadata += ("Config2:" + binaryTypeHeader.Configuration2.ToString("X") + Environment.NewLine);
+                                            metadata += ("Config3:" + binaryTypeHeader.Configuration3.ToString("X") + Environment.NewLine);
+                                            metadata += ("Bitmask:" + binaryTypeHeader.Bitmask.ToString("X") + Environment.NewLine);
 
-                                            for (int i = 0; i < timestamp.SyncTimestamps.Count - 1; i++)
+                                            if (timestamp.SyncTimestamps != null)
                                             {
-                                                fs.Write(databuffer, timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.SyncTimestamps[i + 1].StartPosition - (timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                                foreach (BinHeader binh in timestamp.SyncTimestamps)
+                                                {
+                                                    metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy hh:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
+                                                }
                                             }
 
-                                            fs.Write(databuffer, timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.EndHeader.StartPosition - (timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                            File.WriteAllText(metadata_filename, metadata, Encoding.UTF8);
                                         }
 
-                                        fs.Close();
+                                        using (FileStream fs = File.OpenWrite(wn))
+                                        {
+                                            if (timestamp.SyncTimestamps == null || timestamp.SyncTimestamps.Count == 0)
+                                            {
+                                                fs.Write(databuffer, timestamp.StartHeader.StartPosition, timestamp.EndHeader.StartPosition - timestamp.StartHeader.StartPosition);
+                                            }
+                                            else
+                                            {
+                                                fs.Write(databuffer, timestamp.StartHeader.StartPosition, timestamp.SyncTimestamps[0].StartPosition - timestamp.StartHeader.StartPosition);
+
+                                                for (int i = 0; i < timestamp.SyncTimestamps.Count - 1; i++)
+                                                {
+                                                    fs.Write(databuffer, timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.SyncTimestamps[i + 1].StartPosition - (timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                                }
+
+                                                fs.Write(databuffer, timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.EndHeader.StartPosition - (timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                            }
+
+                                            fs.Close();
+                                        }
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else if(activeTimestamp != null)           /// We don't have full timestamps so let's check if we have partial one
+                    {
+                        if (activeTimestamp.StartHeader != null)
+                        {
+                            if (folder == null)
+                                wn = "";
+                            else
+                                wn = folder + Path.DirectorySeparatorChar;
+
+                            wn += activeTimestamp.StartHeader.ToString();
+                            wn += "-0000_00_00_00_00_00.000";
+                            wn += "." + first_letter + "BN";
+                            string metadata_filename = wn + ".txt";
+
+                            string metadata = string.Empty;
+
+                            if (File.Exists(wn) == false)
+                            {
+                                if (File.Exists(metadata_filename) == true)
+                                {
+                                    File.Delete(metadata_filename);
+                                }
+
+                                if (binaryTypeHeader != null)
+                                {
+                                    metadata += ("DeviceID:" + binaryTypeHeader.UId.ToString("X") + Environment.NewLine);
+                                    metadata += ("HWID:" + binaryTypeHeader.HwId.ToString("X") + Environment.NewLine);
+                                    metadata += ("FWID:" + binaryTypeHeader.FwId.ToString("X") + Environment.NewLine);
+                                    metadata += ("Sensor:" + binaryTypeHeader.DeviceDriverName + Environment.NewLine);
+                                    metadata += ("SampleRate:" + binaryTypeHeader.SamplingRate + Environment.NewLine);
+                                    metadata += ("WinRate:" + binaryTypeHeader.WindowRate + Environment.NewLine);
+                                    metadata += ("WinLen:" + binaryTypeHeader.WindowLength + Environment.NewLine);
+                                    metadata += ("Config0:" + binaryTypeHeader.Configuration0.ToString("X") + Environment.NewLine);
+                                    metadata += ("Config1:" + binaryTypeHeader.Configuration1.ToString("X") + Environment.NewLine);
+                                    metadata += ("Config2:" + binaryTypeHeader.Configuration2.ToString("X") + Environment.NewLine);
+                                    metadata += ("Config3:" + binaryTypeHeader.Configuration3.ToString("X") + Environment.NewLine);
+                                    metadata += ("Bitmask:" + binaryTypeHeader.Bitmask.ToString("X") + Environment.NewLine);
+
+                                    if (activeTimestamp.SyncTimestamps != null)
+                                    {
+                                        foreach (BinHeader binh in activeTimestamp.SyncTimestamps)
+                                        {
+                                            metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy hh:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
+                                        }
                                     }
 
+                                    File.WriteAllText(metadata_filename, metadata, Encoding.UTF8);
+                                }
+
+                                using (FileStream fs = File.OpenWrite(wn))
+                                {
+                                    if (activeTimestamp.SyncTimestamps == null || activeTimestamp.SyncTimestamps.Count == 0)
+                                    {
+                                        fs.Write(databuffer, activeTimestamp.StartHeader.StartPosition, databuffer.Length - activeTimestamp.StartHeader.StartPosition);
+                                    }
+                                    else
+                                    {
+                                        fs.Write(databuffer, activeTimestamp.StartHeader.StartPosition, activeTimestamp.SyncTimestamps[0].StartPosition - activeTimestamp.StartHeader.StartPosition);
+
+                                        for (int i = 0; i < activeTimestamp.SyncTimestamps.Count - 1; i++)
+                                        {
+                                            fs.Write(databuffer, activeTimestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, activeTimestamp.SyncTimestamps[i + 1].StartPosition - (activeTimestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                        }
+                                        fs.Write(databuffer, activeTimestamp.SyncTimestamps[activeTimestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, databuffer.Length - (activeTimestamp.SyncTimestamps[activeTimestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                    }
+                                    fs.Close();
                                 }
                             }
                         }

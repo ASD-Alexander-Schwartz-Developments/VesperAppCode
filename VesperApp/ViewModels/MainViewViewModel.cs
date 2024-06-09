@@ -338,8 +338,6 @@ namespace VesperApp.ViewModels
                 }
             });
 
-            
-
             DownloadDeviceData = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (SelectedLoggerDevice != null)
@@ -389,7 +387,6 @@ namespace VesperApp.ViewModels
                 }
             });
 
-
             BootloaderDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (SelectedLoggerDevice != null)
@@ -397,7 +394,6 @@ namespace VesperApp.ViewModels
                     await SelectedLoggerDevice.Bootloader();
                 }
             });
-
 
             UploadDeviceConfig = ReactiveCommand.CreateFromTask(async () =>
             {
@@ -462,7 +458,6 @@ namespace VesperApp.ViewModels
                 });
             });
 
-
             SetDateTimeDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
                 if (SelectedLoggerDevice != null)
@@ -479,7 +474,6 @@ namespace VesperApp.ViewModels
                     await SelectedLoggerDevice.Sleep(false);
                 }
             });
-
 
             ArmSleepDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
@@ -2232,7 +2226,7 @@ namespace VesperApp.ViewModels
         {
             if (_deviceUsbAdapter != null)
             {
-                var devices = await _deviceUsbAdapter.ScanDevicesAsync((uint)vid,(uint)pid, false);
+                var devices = await _deviceUsbAdapter.ScanDevicesAsync((uint)vid,(uint)pid, true);
                 foreach (LoggerDevice logDevice in devices)
                 {
                     if (LoggerDevices.Contains(logDevice) == false)
