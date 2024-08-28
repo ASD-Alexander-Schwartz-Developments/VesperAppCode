@@ -1683,12 +1683,8 @@ namespace VesperApp.Models
     public class EXGMuxOptions
     {
         /*
-         * 	unsigned ch1_pd			:	1;					// 	'0' - normal operation, '1' - power down
-			unsigned rld1p			:	1;					// connect ch1 pos to rld feedback loop
-			unsigned rld1n			:	1;					// connect ch1 neg to rld feedback loop
-			unsigned loff1p			:	1;					// enable lead off ch1 pos
-			unsigned loff1n			:	1;					// enable lead off ch1 neg
-			unsigned mux1			: 	3;					// mux: 000-Normal, 001-Short, 010-RLD, 011-VDD, 100-Temp, 101-Test, 110-RLD_POS, 111-RLD_NEG
+			unsigned mux	: 	4;	
+                // mux: 0000-Normal, 0001-Short, 0010-RLD, 0011-VDD, 0100-Temp, 0101-Test, 0110-RLD_POS, 0111-RLD_NEG, 1000-RLD_BOTH
          * */
         private static readonly string[] listOfOptions =
         {
@@ -1699,7 +1695,8 @@ namespace VesperApp.Models
             "Temperature Measurement",
             "Test",
             "RLD Positive",
-            "RLD Negative"
+            "RLD Negative",
+            "RLD both neg&pos"
         };
 
         public static EXGMuxOptions[] ListOfOptions

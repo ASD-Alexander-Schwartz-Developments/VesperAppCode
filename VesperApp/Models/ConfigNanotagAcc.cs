@@ -8,23 +8,23 @@ namespace VesperApp.Models
 {
     public class ConfigNanotagAcc : ConfigurationDeviceDriver
     {
-        public const UInt32 BITMASK_NANOTAGACC_GPSTRIGGER = 0x2000;
+        public const UInt32 BITMASK_NANOTAGACC_MOTIONIRQ = 0x2000;
         public ConfigNanotagAcc() : base("NANOACC", "Nanotag on board Accelerometer")
         {
             this.FileSize = 0;
         }
 
-        [DisplayName("Enable GPS Trigger"),
+        [DisplayName("Enable Motion Detection"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Enables Acc to be used as GPS trigger on motion detection"),
+        DescriptionAttribute("Enables Acc to be used as trigger on motion detection"),
         Browsable(true)]
         [JsonIgnore]
-        public bool EnableGPSTrigger
+        public bool EnableTrigger
         {
             get
             {
-                if ((this.Bitmask & BITMASK_NANOTAGACC_GPSTRIGGER) == BITMASK_NANOTAGACC_GPSTRIGGER)
+                if ((this.Bitmask & BITMASK_NANOTAGACC_MOTIONIRQ) == BITMASK_NANOTAGACC_MOTIONIRQ)
                     return true;
                 else
                     return false;
@@ -32,9 +32,9 @@ namespace VesperApp.Models
             set
             {
                 if (value == true)
-                    this.Bitmask |= BITMASK_NANOTAGACC_GPSTRIGGER;
+                    this.Bitmask |= BITMASK_NANOTAGACC_MOTIONIRQ;
                 else
-                    this.Bitmask &= ~(BITMASK_NANOTAGACC_GPSTRIGGER);
+                    this.Bitmask &= ~(BITMASK_NANOTAGACC_MOTIONIRQ);
             }
         }
 

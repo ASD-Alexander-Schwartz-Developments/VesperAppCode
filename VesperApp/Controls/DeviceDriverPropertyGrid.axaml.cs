@@ -226,6 +226,20 @@ namespace VesperApp.Controls
 
                                 col.CellEditingTemplate = template;
                             }
+                            else if (dt == typeof(EXG2MuxOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXG2MuxOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
                             else if (dt == typeof(EXGSampleRateOptions))
                             {
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
@@ -240,12 +254,40 @@ namespace VesperApp.Controls
 
                                 col.CellEditingTemplate = template;
                             }
+                            else if (dt == typeof(EXG2SampleRateOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXG2SampleRateOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
                             else if (dt == typeof(EXGTestFrequencyOptions))
                             {
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
                                 {
                                     [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
                                     [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXGTestFrequencyOptions.ListOfOptions, StringFormat = "{}{0}" },
+                                    Margin = new Thickness(0),
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+                                    IsDropDownOpen = true
+                                });
+
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(EXG2TestFrequencyOptions))
+                            {
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new ComboBox
+                                {
+                                    [!ComboBox.SelectedItemProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!ComboBox.ItemsSourceProperty] = new Binding { Source = EXG2TestFrequencyOptions.ListOfOptions, StringFormat = "{}{0}" },
                                     Margin = new Thickness(0),
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
                                     VerticalAlignment = VerticalAlignment.Stretch,

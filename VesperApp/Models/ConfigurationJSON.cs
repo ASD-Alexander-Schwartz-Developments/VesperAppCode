@@ -428,7 +428,7 @@ namespace VesperApp.Models
                 }
                 else
                 {
-                    return new PowerOnTime(s);
+                    return new PowerOnTime(s!);
                 }
             }
         }

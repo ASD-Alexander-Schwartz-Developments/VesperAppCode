@@ -24,9 +24,9 @@ namespace VesperApp.Services
         {
             uint result = 0;
 
-            result |= (uint)bytes[startindex + 0] << 8;
+            result |= (uint)bytes[startindex + 2] << 8;
             result |= (uint)bytes[startindex + 1] << 16;
-            result |= (uint)bytes[startindex + 2] << 24;
+            result |= (uint)bytes[startindex + 0] << 24;
 
             return (Int32)result;
         }

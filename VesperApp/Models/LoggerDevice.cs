@@ -629,7 +629,13 @@ namespace VesperApp.Models
 
                 if (retb == 0) r = true;
             }
-
+            else if (_comport != null && _comport.IsRunning)
+            {
+                Debug.WriteLine("Prepare Format request message");
+                byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_FORMATDISK, 0, new byte[0], 0);
+                this._comport.SendToDevice(buffer, 0, buffer.Length);
+                r = true;
+            }
             return await Task.FromResult(r);
         }
 
@@ -916,6 +922,8 @@ namespace VesperApp.Models
                     { 
                         int ij = 4096;
 
+                        UInt32 ODBA = 0, VEDBA = 0;
+
                         UInt32 f_preamble = 0;
                         f_preamble += bytes[ij++];
                         f_preamble += (UInt32)(bytes[ij++] << 8);
@@ -979,6 +987,15 @@ namespace VesperApp.Models
 
                         if (snapIndex > 0) snapIndex--;
 
+                        ODBA += bytes[ij++];
+                        ODBA += (UInt32)(bytes[ij++] << 8);
+                        ODBA += (UInt32)(bytes[ij++] << 16);
+                        ODBA += (UInt32)(bytes[ij++] << 24);
+
+                        VEDBA += bytes[ij++];
+                        VEDBA += (UInt32)(bytes[ij++] << 8);
+                        VEDBA += (UInt32)(bytes[ij++] << 16);
+                        VEDBA += (UInt32)(bytes[ij++] << 24);
 
                         if (f_preamble == preamnle_ok &&
                             page_type == NAND_FS_SNAP_PAGE_TYPE &&
@@ -1032,6 +1049,15 @@ namespace VesperApp.Models
                                 file.Flush();
                                 file.Close();
                             }
+
+                            string metadata = string.Empty;
+                            double o = Math.Sqrt((double)ODBA);
+                            double v = Math.Sqrt((double)VEDBA);
+                            metadata += "SNAP: " + snapID.ToString() + "[" + snapIndex.ToString() + "/" + snapPagesInSnap.ToString() + "]" + Environment.NewLine;
+                            metadata += "ODBA: " + o.ToString() + Environment.NewLine;
+                            metadata += "VEDBA: " + v.ToString() + Environment.NewLine;
+
+                            File.WriteAllText(filename + "_" + snapIndex.ToString() + ".txt", metadata);
                         }
                         else if (f_preamble == preamnle_ok &&
                             page_type == NAND_FS_SNAP_PAGE_TYPE &&

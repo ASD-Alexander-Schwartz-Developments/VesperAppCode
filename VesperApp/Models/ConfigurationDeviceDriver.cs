@@ -14,7 +14,7 @@ namespace VesperApp.Models
 {
     public class ConfigurationDeviceDriver : INotifyPropertyChanged, IEquatable<ConfigurationDeviceDriver>
     {
-        public const UInt32 BITMASK_LED = 0x01;
+        public const UInt32 BITMASK_LED = 0x02;
         public const UInt32 BITMASK_ACC_TRG = 0x1000;
 
         private string name;
@@ -155,7 +155,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling ON time in [ms] when running Config2 schedule"),
+        DescriptionAttribute("Duty cycled sampling ON time in [ms] when running Config1 schedule"),
         DisplayName("Window Length [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -468,6 +468,9 @@ namespace VesperApp.Models
                     case "EXG48":
                         baseClass = (ConfigEXG48Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigEXG48Driver));
                         break;
+                    case "EXG2":
+                        baseClass = (ConfigEXG2Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigEXG2Driver));
+                        break;
                     case "ATLAS":
                         baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigATLASDriver));
                         break;
@@ -562,6 +565,10 @@ namespace VesperApp.Models
                 else if (value is ConfigEXG48Driver exg48Driver)
                 {
                     JsonSerializer.Serialize(writer, exg48Driver);
+                }
+                else if (value is ConfigEXG2Driver exg2Driver)
+                {
+                    JsonSerializer.Serialize(writer, exg2Driver);
                 }
 
             }

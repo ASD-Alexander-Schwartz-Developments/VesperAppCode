@@ -11,6 +11,8 @@ namespace VesperApp.Models
 
     public class ConfigACLYSDriver : ConfigurationDeviceDriver
     {
+        public const UInt32 BITMASK_ACC_GPSTRIGGER = 0x1000;
+
         public ConfigACLYSDriver() : base("ACLYS", "Snap GPS receiver") // GPS
         {
             SnapSize = AclysSnapLength.CreateFromValue(AclysSnapLength.SNAP256ms);
@@ -28,6 +30,29 @@ namespace VesperApp.Models
             //set { this.name = value; }
         }
 
+        [DisplayName("Enable GPS Trigger"),
+        TypeConverter(typeof(bool)),
+        CategoryAttribute("NANOACC Specific Settings"),
+        DescriptionAttribute("Enables Acc to be used as GPS trigger on motion detection where available"),
+        Browsable(true)]
+        [JsonIgnore]
+        public bool EnableGPSTrigger
+        {
+            get
+            {
+                if ((this.Bitmask & BITMASK_ACC_GPSTRIGGER) == BITMASK_ACC_GPSTRIGGER)
+                    return true;
+                else
+                    return false;
+            }
+            set
+            {
+                if (value == true)
+                    this.Bitmask |= BITMASK_ACC_GPSTRIGGER;
+                else
+                    this.Bitmask &= ~(BITMASK_ACC_GPSTRIGGER);
+            }
+        }
 
         [CategoryAttribute("ACLYS specific Settings"),
         DisplayName("Snap Size"),

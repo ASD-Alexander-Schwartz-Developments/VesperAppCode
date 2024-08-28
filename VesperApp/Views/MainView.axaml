@@ -282,7 +282,16 @@
 										</Image>
 									</StackPanel>
 								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualEXG48ParserCommand}" x:Name="bParseBio" ToolTip.Tip="EXG48 (ECG/EMG/EEG) Sensor Decoder">
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualEXG48ParserCommand}" x:Name="bParseBio" ToolTip.Tip="EXG48 (4ch/8ch ECG/EMG/EEG) Sensor Decoder">
+									<StackPanel Orientation="Horizontal">
+										<Image Stretch="Fill" Width="42" Height="42">
+											<Image.Source>
+												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.bio}" />
+											</Image.Source>
+										</Image>
+									</StackPanel>
+								</Button>
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualEXG1292ParserCommand}" x:Name="bParseExg1292" ToolTip.Tip="EXG1292 (2ch ECG/EMG/EEG) Sensor Decoder">
 									<StackPanel Orientation="Horizontal">
 										<Image Stretch="Fill" Width="42" Height="42">
 											<Image.Source>
