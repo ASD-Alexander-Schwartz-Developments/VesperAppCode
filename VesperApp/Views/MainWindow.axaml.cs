@@ -6,10 +6,11 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 using VesperApp.ViewModels;
+using FluentAvalonia.UI.Windowing;
 
 namespace VesperApp.Views
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : AppWindow
     {
         public MainWindow()
         {
@@ -21,8 +22,8 @@ namespace VesperApp.Views
 
             this.Title += " - v" + version;
 
-
-
+            TitleBar.ExtendsContentIntoTitleBar = false;
+            TitleBar.TitleBarHitTestType = TitleBarHitTestType.Complex;
             //this.mainView.textLogWindow.Text= version;
         }
 

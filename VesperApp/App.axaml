@@ -1,7 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:VesperApp"
-			 xmlns:l="using:Avalonia.Themes.Fluent"
+			 xmlns:sty="using:FluentAvalonia.Styling"
              x:Class="VesperApp.App">
     <Application.DataTemplates>
         <local:ViewLocator/>
@@ -12,10 +12,9 @@
 	</Application.Resources>
 
 	<Application.Styles>
-		<FluentTheme/>
+		<sty:FluentAvaloniaTheme PreferUserAccentColor="True"/>
 		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
 		<StyleInclude Source="avares://VesperApp/Assets/FluentUiIcons_Filled.xaml"/>
-		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
 
 		<Style Selector="Window">
 			<Setter Property="FontFamily" Value="Assistant" />
