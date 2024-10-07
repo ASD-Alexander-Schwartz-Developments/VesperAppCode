@@ -244,15 +244,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Vesper App "
-        "ProductCode" = "8:{6A82FD0C-E825-49CA-BE88-18CE3F0A7E5B}"
-        "PackageCode" = "8:{35564EB3-8926-4185-8E13-363180D51B05}"
+        "ProductCode" = "8:{EE28A42B-F84B-4142-BC44-B123D08739D2}"
+        "PackageCode" = "8:{375F95B8-B4EB-41C4-A6B9-C3DA51ECC182}"
         "UpgradeCode" = "8:{D1BAE3B6-C234-4C45-8ECB-4920D914B927}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.0.21"
+        "ProductVersion" = "8:1.0.23"
         "Manufacturer" = "8:A.S.D"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -794,7 +794,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_A547B31840C74F448DCBC757B010FA42"
             {
-            "SourcePath" = "8:..\\VesperApp\\obj\\Release\\net8.0\\apphost.exe"
+            "SourcePath" = "8:C:\\bin\\publish\\Win-x64\\VesperApp.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_19F0F7653F00439EB8F579545EACE798"
@@ -816,6 +816,7 @@
             "OutputGroupCanonicalName" = "8:PublishItems"
             "OutputProjectGuid" = "8:{9671D27E-507B-4963-81E8-F2AEB25E4722}"
             "ShowKeyOutput" = "11:TRUE"
+            "PublishProfilePath" = "8:Properties\\PublishProfiles\\Win-x64.pubxml"
                 "ExcludeFilters"
                 {
                 }

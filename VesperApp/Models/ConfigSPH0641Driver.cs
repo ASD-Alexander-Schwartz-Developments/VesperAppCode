@@ -123,7 +123,7 @@ namespace VesperApp.Models
         }
 
 
-        private UInt16 digitalFilter;
+        private UInt16 digitalFilter = 0;
 
 
         [DisplayName("Digital Filter"),
@@ -139,14 +139,14 @@ namespace VesperApp.Models
         [DisplayName("Enable Digital Filter"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Enables Digital LPF with /4 decimation ratio"),
+        DescriptionAttribute("Enables Digital LPF with Fc=0.111*Fs"),
         Browsable(true)]
         [JsonIgnore]
         public bool EnableDigitalFilter
         {
             get
             {
-                if (this.digitalFilter == 257)
+                if ((this.digitalFilter & 0x0100) == 0x0100)
                     return true;
                 else
                     return false;
@@ -154,9 +154,35 @@ namespace VesperApp.Models
             set
             {
                 if (value == true)
-                    this.digitalFilter = 257;
+                    this.digitalFilter = 0x0100;
                 else
-                    this.digitalFilter = 256;
+                    this.digitalFilter = 0;
+
+                OnPropertyChanged();
+            }
+        }
+
+        [DisplayName("Enable Digital Filter Decimation"),
+        TypeConverter(typeof(bool)),
+        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        DescriptionAttribute("Enables Digital LPF Decimation factor of /4"),
+        Browsable(true)]
+        [JsonIgnore]
+        public bool EnableDigitalFilterDecimation
+        {
+            get
+            {
+                if ((this.digitalFilter & 0x101) == 0x101)
+                    return true;
+                else
+                    return false;
+            }
+            set
+            {
+                if (value == true)
+                    this.digitalFilter |= 0x1;
+                else
+                    this.digitalFilter &= 0x10E;
 
                 OnPropertyChanged();
             }
