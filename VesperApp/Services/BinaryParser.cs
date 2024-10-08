@@ -167,6 +167,10 @@ namespace VesperApp.Services
             {
                 first_letter = 'X';
             }
+            else if (check.Contains('C'))
+            {
+                first_letter = 'C';
+            }
             else
             {
                 return Task.FromResult(-1);
@@ -179,9 +183,9 @@ namespace VesperApp.Services
             {
                 using (BinaryReader reader = new BinaryReader(File.Open(BinaryFileName, FileMode.Open)))
                 {
-                    reader.BaseStream.Position = offset;
+                    //reader.BaseStream.Position = offset;
                     UInt32 preamble = reader.ReadUInt32();
-                    reader.BaseStream.Position = offset;
+                    //reader.BaseStream.Position = 0;
 
                     if (preamble == BinaryTypeHeader.FILE_HEADER_PREAMBLE)
                     {
@@ -196,7 +200,7 @@ namespace VesperApp.Services
                         reader.BaseStream.Position = offset;
                     }
 
-                    byte[] databuffer = new byte[reader.BaseStream.Length - offset];
+                    byte[] databuffer = new byte[reader.BaseStream.Length];
 
                     reader.Read(databuffer, 0, databuffer.Length);
 

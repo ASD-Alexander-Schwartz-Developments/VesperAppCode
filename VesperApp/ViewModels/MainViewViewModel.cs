@@ -539,6 +539,9 @@ namespace VesperApp.ViewModels
 
             LoadConfigCommand = ReactiveCommand.CreateFromTask(LoadConfiguration);
 
+            #endregion
+
+            #region Parser Commands
             BinaryFilesExtractor = ReactiveCommand.CreateFromTask(RunBinaryParser);
 
             ManualAudioParserCommand = ReactiveCommand.CreateFromTask(DecodeAudio);
@@ -553,9 +556,8 @@ namespace VesperApp.ViewModels
 
             ManualEXG1292ParserCommand = ReactiveCommand.CreateFromTask(DecodeEXG1292);
 
-            #endregion
+            ManualLeptonParserCommand = ReactiveCommand.CreateFromTask(DecodeLepton);
 
-            #region Parser Commands
             ManualGPSParserCommand = ReactiveCommand.CreateFromTask(ParseNanotagSnaps);
             #endregion
 
@@ -1339,6 +1341,87 @@ namespace VesperApp.ViewModels
             return await Task.FromResult(result);
         }
 
+
+        private async Task<bool> DecodeLepton()
+        {
+            bool retval = false;
+
+            try
+            {
+                FilePickerOpenOptions options = new()
+                {
+                    Title = "Select parsed thermal camera snapshot files to convert to PNG",
+                    //SuggestedStartLocation =,
+                    FileTypeFilter = new List<FilePickerFileType>
+                    {
+                        new("Snapshot binary (.CBN) ")
+                        {
+                            Patterns = new[]{"*-*.CBN"},
+                            MimeTypes = new[]{"bin/*"}
+                        }
+                    },
+                    AllowMultiple = true,
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = RootTopLevel!.StorageProvider!.OpenFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+                        BinaryParserIsRunning = true;
+                        BinaryParserPercent = 0;
+                        double percentDelta = 100 / files.Count;
+                        double percent = 0;
+                        foreach (var file in files)
+                        {
+                            percent += percentDelta;
+                            BinaryParserPercent = (int)percent;
+                            //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
+                            if (file is not null)
+                            {
+                                string? lp = file.TryGetLocalPath();
+
+                                if (lp is not null)
+                                {
+                                    string? currentDirectory = Path.GetDirectoryName(lp);
+                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
+                                    string metadata = string.Empty;
+
+                                    if (currentDirectory != null && currentFilename != null)
+                                    {
+                                        if (File.Exists(lp + ".txt"))                         /// Check if metadata exists
+                                        {
+                                            metadata = File.ReadAllText(lp + ".txt", Encoding.UTF8) ?? string.Empty;
+                                        }
+
+                                        byte[] databuf = File.ReadAllBytes(lp);
+
+                                        LeptonReading lr = new LeptonReading(lp, databuf, 1024-16, DateTime.Now, 0, 0, LeptonFilterType.LEPTON_RAINBOW);
+                                        lr.SaveAs(OutputFileType.PIC_JPG, lp);
+                                    }
+                                }
+                            }
+                        }
+                        BinaryParserPercent = 100;
+                        await Task.Delay(250);
+                        BinaryParserIsRunning = false;
+
+                    }
+                    catch (Exception e) { Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+
+
+
+            }
+            catch { retval = true; }
+
+            return retval;
+        }
+
+
+
         private async Task<bool> RunBinaryParser()
         {
             bool retval = false;
@@ -1394,6 +1477,11 @@ namespace VesperApp.ViewModels
                         new("Proximity Recording (.bin) ")
                         {
                             Patterns = new[]{"*X.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Thermal Camera (Lepton) (.bin) ")
+                        {
+                            Patterns = new[]{"*C.bin"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Self Log Recording (.bin) ")
@@ -1531,7 +1619,17 @@ namespace VesperApp.ViewModels
 
                                             await BinaryParser.StripSplit(lp, fullPathOnly, 0);
                                         }
+                                        else if (currentFilename.Contains("C.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "THCAM";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
 
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
                                     }
                                 }
                             }
@@ -2541,7 +2639,7 @@ namespace VesperApp.ViewModels
         public ICommand? SaveConfigCommand { get; }
         public ICommand? LoadConfigCommand { get; }
 
-
+        public ICommand? ManualLeptonParserCommand { get; }
         public ICommand? ManualGPSParserCommand { get; }
 
 

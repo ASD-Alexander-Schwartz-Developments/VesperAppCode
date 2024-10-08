@@ -273,6 +273,15 @@
 										</Image>
 									</StackPanel>
 								</Button>
+								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualLeptonParserCommand}" x:Name="bParseLepton" ToolTip.Tip="Thermal Camera Decoder">
+									<StackPanel Orientation="Horizontal">
+										<Image Stretch="Fill" Width="42" Height="42">
+											<Image.Source>
+												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.photo_filter_filled}" />
+											</Image.Source>
+										</Image>
+									</StackPanel>
+								</Button>
 								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualMotionParserCommand}" x:Name="bParseImu" ToolTip.Tip="IMU (Innertial Motion Unit) Sensor Decoder">
 									<StackPanel Orientation="Horizontal">
 										<Image Stretch="Fill" Width="42" Height="42">

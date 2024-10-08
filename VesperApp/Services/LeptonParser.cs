@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using SkiaSharp;
+using Avalonia.Controls.Shapes;
 
 namespace VesperApp
 {
@@ -33,6 +34,7 @@ namespace VesperApp
         const int MaxLinesInSegment = 62;
         const int BytePerPixel = 2;
         const int FooterSize = 4;
+        const int HeaderSize = 4;
 
         private int segmentid;
         private SKColor[] sKColors;
@@ -52,15 +54,35 @@ namespace VesperApp
             diff = 0;
             scale = 1.0f;
 
-            if ((data != null) && ((data.Length - offset) >= (BytePerPixel * PixelsInLine * MaxLinesInSegment) + FooterSize))
+            if ((data != null) && ((data.Length - offset) >= (((BytePerPixel * PixelsInLine) + HeaderSize) * MaxLinesInSegment) + FooterSize))
             {
-                int pl = (BytePerPixel * PixelsInLine * MaxLinesInSegment);
+                int pl = (BytePerPixel * PixelsInLine);
                 int pl2 = pl / 2;
-                for (int i = offset, j = 0; j < pl2; i += 2, j++)
+                pixels = new ushort[pl2*MaxLinesInSegment];
+
+                try
                 {
-                    pixels[j] = (ushort)((data[i+1] * 256) + data[i]);
-                    if (pixels[j] < minValue) minValue = pixels[j];
-                    if (pixels[j] > maxValue) maxValue = pixels[j];
+                    for (int lines = 0; lines < MaxLinesInSegment; lines++)
+                    {
+                        for (int i = offset + (lines * ((PixelsInLine * BytePerPixel) + HeaderSize)) + HeaderSize, j = 0; j < pl2; i += 2, j++)
+                        {
+                            if (i + 1 < data.Length)
+                            {
+                                pixels[lines * PixelsInLine + j] = (ushort)((data[i] * 256) + data[i+1]);
+                                pixels[lines * PixelsInLine + j] &= 0x3FFF;
+
+                                if (lines < MaxLinesInSegment - 2)                  // 2 last lines are reserved for telemetry + spare
+                                {
+                                    if (pixels[lines * PixelsInLine + j] < minValue) minValue = pixels[lines * PixelsInLine + j];
+                                    if (pixels[lines * PixelsInLine + j] > maxValue) maxValue = pixels[lines * PixelsInLine + j];
+                                }
+                            }
+                        }
+                    }
+                }
+                catch(IndexOutOfRangeException ioore)
+                {
+                    Console.WriteLine(ioore.Message);
                 }
 
                 diff = maxValue - minValue;
@@ -68,7 +90,7 @@ namespace VesperApp
 
                 sKColors = new SKColor[PixelsInLine * MaxLinesInSegment];
 
-                segmentid = (int)data[pl + 2];
+                segmentid = (int)data[offset + (MaxLinesInSegment * ((PixelsInLine * BytePerPixel) + HeaderSize)) + 2];
             }
         }
 
@@ -76,22 +98,25 @@ namespace VesperApp
         {
             if(sKColors.Length != 0)
             {
-                for (int i = 0; i < pixels.Length; i++)
+                for (int i = 0; i < PixelsInLine*(MaxLinesInSegment-2); i++)
                 {
                     int value = (int)((pixels[i] - minValue) * scale);
+                    if(value > 255)
+                        value = 255;
+                    if(value < 0) value = 0;
 
                     switch (ft)
                     {
                         case LeptonFilterType.LEPTON_RAINBOW:
-                            sKColors[i] = new SKColor(colormap_rainbow[3 * value], colormap_rainbow[3 * value + 1], colormap_rainbow[3 * value + 2])
+                            sKColors[i] = new SKColor(colormap_rainbow[3 * value], colormap_rainbow[3 * value + 1], colormap_rainbow[3 * value + 2]);
                             break;
 
                         case LeptonFilterType.LEPTON_GRAYSCALE:
-                            sKColors[i] = new SKColor(colormap_grayscale[3 * value], colormap_grayscale[3 * value + 1], colormap_grayscale[3 * value + 2])
+                            sKColors[i] = new SKColor(colormap_grayscale[3 * value], colormap_grayscale[3 * value + 1], colormap_grayscale[3 * value + 2]);
                             break;
 
                         case LeptonFilterType.LEPTON_IRONBLACK:
-                            sKColors[i] = new SKColor(colormap_ironblack[3 * value], colormap_ironblack[3 * value + 1], colormap_ironblack[3 * value + 2])
+                            sKColors[i] = new SKColor(colormap_ironblack[3 * value], colormap_ironblack[3 * value + 1], colormap_ironblack[3 * value + 2]);
                             break;
                     }
                 }
@@ -108,7 +133,7 @@ namespace VesperApp
         {
             get
             {
-                return ((BytePerPixel * PixelsInLine * MaxLinesInSegment) + FooterSize);
+                return ((((BytePerPixel * PixelsInLine) + HeaderSize) * MaxLinesInSegment) + FooterSize);
             }
         }
     }
@@ -122,17 +147,26 @@ namespace VesperApp
         private string Filename;
         private bool IsOpened;
 
-        private SKBitmap sKBitmap;
+        private SKBitmap? sKBitmap;
         private LeptonVoipSegment []segments;
-       
-        public LeptonReading(string FileName, byte[] data, DateTime dtStart, UInt16 subsec_frac, UInt32 ms_sample, LeptonFilterType ft)
+        private DateTime snapshot_time;
+
+        public LeptonReading(string FileName, byte[] data, int dataoffset, DateTime dtStart, UInt16 subsec_frac, UInt32 ms_sample, LeptonFilterType ft)
         {
             segments = new LeptonVoipSegment[0];
+            Filename = string.Empty;
+            IsOpened = false;
+            snapshot_time = DateTime.MinValue;
+            sKBitmap = null;
 
-            if (FileName != null && data != null && FileName.Length > 0 && data.Length >= LeptonVoipSegment.DataSize*4)
+
+            if (FileName != null && data != null && FileName.Length > 0 && data.Length >= LeptonVoipSegment.DataSize * 4)
             {
+                snapshot_time = dtStart;
+                Filename = FileName;
+
                 segments = new LeptonVoipSegment[4];
-                int offset = 0;
+                int offset = dataoffset;
                 segments[0] = new LeptonVoipSegment(data, offset);
                 offset += LeptonVoipSegment.DataSize;
                 segments[1] = new LeptonVoipSegment(data, offset);
@@ -148,14 +182,17 @@ namespace VesperApp
                     {
                         int seg1 = 0;
                         int seg2 = 0;
-                        int seg3 = 0; 
+                        int seg3 = 0;
                         int seg4 = 0;
+                        int cs = -1;
+
+                        SKColor[] seg_pixels = new SKColor[0];
 
                         if (segments[0].GetSegment() == 1)
                         {
                             seg1 = 0;
                         }
-                        else if(segments[1].GetSegment() == 1)
+                        else if (segments[1].GetSegment() == 1)
                         {
                             seg1 = 1;
                         }
@@ -219,11 +256,11 @@ namespace VesperApp
                             seg4 = 3;
                         }
 
-                        if (seg1 != 0 && seg2 != 0 && seg3 != 0 && seg4 != 0)
+                        if (seg1 >= 0 && seg2 >= 0 && seg3 >= 0 && seg4 >= 0)
                         {
-                            int d = new int[] {seg1, seg2, seg3, seg4}.Distinct().Count();
+                            int d = new int[] { seg1, seg2, seg3, seg4 }.Distinct().Count();
 
-                            if(d == 4)
+                            if (d == 4)
                             {
                                 sKBitmap = new SKBitmap(Width, Height, false);
 
@@ -238,26 +275,35 @@ namespace VesperApp
                                         int pindex = pixelIndex % pixels_in_segment;
                                         LeptonVoipSegment? seg = null;
 
-                                        if(segment == 0)
+                                        if (cs != segment || seg_pixels.Length == 0)
                                         {
-                                            seg = segments[seg1];
-                                        }
-                                        else if(segment == 1)
-                                        {
-                                            seg = segments[seg2];
-                                        }
-                                        else if(segment == 2)
-                                        {
-                                            seg = segments[seg3];
-                                        }
-                                        else if(segment == 3)
-                                        {
-                                            seg = segments[seg4];
+                                            if (segment == 0)
+                                            {
+                                                seg = segments[seg1];
+                                            }
+                                            else if (segment == 1)
+                                            {
+                                                seg = segments[seg2];
+                                            }
+                                            else if (segment == 2)
+                                            {
+                                                seg = segments[seg3];
+                                            }
+                                            else if (segment == 3)
+                                            {
+                                                seg = segments[seg4];
+                                            }
+
+                                            if (seg != null)
+                                            {
+                                                seg_pixels = seg.GetColors(ft);
+                                                cs = segment;
+                                            }
                                         }
 
-                                        if(seg != null)
+                                        if (seg_pixels.Length > 0)
                                         {
-                                            sKBitmap.SetPixel(x, y, seg.GetColors(ft)[pindex]);
+                                            sKBitmap.SetPixel(x, y, seg_pixels[pindex]);
                                         }
                                     }
                                 }
@@ -266,97 +312,34 @@ namespace VesperApp
                     }
                 }
             }
-
-
-
-            for (int y = 0; y < 60; y++)
-            {
-                for (int x = 0; x < 80; x++)
-                {
-                    int pixelIndex = (y * 160) + (2 * x);
-
-                    int pixelValue = raw_buffer[pixelIndex + 1];
-                    pixelValue *= 256;
-                    pixelValue += raw_buffer[pixelIndex];
-
-                    int value = (int)((pixelValue - minValue) * scale);
-
-                    switch (filter_type)
-                    {
-                        case LeptonFilterType.LEPTON_RAINBOW:
-                            bmp.SetPixel(x, y, Color.FromArgb(colormap_rainbow[3 * value], colormap_rainbow[3 * value + 1], colormap_rainbow[3 * value + 2]));
-                            break;
-
-                        case LeptonFilterType.LEPTON_GRAYSCALE:
-                            bmp.SetPixel(x, y, Color.FromArgb(colormap_grayscale[3 * value], colormap_grayscale[3 * value + 1], colormap_grayscale[3 * value + 2]));
-                            break;
-
-                        case LeptonFilterType.LEPTON_IRONBLACK:
-                            bmp.SetPixel(x, y, Color.FromArgb(colormap_ironblack[3 * value], colormap_ironblack[3 * value + 1], colormap_ironblack[3 * value + 2]));
-                            break;
-                    }
-                }
-            }
-
         }
 
-        public void SaveAs(OutputFileType type, String outputName, LeptonFilterType filter_type)
+        public void SaveAs(OutputFileType type, String outputName)
         {
-            Bitmap bmp = new Bitmap(80, 60, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-
-            int minValue = int.MaxValue;
-            int maxValue = int.MinValue;
-
-            for (int y = 0; y < 60; y++)
+            try
             {
-                for (int x = 0; x < 80; x++)
+                if (sKBitmap != null)
                 {
-                    int pixelIndex = (y * 160) + (2 * x);
-
-                    int pixelValue = raw_buffer[pixelIndex + 1];
-                    pixelValue *= 256;
-                    pixelValue += raw_buffer[pixelIndex];
-
-                    if (pixelValue < minValue) minValue = pixelValue;
-                    if (pixelValue > maxValue) maxValue = pixelValue;
-                }
-            }
-
-            float diff = maxValue - minValue;
-            float scale = 255 / diff;
-
-
-            for (int y = 0; y < 60; y++)
-            {
-                for (int x = 0; x < 80; x++)
-                {
-                    int pixelIndex = (y * 160) + (2 * x);
-
-                    int pixelValue = raw_buffer[pixelIndex + 1];
-                    pixelValue *= 256;
-                    pixelValue += raw_buffer[pixelIndex];
-
-                    int value = (int)((pixelValue - minValue) * scale);
-
-                    switch (filter_type)
+                    using (var data = sKBitmap.Encode(SKEncodedImageFormat.Png, 100))
                     {
-                        case LeptonFilterType.LEPTON_RAINBOW:
-                            bmp.SetPixel(x, y, Color.FromArgb(colormap_rainbow[3 * value], colormap_rainbow[3 * value + 1], colormap_rainbow[3 * value + 2]));
-                            break;
+                        string fname = outputName + "_" + snapshot_time.Year.ToString() + "_" + snapshot_time.Month.ToString() + "_" + snapshot_time.Day.ToString() +
+                        "_" + snapshot_time.Hour.ToString() + "_" + snapshot_time.Minute.ToString() + "_" + snapshot_time.Second.ToString() + ".png";
 
-                        case LeptonFilterType.LEPTON_GRAYSCALE:
-                            bmp.SetPixel(x, y, Color.FromArgb(colormap_grayscale[3 * value], colormap_grayscale[3 * value + 1], colormap_grayscale[3 * value + 2]));
-                            break;
-
-                        case LeptonFilterType.LEPTON_IRONBLACK:
-                            bmp.SetPixel(x, y, Color.FromArgb(colormap_ironblack[3 * value], colormap_ironblack[3 * value + 1], colormap_ironblack[3 * value + 2]));
-                            break;
+                        using (var stream = File.OpenWrite(fname))
+                        {
+                            IsOpened = true;
+                            data.SaveTo(stream);
+                            stream.Close();
+                        }
                     }
                 }
             }
+            catch 
+            { 
+                IsOpened = false;
+            }
 
-            bmp.Save(outputName + "_" + year.ToString() + "_" + month.ToString() + "_" + day.ToString() +
-                "_" + hour.ToString() + "_" + minute.ToString() + "_" + second.ToString() + ".bmp");
+            IsOpened = false;
         }
     }
 }
