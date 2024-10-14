@@ -105,16 +105,18 @@ namespace VesperApp.Services
 
         public static string HeaderText()
         {
-            return "Time,Lux";
+            string mysep = Utils.GetSeparator();
+            return $"Time{mysep}Lux";
         }
 
         public override string ToString()
         {
             if (Header != 0x5A) return "Bad Row";
+            string mysep = Utils.GetSeparator() ;
 
             string dt = Timestamp.ToShortDateString() + " " + Timestamp.ToString("HH:mm:ss.FFF");
 
-            return dt + "," +
+            return dt + mysep +
                 Lux.ToString("F2");
         }
     }

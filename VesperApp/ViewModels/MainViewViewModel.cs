@@ -38,6 +38,9 @@ using System.Collections;
 using System.Globalization;
 using Avalonia.Metadata;
 using Microsoft.VisualBasic;
+using Velopack;
+using Avalonia.Interactivity;
+using Microsoft.Extensions.Logging;
 
 
 /// <summary>
@@ -212,11 +215,7 @@ namespace VesperApp.ViewModels
 		public ReactiveCommand<Unit, Unit> DownloadCheckCommand { get; }
 		public ReactiveCommand<Unit, Unit> LaterCommand { get; }
 
-
-		public string installerFile => "config.bat";
-		public string baseUrl => "http://downloads.asd-tech.com/downloads/";
-
-		public string onlineConfig => "updateConfig.xml";
+		private string updateBaseUrl => "https://vesperapp.asd-tech.com/";
 
 		public bool IsdownloadButtonEnable
 		{
@@ -233,7 +232,17 @@ namespace VesperApp.ViewModels
 			set => this.RaiseAndSetIfChanged(ref _updateFlyout, value);
 		}
 
+
         #endregion
+
+        private string textMessageBottom;
+        public string TextMessageBottom
+        {
+            get => textMessageBottom;
+            set => this.RaiseAndSetIfChanged(ref textMessageBottom, value);
+        }
+
+
 
         private bool __downloading_nanotag_data = false;
 
@@ -271,6 +280,8 @@ namespace VesperApp.ViewModels
 
                     if (App.MainWindow != null)
                     {
+                        _timer.Stop();
+                        await Task.Delay(100);
                         var result = await dockPickDialog.ShowDialog<DockDeviceInfo?>(App.MainWindow);
 
                         if (result != null)
@@ -282,6 +293,7 @@ namespace VesperApp.ViewModels
 
                             //IsConnected = _globalDockAdapter.IsConnected;
                         }
+                        _timer.Start();
                     }
                 }
             });
@@ -572,192 +584,103 @@ namespace VesperApp.ViewModels
             DriversViewModel = new SelectDeviceDriverViewModel(new List<ConfigurationDeviceDriver>());
             DriversViewModel.PropertyChanged += DriversViewModel_PropertyChanged;
             DriverEditorGridViewModel = new DeviceDriverPropertyGridViewModel();
+
 			DownloadCheckCommand = ReactiveCommand.Create(DownloadCheck);
 			LaterCommand = ReactiveCommand.Create(closeFlyout);
 
             _timer.Start();
             _timerClock.Start();
 
-            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                osFolder = "Windows";
-            }
-            else if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                osFolder = "Linux";
-            }
-            else if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                osFolder = "MacOS";
-            }
+            _um = new UpdateManager(updateBaseUrl, logger: Program.Log);
 
+            TextMessageBottom = string.Empty;
             IsUpdateAvailable = CheckUpdate().Result;
 		}
+
+        /*
+         * 
+         *  rem win-x64-stable
+            rem win-x64-beta
+            rem win-arm64-stable
+            rem win-arm64-beta
+            rem osx-x64-stable
+            rem osx-x64-beta
+            rem osx-arm64-stable
+            rem osx-arm64-beta
+         */
 
 
         //Update Software Methods 
 
         #region Variables 
+        private UpdateManager _um;
+        private UpdateInfo? _updateInfo;
 
-        HttpClient httpClient;
-        HttpResponseMessage response;
-        HttpRequestMessage request;
-		public string fileName => "VesperAppSetup.msi";
-		private string latestServerBuildVersion;
-		private string currentIntallBuildVersion;
-		public string directoryName = "Vesper";
-        public string osFolder = "Windows";
+		public string updateFileName => "VesperAppSetup.msi";
 		public string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        /*http://downloads.asd-tech.com/downloads/Windows/Vesper1.0.0.15/VesperAppSetup.msi*/
         #endregion
 
         //Check For the Updates 
 
         #region Checks for the update 
+
+        private void UpdateStatus()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"Velopack: {VelopackRuntimeInfo.VelopackNugetVersion}");
+            sb.Append($" This app: {(_um.IsInstalled ? _um.CurrentVersion : "(n/a - not installed)")}");
+            sb.AppendLine();
+
+            if (_updateInfo != null)
+            {
+                sb.Append($"Update available: {_updateInfo.TargetFullRelease.Version}");
+                IsdownloadButtonEnable = true;
+            }
+            else
+            {
+                IsdownloadButtonEnable = false;
+            }
+
+            if (_um.UpdatePendingRestart != null)
+            {
+                sb.Append(" Update ready, pending restart to install");
+                IsUpdateAvailable = true;
+            }
+            else
+            {
+                IsUpdateAvailable = false;
+            }
+
+            TextMessageBottom += sb.ToString();
+            //BtnCheckUpdate.IsEnabled = true;
+        }
+
+
         private async Task<bool> CheckUpdate()
 		{
-			bool status = false;
 			try
 			{
-				XmlDocument doc1 = new XmlDocument();
-				doc1.Load(baseUrl + onlineConfig);
-                
-                if(doc1.DocumentElement == null) 
+                _um = new UpdateManager(updateBaseUrl, new UpdateOptions
                 {
-                    return false;
-                }
-
-				XmlElement Fileroot = doc1.DocumentElement;
-
-				latestServerBuildVersion = Fileroot.InnerText;
-                Version? v = Assembly.GetExecutingAssembly().GetName().Version;
-
-                if(v == null)
-                {
-                    currentIntallBuildVersion = string.Empty;
-                }
-                else
-                {
-                    currentIntallBuildVersion = v.ToString();
-                }
-
-				if (latestServerBuildVersion == currentIntallBuildVersion)
-				{
-					return false;
-				}
-
-				#region If update is avilable checks for the versioning and remote server file exists 
-				else
-				{
-					var latest = latestServerBuildVersion.Split(".")?.Select(int.Parse)?.ToList();
-					var current = currentIntallBuildVersion.Split(".")?.Select(int.Parse)?.ToList();
-
-                    if (latest != null && current != null)
-                    {
-                        for (int i = 0; i < latest.Count; i++)
-                        {
-                            if (latest[i] > current[i])
-                            {
-                                status = true;
-                            }
-                        }
-                    }
-					if (status)
-					{
-						#region If file is already downloaded in local System then Directly commands Install
-
-						//Checks If the file is already downloaded in local System
-
-						if (Directory.Exists(root))
-						{
-							var DownloadDirectoryName = "Vesper\\" + "Vesper" + latestServerBuildVersion + "\\" + fileName;
-							var vesperAppFolder = System.IO.Path.Combine(root, DownloadDirectoryName);
-							if (File.Exists(vesperAppFolder))
-							{
-								#region Check if File ALready file SIze
-
-								httpClient = new HttpClient();
-                                response = await httpClient.GetAsync(baseUrl + osFolder + "/" + directoryName + latestServerBuildVersion + "/" + fileName);
-								Int64 SeverFileSize = Convert.ToInt64(response.Content.Headers.ContentLength);
-								string downloadFile = root + "/" + directoryName + "/" + directoryName + latestServerBuildVersion;
-								FileInfo file = new FileInfo(System.IO.Path.Combine(downloadFile, fileName));
-								var localFileSize = file.Length;
-								if (localFileSize != SeverFileSize)
-								{
-									DownloadContent = "Download";
-									IsdownloadButtonEnable = true;
-									isdownload = false;
-									isdownloading = false;
-									IsUpdateAvailable = false;
-									IsFlyoutopen();
-								}
-								else
-								{
-									DownloadContent = "Install";
-									IsdownloadButtonEnable = true;
-									isdownload = false;
-									isdownloading = false;
-									IsUpdateAvailable = false;
-									IsFlyoutopen();
-								}
-								#endregion
-							}
-						}
-						#endregion
-
-						//checks For the Server file 
-
-						return ServerFileCheck();
-					}
-				}
-				#endregion
-
-				return false;
-
-			}
-			catch (Exception ex)
+                    ExplicitChannel = "win-x64-stable",
+                    AllowVersionDowngrade = true,
+                });
+                //_updateInfo = await _um.CheckForUpdatesAsync().ConfigureAwait(true);
+                //UpdateStatus();
+                //IsUpdateAvailable = true;
+            }
+            catch (Exception ex)
 			{
 				Debug.WriteLine(ex.Message);
+                TextMessageBottom = ex.Message;
 				return false;
 			}
+
+            return false;
 		}
 
 		#region Remote Server File Check 
 
-		//Checks Server File Present or not
-		public bool ServerFileCheck()
-		{
-			httpClient = new HttpClient();
-
-            return false;
-
-			string installerFile = baseUrl + osFolder + "/" + directoryName + latestServerBuildVersion + "/VesperAppSetup.msi";
-			request = new HttpRequestMessage(HttpMethod.Get, installerFile);
-			try
-			{
-				response = httpClient.SendAsync(request).Result;
-			}
-			catch (WebException ex)
-			{
-				if (ex.Status == WebExceptionStatus.ProtocolError)
-				{
-					return false;
-				}
-			}
-
-			var latest = latestServerBuildVersion.Split(".");
-			var current = currentIntallBuildVersion.Split(".");
-			for (int i = 0; i < latest.Length; i++)
-			{
-				if (Convert.ToInt32(latest[i]) > Convert.ToInt32(current[i]))
-				{
-					VersionUpdateMessage = string.Format("version {0} Available ", latestServerBuildVersion);
-
-					return true;
-				}
-			}
-			return false;
-		}
 
 		#endregion
 
@@ -767,116 +690,29 @@ namespace VesperApp.ViewModels
 
 		#region Download File And Install File 
 		public async void DownloadCheck()
+		{              
+            try
+            {
+                // ConfigureAwait(true) so that UpdateStatus() is called on the UI thread
+                if (_updateInfo != null)
+                {
+                    await _um.DownloadUpdatesAsync(_updateInfo).ConfigureAwait(true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.Log.LogError(ex, "Error downloading updates");
+            }
+            UpdateStatus();
+            Wc_DownloadFileCompleted();
+        }
+        #endregion
+
+        #region Download File Complete 
+        private void Wc_DownloadFileCompleted()
 		{
 			try
 			{
-				if (Directory.Exists(root))
-				{
-					string Downloadfolder = directoryName + latestServerBuildVersion + "/";
-					var vesperAppFolder = System.IO.Path.Combine(root, directoryName);
-
-
-					// Check For App Folder
-
-					if (!Directory.Exists(vesperAppFolder))
-					{
-						Directory.CreateDirectory(vesperAppFolder);
-						var subDirectory = directoryName + latestServerBuildVersion;
-
-						Directory.CreateDirectory(System.IO.Path.Combine(vesperAppFolder, subDirectory));
-						if (Directory.Exists(System.IO.Path.Combine(vesperAppFolder, subDirectory)))
-						{
-							var latestversionDirectory = System.IO.Path.Combine(vesperAppFolder, subDirectory);
-							httpClient = new HttpClient();
-							IsdownloadButtonEnable = false;
-							isdownload = false;
-							isdownloading = true;
-							IsUpdateAvailable = false;
-							IsFlyoutopen();
-                            byte[] fileBytes = await httpClient.GetByteArrayAsync((new Uri(baseUrl + Downloadfolder + fileName)).ToString());
-                            Wc_DownloadFileCompleted(System.IO.Path.Combine(latestversionDirectory, fileName), fileBytes);
-						}
-					}  
-					else
-					{
-						//Check For Sub Directory 
-						var subDirectory = directoryName + latestServerBuildVersion;
-						string latestversionDirectory = System.IO.Path.Combine(vesperAppFolder, subDirectory);
-
-						if (!Directory.Exists(System.IO.Path.Combine(vesperAppFolder, subDirectory)))
-						{
-							Directory.CreateDirectory(System.IO.Path.Combine(vesperAppFolder, subDirectory));
-
-                            httpClient = new HttpClient();
-							IsdownloadButtonEnable = false;
-							isdownload = false;
-							isdownloading = true;
-							IsUpdateAvailable = false;
-							IsFlyoutopen();
-                            byte[] fileBytes = await httpClient.GetByteArrayAsync((new Uri(baseUrl + Downloadfolder + fileName)).ToString());
-                            Wc_DownloadFileCompleted(System.IO.Path.Combine(latestversionDirectory, fileName), fileBytes);
-						}
-						else
-						{
-							if (!File.Exists(System.IO.Path.Combine(latestversionDirectory, fileName)))
-							{
-                                httpClient = new HttpClient();
-								IsdownloadButtonEnable = false;
-								isdownload = false;
-								isdownloading = true;
-								IsUpdateAvailable = false;
-								IsFlyoutopen();
-                                byte[] fileBytes = await httpClient.GetByteArrayAsync((new Uri(baseUrl + Downloadfolder + fileName)).ToString());
-                                Wc_DownloadFileCompleted(System.IO.Path.Combine(latestversionDirectory, fileName), fileBytes);
-                            }
-
-
-                            //check file size for fail download
-                            if (File.Exists(System.IO.Path.Combine(latestversionDirectory, fileName)))
-							{
-								string installPath = System.IO.Path.Combine(latestversionDirectory, installerFile);
-								if (!File.Exists(installPath))
-								{
-									using (StreamWriter w = new StreamWriter(installPath))
-									{
-										//w.WriteLine("start cmd ");
-										w.WriteLine("cd " + latestversionDirectory);
-										w.WriteLine(fileName);
-										w.WriteLine("exit");
-										w.Close();
-									}
-								}
-								ProcessStartInfo pi = new ProcessStartInfo(installPath);
-								pi.WindowStyle = ProcessWindowStyle.Hidden;
-								pi.Arguments = installPath;
-								pi.UseShellExecute = true;
-								pi.WorkingDirectory = installPath;
-								pi.FileName = installPath;
-								pi.Verb = "OPEN";
-								Process.Start(pi);
-
-
-
-								Environment.Exit(0);
-							}
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				Debug.WriteLine(ex.Message);
-			}
-		}
-		#endregion
-
-		#region Download File Complete 
-		private void Wc_DownloadFileCompleted(string outputPath, byte[] fileBytes)
-		{
-			try
-			{
-                File.WriteAllBytes(outputPath, fileBytes);
-
                 DownloadContent = "Install";
 
 				IsdownloadButtonEnable = true;
@@ -884,18 +720,47 @@ namespace VesperApp.ViewModels
 				isdownloading = false;
 				IsUpdateAvailable = false;
 				IsFlyoutopen();
+
+
 			}
 			catch (Exception ex)
 			{
 				Debug.WriteLine(ex.Message);
 			}
 		}
-		#endregion
 
-		#endregion
+        private void RestartApply()
+        {
+            if(_updateInfo != null)
+                _um.ApplyUpdatesAndRestart(_updateInfo);
+        }
 
-		#region Flyouts
-		public void closeFlyout()
+
+
+        private void Progress(int percent)
+        {
+            // progress can be sent from other threads
+            //Dispatcher.UIThread.InvokeAsync(() => {
+            //    TextStatus.Text = $"Downloading ({percent}%)...";
+            //});
+        }
+
+
+        private void Working()
+        {
+            Program.Log.LogInformation("");
+            //BtnCheckUpdate.IsEnabled = false;
+            //BtnDownloadUpdate.IsEnabled = false;
+            //BtnRestartApply.IsEnabled = false;
+            //TextStatus.Text = "Working...";
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Flyouts
+        public void closeFlyout()
 		{
 			updateFlyout.Hide();
 		}
@@ -908,7 +773,7 @@ namespace VesperApp.ViewModels
 				var txtDownloadavalable = new TextBlock() { Text = VersionUpdateMessage, FontWeight = Avalonia.Media.FontWeight.ExtraBold, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
 				var childStack = new StackPanel() { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 20, Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
 				var downloadButton = new Button() { Content = DownloadContent, Command = DownloadCheckCommand, IsEnabled = IsdownloadButtonEnable };
-				var laterButton = new Button() { Content = "Later", Command = LaterCommand };
+				var laterButton = new Button() { Content = "Do Later", Command = LaterCommand };
 
 				ParentStack.Children.Add(txtDownloadavalable);
 				childStack.Children.Add(downloadButton);

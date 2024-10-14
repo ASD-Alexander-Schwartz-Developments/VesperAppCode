@@ -128,21 +128,23 @@ namespace VesperApp.Services
 
         public static string HeaderText()
         {
-            return "Date,Time,CH1[uV],CH1-,CH1+,CH2[uV],CH2-,CH2+,RLD OFF";
+            string mysep = Utils.GetSeparator();
+            return $"Date{mysep}Time{mysep}CH1[uV]{mysep}CH1-{mysep}CH1+{mysep}CH2[uV]{mysep}CH2-{mysep}CH2+{mysep}RLD OFF";
         }
 
         public override string ToString()
         {
             if (Header != 0xC0) return "Bad Row";
+            string mysep = Utils.GetSeparator() ;
 
-            return Timestamp.ToShortDateString() + "," +
-                Timestamp.ToString("HH:mm:ss.FFF") + "," +
-                CH1.ToString("F4") + "," +
-                LOFF1P.ToString() + "," +
-                LOFF1N.ToString() + "," +
-                CH2.ToString("F4") + "," +
-                LOFF2P.ToString() + "," +
-                LOFF2N.ToString() + "," + 
+            return Timestamp.ToShortDateString() + mysep +
+                Timestamp.ToString("HH:mm:ss.FFF") + mysep +
+                CH1.ToString("F4") + mysep +
+                LOFF1P.ToString() + mysep +
+                LOFF1N.ToString() + mysep +
+                CH2.ToString("F4") + mysep +
+                LOFF2P.ToString() + mysep +
+                LOFF2N.ToString() + mysep + 
                 LOFFRLD.ToString();
         }
     }

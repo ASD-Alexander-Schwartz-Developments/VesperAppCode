@@ -24,7 +24,6 @@ namespace VesperApp
             VelopackApp.Build()
                 .WithFirstRun((v) => { /* Your first run code here */ })
                 .Run(Log);
-            VelopackApp.Build().Run();
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
 

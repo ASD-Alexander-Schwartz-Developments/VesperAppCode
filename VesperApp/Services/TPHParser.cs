@@ -110,17 +110,20 @@ namespace VesperApp.Services
 
         public static string HeaderText()
         {
-            return "Time,Temperature [C],Relative Humidity [%]";
+            string mysep = Utils.GetSeparator();
+            return $"Time{mysep}Temperature [C]{mysep}Relative Humidity [%]";
         }
+
 
         public override string ToString()
         {
             if (Header != 0x59) return "Bad Row";
 
             string dt = Timestamp.ToShortDateString() + " " + Timestamp.ToString("HH:mm:ss.FFF");
+            string mysep = Utils.GetSeparator();
 
-            return dt + "," +
-                Temperature.ToString("F2") + "," +
+            return dt + mysep +
+                Temperature.ToString("F2") + mysep +
                 RelativeHumidity.ToString("F2");
         }
     }

@@ -331,6 +331,8 @@ namespace VesperApp.Services
                                         this._loggerDevices.Add(dev);
                                 }
                             }
+
+                            this._serialPort?.Close();
                         }
                     }
                     catch(Exception ex)
@@ -338,8 +340,10 @@ namespace VesperApp.Services
                         Debug.WriteLine(ex.Message);
                     }
                     finally
-                    { 
-                        this._serialPort?.Close();
+                    {
+                        if (this._serialPort?.IsOpen == true)
+                            this._serialPort?.Close();
+
                         Debug.WriteLine("Closed " + s);
                     }
                 }

@@ -410,7 +410,7 @@
 		</Border>
 		<Border BorderThickness="1" CornerRadius="5" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Padding="0,1">
 			<Grid Margin="1">
-				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" x:Name="textLogWindow" Text="{Binding IsConnected}"/>
+				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" x:Name="textLogWindow" Text="{Binding TextMessageBottom}"/>
 			</Grid>
 		</Border>		
 	</Grid>

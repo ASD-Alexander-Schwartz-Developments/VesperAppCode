@@ -31,7 +31,8 @@ namespace VesperApp.Models
 			{ new ConfigALS3001DDriver() },
             { new ConfigEXG48Driver() },
             { new ConfigEXG2Driver() },
-            { new ConfigProxtitDriver() }
+            { new ConfigProxtitDriver() },
+            { new ConfigLeptonDriver() }
         };
 
 		public static UInt32 ToTimestamp(DateTime dt)

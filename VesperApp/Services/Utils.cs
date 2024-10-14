@@ -230,5 +230,31 @@ namespace VesperApp.Services
             return result;
         }
 
+
+        public static string GetSeparator()
+        {
+            string sep = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
+            string num_decimal = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+            string mysep = ",";
+
+            if (sep != num_decimal)
+            {
+                mysep = sep;
+            }
+            else
+            {
+                if (num_decimal == ".")
+                {
+                    mysep = ",";
+                }
+                else
+                {
+                    mysep = ";";
+                }
+            }
+
+            return mysep;
+        }
+
     }
 }

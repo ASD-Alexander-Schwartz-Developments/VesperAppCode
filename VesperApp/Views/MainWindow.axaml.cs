@@ -7,6 +7,10 @@ using System.Diagnostics;
 using System.Reflection;
 using VesperApp.ViewModels;
 using FluentAvalonia.UI.Windowing;
+using Velopack;
+using Microsoft.Extensions.Logging;
+using System.Text;
+using Avalonia.Threading;
 
 namespace VesperApp.Views
 {
@@ -24,6 +28,7 @@ namespace VesperApp.Views
 
             TitleBar.ExtendsContentIntoTitleBar = false;
             TitleBar.TitleBarHitTestType = TitleBarHitTestType.Complex;
+
             //this.mainView.textLogWindow.Text= version;
         }
 
@@ -64,7 +69,5 @@ namespace VesperApp.Views
         {
             AvaloniaXamlLoader.Load(this);
         }*/
-
-
     }
 }

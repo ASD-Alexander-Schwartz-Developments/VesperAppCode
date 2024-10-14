@@ -172,40 +172,44 @@ namespace VesperApp.Services
 
         public static string HeaderText()
         {
-            return "Date,Time,CH1[uV],CH1-,CH1+,CH2[uV],CH2-,CH2+,CH3[uV],CH3-,CH3+," +
-                "CH4[uV],CH4-,CH4+,CH5[uV],CH5-,CH5+,CH6[uV],CH6-,CH6+,CH7[uV],CH7-,CH7+,CH8[uV],CH8-,CH8+";
+            string mysep = Utils.GetSeparator();
+            return $"Date{mysep}Time{mysep}CH1[uV]{mysep}CH1-{mysep}CH1+{mysep}CH2[uV]{mysep}CH2-{mysep}" +
+                $"CH2+{mysep}CH3[uV]{mysep}CH3-{mysep}CH3+{mysep}" +
+                $"CH4[uV]{mysep}CH4-{mysep}CH4+{mysep}CH5[uV]{mysep}CH5-{mysep}CH5+{mysep}CH6[uV]{mysep}" +
+                $"CH6-{mysep}CH6+{mysep}CH7[uV]{mysep}CH7-{mysep}CH7+{mysep}CH8[uV]{mysep}CH8-{mysep}CH8+";
         }
 
         public override string ToString()
         {
             if (Header != 0xC0) return "Bad Row";
+            string mysep = Utils.GetSeparator() ;
 
-            return Timestamp.ToShortDateString() + "," +
-                Timestamp.ToString("HH:mm:ss.FFF") + "," +
-                CH1.ToString("F4") + "," +
-                LOFF1P.ToString() + "," +
-                LOFF1N.ToString() + "," +
-                CH2.ToString("F4") + "," +
-                LOFF2P.ToString() + "," +
-                LOFF2N.ToString() + "," +
-                CH3.ToString("F4") + "," +
-                LOFF3P.ToString() + "," +
-                LOFF3N.ToString() + "," +
-                CH4.ToString("F4") + "," +
-                LOFF4P.ToString() + "," +
-                LOFF4N.ToString() + "," +
-                CH5.ToString("F4") + "," +
-                LOFF5P.ToString() + "," +
-                LOFF5N.ToString() + "," +
-                CH6.ToString("F4") + "," +
-                LOFF6P.ToString() + "," +
-                LOFF6N.ToString() + "," +
-                CH7.ToString("F4") + "," +
-                LOFF7P.ToString() + "," +
-                LOFF7N.ToString() + "," +
-                CH8.ToString("F4") + "," +
-                LOFF8P.ToString() + "," +
-                LOFF8N.ToString() + ",";
+            return Timestamp.ToShortDateString() + mysep +
+                Timestamp.ToString("HH:mm:ss.FFF") + mysep +
+                CH1.ToString("F4") + mysep +
+                LOFF1P.ToString() + mysep +
+                LOFF1N.ToString() + mysep +
+                CH2.ToString("F4") + mysep +
+                LOFF2P.ToString() + mysep +
+                LOFF2N.ToString() + mysep +
+                CH3.ToString("F4") + mysep +
+                LOFF3P.ToString() + mysep +
+                LOFF3N.ToString() + mysep +
+                CH4.ToString("F4") + mysep   +
+                LOFF4P.ToString() + mysep +
+                LOFF4N.ToString() + mysep +
+                CH5.ToString("F4") + mysep +
+                LOFF5P.ToString() + mysep +
+                LOFF5N.ToString() + mysep +
+                CH6.ToString("F4") + mysep +
+                LOFF6P.ToString() + mysep +
+                LOFF6N.ToString() + mysep +
+                CH7.ToString("F4") + mysep +
+                LOFF7P.ToString() + mysep +
+                LOFF7N.ToString() + mysep +
+                CH8.ToString("F4") + mysep +
+                LOFF8P.ToString() + mysep +
+                LOFF8N.ToString() + mysep;
         }
     }
 }

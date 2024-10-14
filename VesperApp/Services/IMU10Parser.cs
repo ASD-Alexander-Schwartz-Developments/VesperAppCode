@@ -54,7 +54,7 @@ namespace VesperApp.Services
 
                     if(subsec > subsec_frac)
                     {
-                        Console.WriteLine("333");
+                        //Console.WriteLine("333");
                     }
 
                     int ms = (int)(1000.0 * ((double)((double)subsec_frac - (double)subsec) / (double)((double)subsec_frac + 1.0)));
@@ -171,29 +171,35 @@ namespace VesperApp.Services
 
         public static string HeaderText()
         {
-            return "Time,Minute,Second,Milisecond,Acc X [mg],Acc Y [mg],Acc Z [mg],Gyro X [dps],Gyro Y [dps],Gyro Z [dps],Mag X [mGauss],Mag Y [mGauss],Mag Z [mGauss],Temperature [C],Bar Pressure [hPa]";
+            string mysep = Utils.GetSeparator();
+
+            return $"TimeMinute{mysep}Second{mysep}Milisecond{mysep}Acc X [mg]{mysep}Acc Y [mg]{mysep}Acc Z [mg]{mysep}Gyro X [dps]{mysep}Gyro Y [dps]" +
+                $"{mysep}Gyro Z [dps]{mysep}Mag X [mGauss]{mysep}Mag Y [mGauss]{mysep}Mag Z [mGauss]{mysep}" +
+                $"{mysep}Temperature [C]{mysep}Bar Pressure [hPa]";
         }
 
         public override string ToString()
         {
             if (Header != 0x55) return "Bad Row";
 
-            string dt = Timestamp.ToShortDateString() + " " + Timestamp.ToString("HH:mm:ss.FFF");
+            string mysep = Utils.GetSeparator();
 
-            return dt + "," +
-                Minute.ToString() + "," +
-                Second.ToString() + "," +
-                Milisecond.ToString() + "," +
-                XL_X.ToString("F4") + "," +
-                XL_Y.ToString("F4") + "," +
-                XL_Z.ToString("F4") + "," +
-                GY_X.ToString("F4") + "," +
-                GY_Y.ToString("F4") + "," +
-                GY_Z.ToString("F4") + "," +
-                Mag_X.ToString("F4") + "," +
-                Mag_Y.ToString("F4") + "," +
-                Mag_Z.ToString("F4") + "," +
-                Temperature.ToString("F2") + "," +
+            string dt = Timestamp.ToShortDateString() + " " + Timestamp.ToString("HH:mm:ss.FFF");
+            
+            return dt + mysep +
+                Minute.ToString() + mysep +
+                Second.ToString() + mysep +
+                Milisecond.ToString() + mysep +
+                XL_X.ToString("F4") + mysep +
+                XL_Y.ToString("F4") + mysep +
+                XL_Z.ToString("F4") + mysep +
+                GY_X.ToString("F4") + mysep +
+                GY_Y.ToString("F4") + mysep +
+                GY_Z.ToString("F4") + mysep +
+                Mag_X.ToString("F4") + mysep +
+                Mag_Y.ToString("F4") + mysep +
+                Mag_Z.ToString("F4") + mysep +
+                Temperature.ToString("F2") + mysep +
                 Pressure.ToString("F1");
         }
     }

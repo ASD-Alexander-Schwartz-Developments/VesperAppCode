@@ -183,9 +183,9 @@ namespace VesperApp.Services
             {
                 using (BinaryReader reader = new BinaryReader(File.Open(BinaryFileName, FileMode.Open)))
                 {
-                    //reader.BaseStream.Position = offset;
+                    reader.BaseStream.Position = offset;
                     UInt32 preamble = reader.ReadUInt32();
-                    //reader.BaseStream.Position = 0;
+                    reader.BaseStream.Position = offset;
 
                     if (preamble == BinaryTypeHeader.FILE_HEADER_PREAMBLE)
                     {

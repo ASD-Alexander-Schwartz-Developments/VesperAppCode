@@ -140,21 +140,24 @@ namespace VesperApp.Services
         public double XL_Z { get; set; }
         public static string HeaderText()
         {
-            return "Time,Minute,Second,Milisecond,Acc X [mg],Acc Y [mg],Acc Z [mg]";
+            string mysep = Utils.GetSeparator();
+            return $"Time{mysep}Minute{mysep}Second{mysep}Milisecond{mysep}Acc X [mg]{mysep}Acc Y [mg]{mysep}Acc Z [mg]";
         }
+
 
         public override string ToString()
         {
             if (Header != 0xAC) return "Bad Row";
 
             string dt = Timestamp.ToShortDateString() + " " + Timestamp.ToString("HH:mm:ss.FFF");
+            string mysep = Utils.GetSeparator();
 
-            return dt + "," +
-                Minute.ToString() + "," +
-                Second.ToString() + "," +
-                Milisecond.ToString() + "," +
-                XL_X.ToString("F4") + "," +
-                XL_Y.ToString("F4") + "," +
+            return dt + mysep +
+                Minute.ToString() + mysep +
+                Second.ToString() + mysep +
+                Milisecond.ToString() + mysep +
+                XL_X.ToString("F4") + mysep +
+                XL_Y.ToString("F4") + mysep +
                 XL_Z.ToString("F4");
         }
     }
