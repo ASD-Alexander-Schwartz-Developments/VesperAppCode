@@ -44,20 +44,7 @@ namespace VesperApp.Views
             _MyControlName.ClearValue(HeightProperty);*/
             // Don't want our window to be able to get any smaller than this.
             SetValue(MinWidthProperty, this.Width);
-            SetValue(MinHeightProperty, this.Height);
-
-            string logname = "VesperApp" + DateTime.Now.ToShortDateString() + "_" + DateTime.Now.ToShortTimeString() + ".log";
-            logname = logname.Replace('/', '_');
-            logname = logname.Replace(':', '_');
-
-            TextWriterTraceListener lst = new TextWriterTraceListener(logname, "VesperAppLogListener");
-            lst.TraceOutputOptions = TraceOptions.DateTime;
-
-            Trace.Listeners.Add(lst);
-            Trace.TraceInformation("VesperApp Opened");
-            // You must close or flush the trace to empty the output buffer.
-            Trace.Flush();
-        }
+            SetValue(MinHeightProperty, this.Height);        }
 
         private void Window_Closed(object? sender, System.EventArgs e)
         {

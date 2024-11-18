@@ -32,16 +32,14 @@ using System.Net.Http;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
-using static VesperApp.Models.ConfigurationJSON;
 using System.Runtime.InteropServices;
 using System.Collections;
 using System.Globalization;
 using Avalonia.Metadata;
-using Microsoft.VisualBasic;
 using Velopack;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.Logging;
-
+using static VesperApp.Models.ConfigurationJSON;
 
 /// <summary>
 /// //// {Binding Description, StringFormat='Description: {0}'}
@@ -594,7 +592,6 @@ namespace VesperApp.ViewModels
             _um = new UpdateManager(updateBaseUrl, logger: Program.Log);
 
             TextMessageBottom = string.Empty;
-            IsUpdateAvailable = CheckUpdate().Result;
 		}
 
         /*
@@ -626,10 +623,12 @@ namespace VesperApp.ViewModels
 
         private void UpdateStatus()
         {
+            Trace.TraceInformation("Update Status");
             StringBuilder sb = new StringBuilder();
             sb.Append($"Velopack: {VelopackRuntimeInfo.VelopackNugetVersion}");
             sb.Append($" This app: {(_um.IsInstalled ? _um.CurrentVersion : "(n/a - not installed)")}");
             sb.AppendLine();
+            Trace.TraceInformation("Update Status: " + sb.ToString());
 
             if (_updateInfo != null)
             {
@@ -640,6 +639,8 @@ namespace VesperApp.ViewModels
             {
                 IsdownloadButtonEnable = false;
             }
+            Trace.TraceInformation("2) Update Status: " + sb.ToString());
+
 
             if (_um.UpdatePendingRestart != null)
             {
@@ -650,6 +651,8 @@ namespace VesperApp.ViewModels
             {
                 IsUpdateAvailable = false;
             }
+            Trace.TraceInformation("3) Update Status: " + sb.ToString());
+
 
             TextMessageBottom += sb.ToString();
             //BtnCheckUpdate.IsEnabled = true;
@@ -658,25 +661,25 @@ namespace VesperApp.ViewModels
 
         private async Task<bool> CheckUpdate()
 		{
-			try
-			{
-                _um = new UpdateManager(updateBaseUrl, new UpdateOptions
-                {
-                    ExplicitChannel = "win-x64-stable",
-                    AllowVersionDowngrade = true,
-                });
-                //_updateInfo = await _um.CheckForUpdatesAsync().ConfigureAwait(true);
-                //UpdateStatus();
-                //IsUpdateAvailable = true;
+            _um = new UpdateManager(updateBaseUrl, new UpdateOptions
+            {
+                ExplicitChannel = "win-x64-stable",
+                AllowVersionDowngrade = true,
+            });
+            
+            try
+            {
+                _updateInfo = await _um.CheckForUpdatesAsync();
+                UpdateStatus();
             }
             catch (Exception ex)
 			{
 				Debug.WriteLine(ex.Message);
                 TextMessageBottom = ex.Message;
-				return false;
+                IsUpdateAvailable = false;
 			}
 
-            return false;
+            return IsUpdateAvailable;
 		}
 
 		#region Remote Server File Check 
@@ -807,7 +810,6 @@ namespace VesperApp.ViewModels
             ScheduleViewModel.ScheduleEventsList.Clear();
         }
 
-
         private async Task<bool> SaveConfiguration()
         {
             bool ok = false;
@@ -914,7 +916,6 @@ namespace VesperApp.ViewModels
 
             return await Task.FromResult(ok);
         }
-
 
         private async Task<bool> LoadConfiguration()
         {
@@ -1057,7 +1058,6 @@ namespace VesperApp.ViewModels
 
             return ok;
         }
-
 
         private async Task<bool> ParseNanotagSnaps()
         {
@@ -1206,7 +1206,6 @@ namespace VesperApp.ViewModels
             return await Task.FromResult(result);
         }
 
-
         private async Task<bool> DecodeLepton()
         {
             bool retval = false;
@@ -1285,8 +1284,6 @@ namespace VesperApp.ViewModels
             return retval;
         }
 
-
-
         private async Task<bool> RunBinaryParser()
         {
             bool retval = false;
@@ -1311,7 +1308,7 @@ namespace VesperApp.ViewModels
                         },
                         new("Audio Recording (.bin) ")
                         {
-                            Patterns = new[]{"*U.bin"},
+                            Patterns = new[]{"*U.bin", "*U0.bin", "*U1.bin", "*U2.bin", "*U3.bin"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Motion (Innertial) Recording (.bin) ")
@@ -1406,6 +1403,50 @@ namespace VesperApp.ViewModels
                                             }
 
                                             await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("U0.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "KOL-AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplitEx(lp, '0', fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("U1.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "KOL-AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplitEx(lp, '1', fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("U2.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "KOL-AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplitEx(lp, '2', fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("U3.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "KOL-AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplitEx(lp, '3', fullPathOnly, 0);
                                         }
                                         else if (currentFilename.Contains("M.BIN"))
                                         {
@@ -2025,7 +2066,6 @@ namespace VesperApp.ViewModels
             return retval;
         }
 
-
         private async Task<bool> DecodeEXG48()
         {
             bool retval = false;
@@ -2153,7 +2193,6 @@ namespace VesperApp.ViewModels
 
             return retval;
         }
-
 
         private async Task<bool> DecodeEXG1292()
         {
@@ -2311,8 +2350,6 @@ namespace VesperApp.ViewModels
         }
 
 
-
-
         private void DriversViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if(e.PropertyName == "SelectedDeviceDriver")
@@ -2444,6 +2481,8 @@ namespace VesperApp.ViewModels
 
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
+            Task.Run(async () => IsUpdateAvailable = await CheckUpdate());
+
             if (IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false && __downloading_nanotag_data == false)
             {
                     var scan_nano = Task.Run(async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
@@ -2497,13 +2536,9 @@ namespace VesperApp.ViewModels
         public ICommand? SetDateTimeDeviceCommand { get; }
         public ICommand? UploadDeviceConfig { get; }
         public ICommand? DownloadDeviceData { get; }
-
-
-
         public ICommand? NewConfigCommand { get; }
         public ICommand? SaveConfigCommand { get; }
         public ICommand? LoadConfigCommand { get; }
-
         public ICommand? ManualLeptonParserCommand { get; }
         public ICommand? ManualGPSParserCommand { get; }
 

@@ -113,8 +113,12 @@ namespace VesperApp.Services
             return SwapWords(SwapBytes(v));
         }
 
-
         public static Task<int> StripSplit(String BinaryFileName, String? OutputFolder, int offset)
+        {
+            return StripSplitEx(BinaryFileName, null, OutputFolder, offset);
+        }
+
+        public static Task<int> StripSplitEx(String BinaryFileName, char? channel, String? OutputFolder, int offset)
         {
             bool isStarted = false;
             bool isFinished = false;
@@ -259,6 +263,14 @@ namespace VesperApp.Services
                                     else
                                         wn = folder + Path.DirectorySeparatorChar;
 
+
+                                    if (channel != null)
+                                    {
+                                        wn += first_letter;
+                                        wn += channel;
+                                        wn += '_';
+                                    }
+
                                     wn += timestamp.StartHeader.ToString();
                                     wn += '-' + timestamp.EndHeader.ToString();
                                     wn += "." + first_letter + "BN";
@@ -333,6 +345,13 @@ namespace VesperApp.Services
                                 wn = "";
                             else
                                 wn = folder + Path.DirectorySeparatorChar;
+
+                            if (channel != null)
+                            {
+                                wn += first_letter;
+                                wn += channel;
+                                wn += '_';
+                            }
 
                             wn += activeTimestamp.StartHeader.ToString();
                             wn += "-0000_00_00_00_00_00.000";

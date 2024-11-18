@@ -173,9 +173,9 @@ namespace VesperApp.Services
         {
             string mysep = Utils.GetSeparator();
 
-            return $"TimeMinute{mysep}Second{mysep}Milisecond{mysep}Acc X [mg]{mysep}Acc Y [mg]{mysep}Acc Z [mg]{mysep}Gyro X [dps]{mysep}Gyro Y [dps]" +
+            return $"Time{mysep}Minute{mysep}Second{mysep}Milisecond{mysep}Acc X [mg]{mysep}Acc Y [mg]{mysep}Acc Z [mg]{mysep}Gyro X [dps]{mysep}Gyro Y [dps]" +
                 $"{mysep}Gyro Z [dps]{mysep}Mag X [mGauss]{mysep}Mag Y [mGauss]{mysep}Mag Z [mGauss]{mysep}" +
-                $"{mysep}Temperature [C]{mysep}Bar Pressure [hPa]";
+                $"Temperature [C]{mysep}Bar Pressure [hPa]";
         }
 
         public override string ToString()

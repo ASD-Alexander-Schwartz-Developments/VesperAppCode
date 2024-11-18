@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging;
 using Avalonia.ReactiveUI;
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using Velopack;
 
@@ -18,13 +19,34 @@ namespace VesperApp
         [STAThread]
         public static void Main(string[] args)
         {
+            string logname = "VesperApp" + "_" + DateTime.Now.ToShortDateString() + "_" + DateTime.Now.ToShortTimeString() + ".log";
+            logname = logname.Replace('/', '_');
+            logname = logname.Replace(':', '_');
+
+            TextWriterTraceListener lst = new TextWriterTraceListener(logname, "VesperAppLogListener");
+            lst.TraceOutputOptions = TraceOptions.DateTime;
+
+            Trace.Listeners.Add(lst);
+            Trace.AutoFlush = true;
             // Logging is essential for debugging! Ideally you should write it to a file.
             Log = new MemoryLogger();
 
+            Log.LogUpdated += Log_LogUpdated;
+            
             VelopackApp.Build()
                 .WithFirstRun((v) => { /* Your first run code here */ })
                 .Run(Log);
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+            Trace.TraceInformation("VesperApp Opened");
+            // You must close or flush the trace to empty the output buffer.
+            Trace.Flush();
+        }
+
+        private static void Log_LogUpdated(object? sender, LogUpdatedEventArgs e)
+        {
+            Trace.TraceInformation(e.Text);
+            Trace.Flush();
         }
 
         // Avalonia configuration, don't remove; also used by visual designer.
@@ -34,7 +56,7 @@ namespace VesperApp
 #if DEBUG
                 .LogToTrace(LogEventLevel.Debug, LogArea.Property, LogArea.Binding)
 #else
-                .LogToTrace(LogEventLevel.Warning)
+                .LogToTrace(LogEventLevel.Information)
 #endif
                 .UseReactiveUI();
     }
