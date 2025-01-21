@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="https://github.com/avaloniaui"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+			 xmlns:ctrl="using:VesperApp.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="VesperApp.Controls.ProgressDialog"
+             xmlns:progressDialog="clr-namespace:VesperApp.Controls;assembly=ProgressStatus"
+			 x:CompileBindings="False">
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition />
+			<RowDefinition />
+			<RowDefinition />
+			<RowDefinition />
+		</Grid.RowDefinitions>
+		<TextBlock Text="{Binding Message, Mode=OneWay}" Grid.Row="0"
+                            TextWrapping="Wrap"
+				   Margin="10"/>
+		<Grid Grid.Row="1" Margin="10">
+			<ProgressBar Height="50" 
+						 Value="{Binding ProgressPercent, Mode=OneWay}" 
+						 BorderThickness="3"/>
+			<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Text="{Binding ProgressPercent, StringFormat={}{0}%}" />
+		</Grid>
+		<Grid Grid.Row="2" Margin="10">
+			<ProgressBar Height="50"
+						 Value="{Binding ProgressPercent2, Mode=OneWay}"
+						 BorderThickness="3"/>
+			<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Text="{Binding ProgressPercent2, StringFormat={}{0}%}" />
+		</Grid>
+		<Button Content="Cancel" Command="{Binding CancelCommand}" 
+				Grid.Row="3" HorizontalAlignment="Center" 
+				Padding="20 10"
+				Margin="10"
+				CornerRadius="5"/>
+	</Grid>
+</UserControl>

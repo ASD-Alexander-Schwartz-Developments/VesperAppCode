@@ -74,6 +74,8 @@ namespace VesperApp.Models
             this.rawData3 = ldrv.rawData3;
             this.rawData4 = ldrv.rawData4;
             this.bitmask = ldrv.bitmask;
+            this.FileSize = ldrv.FileSize;
+            this.mem_size = ldrv.mem_size;
         }
 
 

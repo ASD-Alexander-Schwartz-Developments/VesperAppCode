@@ -15,10 +15,11 @@ namespace VesperApp
     {
         static App? instance;
 
-        public static Window? MainWindow => ((instance != null) ? ((ClassicDesktopStyleApplicationLifetime?)instance.ApplicationLifetime).MainWindow : null);
-        public static IReadOnlyList<Window>? Windows => ((ClassicDesktopStyleApplicationLifetime?)instance?.ApplicationLifetime).Windows;
-        public static void Shutdown() => ((ClassicDesktopStyleApplicationLifetime)instance.ApplicationLifetime).Shutdown();
+        public static Window? MainWindow => ((instance != null) ? ((ClassicDesktopStyleApplicationLifetime?)instance?.ApplicationLifetime!).MainWindow : null);
+        public static IReadOnlyList<Window>? Windows => ((ClassicDesktopStyleApplicationLifetime?)instance?.ApplicationLifetime!).Windows;
+        public static void Shutdown() => ((ClassicDesktopStyleApplicationLifetime)instance?.ApplicationLifetime!).Shutdown();
 
+        public static TopLevel? AppTopLevel;
 
         public override void Initialize()
         {
@@ -59,6 +60,7 @@ namespace VesperApp
             //    throw new NotImplementedException("Root TopLevel not found!");
 
             MainViewViewModel.RootTopLevel = rootTopLevel;
+            AppTopLevel = rootTopLevel;
 
             base.OnFrameworkInitializationCompleted();
         }

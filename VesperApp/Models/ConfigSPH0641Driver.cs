@@ -301,6 +301,23 @@ namespace VesperApp.Models
                     this.bitmask &= ~(BITMASK_MIKE_LED);
             }
         }
+
+
+        public override void Load(ConfigurationDeviceDriver ldrv)
+        {
+            if (ldrv is not null)
+            {
+                base.Load(ldrv);
+                this.Gain = (ldrv as ConfigSPH0641Driver)!.Gain;
+                this.HighPassFilter = (ldrv as ConfigSPH0641Driver)!.HighPassFilter;
+                this.ThresholdDown = (ldrv as ConfigSPH0641Driver)!.ThresholdDown;
+                this.ThresholdUp = (ldrv as ConfigSPH0641Driver)!.ThresholdUp;
+                this.UseCic4Filter = (ldrv as ConfigSPH0641Driver)!.UseCic4Filter;
+                this.EnableDigitalFilter = (ldrv as ConfigSPH0641Driver)!.EnableDigitalFilter;
+                this.EnableDigitalFilterDecimation = (ldrv as ConfigSPH0641Driver)!.EnableDigitalFilterDecimation;
+            }
+        }
+
     }
 
 

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:m="using:VesperApp.Models"
+		xmlns:ui="using:FluentAvalonia.UI.Controls"
 		xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
 		xmlns:Controls="using:VesperApp.Controls"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
@@ -16,7 +17,7 @@
     </Design.DataContext>
 
 
-	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,50"  Margin="5" ShowGridLines="False">
+	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,130,*,50"  Margin="5" ShowGridLines="False">
 		
 		
 		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal">
@@ -86,8 +87,8 @@
 		
 		
 			
-		<Border CornerRadius="5" BorderThickness="3"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" BorderBrush="#909090">
-			<Grid ColumnDefinitions="*,100" RowDefinitions="*,40" ShowGridLines="false">
+		<Border Classes="devBorder" CornerRadius="5" BorderThickness="3"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
+			<Grid ColumnDefinitions="*,100" RowDefinitions="*,35" ShowGridLines="false">
 				<ListBox x:Name="listLoggerDevices" ItemsSource="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}" ScrollViewer.VerticalScrollBarVisibility="Auto">
 					<ListBox.Styles>
 						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
@@ -99,7 +100,7 @@
 					<ListBox.Template>
 						<ControlTemplate>
 							<DockPanel LastChildFill="True" > 
-								<Grid DockPanel.Dock="Top" Height="30" ShowGridLines="false" >
+								<Grid DockPanel.Dock="Top" Height="35" ShowGridLines="false" >
 									<Grid.ColumnDefinitions>
 										<ColumnDefinition MinWidth="100" Width="*"></ColumnDefinition>
 										<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
@@ -110,14 +111,14 @@
 										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 									</Grid.ColumnDefinitions>
-									<Label Grid.Column="0" FontWeight="Bold" HorizontalAlignment="Center">Serial Number</Label>
-									<Label Grid.Column="1" FontWeight="Bold" HorizontalAlignment="Center">Name</Label>
-									<Label Grid.Column="2" FontWeight="Bold" HorizontalAlignment="Center">Nickname</Label>
-									<Label Grid.Column="3" FontWeight="Bold" HorizontalAlignment="Center">HwId</Label>
-									<Label Grid.Column="4" FontWeight="Bold" HorizontalAlignment="Center">FwId</Label>
-									<Label Grid.Column="5" FontWeight="Bold" HorizontalAlignment="Center">Date Time</Label>
-									<Label Grid.Column="6" FontWeight="Bold" HorizontalAlignment="Center">Disk Info</Label>
-									<Label Grid.Column="7" FontWeight="Bold" HorizontalAlignment="Center">Batt</Label>
+									<Label Grid.Column="0" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Serial Number</Label>
+									<Label Grid.Column="1" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Name</Label>
+									<Label Grid.Column="2" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Nickname</Label>
+									<Label Grid.Column="3" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">HwId</Label>
+									<Label Grid.Column="4" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">FwId</Label>
+									<Label Grid.Column="5" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Date Time</Label>
+									<Label Grid.Column="6" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Disk Info</Label>
+									<Label Grid.Column="7" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Batt</Label>
 								</Grid>
 								<ItemsPresenter></ItemsPresenter>
 							</DockPanel>
@@ -136,22 +137,20 @@
 									<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 									<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
 								</Grid.ColumnDefinitions>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="0" TextWrapping="Wrap" Padding="1" Text="{Binding SerialNumber}" TextAlignment="Left"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="1" TextWrapping="Wrap" Padding="1" Text="{Binding Name}" TextAlignment="Left"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="2" TextWrapping="Wrap" Padding="1" Text="{Binding Nickname}" TextAlignment="Left"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="3" TextWrapping="Wrap" Padding="1" Text="{Binding HwId}" TextAlignment="Left"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="4" TextWrapping="Wrap" Padding="1" Text="{Binding FwId}" TextAlignment="Left"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="5" TextWrapping="Wrap" Padding="1" Text="{Binding LocalDateTime}" TextAlignment="Left"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="6" TextWrapping="Wrap" Padding="1" Text="{Binding DiskStatus}" TextAlignment="Left"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="7" TextWrapping="Wrap" Padding="1" Text="{Binding BatteryChargePercent}" TextAlignment="Left"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="0" TextWrapping="Wrap" Padding="1" Text="{Binding SerialNumber}" TextAlignment="Center"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="1" TextWrapping="Wrap" Padding="1" Text="{Binding Name}" TextAlignment="Center"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="2" TextWrapping="Wrap" Padding="1" Text="{Binding Nickname}" TextAlignment="Center"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="3" TextWrapping="Wrap" Padding="1" Text="{Binding HwId}" TextAlignment="Center"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="4" TextWrapping="Wrap" Padding="1" Text="{Binding FwId}" TextAlignment="Center"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="5" TextWrapping="Wrap" Padding="1" Text="{Binding LocalDateTime}" TextAlignment="Center"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="6" TextWrapping="Wrap" Padding="1" Text="{Binding DiskStatus}" TextAlignment="Center"/>
+								<TextBlock HorizontalAlignment="Stretch" Grid.Column="7" TextWrapping="Wrap" Padding="1" Text="{Binding BatteryChargePercent}" TextAlignment="Center"/>
 							</Grid>
 						</DataTemplate>
 					</ListBox.ItemTemplate>
 				</ListBox>
 
-
 				<StackPanel IsEnabled="True" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Spacing="5" Margin="10,1,1,1" HorizontalAlignment="Center">
-
 					<Button Margin="1" Height="30" Command="{Binding ConnectDisconnectDeviceCommand}" x:Name="DeviceConnectButton">
 						<StackPanel Orientation="Horizontal">
 							<Image Source="/Assets/connected.png" IsVisible="{Binding IsDeviceConnected}" Width="24"
@@ -206,207 +205,41 @@
 					</Button>
 
 				</StackPanel>
-
-				<StackPanel Spacing="1" Orientation="Horizontal" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2">
-					<ListBox ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}" 
-							 SelectionMode="Multiple,Toggle" 
-							 Selection="{Binding DevicesFiltersSelection}" 
-							 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-						<ListBox.ItemTemplate>
-							<DataTemplate>
-								<Border CornerRadius="3" Margin="1,3,10,3" Padding="3,3,3,3" >
-									<TextBlock FontWeight="Medium" Text="{Binding .}" TextWrapping="Wrap"/>
-								</Border>
-							</DataTemplate>
-						</ListBox.ItemTemplate>
-					</ListBox>
-				</StackPanel>
-
-
 			</Grid>
 		</Border>
 					
 
 		<Border Classes="tabBorder" BorderThickness="3" CornerRadius="5" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2" HorizontalAlignment="Stretch" Padding="0">
-			<TabControl TabStripPlacement="Left" VerticalContentAlignment="Stretch" HorizontalAlignment="Stretch">
-				<TabItem>
-					<TabItem.Header>
-						<TextBlock Classes="tbTabHeader" Text="Recordings" HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
-					</TabItem.Header>
-						<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="true">
-							<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal"
-										HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-										ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualGPSParserCommand}" x:Name="bParseGPS" ToolTip.Tip="GPS Decoder">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.globe_location_filled}" />
-											</Image.Source>
-										</Image> 
-									</StackPanel>
-								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualAudioParserCommand}" x:Name="bParseAudio" ToolTip.Tip="Audio Decoder">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.sound_source_filled}" />
-											</Image.Source>
-										</Image>
-									</StackPanel>
-								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualTprhParserCommand}" x:Name="bParseTprh" ToolTip.Tip="Teperature/Humidity Decoder">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.temperature_filled}" />
-											</Image.Source>
-										</Image>
-									</StackPanel>
-								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualAlsParserCommand}" x:Name="bParseAls" ToolTip.Tip="Ambient Light Decoder">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.flashlight_filled}" />
-											</Image.Source>
-										</Image>
-									</StackPanel>
-								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualLeptonParserCommand}" x:Name="bParseLepton" ToolTip.Tip="Thermal Camera Decoder">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.photo_filter_filled}" />
-											</Image.Source>
-										</Image>
-									</StackPanel>
-								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualMotionParserCommand}" x:Name="bParseImu" ToolTip.Tip="IMU (Innertial Motion Unit) Sensor Decoder">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.directions_filled}" />
-											</Image.Source>
-										</Image>
-									</StackPanel>
-								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualEXG48ParserCommand}" x:Name="bParseBio" ToolTip.Tip="EXG48 (4ch/8ch ECG/EMG/EEG) Sensor Decoder">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.bio}" />
-											</Image.Source>
-										</Image>
-									</StackPanel>
-								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding ManualEXG1292ParserCommand}" x:Name="bParseExg1292" ToolTip.Tip="EXG1292 (2ch ECG/EMG/EEG) Sensor Decoder">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.bio}" />
-											</Image.Source>
-										</Image>
-									</StackPanel>
-								</Button>
-								<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding BinaryFilesExtractor}" x:Name="bParseBinaries" ToolTip.Tip="Extract Content files from Vesper/Pipistrelle binary files">
-									<StackPanel Orientation="Horizontal">
-										<Image Stretch="Fill" Width="42" Height="42">
-											<Image.Source>
-												<DrawingImage Drawing="{DynamicResource FluentIconsFilled.folder_briefcase_filled}" />
-											</Image.Source>
-										</Image>
-										<ProgressBar x:Name="ProgressBinaryParser" IsVisible="{Binding BinaryParserIsRunning}" Value="{Binding BinaryParserPercent}"/>
-									</StackPanel>
-								</Button>
-							</StackPanel>
-						</Grid>
-				</TabItem>
-				<TabItem>
-					<TabItem.Header>
-						<TextBlock Classes="tbTabHeader" Text="Config" HorizontalAlignment="Left" VerticalAlignment="Stretch"/>
-					</TabItem.Header>
-					<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="true">
-						<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal" 
-									HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
-									ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+			<ui:NavigationView x:Name="TabbedNavigationView"
+                                           PaneDisplayMode="LeftCompact"
+                                           MenuItemsSource="{Binding Categories}"
+                                           Content="{Binding CurrentPage}"
+                                           SelectedItem="{Binding SelectedCategory}">
+				<ui:NavigationView.MenuItemTemplateSelector>
+					<!-- 
+                    If you need to bind to multiple different containers,
+				    like including separators, you'll need to use a DataTemplateSelector
+                    -->
+					<m:MenuItemTemplateSelector>
+						<!-- 
+						Default DataTemplate
+						Our binded collection has 4 items and a Separator. This template
+						will apply to all items, the separator was defined in the 
+						MenuItemTemplateSelector
+						-->
+						<DataTemplate DataType="{x:Type m:Category}">
+							<ui:NavigationViewItem Content="{Binding Name}" IconSource="{Binding Icon}" ToolTip.Tip="{Binding ToolTip}" />
+						</DataTemplate>
 
-							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding NewConfigCommand}" x:Name="NewConfigButton">
-								<StackPanel Orientation="Horizontal">
-									<Image Stretch="Fill" Width="42" Height="42">
-										<Image.Source>
-											<DrawingImage Drawing="{DynamicResource FluentIconsFilled.form_new_filled}" />
-										</Image.Source>
-									</Image> 
-								</StackPanel>
-							</Button>
-							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding LoadConfigCommand}" x:Name="LoadConfigButton">
-								<StackPanel Orientation="Horizontal">
-									<Image Stretch="Fill" Width="42" Height="42">
-										<Image.Source>
-											<DrawingImage Drawing="{DynamicResource FluentIconsFilled.open_filled}" />
-										</Image.Source>
-									</Image> 
-								</StackPanel>
-							</Button>
-							<Button Margin="5" CornerRadius="5" Height="42" Width="64" Command="{Binding SaveConfigCommand}" x:Name="SaveConfigButton">
-								<StackPanel Orientation="Horizontal">
-									<Image Stretch="Fill" Width="42" Height="42">
-										<Image.Source>
-											<DrawingImage Drawing="{DynamicResource FluentIconsFilled.save_filled}" />
-										</Image.Source>
-									</Image>
-								</StackPanel>
-							</Button>
-							<Separator Margin="10"/>
-							<Label FontWeight="Bold" Content="Select Device Type" VerticalAlignment="Center"/>
-							<ComboBox x:Name="comboDeviceType"
-								Margin="1"
-								VerticalAlignment="Center"
-								Width="120"
-								ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}"
-								SelectedItem="{Binding SelectedDeviceType}"/>
-						</StackPanel>
+						<m:MenuItemTemplateSelector.SeparatorTemplate>
+							<DataTemplate DataType="{x:Type m:Separator}">
+								<ui:NavigationViewItemSeparator />
+							</DataTemplate>
+						</m:MenuItemTemplateSelector.SeparatorTemplate>
+					</m:MenuItemTemplateSelector>
+				</ui:NavigationView.MenuItemTemplateSelector>
 
-						<StackPanel Grid.Column="0" Grid.Row="1">
-							<Expander VerticalAlignment="Top" HorizontalAlignment="Stretch">
-								<Expander.Header>
-									Schedule
-								</Expander.Header>
-								<Controls:ScheduleControl DataContext="{Binding ScheduleViewModel}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="1" Margin="1" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2"/>
-							</Expander>
-							<Expander VerticalAlignment="Bottom" HorizontalAlignment="Stretch" VerticalContentAlignment="Stretch">
-								<Expander.Header>
-									Sensors
-								</Expander.Header>
-								<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-								  ColumnDefinitions="*,2*" Margin="5" ShowGridLines="False">
-									<Controls:SelectDeviceDrivers DataContext="{Binding DriversViewModel}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="1" Margin="1" Grid.Row="0" Grid.Column="0"/>
-									<Controls:DeviceDriverPropertyGrid DataContext="{Binding DriverEditorGridViewModel}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="1" Margin="1" Grid.Row="0" Grid.Column="1"/>
-								</Grid>
-							</Expander>
-						</StackPanel>
-					</Grid>
-				</TabItem>
-				<TabItem>
-					<TabItem.Header>
-						<TextBlock Classes="tbTabHeader" Text="Help" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-					</TabItem.Header>
-
-					<StackPanel>
-						<TextBlock Text="Coming Soon"/>
-					</StackPanel>
-				</TabItem>
-				<TabItem>
-					<TabItem.Header>
-						<TextBlock Classes="tbTabHeader" Text="Properties" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-					</TabItem.Header>
-
-					<StackPanel>
-						<TextBlock Text="Hello4"/>
-					</StackPanel>
-				</TabItem>
-			</TabControl>
+			</ui:NavigationView>
 		</Border>
 		<Border BorderThickness="1" CornerRadius="5" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Padding="0,1">
 			<Grid Margin="1">

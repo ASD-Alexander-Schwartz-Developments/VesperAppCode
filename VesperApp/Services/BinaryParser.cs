@@ -263,16 +263,17 @@ namespace VesperApp.Services
                                     else
                                         wn = folder + Path.DirectorySeparatorChar;
 
+                                    wn += timestamp.StartHeader.ToString();
+                                    wn += '-' + timestamp.EndHeader.ToString();
 
                                     if (channel != null)
                                     {
+                                        wn += '_';
                                         wn += first_letter;
                                         wn += channel;
                                         wn += '_';
                                     }
 
-                                    wn += timestamp.StartHeader.ToString();
-                                    wn += '-' + timestamp.EndHeader.ToString();
                                     wn += "." + first_letter + "BN";
                                     string metadata_filename = wn + ".txt";
 
@@ -348,6 +349,7 @@ namespace VesperApp.Services
 
                             if (channel != null)
                             {
+                                wn += '_';
                                 wn += first_letter;
                                 wn += channel;
                                 wn += '_';
@@ -355,6 +357,13 @@ namespace VesperApp.Services
 
                             wn += activeTimestamp.StartHeader.ToString();
                             wn += "-0000_00_00_00_00_00.000";
+                            if (channel != null)
+                            {
+                                wn += '_';
+                                wn += first_letter;
+                                wn += channel;
+                                wn += '_';
+                            }
                             wn += "." + first_letter + "BN";
                             string metadata_filename = wn + ".txt";
 
