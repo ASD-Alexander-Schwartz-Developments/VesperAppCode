@@ -62,7 +62,7 @@ namespace VesperApp.ViewModels
             BrowsableAttribute? visibleAttr = property.GetCustomAttribute<BrowsableAttribute>(true);
             if(visibleAttr != null)
             {
-                Debug.WriteLine(property.Name + " " + visibleAttr.Browsable.ToString());
+                //Debug.WriteLine(property.Name + " " + visibleAttr.Browsable.ToString());
                 _visible = visibleAttr.Browsable;
             }
 

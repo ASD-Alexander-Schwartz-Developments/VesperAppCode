@@ -240,13 +240,15 @@ namespace VesperApp.Models
         public virtual UInt32 FileSize
         {
             get 
-            { 
+            {
+                Debug.WriteLine("Get FileSize="+this.file_size.ToString());
                 return this.file_size; 
             }
             set 
             {
                 UInt32 fixed_size = value / 4;
                 this.file_size = fixed_size * 4;
+                Debug.WriteLine("Set FileSize=" + this.file_size.ToString());
                 OnPropertyChanged();
             }
         }
@@ -432,7 +434,7 @@ namespace VesperApp.Models
                 if (rd.TokenType != JsonTokenType.PropertyName
                         || rd.GetString() != "name")
                 {
-                    Debug.WriteLine("Bad token - " + rd.GetString() + " of type - " + rd.TokenType.ToString() );
+                    //Debug.WriteLine("Bad token - " + rd.GetString() + " of type - " + rd.TokenType.ToString() );
                     throw new JsonException();
                 }
 

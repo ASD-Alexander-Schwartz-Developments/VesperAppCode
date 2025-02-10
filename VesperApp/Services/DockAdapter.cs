@@ -206,7 +206,7 @@ namespace VesperApp.Services
 
         public async Task StopDocksScanAsync()
         {
-            Debug.WriteLine("Stop Scan");
+            //Debug.WriteLine("Stop Scan");
 
             //return await Task.Run(() => { });
 
@@ -225,14 +225,14 @@ namespace VesperApp.Services
                 
                 foreach(var device in usbdevices)
                 {
-                    Debug.WriteLine("Iterate " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
+                    //Debug.WriteLine("Iterate " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
                     if (device != null && device.VendorId == DockVid && device.ProductId == DockPid)
                     {
-                        Debug.WriteLine("Match " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
+                        //Debug.WriteLine("Match " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
 
                         if (device.TryOpen() == true)
                         {
-                            Debug.WriteLine("Opened " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
+                            //Debug.WriteLine("Opened " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
                             DockDeviceInfo _info = new DockDeviceInfo();
                             _info.Id = device.Info.SerialNumber;
                             _info.Text = device.Info.Product;

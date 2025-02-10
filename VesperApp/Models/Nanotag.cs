@@ -103,7 +103,7 @@ namespace VesperApp.Models
 			}
 			catch (Exception ex)
 			{
-				Debug.WriteLine(ex);
+				//Debug.WriteLine(ex);
 			}
 			finally
 			{ }

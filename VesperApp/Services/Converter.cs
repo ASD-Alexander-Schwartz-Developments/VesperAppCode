@@ -2,7 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
+using AvaloniaEdit;
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -25,12 +27,21 @@ namespace VesperApp.Services {
         {
             var str = value?.ToString();
             if (str == null)
+            {
+                Debug.WriteLine("Convert unset value");
                 return AvaloniaProperty.UnsetValue;
+            }
             /*if (UInt32.TryParse(str, NumberStyles.Number, CultureInfo.InvariantCulture, out uint x))
                 return (decimal)x;*/
 
             if (targetType == typeof(string))
+            {
+                Debug.WriteLine("Convert string value: " + str);
+
                 return str;
+            }
+
+            Debug.WriteLine("Convert " + targetType.FullName + " value: " + str);
 
             return AvaloniaProperty.UnsetValue;
         }
@@ -41,14 +52,22 @@ namespace VesperApp.Services {
             {
                 if (value is string && value != null)
                 {
+                    Debug.WriteLine("ConvertBack " + targetType.FullName + " value: " + value);
+
                     if (UInt32.TryParse((string)value, NumberStyles.Number, CultureInfo.InvariantCulture, out uint x))
+                    {
+                        Debug.WriteLine("ConvertBack to uint32 OK");
+
                         return (UInt32)x;
+                    }
                 }
 
                 return AvaloniaProperty.UnsetValue;
             }
-            catch
+            catch (Exception cbex)
             {
+                Debug.WriteLine("ConvertBack Exception " + targetType.FullName + " value: " + value.ToString() + " > " + cbex.Message);
+
                 return AvaloniaProperty.UnsetValue;
             }
 

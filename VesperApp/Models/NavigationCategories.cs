@@ -16,6 +16,7 @@ namespace VesperApp.Models
         public string? ToolTip { get; set; }
         public Symbol Icon { get; set; }
         public Type Page { get; set; }
+        public object? DataContext { get; set; }
     }
 
     public class Separator : CategoryBase

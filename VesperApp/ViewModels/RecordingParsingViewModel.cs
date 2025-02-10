@@ -3,7 +3,6 @@ using Avalonia.Controls.Selection;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -27,7 +26,8 @@ namespace VesperApp.ViewModels
     public class RecordingParsingViewModel : ViewModelBase
     {
         public ICommand? BinaryFilesExtractor { get; }
-        public ICommand? DataImporter { get; }
+        public ICommand? BinaryAutoFilesExtractor { get; }
+        public ICommand? AutoImporterCommand { get; }
         public ICommand? ManualAudioParserCommand { get; }
         public ICommand? ManualMotionParserCommand { get; }
         public ICommand? ManualAlsParserCommand { get; }
@@ -36,8 +36,6 @@ namespace VesperApp.ViewModels
         public ICommand? ManualEXG1292ParserCommand { get; }
         public ICommand? ManualLeptonParserCommand { get; }
         public ICommand? ManualGPSParserCommand { get; }
-
-
 
 
         public bool BinaryParserIsRunning
@@ -61,9 +59,11 @@ namespace VesperApp.ViewModels
         public RecordingParsingViewModel()
         {
             #region Parser Commands
-            DataImporter = ReactiveCommand.CreateFromTask(RunDataImporter);
+            AutoImporterCommand = ReactiveCommand.CreateFromTask(RunDataImporter);
 
             BinaryFilesExtractor = ReactiveCommand.CreateFromTask(RunBinaryParser);
+
+            BinaryAutoFilesExtractor = ReactiveCommand.CreateFromTask(RunAutoBinaryParser);
 
             ManualAudioParserCommand = ReactiveCommand.CreateFromTask(DecodeAudio);
 
@@ -81,7 +81,6 @@ namespace VesperApp.ViewModels
 
             ManualGPSParserCommand = ReactiveCommand.CreateFromTask(ParseNanotagSnaps);
             #endregion
-
         }
 
 
@@ -164,6 +163,278 @@ namespace VesperApp.ViewModels
         }
 
         private async Task<bool> RunBinaryParser()
+        {
+            bool retval = false;
+
+            try
+            {
+                FilePickerOpenOptions options = new()
+                {
+                    Title = "Select binary files to extract data from...",
+                    //SuggestedStartLocation =,
+                    FileTypeFilter = new List<FilePickerFileType>
+                    {
+                        new("All binary files (.bin) ")
+                        {
+                            Patterns = new[]{"*.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("GPS Snap (.bin) ")
+                        {
+                            Patterns = new[]{"*G.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Audio Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*U.bin", "*U0.bin", "*U1.bin", "*U2.bin", "*U3.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Motion (Innertial) Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*M.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Ambient Light Level (Lux) Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*L.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Temperature and Relative Humidity Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*R.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Biopotentials (EEG/EMG/ECG) Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*E.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Aux Analog sensor Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*S.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Proximity Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*X.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Thermal Camera (Lepton) (.bin) ")
+                        {
+                            Patterns = new[]{"*C.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                        new("Self Log Recording (.bin) ")
+                        {
+                            Patterns = new[]{"*O.bin"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
+                    },
+                    AllowMultiple = true,
+                };
+
+                Task<IReadOnlyList<IStorageFile>> dialog = App.AppTopLevel!.StorageProvider!.OpenFilePickerAsync(options);
+                // ReSharper disable once VariableHidesOuterVariable Intentional
+                await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFile>> dialogs)
+                {
+                    try
+                    {
+                        IReadOnlyList<IStorageFile?> files = dialog.Result;
+                        BinaryParserIsRunning = true;
+                        BinaryParserPercent = 0;
+                        double percentDelta = 100 / files.Count;
+                        double percent = 0;
+                        foreach (var file in files)
+                        {
+                            percent += percentDelta;
+                            BinaryParserPercent = (int)percent;
+                            //https://github.com/AvaloniaUI/Avalonia/blob/master/samples/ControlCatalog/Pages/DialogsPage.xaml.cs
+                            if (file is not null)
+                            {
+                                string? lp = file.TryGetLocalPath();
+
+                                if (lp is not null)
+                                {
+                                    string? currentDirectory = Path.GetDirectoryName(lp);
+                                    string? currentFilename = Path.GetFileName(lp).ToUpper();
+
+                                    if (currentDirectory != null && currentFilename != null)
+                                    {
+                                        if (currentFilename.Contains("G.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "DAT";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.ExtractVesperSnap(lp, fullPathOnly, new TimeSpan(0, 0, 0));
+                                        }
+                                        else if (currentFilename.Contains("U.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("U0.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "KOL-AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplitEx(lp, '0', fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("U1.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "KOL-AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplitEx(lp, '1', fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("U2.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "KOL-AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplitEx(lp, '2', fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("U3.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "KOL-AUD";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplitEx(lp, '3', fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("M.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "IMU";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("E.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "EXG";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("R.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "TPRH";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("L.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "ALS";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("X.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "PRX";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("O.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "LOG";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("S.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "SNS";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("C.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "THCAM";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        BinaryParserPercent = 100;
+                        await Task.Delay(250);
+                        BinaryParserIsRunning = false;
+
+                    }
+                    catch (Exception e) { Debug.WriteLine("An error has occured while trying to save the output: " + e); }
+                });
+
+
+
+            }
+            catch { retval = true; }
+
+            return retval;
+        }
+
+        private async Task<bool> RunAutoBinaryParser()
         {
             bool retval = false;
 
@@ -1655,11 +1926,6 @@ namespace VesperApp.ViewModels
 
             return await Task.FromResult(result);
         }
-
-
-
-
-
 
 
 

@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Markup.Xaml.Templates;
+using FluentAvalonia.UI.Controls;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -338,33 +339,23 @@ namespace VesperApp.Controls
 
                                 col.CellEditingTemplate = template;
                             }
-
-                            /*
                             else if( dt == typeof(UInt32) || dt == typeof(double) || dt == typeof(decimal) || dt == typeof(UInt16))
                             {
                                 //Binding b = new Binding("Value", BindingMode.TwoWay);
                                 //b.Converter = VesperApp.Services.UpDownUintConverter.Instance;
-                                NumericUpDown nud = new NumericUpDown
+                                NumberBox nud = new NumberBox
                                 {
-                                    [!NumericUpDown.ValueProperty] = new Binding("Value", BindingMode.TwoWay),//b,
+                                    [!NumberBox.ValueProperty] = new Binding("Value", BindingMode.TwoWay),//b,
                                     //[!NumericUpDown.TextProperty] = new Binding("Value", BindingMode.TwoWay),
                                     Margin = new Thickness(1),
-                                    IsReadOnly = false,
                                     Focusable = true,
-                                    FormatString = "{0,N0}",
+                                   // FormatString = "{0,N0}",
+                                    SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
                                     Maximum = 1000000,
                                     Minimum = 0,
-                                    Increment = 10,
-                                    AllowSpin = true,
-                                    ParsingNumberStyle = System.Globalization.NumberStyles.AllowLeadingWhite |
-                                    System.Globalization.NumberStyles.AllowTrailingWhite | System.Globalization.NumberStyles.AllowThousands,
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
                                     VerticalAlignment = VerticalAlignment.Stretch,
-                                    HorizontalContentAlignment = HorizontalAlignment.Left,
-                                    VerticalContentAlignment = VerticalAlignment.Center,
-                                    NumberFormat=System.Globalization.NumberFormatInfo.InvariantInfo,
-                                    TextConverter = new VesperApp.Services.UpDownUintConverter()
-                            };
+                                };
                                 //nud.TextInputMethodClientRequested += Nud_TextInputMethodClientRequested;//    += Nud_TextInputOptionsQuery;
                                 //nud.TextInput += Nud_TextInput;
                                 //nud.LostFocus += Nud_LostFocus;
@@ -372,7 +363,7 @@ namespace VesperApp.Controls
 
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => nud);
                                 col.CellEditingTemplate = template;
-                            }*/
+                            }
                             else if (dt == typeof(bool))
                             {
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => new CheckBox
@@ -478,7 +469,7 @@ namespace VesperApp.Controls
 
         private void GridEditor_DataContextChanged(object? sender, System.EventArgs e)
         {
-            Debug.WriteLine("Grid DataContext chnaged");
+            //Debug.WriteLine("Grid DataContext chnaged");
         }
 
         private void InitializeComponent()

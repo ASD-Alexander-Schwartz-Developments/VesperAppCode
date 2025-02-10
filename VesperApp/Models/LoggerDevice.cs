@@ -603,11 +603,11 @@ namespace VesperApp.Models
             }
             else if(_comport != null && _comport.IsRunning)
             {
-                Debug.WriteLine("Prepare Get Flags request message");
+                //Debug.WriteLine("Prepare Get Flags request message");
                 byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_FLAGS, 0, new byte[0], 0);
-                Debug.WriteLine("Prepare Get Flags request array");
+                //Debug.WriteLine("Prepare Get Flags request array");
                 this._comport.SendToDevice(buffer, 0, buffer.Length);
-                Debug.WriteLine("Sent Get Flags request");
+                //Debug.WriteLine("Sent Get Flags request");
                 res = true;
             }
 
@@ -631,7 +631,7 @@ namespace VesperApp.Models
             }
             else if (_comport != null && _comport.IsRunning)
             {
-                Debug.WriteLine("Prepare Format request message");
+               // Debug.WriteLine("Prepare Format request message");
                 byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_FORMATDISK, 0, new byte[0], 0);
                 this._comport.SendToDevice(buffer, 0, buffer.Length);
                 r = true;
@@ -739,18 +739,18 @@ namespace VesperApp.Models
                     Array.Copy(cfg, Nanotag.CONFIG_CHUNK_SIZE * 2, sch_cfg, 0, Nanotag.CONFIG_CHUNK_SIZE);
 
                     int retb = WriteRead(Nanotag.VND_CMD_SET_CFGCHUNK_GEN, main_cfg, out response, 0);
-                    Debug.WriteLine("Sent General config result: " + retb.ToString());
+                    //Debug.WriteLine("Sent General config result: " + retb.ToString());
                     if (retb == 0)
                     {
                         await Task.Delay(200);
                         retb = WriteRead(Nanotag.VND_CMD_SET_CFGCHUNK_DEV, dev_cfg, out response, 0);
-                        Debug.WriteLine("Sent Device config result: " + retb.ToString());
+                        //Debug.WriteLine("Sent Device config result: " + retb.ToString());
 
                         if (retb == 0)
                         {
                             await Task.Delay(200);
                             retb = WriteRead(Nanotag.VND_CMD_SET_CFGCHUNK_SCH, sch_cfg, out response, 0);
-                            Debug.WriteLine("Sent Schedule config result: " + retb.ToString());
+                            //Debug.WriteLine("Sent Schedule config result: " + retb.ToString());
                             r = true;
                         }
                     }
@@ -836,7 +836,7 @@ namespace VesperApp.Models
                             UInt32 first_page = (UInt32)(((UInt32)response[0]) + ((UInt32)response[1] << 8) + ((UInt32)response[2] << 16) + ((UInt32)response[3] << 24));
                             UInt32 last_page = (UInt32)(((UInt32)response[4]) + ((UInt32)response[5] << 8) + ((UInt32)response[6] << 16) + ((UInt32)response[7] << 24));
 
-                            Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
+                            //Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
 
                             for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
                             {
@@ -847,18 +847,18 @@ namespace VesperApp.Models
                                 addr[2] = (byte)(i >> 16);
                                 addr[3] = (byte)(i >> 24);
                                 var dpageresponse = new byte[0];
-                                Debug.Write("Trying to download page = " + i.ToString());
+                                //Debug.Write("Trying to download page = " + i.ToString());
                                 int getpageresult = WriteRead(Nanotag.VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
 
                                 if (getpageresult == 0)
                                 {
-                                    Debug.WriteLine(" - OK");
+                                    //Debug.WriteLine(" - OK");
 
                                     ProcessOnePage(dpageresponse, path);
                                 }
                                 else if (getpageresult == -200)
                                 {
-                                    Debug.WriteLine(" - BAD Block");
+                                    //Debug.WriteLine(" - BAD Block");
                                     i += 63;    // the 64th will be inside for loop
                                 }
                                 await Dispatcher.UIThread.InvokeAsync(() => UpdateDiskStatus());
@@ -887,7 +887,7 @@ namespace VesperApp.Models
                 }
                 else
                 {
-                    Debug.WriteLine("Failed getting data partition info");
+                    ///Debug.WriteLine("Failed getting data partition info");
                 }
             }
 
@@ -914,7 +914,7 @@ namespace VesperApp.Models
 
                 if (memoryStreamPage.Length >= bytes_in_flash_page)
                 {
-                    Debug.WriteLine("parsing page with length of " + memoryStreamPage.Length.ToString());
+                    //Debug.WriteLine("parsing page with length of " + memoryStreamPage.Length.ToString());
 
                     byte[] bytes;
                     bytes = memoryStreamPage.GetBuffer();
@@ -1097,7 +1097,7 @@ namespace VesperApp.Models
                     }
                     else
                     {
-                        Debug.WriteLine("Page is bad");
+                        //Debug.WriteLine("Page is bad");
                     }
 
                     memoryStreamPage.Close();

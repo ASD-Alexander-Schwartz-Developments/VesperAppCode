@@ -31,7 +31,6 @@ namespace VesperApp.Views
 
             TitleBar.ExtendsContentIntoTitleBar = false;
             TitleBar.TitleBarHitTestType = TitleBarHitTestType.Simple;
-            TitleBar.
 #if DEBUG
             this.AttachDevTools();
 #endif

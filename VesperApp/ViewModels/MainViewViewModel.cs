@@ -69,14 +69,6 @@ namespace VesperApp.ViewModels
         private DockAdapter _globalDockAdapter;
         private DeviceUsbAdapter _deviceUsbAdapter;
 
-
-        public SelectionModel<DeviceTypes> DevicesFiltersSelection
-        { 
-            get; 
-            set; 
-        } = new SelectionModel<DeviceTypes>();
-
-
         public bool IsConnected
         {
             get => _isConnected;
@@ -128,14 +120,11 @@ namespace VesperApp.ViewModels
 
         private string _textDateTimeNow = (DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToLongTimeString());
 
-
         public LoggerDevice? SelectedLoggerDevice { get; set; }
-
 
         private System.Timers.Timer? _timer;
         private System.Timers.Timer? _timerClock;
         private bool IsClosing = false;
-
 
 		#region Update Properties
 
@@ -240,8 +229,8 @@ namespace VesperApp.ViewModels
 
             Categories = new List<CategoryBase>();
 
-            Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
-            Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
+            Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), DataContext = new RecordingParsingViewModel(), Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
+            Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), DataContext = new ScheduleEditorViewModel(), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
             Categories.Add(new VesperApp.Models.Separator());
             Categories.Add(new Category { Name = "Help", Icon = Symbol.Help, ToolTip = "Help Documentation" });
             Categories.Add(new Category { Name = "Upgrades", Icon = Symbol.Upload, ToolTip = "System Upgrades" });
@@ -607,7 +596,7 @@ namespace VesperApp.ViewModels
             }
             catch (Exception ex)
 			{
-				Debug.WriteLine(ex.Message);
+				//Debug.WriteLine(ex.Message);
                 TextMessageBottom = ex.Message;
                 IsUpdateAvailable = false;
 			}
@@ -632,7 +621,7 @@ namespace VesperApp.ViewModels
                 // ConfigureAwait(true) so that UpdateStatus() is called on the UI thread
                 if (_updateInfo != null)
                 {
-                    await _um.DownloadUpdatesAsync(_updateInfo).ConfigureAwait(true);
+                    await _um.DownloadUpdatesAsync(_updateInfo, Progress).ConfigureAwait(true);
                 }
             }
             catch (Exception ex)
@@ -656,12 +645,11 @@ namespace VesperApp.ViewModels
 				isdownloading = false;
 				IsUpdateAvailable = false;
 				IsFlyoutopen();
-
-
-			}
+                RestartApply();
+            }
 			catch (Exception ex)
 			{
-				Debug.WriteLine(ex.Message);
+				//Debug.WriteLine(ex.Message);
 			}
 		}
 
@@ -676,9 +664,9 @@ namespace VesperApp.ViewModels
         private void Progress(int percent)
         {
             // progress can be sent from other threads
-            //Dispatcher.UIThread.InvokeAsync(() => {
-            //    TextStatus.Text = $"Downloading ({percent}%)...";
-            //});
+            Dispatcher.UIThread.InvokeAsync(() => {
+                Console.WriteLine($"Downloading ({percent}%)...");
+            });
         }
 
 
@@ -720,7 +708,7 @@ namespace VesperApp.ViewModels
 			}
 			catch (Exception ex)
 			{
-				Debug.WriteLine(ex.Message);
+				//Debug.WriteLine(ex.Message);
 			}
 		}
         #endregion
@@ -796,7 +784,7 @@ namespace VesperApp.ViewModels
                 {
                     if (LoggerDevices.Contains(logDevice) == false)
                     {
-                        Debug.WriteLine("Added: " + logDevice.SerialNumber);
+                        //Debug.WriteLine("Added: " + logDevice.SerialNumber);
                         LoggerDevices.Add(logDevice);
                     }
                 }
@@ -808,14 +796,14 @@ namespace VesperApp.ViewModels
                 {
                     if (dev.IsComportDevice)
                     {
-                        Debug.WriteLine("Probing: " + dev.SerialNumber);
+                        //Debug.WriteLine("Probing: " + dev.SerialNumber);
                         bool f = false;
                         foreach (LoggerDevice lDevice in devices)
                         {
-                            Debug.WriteLine(" - : " + lDevice.SerialNumber);
+                            //Debug.WriteLine(" - : " + lDevice.SerialNumber);
                             if (lDevice == dev)
                             {
-                                Debug.WriteLine("Match");
+                                //Debug.WriteLine("Match");
                                 f = true;
                                 break;
                             }
@@ -824,7 +812,7 @@ namespace VesperApp.ViewModels
                         if (f == false && dev.IsConnected == false)
                         {
                             LoggerDevices.Remove(dev);
-                            Debug.WriteLine("No Match - Remove: " + dev.SerialNumber);
+                            //Debug.WriteLine("No Match - Remove: " + dev.SerialNumber);
                         }
                     }
                 }
@@ -927,6 +915,7 @@ namespace VesperApp.ViewModels
                 {
                     var pg = Activator.CreateInstance(cat.Page);
                     CurrentPage = (Control)pg;
+                    CurrentPage.DataContext = cat.DataContext;
                 }
             }
             else if (SelectedCategory is NavigationViewItem nvi)

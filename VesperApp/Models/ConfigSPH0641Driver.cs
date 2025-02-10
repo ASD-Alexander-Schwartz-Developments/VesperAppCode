@@ -317,7 +317,6 @@ namespace VesperApp.Models
                 this.EnableDigitalFilterDecimation = (ldrv as ConfigSPH0641Driver)!.EnableDigitalFilterDecimation;
             }
         }
-
     }
 
 

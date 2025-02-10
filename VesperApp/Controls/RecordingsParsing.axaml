@@ -9,6 +9,10 @@
 		     xmlns:Controls="using:VesperApp.Controls"
              mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="450"
              x:Class="VesperApp.Controls.RecordingsParsing">
+
+	<UserControl.Resources>
+		<ui:PathIconSource x:Key="BioWave" Data="M6.2148 31.3867h10.4062c1.0547 0 1.6875-.4687 1.8984-1.4062l3.5157-16.1485 6.164 37.0078c.2813 1.6875 2.8829 1.6641 3.211 0l5.9766-28.0078 1.3827 6.9609c.211 1.0782.8204 1.5938 1.9219 1.5938h9.0938c.9374 0 1.6876-.7265 1.6876-1.6406 0-.9375-.7267-1.6641-1.6876-1.6641h-8.2969l-2.6953-11.9296c-.3516-1.6173-2.7657-1.6173-3.1641.0703l-5.8828 26.2734-6.1406-37.3359c-.2578-1.6407-2.6719-1.6875-3.0469 0l-4.9687 22.9218h-9.375c-.9376 0-1.6875.75-1.6875 1.6641s.7499 1.6406 1.6875 1.6406 Z" />
+	</UserControl.Resources>
 	
 	<HeaderedContentControl Header="Recording Data Extraction" IsVisible="True" UseLayoutRounding="True">
 	<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="False">
@@ -17,17 +21,17 @@
 				<ui:CommandBarButton Command="{Binding ManualGPSParserCommand}" IconSource="Globe" Label="GNSS" ToolTip.Tip="GNSS Decoder (DAT)"/>
 				<ui:CommandBarButton Command="{Binding ManualAudioParserCommand}" IconSource="Microphone" Label="Audio" ToolTip.Tip="Audio Decoder"/>
 				<ui:CommandBarButton Command="{Binding ManualMotionParserCommand}" IconSource="Directions" Label="Motion" ToolTip.Tip="Motion Sensor(s) Decoder"/>
-				<ui:CommandBarButton Command="{Binding BinaryFilesExtractor}" IconSource="Folder" Label="Binary" ToolTip.Tip="Binary Extractor"/>
-				<ui:CommandBarButton Command="{Binding BinaryFilesExtractor}" IconSource="FolderFilled" Label="Auto Decode Binary" ToolTip.Tip="Automatic Binary Extractor"/>
-				<ui:CommandBarButton Command="{Binding AutoImporterCommand}" IconSource="ImportAll" Label="Import" ToolTip.Tip="Import Recordings Automatically"/>
-				<ui:CommandBarSeparator />
-			</ui:CommandBar.PrimaryCommands>
-			<ui:CommandBar.SecondaryCommands>
 				<ui:CommandBarButton Command="{Binding ManualLeptonParserCommand}" IconSource="Camera" Label="Camera" ToolTip.Tip="Still Camera Decoder"/>
 				<ui:CommandBarButton Command="{Binding ManualTprhParserCommand}" IconSource="WeatherFog" Label="Temp Humidity" ToolTip.Tip="Temperature and Relative Decoder"/>
 				<ui:CommandBarButton Command="{Binding ManualAlsParserCommand}" IconSource="WeatherSunnyLow" Label="Light" ToolTip.Tip="Ambient Light Decoder"/>
-				<ui:CommandBarButton Command="{Binding ManualEXG48ParserCommand}" IconSource="Health" Label="EXG48" ToolTip.Tip="Ambient Light Decoder"/>
-				<ui:CommandBarButton Command="{Binding ManualEXG1292ParserCommand}" IconSource="Health" Label="EXG12" ToolTip.Tip="EXG1292 (2ch ECG/EMG/EEG) Sensor Decoder"/>
+				<ui:CommandBarButton Command="{Binding ManualEXG48ParserCommand}" IconSource="{StaticResource BioWave}" Label="EXG48" ToolTip.Tip="Ambient Light Decoder"/>
+				<ui:CommandBarButton Command="{Binding ManualEXG1292ParserCommand}" IconSource="{StaticResource BioWave}" Label="EXG12" ToolTip.Tip="EXG1292 (2ch ECG/EMG/EEG) Sensor Decoder"/>
+				<ui:CommandBarButton Command="{Binding BinaryFilesExtractor}" IconSource="Folder" Label="Binary Parser" ToolTip.Tip="Binary Extractor"/>
+				<ui:CommandBarButton Command="{Binding BinaryAutoFilesExtractor}" IconSource="FolderFilled" Label="Auto Parse" ToolTip.Tip="Automatic Binary Extractor"/>
+				<ui:CommandBarButton Command="{Binding AutoImporterCommand}" IconSource="ImportAll" Label="Auto Import" ToolTip.Tip="Import Recordings Automatically"/>
+				<ui:CommandBarSeparator />
+			</ui:CommandBar.PrimaryCommands>
+			<ui:CommandBar.SecondaryCommands>
 			</ui:CommandBar.SecondaryCommands>
 		</ui:CommandBar>
 

@@ -168,7 +168,7 @@ namespace VesperApp.Services
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine($"\n{nameof(OperationCanceledException)} thrown\n");
+                //Console.WriteLine($"\n{nameof(OperationCanceledException)} thrown\n");
             }
             finally
             {
@@ -200,7 +200,7 @@ namespace VesperApp.Services
 
         public async Task StopDeviceScanAsync()
         {
-            Debug.WriteLine("Stop Scan");
+            //Debug.WriteLine("Stop Scan");
 
             //return await Task.Run(() => { });
 
@@ -223,7 +223,7 @@ namespace VesperApp.Services
                     //Debug.WriteLine("Iterate " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
                     if (device != null && device.VendorId == vendorid && device.ProductId == prodid)
                     {
-                        Debug.WriteLine("Match " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
+                        //Debug.WriteLine("Match " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X"));
                         if (device.TryOpen() == true)
                         {
                             int i = 10;
@@ -234,7 +234,7 @@ namespace VesperApp.Services
                                     break;
                             } while (--i > 0);
 
-                            Debug.WriteLine("Opened " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X") + "SN:" + device.Info.SerialNumber);
+                            //Debug.WriteLine("Opened " + device.VendorId.ToString("X") + "/" + device.ProductId.ToString("X") + "SN:" + device.Info.SerialNumber);
                             device.Close();
 
                             var dev = new LoggerDevice(this._context, (UsbDevice)device);
@@ -291,7 +291,7 @@ namespace VesperApp.Services
                 {
                     try
                     {
-                        if(this._serialPort.IsOpen == true)
+                        if(this._serialPort?.IsOpen == true)
                             this._serialPort.Close();
 
                         this._serialPort.PortName = s;
@@ -300,7 +300,7 @@ namespace VesperApp.Services
                         this._serialPort.Open();
                         if (this._serialPort.IsOpen)
                         {
-                            Debug.WriteLine("Opened " + s);
+                            //Debug.WriteLine("Opened " + s);
                             /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
 
                             byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER,
@@ -337,14 +337,14 @@ namespace VesperApp.Services
                     }
                     catch(Exception ex)
                     { 
-                        Debug.WriteLine(ex.Message);
+                        //Debug.WriteLine(ex.Message);
                     }
                     finally
                     {
-                        if (this._serialPort?.IsOpen == true)
+                        if (this._serialPort != null && this._serialPort?.IsOpen == true)
                             this._serialPort?.Close();
 
-                        Debug.WriteLine("Closed " + s);
+                        //Debug.WriteLine("Closed " + s);
                     }
                 }
 
@@ -356,7 +356,7 @@ namespace VesperApp.Services
                     {
                         if (_names.Exists((d) => d.Equals(_loggerDevices[i].ComPort)) == false) 
                         {
-                            Debug.WriteLine("Remove " + _loggerDevices[i].Name);
+                           // Debug.WriteLine("Remove " + _loggerDevices[i].Name);
                             _loggerDevices.RemoveAt(i);
                             i = 0;
                             break;
@@ -367,8 +367,6 @@ namespace VesperApp.Services
 
             return await Task.FromResult(this._loggerDevices);
         }
-
-
 
 
 
