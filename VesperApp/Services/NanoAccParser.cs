@@ -12,7 +12,7 @@ namespace VesperApp.Services
     public class NanoAccParser : IDisposable
     {
         public const byte Header = 0xAC;
-        const int bytes_in_sensor = 9;          // 
+        const int bytes_in_sensor = 10;          // 
 
         private string Filename;
         private bool IsOpened;

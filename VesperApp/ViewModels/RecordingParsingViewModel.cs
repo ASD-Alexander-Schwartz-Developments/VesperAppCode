@@ -912,35 +912,73 @@ namespace VesperApp.ViewModels
 
                                     if (lp is not null)
                                     {
-                                        byte[] data = File.ReadAllBytes(lp);
-
-                                        DateTime dtStart = DateTime.Now;
+                                        string? currentDirectory = Path.GetDirectoryName(lp);
                                         string? currentFilename = Path.GetFileName(lp).ToUpper();
+                                        string? metadata = currentFilename + ".txt";
                                         uint ms_sample = 0;
-                                        ArrayList arrayList = Utils.scan(currentFilename, "NACC%d_%d_%d_%d_%d_%d_%d");
 
-                                        if (arrayList.Count == 7)
+                                        if (currentDirectory != null && currentFilename != null && metadata != null)
                                         {
-                                            int? year = (int?)arrayList[0];
-                                            int? month = (int?)arrayList[1];
-                                            int? day = (int?)arrayList[2];
-                                            int? hr = (int?)arrayList[3];
-                                            int? mn = (int?)arrayList[4];
-                                            int? sec = (int?)arrayList[5];
-                                            int? sbs = (int?)arrayList[6];
-
-                                            if (year != null && month != null && day != null &&
-                                                    hr != null && mn != null && sec != null && sbs != null)
+                                            metadata = currentDirectory + "/" + metadata;
+                                            if (File.Exists(metadata))
                                             {
+                                                string header_metadata = File.ReadAllText(metadata);
 
-                                                dtStart = new DateTime((int)year, (int)month, (int)day, (int)hr,
-                                                    (int)mn, (int)sec, (int)sbs);
+                                                if (header_metadata.Contains("SampleRate:"))
+                                                {
+                                                    string[] lines = header_metadata.Split(new char[] { '\n', '\r' });
+
+                                                    foreach (string line in lines)
+                                                    {
+                                                        string l = line.Trim();
+
+                                                        if (l.Contains("SampleRate:"))
+                                                        {
+                                                            string val = l.Substring(l.IndexOf(":") + 1);
+
+                                                            if (val.Length > 0)
+                                                            {
+                                                                uint vv = 0;
+                                                                if (uint.TryParse(val, out vv))
+                                                                {
+                                                                    ms_sample = 1000 / vv;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
-                                        }
 
-                                        using (NanoAccParser ip = new NanoAccParser(lp, data, dtStart, 1023, ms_sample))
-                                        {
-                                            ip.WriteFile();
+                                            byte[] data = File.ReadAllBytes(lp);
+
+                                            DateTime dtStart = DateTime.Now;
+
+                                            ArrayList arrayList = Utils.scan(currentFilename, "NACC%d_%d_%d_%d_%d_%d_%d");
+
+                                            if (arrayList.Count == 7)
+                                            {
+                                                int? year = (int?)arrayList[0];
+                                                int? month = (int?)arrayList[1];
+                                                int? day = (int?)arrayList[2];
+                                                int? hr = (int?)arrayList[3];
+                                                int? mn = (int?)arrayList[4];
+                                                int? sec = (int?)arrayList[5];
+                                                int? sbs = (int?)arrayList[6];
+
+                                                if (year != null && month != null && day != null &&
+                                                        hr != null && mn != null && sec != null && sbs != null)
+                                                {
+
+                                                    dtStart = new DateTime((int)year, (int)month, (int)day, (int)hr,
+                                                        (int)mn, (int)sec, (int)sbs);
+                                                }
+                                            }
+
+                                            using (NanoAccParser ip = new NanoAccParser(lp, data, dtStart, 1023, ms_sample))
+                                            {
+                                                ip.WriteFile();
+                                            }
                                         }
                                     }
                                 }

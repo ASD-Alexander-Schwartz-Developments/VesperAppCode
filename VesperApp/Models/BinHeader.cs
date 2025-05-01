@@ -87,17 +87,12 @@ namespace VesperApp.Models
                 UInt16 subsecond = (UInt16)(((UInt16)buffer[i++]) + ((UInt16)buffer[i++] << 8));
 
                 double milisecs = 1000.0 * ((double)((double)subsecond_frac - (double)subsecond) / (double)((double)subsecond_frac + 1.0));
+                dateTime = new DateTime(y, m, d, hh, mm, ss, (int)Math.Round((Math.Abs(milisecs))));
 
-                if(milisecs < 0)
+                if (milisecs < 0)
                 {
-                    if (ss > 0) ss--;
-                    else ss = 59;
-
-                    milisecs *= -1;
-                    //milisecs = 1000 + milisecs;
+                    dateTime -= TimeSpan.FromSeconds(1.0);
                 }
-
-                dateTime = new DateTime(y, m, d, hh, mm, ss, (int)Math.Round(milisecs));
             }
 
             return dateTime;

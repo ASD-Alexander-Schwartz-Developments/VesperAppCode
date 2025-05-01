@@ -14,6 +14,7 @@ using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
 using MsBox.Avalonia.Models;
+using System.Text;
 
 namespace VesperApp.Models
 {
@@ -847,18 +848,18 @@ namespace VesperApp.Models
                                 addr[2] = (byte)(i >> 16);
                                 addr[3] = (byte)(i >> 24);
                                 var dpageresponse = new byte[0];
-                                //Debug.Write("Trying to download page = " + i.ToString());
+                                Debug.Write("Trying to download page = " + i.ToString());
                                 int getpageresult = WriteRead(Nanotag.VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
 
                                 if (getpageresult == 0)
                                 {
-                                    //Debug.WriteLine(" - OK");
+                                    Debug.Write(" - OK ");
 
                                     ProcessOnePage(dpageresponse, path);
                                 }
                                 else if (getpageresult == -200)
                                 {
-                                    //Debug.WriteLine(" - BAD Block");
+                                    Debug.WriteLine(" - BAD Block");
                                     i += 63;    // the 64th will be inside for loop
                                 }
                                 await Dispatcher.UIThread.InvokeAsync(() => UpdateDiskStatus());
@@ -934,7 +935,6 @@ namespace VesperApp.Models
                         MetadataLength += bytes[ij++];
                         MetadataLength += (UInt16)(bytes[ij++] << 8);
 
-
                         byte page_type = bytes[ij];
                         ij++;
                         byte page_subtype = bytes[ij];
@@ -968,7 +968,10 @@ namespace VesperApp.Models
                         snapSubsecond += bytes[ij++];
                         snapSubsecond += (UInt16)(bytes[ij++] << 8);
 
-                        ij += 2;
+                        UInt16 SampleRate = 0;
+                        SampleRate += bytes[ij++];
+                        SampleRate += (UInt16)(bytes[ij++] << 8);
+
 
                         snapID += bytes[ij++];
                         snapID += (UInt32)(bytes[ij++] << 8);
@@ -997,6 +1000,8 @@ namespace VesperApp.Models
                         VEDBA += (UInt32)(bytes[ij++] << 16);
                         VEDBA += (UInt32)(bytes[ij++] << 24);
 
+                        Debug.WriteLine("- Its a " + snapType.ToString() + " ");
+
                         if (f_preamble == preamnle_ok &&
                             page_type == NAND_FS_SNAP_PAGE_TYPE &&
                             snapType == 'G' &&
@@ -1004,6 +1009,7 @@ namespace VesperApp.Models
                         {
                             //string outfolder = this.textOutputFolder.Text;
                             string outfolder = path + "GPS\\";
+                            
 
                             //                        if (outfolder.EndsWith("\\") == false)
                             //outfolder += "\\";
@@ -1077,14 +1083,26 @@ namespace VesperApp.Models
                             filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}.abn",
                                 new object[] {
                                     outfolder, "NACC.", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second});
+                            string mname = filename + ".txt";
 
-                            Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);
+                            //Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);
 
                             using (System.IO.FileStream file = new FileStream(filename, FileMode.OpenOrCreate, System.IO.FileAccess.ReadWrite))
                             {
                                 file.Write(bytes, 0, 4096);
                                 file.Flush();
                                 file.Close();
+                            }
+
+                            if (SampleRate > 0 && SampleRate < 100)
+                            {
+                                using (System.IO.FileStream file = new FileStream(mname, FileMode.Create, System.IO.FileAccess.ReadWrite))
+                                {
+                                    byte[] bytesm = Encoding.UTF8.GetBytes(String.Format("{0}", new object[] { ("SampleRate:" + SampleRate.ToString() + Environment.NewLine) }));
+                                    file.Write(bytesm, 0, bytesm.Length);
+                                    file.Flush();
+                                    file.Close();
+                                }
                             }
                         }
                         else if (f_preamble == preamnle_ok &&
@@ -1093,6 +1111,10 @@ namespace VesperApp.Models
                             snapIndex < snapPagesInSnap)
                         {
 
+                        }
+                        else
+                        {
+                            Debug.WriteLine("Unknown Page: " + f_preamble.ToString("X") + " " + page_type.ToString("X") + " " + snapType.ToString() );
                         }
                     }
                     else
