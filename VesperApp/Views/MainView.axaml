@@ -8,8 +8,8 @@
 		xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
 		xmlns:Controls="using:VesperApp.Controls"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
-		MinWidth="1200"
-		MinHeight="800"
+		MinWidth="768"
+		MinHeight="680"
         x:Class="VesperApp.Views.MainView">
 
     <Design.DataContext>

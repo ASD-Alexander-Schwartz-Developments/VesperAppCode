@@ -33,9 +33,7 @@ namespace VesperApp
 
             Log.LogUpdated += Log_LogUpdated;
             
-            VelopackApp.Build()
-                .WithFirstRun((v) => { /* Your first run code here */ })
-                .Run(Log);
+            VelopackApp.Build().Run();
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
             Trace.TraceInformation("VesperApp Opened");

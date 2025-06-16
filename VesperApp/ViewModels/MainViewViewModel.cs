@@ -233,7 +233,7 @@ namespace VesperApp.ViewModels
             Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), DataContext = new ScheduleEditorViewModel(), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
             Categories.Add(new VesperApp.Models.Separator());
             Categories.Add(new Category { Name = "Help", Icon = Symbol.Help, ToolTip = "Help Documentation" });
-            Categories.Add(new Category { Name = "Upgrades", Icon = Symbol.Upload, ToolTip = "System Upgrades" });
+            Categories.Add(new Category { Name = "Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(), Icon = Symbol.Upload, ToolTip = "System Upgrades" });
 
             SelectedCategory = Categories[0];
 
@@ -511,7 +511,7 @@ namespace VesperApp.ViewModels
             _timer.Start();
             _timerClock.Start();
 
-            _um = new UpdateManager(updateBaseUrl, logger: Program.Log);
+            _um = new UpdateManager(updateBaseUrl);
 
             TextMessageBottom = string.Empty;
 		}
