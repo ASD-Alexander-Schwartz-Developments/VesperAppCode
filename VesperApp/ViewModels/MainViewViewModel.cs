@@ -930,7 +930,6 @@ namespace VesperApp.ViewModels
         private Control _currentPage = new RecordingsParsing();
 
 
-
         public static TopLevel? RootTopLevel { get; set; }
         private static IStorageProvider? _storageProvider;
         public static IStorageProvider? StorageProvider

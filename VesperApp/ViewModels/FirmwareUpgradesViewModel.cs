@@ -27,9 +27,15 @@ namespace VesperApp.ViewModels
 {
     public class FirmwareUpgradesViewModel : ViewModelBase
     {
-        public ICommand? BinaryFilesExtractor { get; }
+        private string PAT { get; } = "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";
+        private string Owner { get; } = "ASD-Alexander-Schwartz-Developments";
+        private string Repo { get; } = "VesperU5";
+        public ICommand? RefreshReleasesCommand { get; }
         public ObservableCollection<Release> Releases { get; } = new();
-        GitHubReleaseService? gitHubReleaseService { get } = new();
+        private readonly GitHubReleaseService gitHubReleaseService;
+
+        public SelectionModel<Release?>? SelectedFirmwareRelease { get; }
+
 
         public bool BinaryParserIsRunning
         {
@@ -43,21 +49,35 @@ namespace VesperApp.ViewModels
 
         public FirmwareUpgradesViewModel()
         {
-            #region Parser Commands
+            SelectedFirmwareRelease = new SelectionModel<Release?>()
+            {
+                SingleSelect = true,
+            };
+            Releases = new ObservableCollection<Release>();
+            #region Updater Commands
 
-            BinaryFilesExtractor = ReactiveCommand.CreateFromTask(RunBinaryParser);
+            RefreshReleasesCommand = ReactiveCommand.CreateFromTask(RunReleasesRefresh);
 
             #endregion
+
+            gitHubReleaseService = new(owner: Owner, repo: Repo, token: PAT);
         }
 
 
 
-        private async Task<bool> RunBinaryParser()
+        private async Task<bool> RunReleasesRefresh()
         {
-            await Task.Delay(1);
+            if (gitHubReleaseService != null)
+            {
+                Releases.Clear();
+                var releases = await gitHubReleaseService.GetReleasesAsync();
+                foreach (var release in releases)
+                    Releases.Add(release);
+
+                return true;
+            }
             return false;
         }
-
 
 
         private static IStorageProvider? _storageProvider;

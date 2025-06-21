@@ -59,8 +59,15 @@ namespace VesperApp.Services
             var response = await _client.Connection.Get<object>(new Uri(asset.BrowserDownloadUrl), new Dictionary<string, string>(), "application/octet-stream");
             if (response.HttpResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await response.HttpResponse.Body.CopyToAsync(fileStream);
+                using var fileStream = File.Create(destinationPath); // Ensure the file is created before writing
+                
+                if (response.HttpResponse.Body != null)
+                {
+                    Stream s = (Stream)(response.HttpResponse.Body);
+                    s.CopyTo(fileStream);
+                }
+                fileStream.Flush(); // Ensure all data is written to the file
+                fileStream.Close(); // Close the stream to release the file handle
             }
             else
             {
