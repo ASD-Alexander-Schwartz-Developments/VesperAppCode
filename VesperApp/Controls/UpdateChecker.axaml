@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VesperApp.ViewModels"
+             x:Class="VesperApp.Controls.UpdateChecker"
+             mc:Ignorable="d"
+             d:DesignWidth="400" d:DesignHeight="200">
+
+    <UserControl.DataContext>
+        <vm:UpdateCheckerViewModel/>
+    </UserControl.DataContext>
+
+    <StackPanel Margin="16" Spacing="8">
+        <TextBlock Text="Application Updates" FontWeight="Bold" FontSize="18"/>
+        <Button Content="Check for Updates"
+                Command="{Binding CheckUpdatesCommand}"
+                IsEnabled="{Binding IsChecking, Converter={x:Static Avalonia.Data.Converters.InverseBooleanConverter}}"/>
+        <TextBlock Text="{Binding Status}" Foreground="Gray"/>
+        <ItemsControl Items="{Binding AvailableUpdates}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Version}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="Update Now"
+                Command="{Binding UpdateCommand}"
+                IsEnabled="{Binding IsUpdateAvailable}"/>
+        <ui:ProgressBar IsIndeterminate="True"
+                      IsVisible="{Binding IsChecking}"
+                      Margin="0,8,0,0"/>
+    </StackPanel>
+</UserControl>

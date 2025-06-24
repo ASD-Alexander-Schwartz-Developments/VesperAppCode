@@ -28,12 +28,12 @@ using System.Collections;
 using System.Globalization;
 using Velopack;
 using Microsoft.Extensions.Logging;
-using static VesperApp.Models.ConfigurationJSON;
 using MsBox.Avalonia.Base;
 using VesperApp.Controls;
 using Octokit;
 using MsBox.Avalonia.Models;
 using FluentAvalonia.UI.Controls;
+using static VesperApp.Models.ConfigurationJSON;
 
 /// <summary>
 /// //// {Binding Description, StringFormat='Description: {0}'}
@@ -232,8 +232,9 @@ namespace VesperApp.ViewModels
             Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), DataContext = new RecordingParsingViewModel(), Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
             Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), DataContext = new ScheduleEditorViewModel(), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
             Categories.Add(new VesperApp.Models.Separator());
+            Categories.Add(new Category { Name = "Software Upgrades", Page = typeof(UpdateChecker), DataContext = new UpdateCheckerViewModel(), Icon = Symbol.New, ToolTip = "Software Upgrades" });
+            Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
             Categories.Add(new Category { Name = "Help", Icon = Symbol.Help, ToolTip = "Help Documentation" });
-            Categories.Add(new Category { Name = "Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(), Icon = Symbol.Upload, ToolTip = "System Upgrades" });
 
             SelectedCategory = Categories[0];
 
@@ -603,11 +604,6 @@ namespace VesperApp.ViewModels
 
             return IsUpdateAvailable;
 		}
-
-		#region Remote Server File Check 
-
-
-		#endregion
 
 		#endregion
 
