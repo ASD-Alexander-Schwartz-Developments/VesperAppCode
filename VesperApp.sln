@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASDWaveLib", "ASDWaveLib\AS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FirmwareUpdater", "FirmwareUpdater\FirmwareUpdater.csproj", "{62EA8B3D-393A-4D2E-8015-FB68969E4E54}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibUsbDfu", "LibUsbDfu\LibUsbDfu.csproj", "{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -108,6 +110,26 @@ Global
 		{62EA8B3D-393A-4D2E-8015-FB68969E4E54}.Release|x64.Build.0 = Release|Any CPU
 		{62EA8B3D-393A-4D2E-8015-FB68969E4E54}.Release|x86.ActiveCfg = Release|Any CPU
 		{62EA8B3D-393A-4D2E-8015-FB68969E4E54}.Release|x86.Build.0 = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|ARM.Build.0 = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|x64.Build.0 = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Debug|x86.Build.0 = Debug|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|ARM.ActiveCfg = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|ARM.Build.0 = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|ARM64.Build.0 = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|x64.ActiveCfg = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|x64.Build.0 = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|x86.ActiveCfg = Release|Any CPU
+		{B0D4DE9C-ACE8-4FF7-9B5A-EF39F3440788}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

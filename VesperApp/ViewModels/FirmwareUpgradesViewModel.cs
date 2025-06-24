@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -31,19 +32,20 @@ namespace VesperApp.ViewModels
         private string Owner { get; } = "ASD-Alexander-Schwartz-Developments";
         private string Repo { get; } = "VesperU5";
         public ICommand? RefreshReleasesCommand { get; }
+        public ICommand? DownloadReleaseCommand { get; }
         public ObservableCollection<Release> Releases { get; } = new();
         private readonly GitHubReleaseService gitHubReleaseService;
 
         public SelectionModel<Release?>? SelectedFirmwareRelease { get; }
 
 
-        public bool BinaryParserIsRunning
+        public bool IsLoadingReleases
         {
-            get => binaryParserIsRunning;
-            set => this.RaiseAndSetIfChanged(ref binaryParserIsRunning, value);
+            get => isLoadingReleases;
+            set => this.RaiseAndSetIfChanged(ref isLoadingReleases, value);
         }
 
-        private bool binaryParserIsRunning = false;
+        private bool isLoadingReleases = false;
 
 
 
@@ -57,10 +59,14 @@ namespace VesperApp.ViewModels
             #region Updater Commands
 
             RefreshReleasesCommand = ReactiveCommand.CreateFromTask(RunReleasesRefresh);
+            DownloadReleaseCommand = ReactiveCommand.CreateFromTask(RunReleaseDownload);
 
             #endregion
 
             gitHubReleaseService = new(owner: Owner, repo: Repo, token: PAT);
+
+            //Load the releases on initialization
+            _ = RunReleasesRefresh();
         }
 
 
@@ -69,12 +75,54 @@ namespace VesperApp.ViewModels
         {
             if (gitHubReleaseService != null)
             {
+                IsLoadingReleases = true;
                 Releases.Clear();
                 var releases = await gitHubReleaseService.GetReleasesAsync();
                 foreach (var release in releases)
                     Releases.Add(release);
-
+                IsLoadingReleases = false;
                 return true;
+            }
+            return false;
+        }
+
+        private async Task<bool> RunReleaseDownload()
+        {
+            if (SelectedFirmwareRelease?.SelectedItem != null)
+            {
+                var selectedRelease = SelectedFirmwareRelease.SelectedItem;
+                if (selectedRelease != null)
+                {
+                    // Find the .hex asset
+                    var assets = await gitHubReleaseService.GetAssetsForReleaseAsync(selectedRelease.Id);
+                    var assetToDownload = assets.FirstOrDefault(a => a.Name.EndsWith(".hex", StringComparison.OrdinalIgnoreCase));
+                    if (assetToDownload != null)
+                    {
+                        // Ask user for save location
+                        var filePicker = StorageProvider;
+                        if (filePicker != null)
+                        {
+                            var fileName = assetToDownload.Name;
+                            var fileSaveResult = await filePicker.SaveFilePickerAsync(new FilePickerSaveOptions
+                            {
+                                Title = "Save Firmware File",
+                                SuggestedFileName = fileName,
+                                FileTypeChoices = new List<FilePickerFileType>
+                                    {
+                                        new FilePickerFileType("HEX File") { Patterns = new[] { "*.hex" } }
+                                    }
+                            });
+
+                            if (fileSaveResult != null)
+                            {
+                                var filePath = fileSaveResult.Path.LocalPath;
+                                await gitHubReleaseService.DownloadAssetAsync(assetToDownload, filePath);
+                                // Optionally notify user of success
+                                return true;
+                            }
+                        }
+                    }
+                }
             }
             return false;
         }

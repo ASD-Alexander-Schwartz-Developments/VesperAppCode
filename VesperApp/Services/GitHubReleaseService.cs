@@ -56,7 +56,8 @@ namespace VesperApp.Services
         /// <param name="destinationPath">Local file path to save the asset.</param>
         public async Task DownloadAssetAsync(ReleaseAsset asset, string destinationPath)
         {
-            var response = await _client.Connection.Get<object>(new Uri(asset.BrowserDownloadUrl), new Dictionary<string, string>(), "application/octet-stream");
+            string downloadUrl = asset.Url; 
+            var response = await _client.Connection.Get<object>(new Uri(downloadUrl), new Dictionary<string, string>(), "application/octet-stream");
             if (response.HttpResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 using var fileStream = File.Create(destinationPath); // Ensure the file is created before writing
@@ -68,10 +69,6 @@ namespace VesperApp.Services
                 }
                 fileStream.Flush(); // Ensure all data is written to the file
                 fileStream.Close(); // Close the stream to release the file handle
-            }
-            else
-            {
-                throw new Exception($"Failed to download asset: {asset.Name}");
             }
         }
     }

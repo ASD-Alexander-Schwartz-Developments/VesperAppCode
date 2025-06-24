@@ -23,12 +23,12 @@ namespace FirmwareUpdater.Dfu
         public class InvalidStateException : Exception
         {
             public InvalidStateException(State expected, State actual)
-                : base(String.Format("Dfu state {0} wasn't reached, device returned {1}.", expected.ToString(), actual.ToString()))
+                : base(System.String.Format("Dfu state {0} wasn't reached, device returned {1}.", expected.ToString(), actual.ToString()))
             {
             }
 
             public InvalidStateException(State expected, State actual, string error)
-                : base(String.Format("Dfu state {0} wasn't reached, device returned {1} (reason: {2}).", expected.ToString(), actual.ToString(), error))
+                : base(System.String.Format("Dfu state {0} wasn't reached, device returned {1} (reason: {2}).", expected.ToString(), actual.ToString(), error))
             {
             }
         }
