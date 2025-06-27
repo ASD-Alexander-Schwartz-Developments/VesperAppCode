@@ -20,17 +20,14 @@ using System.Reactive;
 using Avalonia;
 using System.Linq;
 using Avalonia.Platform.Storage;
-using ASDWaveLib;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
 using System.Collections;
 using System.Globalization;
-using Velopack;
 using Microsoft.Extensions.Logging;
 using MsBox.Avalonia.Base;
 using VesperApp.Controls;
-using Octokit;
 using MsBox.Avalonia.Models;
 using FluentAvalonia.UI.Controls;
 using static VesperApp.Models.ConfigurationJSON;
@@ -126,77 +123,6 @@ namespace VesperApp.ViewModels
         private System.Timers.Timer? _timerClock;
         private bool IsClosing = false;
 
-		#region Update Properties
-
-		private bool _IsUpdateAvailable = false;
-
-		public bool IsUpdateAvailable
-		{
-			get => _IsUpdateAvailable;
-			set
-			{
-				this.RaiseAndSetIfChanged(ref _IsUpdateAvailable, value);
-				IsFlyoutopen();
-			}
-		}
-		private bool _isdownload = false;
-
-		public bool isdownload
-		{
-			get => _isdownload;
-			set
-			{
-				this.RaiseAndSetIfChanged(ref _isdownload, value);
-				IsFlyoutopen();
-			}
-		}
-		private bool _isdownloading = false;
-
-		public bool isdownloading
-		{
-			get => _isdownloading;
-			set
-			{
-				this.RaiseAndSetIfChanged(ref _isdownloading, value);
-				IsFlyoutopen();
-			}
-		}
-
-		private string _VersionUpdateMessage;
-		public string VersionUpdateMessage
-		{
-			get => _VersionUpdateMessage;
-			set => this.RaiseAndSetIfChanged(ref _VersionUpdateMessage, value);
-		}
-		private string _DownloadContent = "Download Now";
-		public string DownloadContent
-		{
-			get => _DownloadContent;
-			set => this.RaiseAndSetIfChanged(ref _DownloadContent, value);
-		}
-		public ReactiveCommand<Unit, Unit> DownloadCheckCommand { get; }
-		public ReactiveCommand<Unit, Unit> LaterCommand { get; }
-
-		private string updateBaseUrl => "https://vesperapp.asd-tech.com/";
-
-		public bool IsdownloadButtonEnable
-		{
-			get => _IsdownloadButtonEnable
-;
-			set => this.RaiseAndSetIfChanged(ref _IsdownloadButtonEnable, value);
-		}
-
-		private bool _IsdownloadButtonEnable = true;
-		private Flyout _updateFlyout;
-		public Flyout updateFlyout
-		{
-			get => _updateFlyout;
-			set => this.RaiseAndSetIfChanged(ref _updateFlyout, value);
-		}
-
-
-        #endregion
-
         private string textMessageBottom;
         public string TextMessageBottom
         {
@@ -237,8 +163,6 @@ namespace VesperApp.ViewModels
             Categories.Add(new Category { Name = "Help", Icon = Symbol.Help, ToolTip = "Help Documentation" });
 
             SelectedCategory = Categories[0];
-
-            //ShowDockPickDialog = new Interaction<DockPickWindowViewModel, DockDeviceInfo?>();
 
             #region Dock Commands
             ConnectDisconnectDockCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -506,214 +430,11 @@ namespace VesperApp.ViewModels
             LoggerDevices = new ObservableCollection<LoggerDevice>();
             SelectedLoggerDevice = null;
             
-			DownloadCheckCommand = ReactiveCommand.Create(DownloadCheck);
-			LaterCommand = ReactiveCommand.Create(closeFlyout);
-
             _timer.Start();
             _timerClock.Start();
 
-            _um = new UpdateManager(updateBaseUrl);
-
             TextMessageBottom = string.Empty;
 		}
-
-        /*
-         * 
-         *  rem win-x64-stable
-            rem win-x64-beta
-            rem win-arm64-stable
-            rem win-arm64-beta
-            rem osx-x64-stable
-            rem osx-x64-beta
-            rem osx-arm64-stable
-            rem osx-arm64-beta
-         */
-
-
-        //Update Software Methods 
-
-        #region Variables 
-        private UpdateManager _um;
-        private UpdateInfo? _updateInfo;
-
-		public string updateFileName => "VesperAppSetup.msi";
-		public string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        #endregion
-
-        //Check For the Updates 
-
-        #region Checks for the update 
-
-        private void UpdateStatus()
-        {
-            Trace.TraceInformation("Update Status");
-            StringBuilder sb = new StringBuilder();
-            sb.Append($"Velopack: {VelopackRuntimeInfo.VelopackNugetVersion}");
-            sb.Append($" This app: {(_um.IsInstalled ? _um.CurrentVersion : "(n/a - not installed)")}");
-            sb.AppendLine();
-            Trace.TraceInformation("Update Status: " + sb.ToString());
-
-            if (_updateInfo != null)
-            {
-                sb.Append($"Update available: {_updateInfo.TargetFullRelease.Version}");
-                IsdownloadButtonEnable = true;
-            }
-            else
-            {
-                IsdownloadButtonEnable = false;
-            }
-            Trace.TraceInformation("2) Update Status: " + sb.ToString());
-
-
-            if (_um.UpdatePendingRestart != null)
-            {
-                sb.Append(" Update ready, pending restart to install");
-                IsUpdateAvailable = true;
-            }
-            else
-            {
-                IsUpdateAvailable = false;
-            }
-            Trace.TraceInformation("3) Update Status: " + sb.ToString());
-
-
-            TextMessageBottom += sb.ToString();
-            //BtnCheckUpdate.IsEnabled = true;
-        }
-
-
-        private async Task<bool> CheckUpdate()
-		{
-            _um = new UpdateManager(updateBaseUrl, new UpdateOptions
-            {
-                ExplicitChannel = "win-x64-stable",
-                AllowVersionDowngrade = true,
-            });
-            
-            try
-            {
-                _updateInfo = await _um.CheckForUpdatesAsync();
-                UpdateStatus();
-            }
-            catch (Exception ex)
-			{
-				//Debug.WriteLine(ex.Message);
-                TextMessageBottom = ex.Message;
-                IsUpdateAvailable = false;
-			}
-
-            return IsUpdateAvailable;
-		}
-
-		#endregion
-
-		#region Download And Check
-
-		#region Download File And Install File 
-		public async void DownloadCheck()
-		{              
-            try
-            {
-                // ConfigureAwait(true) so that UpdateStatus() is called on the UI thread
-                if (_updateInfo != null)
-                {
-                    await _um.DownloadUpdatesAsync(_updateInfo, Progress).ConfigureAwait(true);
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.Log.LogError(ex, "Error downloading updates");
-            }
-            UpdateStatus();
-            Wc_DownloadFileCompleted();
-        }
-        #endregion
-
-        #region Download File Complete 
-        private void Wc_DownloadFileCompleted()
-		{
-			try
-			{
-                DownloadContent = "Install";
-
-				IsdownloadButtonEnable = true;
-				isdownload = true;
-				isdownloading = false;
-				IsUpdateAvailable = false;
-				IsFlyoutopen();
-                RestartApply();
-            }
-			catch (Exception ex)
-			{
-				//Debug.WriteLine(ex.Message);
-			}
-		}
-
-        private void RestartApply()
-        {
-            if(_updateInfo != null)
-                _um.ApplyUpdatesAndRestart(_updateInfo);
-        }
-
-
-
-        private void Progress(int percent)
-        {
-            // progress can be sent from other threads
-            Dispatcher.UIThread.InvokeAsync(() => {
-                Console.WriteLine($"Downloading ({percent}%)...");
-            });
-        }
-
-
-        private void Working()
-        {
-            Program.Log.LogInformation("");
-            //BtnCheckUpdate.IsEnabled = false;
-            //BtnDownloadUpdate.IsEnabled = false;
-            //BtnRestartApply.IsEnabled = false;
-            //TextStatus.Text = "Working...";
-        }
-
-        #endregion
-
-        #endregion
-
-        #region Flyouts
-        public void closeFlyout()
-		{
-			updateFlyout.Hide();
-		}
-		public void IsFlyoutopen()
-		{
-			try
-			{
-				updateFlyout = new Flyout() /*{ Placement = Flyout.P  FlyoutPlacementMode.Bottom }*/;
-				var ParentStack = new StackPanel() { Orientation = Avalonia.Layout.Orientation.Vertical, Spacing = 3, Height = 60, Width = 200 };
-				var txtDownloadavalable = new TextBlock() { Text = VersionUpdateMessage, FontWeight = Avalonia.Media.FontWeight.ExtraBold, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
-				var childStack = new StackPanel() { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 20, Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
-				var downloadButton = new Button() { Content = DownloadContent, Command = DownloadCheckCommand, IsEnabled = IsdownloadButtonEnable };
-				var laterButton = new Button() { Content = "Do Later", Command = LaterCommand };
-
-				ParentStack.Children.Add(txtDownloadavalable);
-				childStack.Children.Add(downloadButton);
-				childStack.Children.Add(laterButton);
-				ParentStack.Children.Add(childStack);
-
-				updateFlyout.Content = ParentStack;
-			}
-			catch (Exception ex)
-			{
-				//Debug.WriteLine(ex.Message);
-			}
-		}
-        #endregion
-
-        //END
-
-        //Window GetWindow() => TopLevel.GetTopLevel(this) as Window ?? throw new NullReferenceException("Invalid Owner");
-        //TopLevel GetTopLevel() => TopLevel.GetTopLevel(this) ?? throw new NullReferenceException("Invalid Owner");
-
 
 
         private void _globalDockAdapter_ConnectionEvent(object? sender, DockConnectionEventArgs e)
@@ -819,16 +540,6 @@ namespace VesperApp.ViewModels
         private uint cccupdate = 0;
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            if (cccupdate == 0)
-            {
-                cccupdate = 30;
-                Task.Run(async () => IsUpdateAvailable = await CheckUpdate());
-            }
-            else
-            {
-                cccupdate--;
-            }
-
             if (IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false && __downloading_nanotag_data == false)
             {
                     var scan_nano = Task.Run(async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));

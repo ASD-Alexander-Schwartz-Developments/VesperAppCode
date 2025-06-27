@@ -369,7 +369,7 @@ namespace FirmwareUpdater.Dfu
             // verify protocol version
             if (dfuFile.DeviceInfo.DfuVersion != DfuDescriptor.DfuVersion)
             {
-                throw new InvalidOperationException(String.Format("DFU file version {0} doesn't match device DFU version {1}",
+                throw new InvalidOperationException(string.Format("DFU file version {0} doesn't match device DFU version {1}",
                     dfuFile.DeviceInfo.DfuVersion,
                     DfuDescriptor.DfuVersion));
             }
@@ -610,7 +610,7 @@ namespace FirmwareUpdater.Dfu
                 }
 
                 // the permissions are encoded in the lowest 3 bits of the ASCII character...
-                var perm = (DeviceProgramming.Memory.Permissions)(result.Groups[groupoff + 4].Captures[i].Value[0] & 0x7);
+                var perm = (FirmwareUpdater.Memory.Permissions)(result.Groups[groupoff + 4].Captures[i].Value[0] & 0x7);
 
                 for (int b = 0; b < blockNo; b++)
                 {
@@ -651,7 +651,7 @@ namespace FirmwareUpdater.Dfu
                 if ((memory.Segments[segNo].StartAddress < layout.StartAddress) ||
                     (memory.Segments[lastSeg].EndAddress > layout.EndAddress))
                 {
-                    throw new ArgumentOutOfRangeException("sortedMemory", String.Format("Memory is out of bounds at alternate setting {0}.", altSel));
+                    throw new ArgumentOutOfRangeException("sortedMemory", string.Format("Memory is out of bounds at alternate setting {0}.", altSel));
                 }
 
                 int totalSize = memory.Segments.Sum((x) => x.Length);

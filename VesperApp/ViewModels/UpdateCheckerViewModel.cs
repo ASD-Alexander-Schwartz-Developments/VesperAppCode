@@ -1,17 +1,31 @@
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Velopack;
 using Velopack.Sources;
 
+
+/*
+ * 
+ *  rem win-x64-stable
+    rem win-x64-beta
+    rem osx-arm64-stable
+    rem osx-arm64-beta
+ */
+
 namespace VesperApp.ViewModels
 {
     public class UpdateCheckerViewModel : ViewModelBase
     {
         private readonly string _updateUrl = "https://d11eqmwet07q29.cloudfront.net";
+        private readonly string updateFileName = "VesperAppSetup.msi";
+        private readonly string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        private readonly List<string> _channels;
 
         private bool _isChecking;
         private bool _isUpdateAvailable;
@@ -21,6 +35,9 @@ namespace VesperApp.ViewModels
 
         private UpdateManager _um;
         private UpdateInfo? _update;
+
+        private Velopack.VelopackAsset? _latestRelease;
+        public ObservableCollection<VelopackAsset> AvailableUpdates { get; } = new();
 
         public ICommand CheckUpdatesCommand { get; }
         public ICommand UpdateCommand { get; }
@@ -61,7 +78,33 @@ namespace VesperApp.ViewModels
             UpdateCommand = ReactiveCommand.CreateFromTask(PerformUpdateAsync, this.WhenAnyValue(x => x.IsUpdateAvailable));
             RestartApplyCommand = ReactiveCommand.Create(RestartApplyUpdate, this.WhenAnyValue(x => x.IsPendingRestart));
 
-            _um = new UpdateManager(_updateUrl);
+            if(OperatingSystem.IsWindows())
+            {
+                _channels = new List<string>
+                {
+                    "win-x64-stable",
+                    "win-x64-beta",
+                };
+            }
+            else if(OperatingSystem.IsMacOS())
+            {
+                _channels = new List<string>
+                {
+                    "osx-arm64-stable",
+                    "osx-arm64-beta"
+                };
+            }
+            else
+            {
+                _channels = new List<string>();
+            }
+
+            _um = new UpdateManager(_updateUrl, new UpdateOptions
+            {
+                ExplicitChannel = "win-x64-stable",
+                AllowVersionDowngrade = true,
+            });
+
             _update = null;
         }
 
@@ -78,7 +121,7 @@ namespace VesperApp.ViewModels
             // progress can be sent from other threads
             Dispatcher.UIThread.InvokeAsync(
                 () => {
-                    TextStatus.Text = $"Downloading ({percent}%)...";
+                    Status = $"Downloading ({percent}%)...";
                 });
         }
 
@@ -90,16 +133,15 @@ namespace VesperApp.ViewModels
             try
             {
                 // Adjust the source as needed (e.g., GithubSource, FileSource, etc.)
-                var mgr = new UpdateManager(new GithubSource("your-github-owner", "your-repo"));
-                var updateInfo = await mgr.CheckForUpdatesAsync();
-                if (updateInfo.ReleasesToApply.Count > 0)
+                _update = await _um.CheckForUpdatesAsync();
+                if (_update?.DeltasToTarget.Length > 0)
                 {
-                    foreach (var rel in updateInfo.ReleasesToApply)
+                    foreach (var rel in _update.DeltasToTarget)
                         AvailableUpdates.Add(rel);
 
-                    LatestRelease = updateInfo.FutureReleaseEntry;
+                    _latestRelease = _update.TargetFullRelease;
                     IsUpdateAvailable = true;
-                    Status = $"Update available: {LatestRelease?.Version}";
+                    Status = $"Update available: {_latestRelease?.Version}";
                 }
                 else
                 {
@@ -119,35 +161,41 @@ namespace VesperApp.ViewModels
 
         private async Task PerformUpdateAsync()
         {
-            if (LatestRelease == null)
+            if (_latestRelease == null)
                 return;
 
-            IsChecking = true;
-            Status = "Downloading and applying update...";
-            try
+            if (_update != null)
             {
-                var mgr = new UpdateManager(new GithubSource("your-github-owner", "your-repo"));
-                await mgr.DownloadUpdatesAsync();
-                await mgr.ApplyUpdatesAsync();
-                Status = "Update applied. Please restart the application.";
+                IsChecking = true;
+                Status = "Downloading and applying update...";
+                try
+                {
+                    await _um.DownloadUpdatesAsync(_update, Progress).ConfigureAwait(true);
+                    Status = "Update Downloaded. Restarting the application to apply updates.";
+                    IsPendingRestart = true;
+                }
+                catch (System.Exception ex)
+                {
+                    Status = $"Update failed: {ex.Message}";
+                }
+                finally
+                {
+                    IsChecking = false;
+                }
             }
-            catch (System.Exception ex)
+            else
             {
-                Status = $"Update failed: {ex.Message}";
-            }
-            finally
-            {
-                IsChecking = false;
+                Status = "No update available to apply.";
             }
         }
 
         private void Working()
         {
             Program.Log.LogInformation("");
-            BtnCheckUpdate.IsEnabled = false;
-            BtnDownloadUpdate.IsEnabled = false;
-            BtnRestartApply.IsEnabled = false;
-            TextStatus.Text = "Working...";
+            IsChecking = false;
+            IsUpdateDownloading = false;
+            IsPendingRestart = false;
+            Status = "Working...";
         }
 
     }
