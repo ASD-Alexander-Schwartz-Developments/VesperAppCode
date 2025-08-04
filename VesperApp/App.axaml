@@ -176,6 +176,9 @@
 		</Style>
 		-->
 		
+		<Style Selector="Border.Clock">
+			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorLight1}"/>
+		</Style>
 		<Style Selector="Border.devBorder">
 			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorDark1}"/>
 		</Style>

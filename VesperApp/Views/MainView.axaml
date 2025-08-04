@@ -60,11 +60,13 @@
 				</Button>
 			</StackPanel>
 
-				
-			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Vertical">
-				<TextBlock HorizontalAlignment="Right" x:Name="textDateTime" VerticalAlignment="Center" Padding="10,2,2,4" Text="{Binding TextDateTimeNow}" FontFamily="Roboto" FontSize="14"/>
-				<CheckBox x:Name="chkIsUTC" IsChecked="{Binding IsClockUTC}" Content="Is UTC" Padding="4,2,2,4"/>
-			</StackPanel>
+
+			<Border Classes="Clock" CornerRadius="3" BorderThickness="2">
+				<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Orientation="Horizontal">
+					<TextBlock HorizontalAlignment="Left" x:Name="textDateTime" VerticalAlignment="Center" Padding="10,0,10,0" Text="{Binding TextDateTimeNow}" FontFamily="Consolas" FontSize="16"/>
+					<CheckBox FlowDirection="LeftToRight" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" x:Name="chkIsUTC" IsChecked="{Binding IsClockUTC}" Content="Is UTC" Padding="10,5,10,0"/>
+				</StackPanel>
+			</Border>
 		</StackPanel>
 			
 		<Border Classes="devBorder" CornerRadius="5" BorderThickness="3"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
