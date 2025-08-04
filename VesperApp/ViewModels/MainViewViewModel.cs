@@ -537,7 +537,6 @@ namespace VesperApp.ViewModels
         }
 
 
-        private uint cccupdate = 0;
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             if (IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false && __downloading_nanotag_data == false)

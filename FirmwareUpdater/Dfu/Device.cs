@@ -583,7 +583,7 @@ namespace FirmwareUpdater.Dfu
             var result = SeMemoryLayoutRegex.Match(dfuSeFormat);
             if (!result.Success)
             {
-                throw new ArgumentException(String.Format("The DFU device has invalid DFUSE memory layout description ({0}).", dfuSeFormat));
+                throw new ArgumentException(string.Format("The DFU device has invalid DFUSE memory layout description ({0}).", dfuSeFormat));
             }
 
             var layout = new NamedLayout(result.Groups["name"].Value);
