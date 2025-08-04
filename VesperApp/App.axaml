@@ -10,7 +10,44 @@
 	<Application.Resources>
 		<FontFamily x:Key="NunitoFont">avares://GoogleFonts/Assets/Fonts#Assistant</FontFamily>
 		<Color x:Key="SystemAccentColor">Blue</Color>
+		<SolidColorBrush x:Key="ButtonBackgroundApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity=".35" />
+		<StaticResource x:Key="ButtonBackground" ResourceKey="ButtonBackgroundApp" />
+		<LinearGradientBrush x:Key="ButtonBorderBrushApp" StartPoint="0,0" EndPoint="0,3" Opacity=".35">
+			<LinearGradientBrush.GradientStops>
+				<GradientStop Offset="0.33" Color="{StaticResource ControlStrokeColorOnAccentSecondary}" />
+				<GradientStop Offset="1.0" Color="{StaticResource ControlStrokeColorOnAccentDefault}" />
+			</LinearGradientBrush.GradientStops>
+		</LinearGradientBrush>
+		<StaticResource x:Key="ButtonBorderBrush" ResourceKey="ButtonBorderBrushApp" />
+
+		<SolidColorBrush x:Key="ButtonBackgroundPointerOverApp" Color="{DynamicResource SystemAccentColorLight2}"
+						 Opacity=".30" />
+		<StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOverApp" />
+
+		<LinearGradientBrush x:Key="ButtonBorderBrushPointerOverApp" StartPoint="0,0" EndPoint="0,3" Opacity=".35">
+			<LinearGradientBrush.GradientStops>
+				<GradientStop Offset="0.33" Color="{StaticResource ControlStrokeColorOnAccentSecondary}" />
+				<GradientStop Offset="1.0" Color="{StaticResource ControlStrokeColorOnAccentDefault}" />
+			</LinearGradientBrush.GradientStops>
+		</LinearGradientBrush>
+		<StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="ButtonBorderBrushPointerOverApp" />
+
+		<SolidColorBrush x:Key="ButtonBackgroundPressedApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity=".27" />
+		<StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="ButtonBackgroundPressedApp" />
+
+		<SolidColorBrush x:Key="ButtonBorderBrushPressedApp" Color="{DynamicResource ControlFillColorTransparent}"
+						 Opacity=".35" />
+		<StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="ButtonBorderBrushPressedApp" />
+
+		<SolidColorBrush x:Key="ButtonBackgroundDisabledApp"
+						 Color="{DynamicResource TextOnAccentFillColorDisabled}" Opacity=".35" />
+		<StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="ButtonBackgroundDisabledApp" />
+
+		<SolidColorBrush x:Key="ButtonBorderBrushDisabledApp"
+						 Color="{DynamicResource ControlFillColorTransparent}" Opacity=".35" />
+		<StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="ButtonBorderBrushDisabledApp" />
 	</Application.Resources>
+
 
 	<Application.Styles>
 		<sty:FluentAvaloniaTheme />
@@ -140,15 +177,13 @@
 		-->
 		
 		<Style Selector="Border.devBorder">
-			<Setter Property="BorderBrush" Value="#124060"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorDark1}"/>
 		</Style>
 		<Style Selector="Border.tabBorder">
-			<Setter Property="BorderBrush" Value="#124000"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorDark2}"/>
 		</Style>
-
-
-
 	</Application.Styles>
+
 
 	<NativeMenu.Menu>
 		<NativeMenu />

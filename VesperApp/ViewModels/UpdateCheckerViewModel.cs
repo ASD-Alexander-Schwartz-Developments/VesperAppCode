@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
@@ -78,32 +79,35 @@ namespace VesperApp.ViewModels
             UpdateCommand = ReactiveCommand.CreateFromTask(PerformUpdateAsync, this.WhenAnyValue(x => x.IsUpdateAvailable));
             RestartApplyCommand = ReactiveCommand.Create(RestartApplyUpdate, this.WhenAnyValue(x => x.IsPendingRestart));
 
-            if(OperatingSystem.IsWindows())
+            if (Design.IsDesignMode == false)
             {
-                _channels = new List<string>
+                if (OperatingSystem.IsWindows())
+                {
+                    _channels = new List<string>
                 {
                     "win-x64-stable",
                     "win-x64-beta",
                 };
-            }
-            else if(OperatingSystem.IsMacOS())
-            {
-                _channels = new List<string>
+                }
+                else if (OperatingSystem.IsMacOS())
+                {
+                    _channels = new List<string>
                 {
                     "osx-arm64-stable",
                     "osx-arm64-beta"
                 };
-            }
-            else
-            {
-                _channels = new List<string>();
-            }
+                }
+                else
+                {
+                    _channels = new List<string>();
+                }
 
-            _um = new UpdateManager(_updateUrl, new UpdateOptions
-            {
-                ExplicitChannel = "win-x64-stable",
-                AllowVersionDowngrade = true,
-            });
+                _um = new UpdateManager(_updateUrl, new UpdateOptions
+                {
+                    ExplicitChannel = "win-x64-stable",
+                    AllowVersionDowngrade = true,
+                });
+            }
 
             _update = null;
         }

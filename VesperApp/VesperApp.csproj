@@ -46,6 +46,8 @@
 		<TrimmableAssembly Include="Avalonia.Themes.Fluent" />
 		<TrimmableAssembly Include="Avalonia.Themes.Default" />-->
 	
+	  <AvaloniaXaml Remove="Assets\ResourceDictionary.axaml" />
+	
 	  <AvaloniaXaml Remove="Assets\VesperIcons.axaml" />
 	</ItemGroup>
 	<ItemGroup>
@@ -80,6 +82,9 @@
 		</AvaloniaResource>
 		<AvaloniaResource Update="Assets\FluentUiIcons_Filled.xaml">
 			<Generator>MSBuild:Compile</Generator>
+		</AvaloniaResource>
+		<AvaloniaResource Update="Assets\ResourceDictionary.axaml">
+		  <SubType>Designer</SubType>
 		</AvaloniaResource>
 		<AvaloniaResource Update="Assets\VesperIcons.axaml">
 		  <SubType>Designer</SubType>

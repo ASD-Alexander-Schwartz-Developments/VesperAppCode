@@ -19,7 +19,7 @@ namespace VesperApp.Services
 
         private List<string>? csv_lines;
 
-        public NanoAccParser(string filename, byte[] data, DateTime dtStart, UInt16 subsec_frac, UInt32 ms_sample) 
+        public  NanoAccParser(string filename, byte[] data, DateTime dtStart, UInt16 subsec_frac, UInt32 ms_sample) 
         { 
             if(data == null) throw new ArgumentNullException("data");
 

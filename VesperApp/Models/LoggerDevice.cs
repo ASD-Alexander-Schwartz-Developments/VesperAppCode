@@ -1080,9 +1080,10 @@ namespace VesperApp.Models
 
                             DateTime dt = Nanotag.FromTimestamp(snapTimestamp, snapSubsecond);
 
-                            filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}.abn",
+                            filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}_{8,3:D3}.abn",
                                 new object[] {
-                                    outfolder, "NACC.", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second});
+                                    outfolder, "NACC.", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, 
+                                    dt.Second, dt.Millisecond});
                             string mname = filename + ".txt";
 
                             //Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);

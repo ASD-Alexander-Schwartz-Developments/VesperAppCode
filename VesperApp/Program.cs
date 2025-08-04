@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging;
 using Avalonia.ReactiveUI;
@@ -32,8 +33,11 @@ namespace VesperApp
             Log = new MemoryLogger();
 
             Log.LogUpdated += Log_LogUpdated;
-            
-            VelopackApp.Build().Run();
+
+            if (Design.IsDesignMode == false)
+            {
+                VelopackApp.Build().Run();
+            }
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 
             Trace.TraceInformation("VesperApp Opened");

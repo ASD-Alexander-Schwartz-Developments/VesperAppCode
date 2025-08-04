@@ -954,9 +954,9 @@ namespace VesperApp.ViewModels
 
                                             DateTime dtStart = DateTime.Now;
 
-                                            ArrayList arrayList = Utils.scan(currentFilename, "NACC%d_%d_%d_%d_%d_%d_%d");
+                                            ArrayList arrayList = Utils.scan(currentFilename, "NACC.%d_%d_%d_%d_%d_%d_%d.ABN");
 
-                                            if (arrayList.Count == 7)
+                                            if (arrayList.Count >= 6)
                                             {
                                                 int? year = (int?)arrayList[0];
                                                 int? month = (int?)arrayList[1];
@@ -964,7 +964,12 @@ namespace VesperApp.ViewModels
                                                 int? hr = (int?)arrayList[3];
                                                 int? mn = (int?)arrayList[4];
                                                 int? sec = (int?)arrayList[5];
-                                                int? sbs = (int?)arrayList[6];
+                                                int? sbs = (int?)0;
+
+                                                if(arrayList.Count == 7)
+                                                {
+                                                    sbs = (int?)arrayList[6];
+                                                }
 
                                                 if (year != null && month != null && day != null &&
                                                         hr != null && mn != null && sec != null && sbs != null)

@@ -65,27 +65,7 @@
 				<TextBlock HorizontalAlignment="Right" x:Name="textDateTime" VerticalAlignment="Center" Padding="10,2,2,4" Text="{Binding TextDateTimeNow}" FontFamily="Roboto" FontSize="14"/>
 				<CheckBox x:Name="chkIsUTC" IsChecked="{Binding IsClockUTC}" Content="Is UTC" Padding="4,2,2,4"/>
 			</StackPanel>
-
-			<StackPanel x:Name="titleBarFlag"  HorizontalAlignment="Right" Orientation="Horizontal"  >
-				<Button Margin="10" IsEnabled="{Binding IsUpdateAvailable}" Flyout="{Binding updateFlyout}"  IsVisible="{Binding IsUpdateAvailable}" >
-					<StackPanel Orientation="Horizontal">
-						<Image Source="/Assets/redFlag.png" Width="25" Height="25" IsVisible="{Binding IsUpdateAvailable}"/>
-					</StackPanel>
-				</Button >
-				<Button Margin="10" IsEnabled="{Binding IsUpdateAvailable}" Flyout="{Binding updateFlyout}"  IsVisible="{Binding isdownloading}" >
-					<StackPanel Orientation="Horizontal">
-						<Image Source="/Assets/icons8-download-from-cloud-48.png" Width="25" Height="25" IsVisible="{Binding isdownloading}"/>
-					</StackPanel>
-				</Button >
-				<Button Margin="10" IsEnabled="{Binding isdownload}" Flyout="{Binding updateFlyout}"  IsVisible="{Binding isdownload}" >
-					<StackPanel Orientation="Horizontal">
-						<Image Source="/Assets/icons8-done-48.png" Width="25" Height="25" IsVisible="{Binding isdownload}"/>
-					</StackPanel>
-				</Button >
-			</StackPanel>
 		</StackPanel>
-		
-		
 			
 		<Border Classes="devBorder" CornerRadius="5" BorderThickness="3"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
 			<Grid ColumnDefinitions="*,100" RowDefinitions="*,35" ShowGridLines="false">
