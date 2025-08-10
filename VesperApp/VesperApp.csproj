@@ -8,9 +8,9 @@
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 		<ApplicationIcon>Assets\bat.ico</ApplicationIcon>
 		<StartupObject>VesperApp.Program</StartupObject>
-		<AssemblyVersion>1.0.26</AssemblyVersion>
-		<FileVersion>1.0.26</FileVersion>
-		<Version>1.0.26</Version>
+		<AssemblyVersion>1.0.27</AssemblyVersion>
+		<FileVersion>1.0.27</FileVersion>
+		<Version>1.0.27</Version>
 		<Company>A.S.D</Company>
 		<Product></Product>
 		<PackageIcon>bat.png</PackageIcon>

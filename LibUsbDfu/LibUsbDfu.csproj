@@ -7,6 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Device.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Device.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ASDLibUSBWrapper\ASDLibUSBWrapper.csproj" />
     <ProjectReference Include="..\FirmwareUpdater\FirmwareUpdater.csproj" />
   </ItemGroup>

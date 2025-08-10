@@ -4,7 +4,7 @@ if ($isstable -eq "stable") {
 	write-host "Releasing stable" 
 	
 	vpk download s3 --bucket vesperapprelease --region eu-central-1 --keyId AKIAVMDPSNQJR2OBZRVG --secret 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 --channel win-x64-stable
-	vpk pack -u VesperApp -v $release --packTitle 'Vesper App' --icon Assets\bat.ico -p bin\publish\Win-x64-stable --channel win-x64-stable
+	vpk pack --packId VesperApp --packVersion $release --packDir publish --mainExe VesperApp.exe --channel win-x64-stable --icon VesperApp\Assets\bat.ico  --packTitle 'VesperApp'
 	vpk upload s3 --bucket vesperapprelease --region eu-central-1 --keyId AKIAVMDPSNQJR2OBZRVG --secret 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 --channel win-x64-stable
 
 	#vpk download s3 --bucket vesperapprelease --region eu-central-1 --keyId AKIAVMDPSNQJR2OBZRVG --secret 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 --channel linux-x64-stable
@@ -19,7 +19,7 @@ if ($isstable -eq "stable") {
 	write-host "Releasing beta"
 
 	vpk download s3 --bucket vesperapprelease --region eu-central-1 --keyId AKIAVMDPSNQJR2OBZRVG --secret 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 --channel win-x64-beta
-	vpk pack -u VesperApp -v $release  --packTitle 'Vesper App' --icon Assets\bat.ico -p bin\publish\Win-x64-beta --channel win-x64-beta
+	vpk pack --packId VesperApp --packVersion $release --packDir publish --mainExe VesperApp.exe --channel win-x64-beta --icon VesperApp\Assets\bat.ico  --packTitle 'VesperApp'
 	vpk upload s3 --bucket vesperapprelease --region eu-central-1 --keyId AKIAVMDPSNQJR2OBZRVG --secret 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 --channel win-x64-beta
 
 	#vpk download s3 --bucket vesperapprelease --region eu-central-1 --keyId AKIAVMDPSNQJR2OBZRVG --secret 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 --channel linux-x64-beta
