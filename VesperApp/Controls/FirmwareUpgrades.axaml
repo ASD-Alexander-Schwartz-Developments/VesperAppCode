@@ -19,10 +19,19 @@
 	<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="False">
 		<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
 			<ui:CommandBar.PrimaryCommands>
+				<ui:CommandBarElementContainer>
+					<ComboBox x:Name="comboDeviceType"
+							Margin="10"
+							VerticalAlignment="Center"
+							Width="140"
+							ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}"
+							SelectedItem="{Binding SelectedDeviceType}"/>
+				</ui:CommandBarElementContainer>
 				<ui:CommandBarButton Command="{Binding RefreshReleasesCommand}" IconSource="{StaticResource FwUpdate}" Label="Refresh" ToolTip.Tip="Refresh List of Releases"/>
 				<ui:CommandBarSeparator />
-				<ui:CommandBarButton Command="{Binding DownloadReleaseCommand}" IconSource="Download" Label="Refresh" ToolTip.Tip="Download Update"/>
+				<ui:CommandBarButton Command="{Binding DownloadReleaseCommand}" IconSource="Download" Label="Download" ToolTip.Tip="Download Update"/>				
 			</ui:CommandBar.PrimaryCommands>
+			
 			<ui:CommandBar.SecondaryCommands>
 			</ui:CommandBar.SecondaryCommands>
 		</ui:CommandBar>

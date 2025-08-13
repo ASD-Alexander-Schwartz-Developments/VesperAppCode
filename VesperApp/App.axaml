@@ -9,7 +9,7 @@
 
 	<Application.Resources>
 		<FontFamily x:Key="NunitoFont">avares://GoogleFonts/Assets/Fonts#Assistant</FontFamily>
-		<Color x:Key="SystemAccentColor">Blue</Color>
+		<Color x:Key="SystemAccentColor">DarkBlue</Color>
 		<SolidColorBrush x:Key="ButtonBackgroundApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity=".35" />
 		<StaticResource x:Key="ButtonBackground" ResourceKey="ButtonBackgroundApp" />
 		<LinearGradientBrush x:Key="ButtonBorderBrushApp" StartPoint="0,0" EndPoint="0,3" Opacity=".35">
