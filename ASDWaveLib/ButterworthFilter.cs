@@ -9,7 +9,7 @@
         //--------------------------------------------------------------------------
         public static double[] Butterworth(double[] indata, double Samplingrate, double CutOff)
         {
-            if (indata == null) return null;
+            if (indata == null) return new double[0];
             if (CutOff == 0) return indata;
 
             long dF2 = indata.Length - 1;        // The data range is set with dF2
@@ -24,8 +24,7 @@
             Dat2[1] = Dat2[0] = indata[0];
             Dat2[dF2 + 3] = Dat2[dF2 + 2] = indata[dF2];
 
-            const double pi = 3.14159265358979;
-            double wc = Math.Tan(CutOff * pi / Samplingrate);
+            double wc = Math.Tan(CutOff * Math.PI / Samplingrate);
             double k1 = 1.414213562 * wc; // Sqrt(2) * wc
             double k2 = wc * wc;
             double a = k2 / (1 + k1 + k2);

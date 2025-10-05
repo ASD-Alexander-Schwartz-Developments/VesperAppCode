@@ -177,36 +177,35 @@ namespace ASDWaveLib
                     this.DataBuffer = new byte[buffer.Length];
                     buffer.CopyTo(this.DataBuffer, 0);
 
-                    /*
+                    
                     Int16[] buf16bit = new Int16[buffer.Length / 2];
                     for (int objIndex = 0; objIndex < buf16bit.Length; objIndex++)
                     {
                         buf16bit[objIndex] = (Int16)(((UInt16)buffer[objIndex * 2]) +
                                                     ((UInt16)buffer[(objIndex * 2) + 1] << 8));
-                    }*/
+                    }
                     
-                    //double arr_avg = 0.0;
+                    double arr_avg = 0.0;
                     /*for (int i = 0; i < buf16bit.Length; i++)
                     {
                         arr_avg += buf16bit[i];
                     }
                     arr_avg /= (double)buf16bit.Length;
-                    
+                    */
+                    double[] in_data = new double[buffer.Length / 2];
                     for (int i = 0; i < buf16bit.Length; i++)
                     {
-                        double x = (double)((double)((double)buf16bit[i] - arr_avg) / 65536.0);
-
-                        double y = x;
-                        buf16bit[i] = (Int16)((double)y * (double)Int16.MaxValue);
+                        in_data[i] = (double)((double)((double)buf16bit[i]/* - arr_avg*/) / (double)Int16.MaxValue);
                     }
-                    */
-                    //filtered_data = ASDWave.ButterworthFilter.Butterworth(filtered_data, fap.SamplingRate, fap.SamplingRate / 2.2);
-                    /*
+
+                    double[] filtered_data = ButterworthFilter.Butterworth(in_data, SampleRate, SampleRate / 2.2);
+                    
                     for (int objIndex = 0; objIndex < buf16bit.Length; objIndex++)
                     {
+                        buf16bit[objIndex] = (short)(((double)filtered_data[objIndex] * (double)Int16.MaxValue));
                         DataBuffer[objIndex * 2] = (byte)(buf16bit[objIndex] & 0xFF);
                         DataBuffer[objIndex * 2 + 1] = (byte)(buf16bit[objIndex] >> 8);
-                    }*/
+                    }
 
                     this.WriteWave();
                 }
