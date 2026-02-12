@@ -8,6 +8,7 @@
 			 xmlns:Controls="using:VesperApp.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="VesperApp.Controls.ScheduleEditor">
+	<ScrollViewer VerticalAlignment="Stretch" VerticalScrollBarVisibility="Auto">
 	<Grid HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="true">
 		<StackPanel Classes="stlToolbar" Grid.Column="0" Grid.Row="0" Orientation="Horizontal"
 					HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -69,4 +70,5 @@
 			</Expander>
 		</StackPanel>
 	</Grid>
+	</ScrollViewer>
 </UserControl>

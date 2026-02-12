@@ -19,6 +19,15 @@ using VesperApp.ViewModels;
 
 namespace VesperApp.Controls
 {
+    /// <summary>
+    /// Provides a user control for displaying and editing device driver properties in a grid format, with dynamic
+    /// editors based on property types.
+    /// </summary>
+    /// <remarks>DeviceDriverPropertyGrid enables editing of various driver property types by automatically
+    /// selecting the appropriate editor (such as ComboBox, NumberBox, CheckBox, or TextBox) for each property. This
+    /// allows for flexible and intuitive interaction with device driver settings. The control is intended for use in
+    /// scenarios where device driver properties need to be viewed and modified within a graphical interface. Thread
+    /// safety is not guaranteed; interactions should occur on the UI thread.</remarks>
     public partial class DeviceDriverPropertyGrid : UserControl
     {
         private Avalonia.Controls.DataGrid ? gridEditor;
@@ -32,7 +41,6 @@ namespace VesperApp.Controls
             
             if(gridEditor != null )
             {
-                gridEditor.DataContextChanged += GridEditor_DataContextChanged;
                 gridEditor.SelectionChanged += GridEditor_SelectionChanged;
                 col = (DataGridTemplateColumn)gridEditor.Columns[1];
             }
@@ -40,6 +48,15 @@ namespace VesperApp.Controls
             selectedDriverProperty = null;
         }
 
+
+        /// <summary>
+        /// This is where magic happens. When the user selects a property in the grid, we check the type of the property and create an appropriate editor for it. 
+        /// For example, if the property is of type AclysSnapLength, we create a ComboBox with the options defined in AclysSnapLength.ListOfLength. 
+        /// If the property is of type UInt32, we create a NumberBox. If the property is of type bool, we create a CheckBox. For other types, we create a TextBox. 
+        /// We then set the CellEditingTemplate of the column to the appropriate template. This allows us to have different editors for different types of properties in the same grid.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void GridEditor_SelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
             if(e.AddedItems != null && e.AddedItems.Count > 0)
@@ -50,7 +67,7 @@ namespace VesperApp.Controls
                 {
                     selectedDriverProperty = (DriverPropertyViewModel)obj;
 
-                    //Debug.WriteLine("Selected: " + obj.ToString() + " Type=" + obj.GetType().ToString());
+                    Debug.WriteLine("Selected: " + obj.ToString() + " Type=" + obj.GetType().ToString());
 
                     if (col != null)
                     {
@@ -339,27 +356,44 @@ namespace VesperApp.Controls
 
                                 col.CellEditingTemplate = template;
                             }
-                            else if( dt == typeof(UInt32) || dt == typeof(double) || dt == typeof(decimal) || dt == typeof(UInt16))
+                            else if(dt == typeof(UInt32))
                             {
-                                //Binding b = new Binding("Value", BindingMode.TwoWay);
-                                //b.Converter = VesperApp.Services.UpDownUintConverter.Instance;
+                                Avalonia.Data.Binding b = new Binding("Value", BindingMode.TwoWay);
+                                b.Converter = VesperApp.Services.UpDownUintConverter.Instance;
                                 NumberBox nud = new NumberBox
                                 {
-                                    [!NumberBox.ValueProperty] = new Binding("Value", BindingMode.TwoWay),//b,
-                                    //[!NumericUpDown.TextProperty] = new Binding("Value", BindingMode.TwoWay),
+                                    [!NumberBox.ValueProperty] = b,
                                     Margin = new Thickness(1),
                                     Focusable = true,
-                                   // FormatString = "{0,N0}",
                                     SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
-                                    Maximum = 1000000,
+                                    Maximum = 10000000,
                                     Minimum = 0,
+                                    SmallChange = 1,
+                                    LargeChange = 1000,
                                     HorizontalAlignment = HorizontalAlignment.Stretch,
                                     VerticalAlignment = VerticalAlignment.Stretch,
                                 };
-                                //nud.TextInputMethodClientRequested += Nud_TextInputMethodClientRequested;//    += Nud_TextInputOptionsQuery;
-                                //nud.TextInput += Nud_TextInput;
-                                //nud.LostFocus += Nud_LostFocus;
-                                //nud.KeyDown += Nud_KeyDown;
+
+                                var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => nud);
+                                col.CellEditingTemplate = template;
+                            }
+                            else if (dt == typeof(double))
+                            {
+                                Avalonia.Data.Binding b = new Binding("Value", BindingMode.TwoWay);
+                                NumberBox nud = new NumberBox
+                                {
+                                    [!NumberBox.ValueProperty] = b,
+                                    Margin = new Thickness(1),
+                                    Focusable = true,
+                                    SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
+                                    Maximum = double.MaxValue,
+                                    Minimum = double.MinValue,
+                                    SmallChange = 1,
+                                    LargeChange = 10,
+                                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                                    VerticalAlignment = VerticalAlignment.Stretch,
+
+                                };
 
                                 var template = new FuncDataTemplate<DriverPropertyViewModel>((data, x) => nud);
                                 col.CellEditingTemplate = template;
@@ -398,84 +432,9 @@ namespace VesperApp.Controls
             }
         }
 
-        private void Nud_TextInputMethodClientRequested(object? sender, Avalonia.Input.TextInput.TextInputMethodClientRequestedEventArgs e)
-        {
-            
-        }
-
-        private void Nud_KeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
-        {
-            /*if (sender != null)
-            {
-                var nud = (NumericUpDown)sender;
-
-                if (e.Key == Avalonia.Input.Key.Delete)
-                {
-                    nud.Text = "0";
-                    nud.Value = 0;
-                    e.Handled = true;
-                }
-                else if (e.Key == Avalonia.Input.Key.Back)
-                {
-                    nud.Text = "0";
-                    nud.Value = 0; 
-                    e.Handled = true;
-                }
-            }*/
-        }
-
-        private void Nud_LostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            if (sender != null)
-            {
-                var nud = (NumericUpDown)sender;
-                decimal r = (nud.Value is null) ? 0 : (decimal)nud.Value;
-                string? text = nud.Text;
-
-                if(text == null || text.Length == 0)
-                {
-                    text = "0";
-                }
-
-                if (decimal.TryParse(text, out r) == true)
-                {
-                    nud.Value = r;
-                }
-            }
-        }
-
-        private void Nud_TextInput(object? sender, Avalonia.Input.TextInputEventArgs e)
-        {/*
-            if (sender != null)
-            {
-                var nud = (NumericUpDown)sender;
-                decimal r = (nud.Value is null) ? 0 : (decimal)nud.Value;
-                string? text = nud.Text + e.Text;
-                Debug.WriteLine("Numeric text changed event:" + e.Device?.ToString());
-                Debug.WriteLine("Numeric text changed: Original Value: " + r + " Original Text: " + nud.Text + " Event Text: " + e.Text);
-                
-                if (decimal.TryParse(text, out r) == true)
-                {
-                    nud.Value = r;
-                }
-            }*/
-        }
-
-        /*
-        private void Nud_TextInputOptionsQuery(object? sender, Avalonia.Input.TextInput.TextInputOptionsQueryEventArgs e)
-        {
-            e.ContentType = Avalonia.Input.TextInput.TextInputContentType.Number;
-        }*/
-
-        private void GridEditor_DataContextChanged(object? sender, System.EventArgs e)
-        {
-            //Debug.WriteLine("Grid DataContext chnaged");
-        }
-
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
         }
-
     }
 }

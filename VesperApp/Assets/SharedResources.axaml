@@ -1,0 +1,60 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=netstandard">
+  <!-- Shared application resources (colors, brushes, sizes, common styles) -->
+  
+    <!-- Fonts -->
+    <FontFamily x:Key="NunitoFont">avares://GoogleFonts/Assets/Fonts#Assistant</FontFamily>
+
+    <!-- Accent / palette -->
+    <Color x:Key="SystemAccentColor">DarkBlue</Color>
+
+    <!-- Buttons -->
+    <SolidColorBrush x:Key="ButtonBackgroundApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity="0.35" />
+    <StaticResource x:Key="ButtonBackground" ResourceKey="ButtonBackgroundApp" />
+
+    <LinearGradientBrush x:Key="ButtonBorderBrushApp" StartPoint="0,0" EndPoint="0,3" Opacity="0.35">
+      <LinearGradientBrush.GradientStops>
+        <GradientStop Offset="0.33" Color="{StaticResource ControlStrokeColorOnAccentSecondary}" />
+        <GradientStop Offset="1.0" Color="{StaticResource ControlStrokeColorOnAccentDefault}" />
+      </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <StaticResource x:Key="ButtonBorderBrush" ResourceKey="ButtonBorderBrushApp" />
+
+    <SolidColorBrush x:Key="ButtonBackgroundPointerOverApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity="0.30" />
+    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOverApp" />
+
+    <LinearGradientBrush x:Key="ButtonBorderBrushPointerOverApp" StartPoint="0,0" EndPoint="0,3" Opacity="0.35">
+      <LinearGradientBrush.GradientStops>
+        <GradientStop Offset="0.33" Color="{StaticResource ControlStrokeColorOnAccentSecondary}" />
+        <GradientStop Offset="1.0" Color="{StaticResource ControlStrokeColorOnAccentDefault}" />
+      </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="ButtonBorderBrushPointerOverApp" />
+
+    <SolidColorBrush x:Key="ButtonBackgroundPressedApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity="0.27" />
+    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="ButtonBackgroundPressedApp" />
+
+    <SolidColorBrush x:Key="ButtonBorderBrushPressedApp" Color="{DynamicResource ControlFillColorTransparent}" Opacity="0.35" />
+    <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="ButtonBorderBrushPressedApp" />
+
+    <SolidColorBrush x:Key="ButtonBackgroundDisabledApp" Color="{DynamicResource TextOnAccentFillColorDisabled}" Opacity="0.35" />
+    <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="ButtonBackgroundDisabledApp" />
+
+    <SolidColorBrush x:Key="ButtonBorderBrushDisabledApp" Color="{DynamicResource ControlFillColorTransparent}" Opacity="0.35" />
+    <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="ButtonBorderBrushDisabledApp" />
+
+    <!-- List / table brushes -->
+    <SolidColorBrush x:Key="ListItemPointerOverBrush" Color="#F0F8FF" />
+    <SolidColorBrush x:Key="ListItemSelectedBrush" Color="#D6EAF8" />
+    <SolidColorBrush x:Key="ListItemSelectedForegroundBrush" Color="{DynamicResource ThemeForegroundBrush}" />
+    <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#F3F3F3" />
+    <SolidColorBrush x:Key="HeaderBorderBrush" Color="#E6E6E6" />
+    <SolidColorBrush x:Key="ColumnSeparatorBrush" Color="#EEE" />
+
+    <!-- Sizes and spacing -->
+    <sys:Double x:Key="HeaderRowHeight">40</sys:Double>
+    <sys:Double x:Key="ListRowMinHeight">44</sys:Double>
+    <Thickness x:Key="DefaultCellPadding">12,0,12,0</Thickness>
+
+</ResourceDictionary>

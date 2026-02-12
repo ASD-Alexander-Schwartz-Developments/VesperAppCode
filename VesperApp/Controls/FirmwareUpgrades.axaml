@@ -2,12 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-			 xmlns:m="using:VesperApp.Models"
-			 xmlns:vm="using:VesperApp.ViewModels"
-		     xmlns:ui="using:FluentAvalonia.UI.Controls"
-			 xmlns:oc="using:Octokit"
-		     xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
-		     xmlns:Controls="using:VesperApp.Controls"
+             xmlns:m="using:VesperApp.Models"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:oc="using:Octokit"
+             xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
+             xmlns:Controls="using:VesperApp.Controls"
+             xmlns:dg="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
              mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="450"
              x:Class="VesperApp.Controls.FirmwareUpgrades">
 
@@ -16,91 +17,65 @@
 	</UserControl.Resources>
 	
 	<HeaderedContentControl Header="Firmware Upgrades" IsVisible="True" UseLayoutRounding="True">
-	<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="False">
-		<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
-			<ui:CommandBar.PrimaryCommands>
-				<ui:CommandBarElementContainer>
-					<ComboBox x:Name="comboDeviceType"
-							Margin="10"
-							VerticalAlignment="Center"
-							Width="140"
-							ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}"
-							SelectedItem="{Binding SelectedDeviceType}"/>
-				</ui:CommandBarElementContainer>
-				<ui:CommandBarButton Command="{Binding RefreshReleasesCommand}" IconSource="{StaticResource FwUpdate}" Label="Refresh" ToolTip.Tip="Refresh List of Releases"/>
-				<ui:CommandBarSeparator />
-				<ui:CommandBarButton Command="{Binding DownloadReleaseCommand}" IconSource="Download" Label="Download" ToolTip.Tip="Download Update"/>				
-			</ui:CommandBar.PrimaryCommands>
+		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*">
+			<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
+				<ui:CommandBar.PrimaryCommands>
+					<ui:CommandBarElementContainer>
+						<ComboBox x:Name="comboDeviceType"
+								Margin="10"
+								VerticalAlignment="Center"
+								Width="140"
+								ItemsSource="{Binding Source={m:EnumBindingSource {x:Type m:DeviceTypes}}}"
+								SelectedItem="{Binding SelectedDeviceType}"/>
+					</ui:CommandBarElementContainer>
+					<ui:CommandBarButton Command="{Binding RefreshReleasesCommand}" IconSource="{StaticResource FwUpdate}" Label="Refresh" ToolTip.Tip="Refresh List of Releases"/>
+					<ui:CommandBarSeparator />
+					<ui:CommandBarButton Command="{Binding DownloadReleaseCommand}" IconSource="Download" Label="Download" ToolTip.Tip="Download Update"/>				
+				</ui:CommandBar.PrimaryCommands>
 			
-			<ui:CommandBar.SecondaryCommands>
-			</ui:CommandBar.SecondaryCommands>
-		</ui:CommandBar>
+				<ui:CommandBar.SecondaryCommands>
+				</ui:CommandBar.SecondaryCommands>
+			</ui:CommandBar>
 
-		<Grid Grid.Row="1" RowDefinitions="Auto,Auto,*" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-			<ui:ProgressRing IsVisible="{Binding IsLoadingReleases}" IsActive="{Binding IsLoadingReleases}" Margin="10,0,0,0" Grid.Row="0"/>
-			<!-- Header Row -->
-			<Grid Grid.Row="1" ColumnDefinitions="*,2*,2*" Margin="1,0,1,0">
-				<TextBlock Grid.Column="0" Text="Ver" FontWeight="Bold" VerticalAlignment="Center" Margin="3"/>
-				<TextBlock Grid.Column="1" Text="Description" FontWeight="Bold" VerticalAlignment="Center" Margin="3"/>
-				<TextBlock Grid.Column="2" Text="Publish Date" FontWeight="Bold" VerticalAlignment="Center" Margin="3"/>
-				<!-- Add more headers if you add more columns -->
+			<Grid Grid.Row="1" RowDefinitions="Auto,*" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+				<VirtualizingStackPanel Grid.Row="1">
+					<ui:ProgressRing IsVisible="{Binding IsLoadingReleases}" IsActive="{Binding IsLoadingReleases}" Margin="10,0,0,0" Grid.Row="0"/>
+				</VirtualizingStackPanel>
+			
+				<dg:DataGrid Grid.Row="2"
+							 ItemsSource="{Binding Releases}"
+							 x:Name="listReleasesList"
+							 Margin="20"
+							 SelectionMode="Single"
+							 SelectedItem="{Binding SelectedFirmwareRelease, Mode=TwoWay}"
+							 AutoGenerateColumns="False"
+							 IsReadOnly="True"
+							 HeadersVisibility="Column"
+							 GridLinesVisibility="None"
+							 HorizontalAlignment="Stretch"
+							 VerticalAlignment="Stretch"
+							 CanUserResizeColumns="True"
+							 CanUserReorderColumns="False"
+							 CanUserSortColumns="False"
+							 VerticalScrollBarVisibility="Visible"
+							 HorizontalScrollBarVisibility="Auto">
+					<dg:DataGrid.Resources>
+						<Style x:Key="1" Selector="DataGridColumnHeader">
+							<Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}"/>
+							<Setter Property="Padding" Value="12,0"/>
+							<Setter Property="HorizontalContentAlignment" Value="Left"/>
+							<Setter Property="FontWeight" Value="Bold"/>
+						</Style>
+					</dg:DataGrid.Resources>
+
+					<dg:DataGrid.Columns>
+						<dg:DataGridTextColumn Header="Ver" Binding="{Binding Name}" Width="1*" MinWidth="80"/>
+						<dg:DataGridTextColumn Header="Description" Binding="{Binding Body}" Width="2*" MinWidth="200"/>
+						<dg:DataGridTextColumn Header="Publish Date" Binding="{Binding PublishedAt}" Width="2*" MinWidth="120"/>
+					</dg:DataGrid.Columns>
+				</dg:DataGrid>
 			</Grid>
-
-			<ListBox ItemsSource="{Binding Releases}"
-						x:Name="listReleasesList"
-						Margin="1,1,1,1"
-						SelectionMode="Single"
-						Selection="{Binding SelectedFirmwareRelease}"
-						HorizontalAlignment="Stretch"
-						VerticalAlignment="Stretch" 
-						Grid.Row="2">
-				<ListBox.ItemTemplate>
-					<DataTemplate DataType="oc:Release">
-						<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="*" />
-								<ColumnDefinition Width="2*" />
-								<ColumnDefinition Width="2*" />
-							</Grid.ColumnDefinitions>
-							<Grid.RowDefinitions>
-								<RowDefinition Height="*" />
-							</Grid.RowDefinitions>
-							<TextBlock Grid.Column="0"
-										Margin="3"
-										Text="{Binding Name}"
-										TextWrapping="WrapWithOverflow"
-										TextAlignment="Left"
-										VerticalAlignment="Center"
-										HorizontalAlignment="Left"
-										ToolTip.Tip="{Binding Name}"/>
-							<TextBlock Grid.Column="1"
-										Margin="3"
-										Text="{Binding Body}"
-										TextWrapping="Wrap"
-										TextAlignment="Left"
-										VerticalAlignment="Center"
-										HorizontalAlignment="Left"
-										ToolTip.Tip="{Binding Body}"/>
-							<TextBlock Grid.Column="2"
-										Margin="3"
-										Text="{Binding PublishedAt}"
-										TextWrapping="Wrap"
-										TextAlignment="Left"
-										VerticalAlignment="Center"
-										HorizontalAlignment="Left"
-										ToolTip.Tip="{Binding PublishedAt}"/>
-						</Grid>
-					</DataTemplate>
-				</ListBox.ItemTemplate>
-				<ListBox.Styles>
-					<Style Selector="ListBoxItem">
-						<Setter Property="Height" Value="50"/>
-						<Setter Property="FontSize" Value="12"/>
-					</Style>
-				</ListBox.Styles>
-			</ListBox>
-		</Grid>
-	</Grid>	
+		</Grid>	
 	</HeaderedContentControl>
 
 </UserControl>

@@ -819,3 +819,10 @@ namespace FirmwareUpdater.Dfu
         #endregion
     }
 }
+
+// Source: Portions of DFU/USB interaction logic were based on or inspired by:
+//   - libusb: https://github.com/libusb/libusb
+//   - LibUsbDotNet: https://github.com/LibUsbDotNet/LibUsbDotNet
+// Upstream license(s): see files in /licenses (libusb-LICENSE.txt, LibUsbDotNet-LICENSE.txt).
+// Modifications: refactored and adapted for .NET 8, internal API surface and project structure.
+// NOTE: Verify and preserve upstream license obligations when redistributing binaries that include or link libusb or LibUsbDotNet.

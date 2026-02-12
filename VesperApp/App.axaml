@@ -1,126 +1,51 @@
 <Application xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="using:VesperApp"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:local="using:VesperApp"
 			 xmlns:sty="using:FluentAvalonia.Styling"
-             x:Class="VesperApp.App">
-    <Application.DataTemplates>
-        <local:ViewLocator/>
-    </Application.DataTemplates>
+			 x:Class="VesperApp.App">
+	<Application.DataTemplates>
+		<local:ViewLocator/>
+	</Application.DataTemplates>
 
 	<Application.Resources>
-		<FontFamily x:Key="NunitoFont">avares://GoogleFonts/Assets/Fonts#Assistant</FontFamily>
-		<Color x:Key="SystemAccentColor">DarkBlue</Color>
-		<SolidColorBrush x:Key="ButtonBackgroundApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity=".35" />
-		<StaticResource x:Key="ButtonBackground" ResourceKey="ButtonBackgroundApp" />
-		<LinearGradientBrush x:Key="ButtonBorderBrushApp" StartPoint="0,0" EndPoint="0,3" Opacity=".35">
-			<LinearGradientBrush.GradientStops>
-				<GradientStop Offset="0.33" Color="{StaticResource ControlStrokeColorOnAccentSecondary}" />
-				<GradientStop Offset="1.0" Color="{StaticResource ControlStrokeColorOnAccentDefault}" />
-			</LinearGradientBrush.GradientStops>
-		</LinearGradientBrush>
-		<StaticResource x:Key="ButtonBorderBrush" ResourceKey="ButtonBorderBrushApp" />
-
-		<SolidColorBrush x:Key="ButtonBackgroundPointerOverApp" Color="{DynamicResource SystemAccentColorLight2}"
-						 Opacity=".30" />
-		<StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOverApp" />
-
-		<LinearGradientBrush x:Key="ButtonBorderBrushPointerOverApp" StartPoint="0,0" EndPoint="0,3" Opacity=".35">
-			<LinearGradientBrush.GradientStops>
-				<GradientStop Offset="0.33" Color="{StaticResource ControlStrokeColorOnAccentSecondary}" />
-				<GradientStop Offset="1.0" Color="{StaticResource ControlStrokeColorOnAccentDefault}" />
-			</LinearGradientBrush.GradientStops>
-		</LinearGradientBrush>
-		<StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="ButtonBorderBrushPointerOverApp" />
-
-		<SolidColorBrush x:Key="ButtonBackgroundPressedApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity=".27" />
-		<StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="ButtonBackgroundPressedApp" />
-
-		<SolidColorBrush x:Key="ButtonBorderBrushPressedApp" Color="{DynamicResource ControlFillColorTransparent}"
-						 Opacity=".35" />
-		<StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="ButtonBorderBrushPressedApp" />
-
-		<SolidColorBrush x:Key="ButtonBackgroundDisabledApp"
-						 Color="{DynamicResource TextOnAccentFillColorDisabled}" Opacity=".35" />
-		<StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="ButtonBackgroundDisabledApp" />
-
-		<SolidColorBrush x:Key="ButtonBorderBrushDisabledApp"
-						 Color="{DynamicResource ControlFillColorTransparent}" Opacity=".35" />
-		<StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="ButtonBorderBrushDisabledApp" />
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceInclude Source="avares://VesperApp/Assets/ResourceDictionary.axaml"/>
+				<!-- Shared resources and common styles -->
+				<ResourceInclude Source="avares://VesperApp/Assets/SharedResources.axaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
 	</Application.Resources>
-
-
+	<!-- Keep application-level styles and include shared resources -->
 	<Application.Styles>
 		<sty:FluentAvaloniaTheme />
-		<!--
-		<sty:FluentAvaloniaTheme PreferUserAccentColor="True"/>
-		<StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
-		-->
 		<StyleInclude Source="avares://VesperApp/Assets/FluentUiIcons_Filled.xaml"/>
-		<!--
-		<Style Selector="Window">
-			<Setter Property="FontFamily" Value="Assistant" />
-			<Setter Property="FontSize" Value="12"/>
-		</Style>
-		-->
-		<!--
-		<Style Selector=":is(Control)">
-			<Setter Property="Focusable" Value="false"/>
-		</Style>
 
-		<Style Selector="Label">
-			<Setter Property="FontFamily" Value="Lato" />
-			<Setter Property="FontSize" Value="12"/>
-		</Style>
-		-->
 
-		<Style Selector="Button">
-			<!--<Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderMidBrush}" />-->
-			<!--<Setter Property="Background" Value="{DynamicResource ThemeControlHighBrush}" />-->
-			<!--<Setter Property="FontSize" Value="11"/>-->
-		</Style>
 
-		<!--
-		<Style Selector="Button:pointerover /template/ ContentPresenter">
-			<Setter Property="BorderBrush" Value="{DynamicResource ThemeButtonEnabledBrush}"/>
-		</Style>
+		<!-- Text styles
+		<Style x:Key="HeaderText" Selector="TextBlock">
+		<Setter Property="FontWeight" Value="Bold"/>
+		<Setter Property="VerticalAlignment" Value="Center"/>
+		<Setter Property="Margin" Value="12,0,12,0"/>
+		</Style>-->
 
-		<Style Selector="Button:pressed  /template/ ContentPresenter">
-			<Setter Property="Background" Value="{DynamicResource ThemeButtonEnabledBrush}"/>
-		</Style>
-
-		<Style Selector="CheckBox:pointerover /template/ Border#border">
-			<Setter Property="BorderBrush" Value="{DynamicResource ThemeButtonEnabledBrush}"/>
-		</Style>
-
-		<Style Selector="RadioButton:pointerover /template/ Ellipse#border">
-			<Setter Property="Stroke" Value="{DynamicResource ThemeButtonEnabledBrush}"/>
-		</Style>
-
-		<Style Selector="ComboBox">
-			<Setter Property="Cursor" Value="Hand" />
-			<Setter Property="FontSize" Value="11"/>
-		</Style>
-
-		<Style Selector="ScrollBar /template/ RepeatButton.repeat">
-			<Setter Property="IsVisible" Value="true" />
-		</Style>
--->
-		<Style Selector="TextBlock.DockControls">
-			<Setter Property="FontSize" Value="10"/>
-		</Style>
-		
+		<!-- Shared styles (ListBox/ListView full-row selection, header helpers) -->
 		<Style Selector="ListBoxItem">
-			<!--<Setter Property="FontSize" Value="10"/>-->
+			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="MinHeight" Value="{StaticResource ListRowMinHeight}"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+			<Style Selector="^:pointerover">
+				<Setter Property="Background" Value="{StaticResource ListItemPointerOverBrush}"/>
+			</Style>
+			<Style Selector="^:selected">
+				<Setter Property="Background" Value="{StaticResource ListItemSelectedBrush}"/>
+				<Setter Property="Foreground" Value="{StaticResource ListItemSelectedForegroundBrush}"/>
+			</Style>
 		</Style>
-		<!--
-		<Style Selector="TextBlock.tbTabHeader">
-			<Setter Property="FontSize" Value="12"/>
-			<Setter Property="FontWeight" Value="Bold"/>
-			<Setter Property="Margin" Value="5"/>
-			<Setter Property="Padding" Value="10"/>
-		</Style>
-		-->
 
+		<!-- Small utility styles -->
 		<Style Selector="StackPanel.collapseAnimation">
 			<Setter Property="Transitions">
 				<Transitions>
@@ -128,54 +53,7 @@
 				</Transitions>
 			</Setter>
 		</Style>
-		<!--
-		<Style Selector="StackPanel.stlToolbar">
-			<Setter Property="Background" Value="#2B579A"/>
-			<Setter Property="Transitions">
-				<Transitions>
-					<DoubleTransition Property="Opacity" Duration="0:0:0.2" />
-				</Transitions>
-			</Setter>
-		</Style>
 
-
-		<Style Selector="NumericUpDown">
-			<Setter Property="TextInputOptions.ContentType" Value="Digits" />
-		</Style>
-		-->
-
-		<!--
-		<Style Selector="TabControl">
-			<Setter Property="Background" Value="#F0F0F0"/>
-		</Style>
-		-->
-		<!--
-		<Style Selector="TabControl WrapPanel">
-			<Setter Property="Background" Value="#2B579A"/>
-			<Setter Property="Margin" Value="0,0,0,0"/>
-		</Style>
-		-->
-		<!--
-		<Style Selector="TabItem">
-			<Setter Property="FontSize" Value="24"/>
-			<Setter Property="FontWeight" Value="Bold"/>		
-			<Setter Property="VerticalAlignment" Value="Stretch"/>
-			<Setter Property="Foreground" Value="#909090"/>
-			<Setter Property="Margin" Value="0 0 0 0"/>
-			<Setter Property="Padding" Value="20"/>
-		</Style>
-		
-		<Style Selector="TabItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-			<Setter Property="Foreground" Value="#124078"/>
-		</Style>
-
-		<Style Selector="TabItem:focus">
-			<Setter Property="Foreground" Value="#F0F0F0"/>
-			<Setter Property="Margin" Value="0 0 0 0"/>
-			<Setter Property="Padding" Value="20"/>
-		</Style>
-		-->
-		
 		<Style Selector="Border.Clock">
 			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorLight1}"/>
 		</Style>
@@ -185,12 +63,15 @@
 		<Style Selector="Border.tabBorder">
 			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorDark2}"/>
 		</Style>
-	</Application.Styles>
 
+
+		<!-- Any additional app-specific styles can remain here -->
+		<Style Selector="Button">
+			<!-- App-wide button tweaks can live here -->
+		</Style>
+	</Application.Styles>
 
 	<NativeMenu.Menu>
 		<NativeMenu />
 	</NativeMenu.Menu>
-
-
 </Application>

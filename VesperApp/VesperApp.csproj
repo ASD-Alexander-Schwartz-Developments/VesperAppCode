@@ -48,6 +48,8 @@
 	
 	  <AvaloniaXaml Remove="Assets\ResourceDictionary.axaml" />
 	
+	  <AvaloniaXaml Remove="Assets\SharedResources.axaml" />
+	
 	  <AvaloniaXaml Remove="Assets\VesperIcons.axaml" />
 	</ItemGroup>
 	<ItemGroup>

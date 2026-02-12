@@ -10,7 +10,7 @@
 			 xmlns:serv="using:VesperApp.Services"
 			 xmlns:c="using:Avalonia.Collections"
 			 xmlns:sys="using:System"
-			 MinHeight="150" MaxHeight="280">
+			 MinHeight="200" MaxHeight="380">
 
 
 	<Border BorderThickness="5" BorderBrush="#909090" HorizontalAlignment="Stretch" Padding="2" CornerRadius="5" VerticalAlignment="Stretch">
@@ -23,11 +23,11 @@
 						SelectedItem="{Binding SelectedProperty, Mode=TwoWay}"
 						CanUserResizeColumns="true"
 						x:Name="gridEditProperties"
-							  HorizontalAlignment="Stretch"
-							  VerticalAlignment="Stretch"
-							  VerticalScrollBarVisibility="Auto"
-							  HorizontalScrollBarVisibility="Auto"
-							  Margin="5,5,5,5" Padding="1">
+						HorizontalAlignment="Stretch"
+						VerticalAlignment="Stretch"
+						VerticalScrollBarVisibility="Auto"
+						HorizontalScrollBarVisibility="Auto"
+						Margin="5,5,5,5" Padding="1">
 						<DataGrid.Styles>
 							<Style Selector="TextBlock">
 								<Setter Property="TextWrapping" Value="WrapWithOverflow" />

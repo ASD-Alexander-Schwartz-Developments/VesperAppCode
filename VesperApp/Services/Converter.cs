@@ -25,52 +25,30 @@ namespace VesperApp.Services {
 
         public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            var str = value?.ToString();
-            if (str == null)
+            // Convert UInt32 (source) to decimal (target, for NumericUpDown.Value)
+            if (value is UInt32 uintValue)
             {
-                Debug.WriteLine("Convert unset value");
-                return AvaloniaProperty.UnsetValue;
-            }
-            /*if (UInt32.TryParse(str, NumberStyles.Number, CultureInfo.InvariantCulture, out uint x))
-                return (decimal)x;*/
-
-            if (targetType == typeof(string))
-            {
-                Debug.WriteLine("Convert string value: " + str);
-
-                return str;
+                return (double)uintValue;
             }
 
-            Debug.WriteLine("Convert " + targetType.FullName + " value: " + str);
-
-            return AvaloniaProperty.UnsetValue;
+            return 0; // Default value
         }
 
         public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            try
+            if (value is double dValue)
             {
-                if (value is string && value != null)
+                try
                 {
-                    Debug.WriteLine("ConvertBack " + targetType.FullName + " value: " + value);
-
-                    if (UInt32.TryParse((string)value, NumberStyles.Number, CultureInfo.InvariantCulture, out uint x))
-                    {
-                        Debug.WriteLine("ConvertBack to uint32 OK");
-
-                        return (UInt32)x;
-                    }
+                    return System.Convert.ToUInt32(dValue);
                 }
-
-                return AvaloniaProperty.UnsetValue;
+                catch (OverflowException)
+                {
+                    // Return min/max value if out of range
+                    return dValue < 0 ? UInt32.MinValue : UInt32.MaxValue;
+                }
             }
-            catch (Exception cbex)
-            {
-                Debug.WriteLine("ConvertBack Exception " + targetType.FullName + " value: " + value.ToString() + " > " + cbex.Message);
-
-                return AvaloniaProperty.UnsetValue;
-            }
-
+            return (UInt32)0; // Default value
         }
     }
 }

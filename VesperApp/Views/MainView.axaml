@@ -9,7 +9,7 @@
 		xmlns:Controls="using:VesperApp.Controls"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
 		MinWidth="768"
-		MinHeight="680"
+		MinHeight="400"
         x:Class="VesperApp.Views.MainView">
 
     <Design.DataContext>
