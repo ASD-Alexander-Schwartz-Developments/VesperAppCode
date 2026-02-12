@@ -348,3 +348,5 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+/VesperApp/release_pack-stable.ps1
+/VesperApp/release_pack.ps1
