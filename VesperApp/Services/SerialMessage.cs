@@ -70,6 +70,10 @@ namespace VesperApp.Services
         VESPER_SET_FILESIZES,
         VESPER_BURN_CONFIG,
 
+        // Dock/USB bench-test commands. VESPER_TEST_AUDIO captures one mic and
+        // returns per-tone SNR go/no-go (KOL pins it at 60; see audio_bench_format.md).
+        VESPER_TEST_AUDIO = 60,
+
         UDSP_GET_VER = 200,
         UDSP_SLEEP,
         UDSP_GET_CONFIG,

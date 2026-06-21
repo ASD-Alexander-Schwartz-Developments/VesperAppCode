@@ -23,38 +23,51 @@ namespace VesperApp.Models
         }
 
 
-        private UInt32 advertiseRate;
-        private UInt32 advertiseLength;
+        // Config keys MUST match the VesperU5 firmware (params.c json_devices_attrs,
+        // pushed to the ProxTit tag's I2C config registers). See the
+        // proxtit_i2c_contract.md and proxtit.h register map.
+        private UInt16 proxMode;
+        private UInt16 beaconInterval;
+        private UInt16 scanInterval;
+        private UInt16 scanWindow;
+        private UInt16 deltaRssi;
+        private UInt16 avgSeconds;
+        private Int16  rssiGate;
 
-        [DisplayName("Ping Rate (in ms)"),
+        [DisplayName("Mode (0=off, 1=proximity logger)"),
         CategoryAttribute("Proxtit specific Settings")]
-        [JsonPropertyName("pingrate"), JsonPropertyOrder(20)]
-        public UInt32 PingRate
-        {
-            get
-            {
-                return advertiseRate;
-            }
-            set
-            {
-                this.advertiseRate = value;
-            }
-        }
+        [JsonPropertyName("prxMode"), JsonPropertyOrder(20)]
+        public UInt16 ProxMode { get => proxMode; set => this.proxMode = value; }
 
-        [DisplayName("Ping Length (in ms)"),
+        [DisplayName("Beacon interval (ms)"),
         CategoryAttribute("Proxtit specific Settings")]
-        [JsonPropertyName("pinglen"), JsonPropertyOrder(21)]
-        public UInt32 PingLength
-        {
-            get
-            {
-                return advertiseLength;
-            }
-            set
-            {
-                this.advertiseLength = value;
-            }
-        }
+        [JsonPropertyName("prxBcnIval"), JsonPropertyOrder(21)]
+        public UInt16 BeaconInterval { get => beaconInterval; set => this.beaconInterval = value; }
+
+        [DisplayName("Scan interval (ms)"),
+        CategoryAttribute("Proxtit specific Settings")]
+        [JsonPropertyName("prxScanIval"), JsonPropertyOrder(22)]
+        public UInt16 ScanInterval { get => scanInterval; set => this.scanInterval = value; }
+
+        [DisplayName("Scan window (ms)"),
+        CategoryAttribute("Proxtit specific Settings")]
+        [JsonPropertyName("prxScanWin"), JsonPropertyOrder(23)]
+        public UInt16 ScanWindow { get => scanWindow; set => this.scanWindow = value; }
+
+        [DisplayName("Proximity gate (delta-RSSI)"),
+        CategoryAttribute("Proxtit specific Settings")]
+        [JsonPropertyName("prxDeltaRssi"), JsonPropertyOrder(24)]
+        public UInt16 DeltaRssi { get => deltaRssi; set => this.deltaRssi = value; }
+
+        [DisplayName("Session timeout (s)"),
+        CategoryAttribute("Proxtit specific Settings")]
+        [JsonPropertyName("prxAvgSec"), JsonPropertyOrder(25)]
+        public UInt16 AvgSeconds { get => avgSeconds; set => this.avgSeconds = value; }
+
+        [DisplayName("Host log RSSI gate (dBm, 0 = keep all)"),
+        CategoryAttribute("Proxtit specific Settings")]
+        [JsonPropertyName("prxRssiGate"), JsonPropertyOrder(26)]
+        public Int16 RssiGate { get => rssiGate; set => this.rssiGate = value; }
 
     }
 }
