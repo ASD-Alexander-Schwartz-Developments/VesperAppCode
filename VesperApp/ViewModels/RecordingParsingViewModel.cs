@@ -1827,7 +1827,9 @@ namespace VesperApp.ViewModels
         {
             bool result = false;
 
-            if (OperatingSystem.IsWindows())
+            // GNSS decode now runs through the cross-platform IGnssDecoder plugin
+            // (ASD.Gnss over cg-gnss), so this is no longer Windows-only. If no decoder
+            // plugin is installed, DecodeAsync reports it and the user sees a message.
             {
                 FolderPickerOpenOptions options = new()
                 {
@@ -1851,97 +1853,28 @@ namespace VesperApp.ViewModels
 
                         if (path != null && path.Length > 0)
                         {
-                            System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo(Directory.GetCurrentDirectory() + @"\CG\GeoTag\GeoTag.exe");
-                            psi.Arguments = "-t --download=\"" + path + "\" --decode=\"" + path + "\\decode\" --geotagengine=\"" + Directory.GetCurrentDirectory() + "\\CG\\GeoTagEngine\\GeoTagEngine.exe\" --pattern=snap.*.dat";
+                            // GNSS snapshot decode goes through the platform IGnssDecoder
+                            // (bound to LegacyGeoTagDecoder today; the cross-platform
+                            // ASD.Gnss plugin replaces it later). The shell no longer
+                            // hard-codes GeoTag.exe. See docs/ARCHITECTURE.md.
+                            ASD.Contracts.GnssDecodeResult decodeResult =
+                                await ASD.Platform.PlatformServices.Gnss.DecodeAsync(
+                                    new ASD.Contracts.GnssDecodeRequest(path, path + "\\decode"));
 
-                            //psi.RedirectStandardOutput = true;
-                            //psi.RedirectStandardError = true;
-                            //psi.RedirectStandardInput = true;
-                            psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Minimized;
-                            psi.UseShellExecute = true;
-                            psi.CreateNoWindow = false;
-                            System.Diagnostics.Process? ischk = null;
-                            System.IO.StreamReader ischkout;
-                            System.IO.StreamReader ischkerr;
-
-                            try
-                            {
-                                ischk = System.Diagnostics.Process.Start(psi);
-                            }
-                            catch (Exception excp)
-                            {
-                                ischk = null;
-                            }
-
-                            if (ischk != null)
-                            {
-
-                                string? error, msg = "";
-                                int index1, index2, current;
-                                double percent = 0;
-
-                                //                        this.Log("Starting " + bar.Name, 1, true);
-
-                                await Task.Delay(1000);
-                                //ischkout = ischk.StandardOutput;
-                                //ischkerr = ischk.StandardError;
-
-                                bool done = false;
-
-                                await Task.Run(async () =>
-                                {
-                                    while (ischk.HasExited == false && done == false)
-                                    {
-                                        await Task.Delay(200);
-
-                                        /*                              await Task.Delay(1000);
-                                                                        error = ischkerr.ReadLine();
-
-                                                                        if (error != null)
-                                                                        {
-                                                                            if (error.Contains("Set: decode 00%")) // isolate the number of decoded files to calculate progress
-                                                                            {
-
-                                                                                index1 = error.IndexOf('(');
-                                                                                index2 = error.IndexOf('/') - 1;
-
-                                                                                if (index1 > 0)
-                                                                                {
-                                                                                    msg = error.Substring(index1 + 1, index2 - index1);
-                                                                                    current = Int32.Parse(msg);
-                                        //                                            percent = Math.Ceiling((current / total) * 100);
-
-                                        //                                            if (Convert.ToInt32(percent) <= 99)
-                                        //                                                bar.Percent = Convert.ToInt32(percent);
-                                                                                }
-                                                                            }
-                                                                            else if (error.Contains("7Z.exe"))
-                                                                            {
-                                                                                done = true;
-                                                                            }
-                                                                            else if (error.Contains("Graceful termination complete"))
-                                                                            {
-                                                                                done = true;
-                                                                            }
-                                                                        }*/
-                                    }
-                                });
-                            }
-                            else
+                            if (!decodeResult.Succeeded)
                             {
                                 var messageBoxStandardWindow = MsBox.Avalonia.MessageBoxManager.GetMessageBoxStandard(
                                     new MessageBoxStandardParams
                                     {
                                         ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
                                         ContentTitle = "GPS Snap Parser",
-                                        ContentHeader = "Could not start parser",
-                                        ContentMessage = "SNAP Parser executable not found or access denied",
+                                        ContentHeader = "Could not decode",
+                                        ContentMessage = decodeResult.Message ?? "SNAP decode failed.",
                                         Icon = MsBox.Avalonia.Enums.Icon.Warning,
                                         WindowIcon = App.MainWindow?.Icon,
                                     });
 
                                 await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow);
-
                             }
 
                             //bar.Percent = 100;
@@ -1950,21 +1883,6 @@ namespace VesperApp.ViewModels
                     }
                     catch { }
                 });
-            }
-            else
-            {
-                var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
-                    new MessageBoxStandardParams
-                    {
-                        ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
-                        ContentTitle = "GPS Snap Parser",
-                        ContentHeader = "Could not start parser",
-                        ContentMessage = "SNAP Parser is currently available only on MS Windows OS",
-                        Icon = MsBox.Avalonia.Enums.Icon.Warning,
-                        WindowIcon = App.MainWindow?.Icon!,
-                    });
-
-                await messageBoxStandardWindow.ShowWindowDialogAsync(App.MainWindow!);
             }
 
             return await Task.FromResult(result);

@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Open-core: proprietary runtime plugins (ASD.Gnss over cg-gnss, ASD.PlmClient, ...).
+# Their binaries are dropped here at deploy time; their source must NOT enter this repo.
+plugins/
+**/plugins/
+
 # User-specific files
 *.rsuser
 *.suo

@@ -35,6 +35,14 @@ namespace VesperApp
 
         public override void OnFrameworkInitializationCompleted()
         {
+            // Open-core platform seam: discover proprietary plugins (e.g. ASD.Gnss over
+            // cg-gnss, ASD.PlmClient) from the gitignored plugins/ folder and bind them
+            // before the main view model builds its navigation. With none present, the
+            // stub services stand and those features are unavailable. See docs/ARCHITECTURE.md.
+            ASD.Platform.PluginLoader.LoadFrom();
+            ASD.Platform.PlatformServices.Initialize();
+            ASD.Modules.ModuleHost.Instance.UseContext(ASD.Platform.PlatformServices.Context);
+
             MainViewViewModel mainViewModel = new();
             TopLevel? rootTopLevel = null;
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

@@ -74,6 +74,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\ASDLibUSBWrapper\ASDLibUSBWrapper.csproj" />
 		<ProjectReference Include="..\ASDWaveLib\ASDWaveLib.csproj" />
+		<ProjectReference Include="..\ASD.Contracts\ASD.Contracts.csproj" />
+		<ProjectReference Include="..\ASD.DeviceCore\ASD.DeviceCore.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Update="Assets\ASD LOGO small-01.jpg">
@@ -107,8 +109,12 @@
 		</Compile>
 	</ItemGroup>
 	<ItemGroup>
-		<None Update="CG\**">
+		<!-- Proprietary GNSS decode is provided by the ASD.Gnss plugin (over cg-gnss)
+		     loaded at runtime from the gitignored plugins/ folder; the legacy CG\
+		     GeoTag bundle has been removed from this repo. See docs/ARCHITECTURE.md. -->
+		<None Include="plugins\**" Condition="Exists('plugins')">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>plugins\%(RecursiveDir)%(Filename)%(Extension)</Link>
 		</None>
 		<None Update="FirmwareUpdater\**">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

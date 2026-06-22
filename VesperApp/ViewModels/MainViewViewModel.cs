@@ -161,6 +161,15 @@ namespace VesperApp.ViewModels
             Categories.Add(new VesperApp.Models.Separator());
             Categories.Add(new Category { Name = "Software Upgrades", Page = typeof(UpdateChecker), DataContext = new UpdateCheckerViewModel(), Icon = Symbol.New, ToolTip = "Software Upgrades" });
             Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
+
+            // Open-core seam: entitlement-gated feature modules (cloud sync, GNSS
+            // post-processing, remote BLE download) contribute their own nav entries.
+            // The open-source build ships no such modules, so this appends nothing
+            // today. See docs/ARCHITECTURE.md.
+            foreach (var moduleCategory in ASD.Modules.ModuleHost.Instance
+                         .GetEntitledNavCategories(ASD.Platform.PlatformServices.Entitlements))
+                Categories.Add(moduleCategory);
+
             Categories.Add(new Category { Name = "Help", Icon = Symbol.Help, ToolTip = "Help Documentation" });
 
             SelectedCategory = Categories[0];
