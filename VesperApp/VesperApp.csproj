@@ -76,6 +76,7 @@
 		<ProjectReference Include="..\ASDWaveLib\ASDWaveLib.csproj" />
 		<ProjectReference Include="..\ASD.Contracts\ASD.Contracts.csproj" />
 		<ProjectReference Include="..\ASD.DeviceCore\ASD.DeviceCore.csproj" />
+		<ProjectReference Include="..\ASD.Devices\ASD.Devices.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Update="Assets\ASD LOGO small-01.jpg">

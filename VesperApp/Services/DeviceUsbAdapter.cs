@@ -285,7 +285,16 @@ namespace VesperApp.Services
 
             if (this._serialPort != null && this._serialPort.IsOpen == false)
             {
-                string []comports = SerialPort.GetPortNames();
+                // Cross-platform VID/PID-filtered discovery: list ports WITH their USB
+                // identity (without opening them) and keep only ASD CDC loggers. This
+                // replaces "open and probe every COM port". Ports whose USB id the
+                // platform couldn't resolve (null) are still probed as a safety net
+                // (e.g. macOS usbmodem nodes), but known non-ASB USB devices are skipped.
+                string[] comports = ASD.DeviceCore.Transport.SerialEnumerator.List()
+                    .Where(p => ASD.Devices.AsdDeviceIds.IsCdcLogger(p.Vid, p.Pid)
+                                || (p.Vid is null && p.Pid is null))
+                    .Select(p => p.PortName)
+                    .ToArray();
 
                 foreach (string s in comports)
                 {
