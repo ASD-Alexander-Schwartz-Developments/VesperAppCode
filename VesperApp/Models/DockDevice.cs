@@ -52,6 +52,15 @@ namespace VesperApp.Models
             this._info = info;
         }
 
+        public DockDevice(DockDeviceInfo info)
+        {
+            _ftdiNODE = null;
+            _fTDI = null;
+            _usbContext = null;
+            _dockUsbDevice = null;
+            _info = info;
+        }
+
         public bool IsOpen { get => (_fTDI != null) ? _fTDI.IsOpen : (_dockUsbDevice != null) ? _dockUsbDevice.IsOpen : false; }
 
 

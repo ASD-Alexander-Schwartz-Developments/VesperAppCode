@@ -23,7 +23,9 @@ namespace VesperApp.Models
     {
         private UsbContext? _usbContext;
         private UsbDevice? _usbDevice;
-        private SerialMessage? _comport;
+        // CDC transport: async AsdConsoleClient-backed shim (replaces the legacy
+        // three-thread SerialMessage). Same surface + wire framing. See ConsoleTransport.
+        private ConsoleTransport? _comport;
         private string _serialnumber;
         private string _name;
         private DeviceTypes? _type;
@@ -91,7 +93,7 @@ namespace VesperApp.Models
 
         public LoggerDevice(string port, int baudrate, DeviceTypes type, uint serial)
         {
-            this._comport = new SerialMessage(port, baudrate);
+            this._comport = new ConsoleTransport(port, baudrate);
             _serialnumber = serial.ToString("X");
             this._usbDevice = null;
             _type = type;

@@ -77,6 +77,11 @@ namespace ASD.DeviceCore.Protocol
             return _link.WriteAsync(frame, ct);
         }
 
+        /// <summary>Write an already-framed message (built by the caller) verbatim. Used
+        /// by call sites that pre-build a frame; responses still arrive via the reader.</summary>
+        public Task SendRawAsync(ReadOnlyMemory<byte> frame, CancellationToken ct = default)
+            => _link.WriteAsync(frame, ct);
+
         private async Task ReadLoopAsync(CancellationToken ct)
         {
             var buffer = new byte[512];
