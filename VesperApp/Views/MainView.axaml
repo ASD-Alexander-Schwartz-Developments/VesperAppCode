@@ -17,7 +17,7 @@
     </Design.DataContext>
 
 
-	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,130,*,50"  Margin="5" ShowGridLines="False">
+	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,50"  Margin="5" ShowGridLines="False">
 		
 		
 		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal">

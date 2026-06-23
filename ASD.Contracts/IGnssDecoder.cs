@@ -29,26 +29,25 @@ namespace ASD.Contracts
         string? Message);
 
     /// <summary>
-    /// Snapshot-GNSS decoder abstraction.
+    /// Snapshot-GNSS decoder abstraction. All GNSS decode in the shell and daemon flows
+    /// through this interface; <c>RecordingParsingViewModel</c> calls
+    /// <see cref="DecodeAsync"/> and never references a concrete decoder.
     /// <para>
-    /// TODAY the decode is performed by <c>RecordingParsingViewModel</c> shelling out
-    /// to the bundled Windows-only <c>CG\GeoTag\GeoTag.exe</c> + <c>GeoTagEngine.exe</c>.
-    /// Those binaries (and the Intel IPP DLLs under <c>CG\</c>) are proprietary and
-    /// currently sit inside this open-source repo — the exposure we are eliminating.
+    /// The real implementation is the proprietary <c>ASD.Gnss</c> plugin, which drives
+    /// cg-gnss's cross-platform <c>geotag-cli</c>. It ships as a closed plugin loaded at
+    /// runtime from the gitignored <c>plugins/</c> folder; the cg-gnss source/binaries
+    /// never enter this repo, and the formerly bundled Windows-only <c>CG\</c> GeoTag
+    /// payload has been removed.
     /// </para>
     /// <para>
-    /// FUTURE: the decoder moves behind this interface. The cross-platform
-    /// implementation (<c>ASD.Gnss</c>, P/Invoke over the <c>cg-gnss</c> C library)
-    /// ships as a closed plugin and removes the Windows-only <c>CG\</c> payload from
-    /// the public repo. The open-source build binds <c>StubGnssDecoder</c>, which
+    /// With no plugin installed the open-source build binds <c>StubGnssDecoder</c>, which
     /// reports unavailable rather than decoding. See docs/ARCHITECTURE.md.
     /// </para>
     /// </summary>
     public interface IGnssDecoder
     {
         /// <summary>True when a real decoder plugin is bound. The stub returns false so
-        /// callers can fall back (e.g. keep the legacy GeoTag.exe path on Windows) or
-        /// hide the feature.</summary>
+        /// callers can surface "GNSS plugin not installed" or hide the feature.</summary>
         bool IsAvailable { get; }
 
         /// <summary>Decode a folder of raw GNSS snapshots into fixes.</summary>

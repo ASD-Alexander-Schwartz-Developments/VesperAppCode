@@ -7,8 +7,8 @@
 			 xmlns:m="using:VesperApp.Models"
 			 xmlns:c="using:VesperApp.Controls"
              x:Class="VesperApp.Controls.SelectDeviceDrivers"
-			 MinHeight="200" MaxWidth="750" MaxHeight="380">
-	<Border BorderThickness="3" BorderBrush="#909090" HorizontalAlignment="Stretch" Padding="2" CornerRadius="5" VerticalAlignment="Stretch">
+			 MinHeight="200">
+	<Border BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" HorizontalAlignment="Stretch" Padding="2" CornerRadius="6" VerticalAlignment="Stretch">
 				<ListBox ItemsSource="{Binding DeviceDriversCollection}"
 							x:Name="listSupportedDeviceDriversList"
 							Margin="1,1,1,1"

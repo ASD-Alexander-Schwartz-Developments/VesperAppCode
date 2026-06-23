@@ -16,7 +16,7 @@
 	
 	<HeaderedContentControl Header="Recording Data Extraction" IsVisible="True" UseLayoutRounding="True">
 	<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="False">
-		<ui:CommandBar DefaultLabelPosition="Right">
+		<ui:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
 			<ui:CommandBar.PrimaryCommands>
 				<ui:CommandBarButton Command="{Binding ManualGPSParserCommand}" IconSource="Globe" Label="GNSS" ToolTip.Tip="GNSS Decoder (DAT)"/>
 				<ui:CommandBarButton Command="{Binding ManualAudioParserCommand}" IconSource="Microphone" Label="Audio" ToolTip.Tip="Audio Decoder"/>
@@ -34,6 +34,38 @@
 			<ui:CommandBar.SecondaryCommands>
 			</ui:CommandBar.SecondaryCommands>
 		</ui:CommandBar>
+
+		<!-- Idle guidance / live progress fills the working area below the toolbar. -->
+		<Border Grid.Row="1" Classes="page" VerticalAlignment="Top">
+			<Grid MaxWidth="720" HorizontalAlignment="Left">
+
+				<!-- Idle hint -->
+				<Border Classes="card" IsVisible="{Binding !BinaryParserIsRunning}">
+					<StackPanel Spacing="6">
+						<TextBlock Classes="sectionHeader" Text="Decode &amp; import recordings"/>
+						<TextBlock Classes="caption"
+								   Text="Pick a decoder above to convert raw recordings — audio → WAV; motion, biopotentials, temperature/humidity and light → CSV; camera → image; GNSS snaps → fixes. Use Binary Parser or Auto Import to process a whole drive at once."/>
+					</StackPanel>
+				</Border>
+
+				<!-- Working -->
+				<Border Classes="card" IsVisible="{Binding BinaryParserIsRunning}">
+					<StackPanel Spacing="10">
+						<TextBlock Classes="sectionHeader" Text="Processing…"/>
+						<ProgressBar Classes="slim" Minimum="0" Maximum="100"
+									 Value="{Binding BinaryParserPercent}"
+									 IsIndeterminate="{Binding BinaryParserIndeterminate}"/>
+						<TextBlock Classes="caption"
+								   IsVisible="{Binding !BinaryParserIndeterminate}"
+								   Text="{Binding BinaryParserPercent, StringFormat='{}{0}%'}"/>
+						<TextBlock Classes="caption"
+								   IsVisible="{Binding BinaryParserIndeterminate}"
+								   Text="Working… this can take a moment for large files."/>
+					</StackPanel>
+				</Border>
+
+			</Grid>
+		</Border>
 	</Grid>
 	</HeaderedContentControl>
 </UserControl>

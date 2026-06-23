@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="720" d:DesignHeight="460"
+             x:Class="VesperApp.Controls.PluginUpdates">
+
+    <Design.DataContext>
+        <vm:PluginUpdatesViewModel/>
+    </Design.DataContext>
+
+    <Border Classes="page">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14" MaxWidth="680" HorizontalAlignment="Left">
+
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="pageTitle" Text="GNSS Decoder Plugin"/>
+                    <TextBlock Classes="caption"
+                               Text="The cross-platform snapshot-GNSS decoder ships as a separate plugin pack and updates on its own channel. Downloads apply on the next launch."/>
+                </StackPanel>
+
+                <!-- Not entitled -->
+                <ui:InfoBar IsVisible="{Binding !IsEntitled}"
+                            IsOpen="True" IsClosable="False"
+                            Severity="Informational"
+                            Title="Not available"
+                            Message="{Binding Status}"/>
+
+                <!-- Entitled -->
+                <Border Classes="card" IsVisible="{Binding IsEntitled}">
+                    <StackPanel Spacing="14">
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Classes="sectionHeader" Text="Plugin updates"/>
+                                <TextBlock Classes="caption" Text="{Binding Status}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" VerticalAlignment="Center"
+                                    Content="Check for updates"
+                                    Command="{Binding CheckCommand}"/>
+                        </Grid>
+
+                        <ProgressBar Classes="slim" IsIndeterminate="True"
+                                     IsVisible="{Binding IsChecking}"/>
+
+                        <!-- Update available -->
+                        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsUpdateAvailable}">
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                       Text="{Binding LatestVersion, StringFormat='Version {0} is available.'}"/>
+                            <Button Grid.Column="1" Classes="accent"
+                                    Content="Download &amp; install"
+                                    Command="{Binding DownloadCommand}"/>
+                        </Grid>
+
+                        <!-- Download progress -->
+                        <StackPanel Spacing="4" IsVisible="{Binding IsDownloading}">
+                            <ProgressBar Classes="slim" Minimum="0" Maximum="100" Value="{Binding Progress}"/>
+                            <TextBlock Classes="caption" Text="{Binding Progress, StringFormat='{}{0}%'}"/>
+                        </StackPanel>
+
+                        <!-- Staged → restart -->
+                        <ui:InfoBar IsOpen="{Binding IsPendingRestart}" IsClosable="False"
+                                    Severity="Success"
+                                    Title="Update staged"
+                                    Message="Restart VesperApp to load the new GNSS plugin.">
+                            <ui:InfoBar.ActionButton>
+                                <Button Content="Restart now" Command="{Binding RestartCommand}"/>
+                            </ui:InfoBar.ActionButton>
+                        </ui:InfoBar>
+
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

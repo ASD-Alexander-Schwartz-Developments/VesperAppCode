@@ -8,9 +8,10 @@ namespace ASD.Platform.Stubs
 {
     /// <summary>
     /// Inert <see cref="IGnssDecoder"/> for the open-source build: reports unavailable
-    /// so callers keep the existing legacy decode path (the bundled GeoTag.exe on
-    /// Windows) or hide GNSS post-processing entirely. The cross-platform decoder
-    /// (<c>ASD.Gnss</c> over <c>cg-gnss</c>) is a closed plugin. See docs/ARCHITECTURE.md.
+    /// so callers surface "GNSS plugin not installed" or hide GNSS post-processing
+    /// entirely. The real decoder — the proprietary <c>ASD.Gnss</c> plugin over cg-gnss
+    /// <c>geotag-cli</c> — is dropped into <c>plugins/</c> at deploy time. See
+    /// docs/ARCHITECTURE.md.
     /// </summary>
     public sealed class StubGnssDecoder : IGnssDecoder
     {

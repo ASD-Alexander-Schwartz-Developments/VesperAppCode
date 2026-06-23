@@ -74,7 +74,7 @@ PUBLIC repo (VesperApp — open source)
 PRIVATE repos (binary plugins, loaded at runtime by entitlement)
 ├── ASD.PlmClient      implements IPlmClient: Cognito SRP, JWT refresh, REST to
 │                       /portal/* and /documents/*  (knows API URL + pool IDs)
-└── ASD.Gnss           implements IGnssDecoder: P/Invoke over the cg-gnss C lib
+└── ASD.Gnss           implements IGnssDecoder: drives the cg-gnss geotag-cli process
 ```
 
 `ASD.Contracts` and `ASD.DeviceCore` are now **real assemblies** in the solution; the
@@ -87,7 +87,7 @@ proprietary clients are still placeholder stubs (loaded later as binary plugins)
 | `ASD.Shell`     | `VesperApp.*` (existing) + shell-side `ASD.Modules.ModuleHost` |
 | `ASD.BaseStation`| real assembly — the Linux base-station daemon              |
 | `ASD.PlmClient` | `ASD.Platform.Stubs.StubPlmClient` (placeholder)            |
-| `ASD.Gnss`      | `ASD.Platform.Stubs.StubGnssDecoder` (placeholder; `LegacyGeoTagDecoder` is the bound impl) |
+| `ASD.Gnss`      | open build binds `ASD.Platform.Stubs.StubGnssDecoder`; the real `GeoTagCliDecoder` (cg-gnss `geotag-cli`) binds at runtime when the plugin is present |
 
 The open-source build references only `ASD.Contracts` interfaces. The API URL, the
 Cognito pool/client IDs, the REST routes, and the cg-gnss decoder live entirely in the
@@ -128,6 +128,35 @@ dropping `ASD.Gnss.dll` + a `geotag-cli` build into `plugins/` enables it.
 
 The plugin loader is general: it also binds a proprietary `IPlmClient` /
 `IEntitlementProvider` the same way.
+
+### Plugin discovery, updates, and the ABI gate
+
+Plugins update on their **own channel**, independently of the shell (which self-updates
+via Velopack) and of device firmware (Octokit/GitHub). To keep those cadences separate:
+
+- **Where they live.** `PluginLoader` scans the per-user `DataPluginsDir`
+  (`%LOCALAPPDATA%/VesperApp/plugins`) first, then the `BundledPluginsDir` next to the
+  binary. Packs install into the data folder so a Velopack shell update — which reconciles
+  the install directory — never wipes them.
+- **Compatibility is by contract ABI, not file copy.** `ASD.Contracts.ContractsAbi.Version`
+  is the single coupling point. A pack ships a `plugin.json` (`PluginManifest`) declaring the
+  ABI and `os-arch` it was built for; the loader rejects a pack outside
+  `[MinSupported, Version]` or for the wrong platform, with a clear log line, before binding.
+  Bump the ABI only on a breaking contract change — so cg-gnss can ship `geotag`/aiding fixes
+  endlessly under the same ABI with no shell release.
+- **Apply on next launch.** Discovery runs once at startup
+  (`App.OnFrameworkInitializationCompleted`), so a freshly downloaded pack binds on the next
+  run rather than hot-swapping a loaded native decoder mid-session.
+
+**Distribution carries no client secret.** Both firmware and plugin packs are published by
+CI in their **private** source repos to S3/CloudFront (the AWS key is a GitHub Actions
+secret, never shipped); the client only reads a `index.json` feed and downloads assets over
+plain HTTPS. `ReleaseFeedService` does the feed read + SHA-256-verified download;
+`FirmwareUpgradesViewModel` and `PluginUpdateService` consume it. A committed PAT that used
+to sit in `FirmwareUpgradesViewModel` has been removed — a secret in an open-source (or any
+shipped) client is extractable, so the credential moved to CI. Downloads are public-read
+today; a `downloadUrlResolver` hook lets backend-signed URLs gate them later with no client
+change. CI templates: `docs/ci-templates/`.
 
 ---
 

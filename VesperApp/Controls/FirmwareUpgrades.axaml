@@ -42,7 +42,7 @@
 					<ui:ProgressRing IsVisible="{Binding IsLoadingReleases}" IsActive="{Binding IsLoadingReleases}" Margin="10,0,0,0" Grid.Row="0"/>
 				</VirtualizingStackPanel>
 			
-				<dg:DataGrid Grid.Row="2"
+				<dg:DataGrid Grid.Row="1"
 							 ItemsSource="{Binding Releases}"
 							 x:Name="listReleasesList"
 							 Margin="20"
@@ -70,8 +70,8 @@
 
 					<dg:DataGrid.Columns>
 						<dg:DataGridTextColumn Header="Ver" Binding="{Binding Name}" Width="1*" MinWidth="80"/>
-						<dg:DataGridTextColumn Header="Description" Binding="{Binding Body}" Width="2*" MinWidth="200"/>
-						<dg:DataGridTextColumn Header="Publish Date" Binding="{Binding PublishedAt}" Width="2*" MinWidth="120"/>
+						<dg:DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*" MinWidth="200"/>
+						<dg:DataGridTextColumn Header="Publish Date" Binding="{Binding Published}" Width="2*" MinWidth="120"/>
 					</dg:DataGrid.Columns>
 				</dg:DataGrid>
 			</Grid>

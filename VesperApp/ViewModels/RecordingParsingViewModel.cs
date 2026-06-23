@@ -54,6 +54,33 @@ namespace VesperApp.ViewModels
 
         private int binaryParserPercent = 0;
 
+        /// <summary>True while a decoder reports no per-file percentage, so the UI shows an
+        /// indeterminate (animated) bar instead of a 0% one.</summary>
+        public bool BinaryParserIndeterminate
+        {
+            get => binaryParserIndeterminate;
+            set => this.RaiseAndSetIfChanged(ref binaryParserIndeterminate, value);
+        }
+
+        private bool binaryParserIndeterminate = false;
+
+        /// <summary>Runs a decode action with the busy indicator on (indeterminate). Used for the
+        /// decoders that don't report a per-file percentage, so they still show activity.</summary>
+        private async Task<bool> WithBusy(Func<Task<bool>> action)
+        {
+            try
+            {
+                BinaryParserIsRunning = true;
+                BinaryParserIndeterminate = true;
+                BinaryParserPercent = 0;
+                return await action();
+            }
+            finally
+            {
+                BinaryParserIsRunning = false;
+                BinaryParserIndeterminate = false;
+            }
+        }
 
 
         public RecordingParsingViewModel()
@@ -67,19 +94,19 @@ namespace VesperApp.ViewModels
 
             ManualAudioParserCommand = ReactiveCommand.CreateFromTask(DecodeAudio);
 
-            ManualMotionParserCommand = ReactiveCommand.CreateFromTask(DecodeMotionInnertial);
+            ManualMotionParserCommand = ReactiveCommand.CreateFromTask(() => WithBusy(DecodeMotionInnertial));
 
-            ManualAlsParserCommand = ReactiveCommand.CreateFromTask(DecodeAls);
+            ManualAlsParserCommand = ReactiveCommand.CreateFromTask(() => WithBusy(DecodeAls));
 
-            ManualTprhParserCommand = ReactiveCommand.CreateFromTask(DecodeTprh);
+            ManualTprhParserCommand = ReactiveCommand.CreateFromTask(() => WithBusy(DecodeTprh));
 
-            ManualEXG48ParserCommand = ReactiveCommand.CreateFromTask(DecodeEXG48);
+            ManualEXG48ParserCommand = ReactiveCommand.CreateFromTask(() => WithBusy(DecodeEXG48));
 
-            ManualEXG1292ParserCommand = ReactiveCommand.CreateFromTask(DecodeEXG1292);
+            ManualEXG1292ParserCommand = ReactiveCommand.CreateFromTask(() => WithBusy(DecodeEXG1292));
 
             ManualLeptonParserCommand = ReactiveCommand.CreateFromTask(DecodeLepton);
 
-            ManualGPSParserCommand = ReactiveCommand.CreateFromTask(ParseNanotagSnaps);
+            ManualGPSParserCommand = ReactiveCommand.CreateFromTask(() => WithBusy(ParseNanotagSnaps));
             #endregion
         }
 
@@ -114,7 +141,7 @@ namespace VesperApp.ViewModels
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
                         BinaryParserIsRunning = true;
                         BinaryParserPercent = 0;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -242,7 +269,7 @@ namespace VesperApp.ViewModels
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
                         BinaryParserIsRunning = true;
                         BinaryParserPercent = 0;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -514,7 +541,7 @@ namespace VesperApp.ViewModels
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
                         BinaryParserIsRunning = true;
                         BinaryParserPercent = 0;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -736,7 +763,7 @@ namespace VesperApp.ViewModels
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
                         BinaryParserIsRunning = true;
                         BinaryParserPercent = 0;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -821,7 +848,7 @@ namespace VesperApp.ViewModels
                     try
                     {
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -1033,7 +1060,7 @@ namespace VesperApp.ViewModels
                     try
                     {
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -1160,7 +1187,7 @@ namespace VesperApp.ViewModels
                     try
                     {
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -1287,7 +1314,7 @@ namespace VesperApp.ViewModels
                     try
                     {
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -1415,7 +1442,7 @@ namespace VesperApp.ViewModels
                     try
                     {
                         IReadOnlyList<IStorageFile?> files = dialog.Result;
-                        double percentDelta = 100 / files.Count;
+                        double percentDelta = files.Count > 0 ? 100.0 / files.Count : 100;
                         double percent = 0;
                         foreach (var file in files)
                         {
@@ -1853,9 +1880,9 @@ namespace VesperApp.ViewModels
 
                         if (path != null && path.Length > 0)
                         {
-                            // GNSS snapshot decode goes through the platform IGnssDecoder
-                            // (bound to LegacyGeoTagDecoder today; the cross-platform
-                            // ASD.Gnss plugin replaces it later). The shell no longer
+                            // GNSS snapshot decode goes through the platform IGnssDecoder,
+                            // served by the ASD.Gnss plugin (cg-gnss geotag-cli) when
+                            // installed, or StubGnssDecoder otherwise. The shell no longer
                             // hard-codes GeoTag.exe. See docs/ARCHITECTURE.md.
                             ASD.Contracts.GnssDecodeResult decodeResult =
                                 await ASD.Platform.PlatformServices.Gnss.DecodeAsync(

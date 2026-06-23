@@ -10,10 +10,10 @@
 			 xmlns:serv="using:VesperApp.Services"
 			 xmlns:c="using:Avalonia.Collections"
 			 xmlns:sys="using:System"
-			 MinHeight="200" MaxHeight="380">
+			 MinHeight="200">
 
 
-	<Border BorderThickness="5" BorderBrush="#909090" HorizontalAlignment="Stretch" Padding="2" CornerRadius="5" VerticalAlignment="Stretch">
+	<Border BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" HorizontalAlignment="Stretch" Padding="2" CornerRadius="6" VerticalAlignment="Stretch">
 		<DockPanel Margin="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"> 
 <!--			<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"> -->
 <!--				<Border BorderThickness="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"> -->
