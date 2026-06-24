@@ -47,13 +47,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4   # the cg-gnss repo
 
-      # ASD.Contracts lives in the (open) VesperApp repo. Remove `token` if it is public.
+      # ASD.Contracts lives in the (public) VesperApp repo; check it out so the adapter compiles
+      # against the live contract. No token needed — a public repo is readable with the default
+      # GITHUB_TOKEN. The contract may sit on a feature branch, so the ref is overridable via the
+      # VESPERAPP_REF variable (default 'master').
       - name: Checkout VesperApp (for ASD.Contracts)
         uses: actions/checkout@v4
         with:
           repository: ${{ env.VESPERAPP_REPO }}
+          ref: ${{ vars.VESPERAPP_REF || 'master' }}
           path: _vesperapp
-          token: ${{ secrets.VESPERAPP_RO_PAT }}
 
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: '8.0.x' }
@@ -105,7 +108,8 @@ jobs:
         run: |
           VER="${{ steps.ver.outputs.v }}"; RID="${{ matrix.rid }}"
           NAME="gnss-plugin-${VER}-${RID}.zip"
-          ( cd pack && zip -qr "../${NAME}" . )
+          # 'zip' isn't on the GitHub Windows runners; use Python (already set up) for a cross-platform zip.
+          python -c "import shutil,sys; shutil.make_archive(sys.argv[1], 'zip', sys.argv[2])" "gnss-plugin-${VER}-${RID}" pack
           SHA=$(sha256sum "${NAME}" | awk '{print $1}')
           SIZE=$(stat -c%s "${NAME}" 2>/dev/null || stat -f%z "${NAME}")
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
