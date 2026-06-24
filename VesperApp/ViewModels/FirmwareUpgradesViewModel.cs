@@ -1,4 +1,4 @@
-﻿using ASDWaveLib;
+using ASDWaveLib;
 using Avalonia.Controls;
 using Avalonia.Controls.Selection;
 using Avalonia.Platform.Storage;
@@ -27,9 +27,10 @@ namespace VesperApp.ViewModels
 {
     public class FirmwareUpgradesViewModel : ViewModelBase
     {
-        // Firmware updates come from a CDN release feed (index.json), NOT the GitHub API — so there
-        // is no token in the client at all. CI in the private firmware repo publishes the artifacts +
-        // feed to S3/CloudFront; the client only reads. See ReleaseFeedService / docs/ARCHITECTURE.md.
+        // Firmware updates come from a CDN release feed (index.json) published to S3/CloudFront by CI
+        // in the private firmware repo — NOT the GitHub API, so there is no token in the client at all.
+        // The client only reads the feed and downloads assets over plain HTTPS, SHA-256-verified by
+        // ReleaseFeedService. See docs/ci-templates/firmware-release.yml / docs/ARCHITECTURE.md.
         private const string DefaultFirmwareFeed =
             "https://d11eqmwet07q29.cloudfront.net/firmware/index.json";
 
@@ -41,55 +42,67 @@ namespace VesperApp.ViewModels
             return new Uri(string.IsNullOrWhiteSpace(overrideUrl) ? DefaultFirmwareFeed : overrideUrl);
         }
 
-        public ICommand? RefreshReleasesCommand { get; }
-        public ICommand? DownloadReleaseCommand { get; }
-        public ObservableCollection<ReleaseEntry> Releases { get; } = new();
         private readonly ReleaseFeedService feedService;
 
-        public SelectionModel<ReleaseEntry?>? SelectedFirmwareRelease { get; }
+        // Every entry from the last feed read; Releases is this list filtered to SelectedDeviceType.
+        private readonly List<ReleaseEntry> allReleases = new();
 
+        public ICommand? RefreshReleasesCommand { get; }
+        public ICommand? DownloadReleaseCommand { get; }
 
+        /// <summary>Releases shown in the grid: the feed, filtered by <see cref="SelectedDeviceType"/>.</summary>
+        public ObservableCollection<ReleaseEntry> Releases { get; } = new();
+
+        // Bound TwoWay to the DataGrid's SelectedItem. A plain property: the previous SelectionModel
+        // binding never set SelectedItem, so Download had nothing to act on.
+        private ReleaseEntry? selectedFirmwareRelease;
+        public ReleaseEntry? SelectedFirmwareRelease
+        {
+            get => selectedFirmwareRelease;
+            set => this.RaiseAndSetIfChanged(ref selectedFirmwareRelease, value);
+        }
+
+        // Bound to the device-type ComboBox. The firmware feed tags each entry with a Target device
+        // key (e.g. "vesper"); changing this re-filters the list. Matched to ReleaseEntry.Target by
+        // the enum name, case-insensitive — keep the CI Target values in sync with DeviceTypes.
+        private DeviceTypes selectedDeviceType = DeviceTypes.Vesper;
+        public DeviceTypes SelectedDeviceType
+        {
+            get => selectedDeviceType;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref selectedDeviceType, value);
+                ApplyDeviceFilter();
+            }
+        }
+
+        private bool isLoadingReleases = false;
         public bool IsLoadingReleases
         {
             get => isLoadingReleases;
             set => this.RaiseAndSetIfChanged(ref isLoadingReleases, value);
         }
 
-        private bool isLoadingReleases = false;
-
-
-
         public FirmwareUpgradesViewModel()
         {
-            SelectedFirmwareRelease = new SelectionModel<ReleaseEntry?>()
-            {
-                SingleSelect = true,
-            };
-            Releases = new ObservableCollection<ReleaseEntry>();
-            #region Updater Commands
-
             RefreshReleasesCommand = ReactiveCommand.CreateFromTask(RunReleasesRefresh);
             DownloadReleaseCommand = ReactiveCommand.CreateFromTask(RunReleaseDownload);
 
-            #endregion
-
             feedService = new ReleaseFeedService(FirmwareFeedUrl());
 
-            //Load the releases on initialization
+            // Load the releases on initialization.
             _ = RunReleasesRefresh();
         }
-
-
 
         private async Task<bool> RunReleasesRefresh()
         {
             try
             {
                 IsLoadingReleases = true;
-                Releases.Clear();
                 var releases = await feedService.GetReleasesAsync();
-                foreach (var release in releases)
-                    Releases.Add(release);
+                allReleases.Clear();
+                allReleases.AddRange(releases);
+                ApplyDeviceFilter();
                 return true;
             }
             catch (Exception ex)
@@ -103,9 +116,29 @@ namespace VesperApp.ViewModels
             }
         }
 
+        // Show only entries whose feed Target matches the selected device (case-insensitive), plus
+        // any entry with no Target (treated as applying to every device).
+        private void ApplyDeviceFilter()
+        {
+            string device = SelectedDeviceType.ToString();
+            Releases.Clear();
+            foreach (var r in allReleases)
+            {
+                if (string.IsNullOrWhiteSpace(r.Target) ||
+                    string.Equals(r.Target, device, StringComparison.OrdinalIgnoreCase))
+                {
+                    Releases.Add(r);
+                }
+            }
+
+            // Drop a selection the new filter hides.
+            if (SelectedFirmwareRelease is not null && !Releases.Contains(SelectedFirmwareRelease))
+                SelectedFirmwareRelease = null;
+        }
+
         private async Task<bool> RunReleaseDownload()
         {
-            var selected = SelectedFirmwareRelease?.SelectedItem;
+            var selected = SelectedFirmwareRelease;
             if (selected is null || string.IsNullOrWhiteSpace(selected.Asset))
                 return false;
 
@@ -144,7 +177,6 @@ namespace VesperApp.ViewModels
             }
         }
 
-
         private static IStorageProvider? _storageProvider;
         public static IStorageProvider? StorageProvider
         {
@@ -162,7 +194,6 @@ namespace VesperApp.ViewModels
 
                 //If mainWindow is available (for example for the Desktop variant), we use it to get a storage provider.
                 // If not, then we try getting the provider from the root TopLevel instance. (Web, the designer preview,...)
-                //TODO doesn't work. I have ho idea how to get a TopLevel instance in a Web, preview or Android/iOS environment.
                 MainWindow? mainWindow = (MainWindow?)App.MainWindow;
                 _storageProvider = mainWindow != null ? mainWindow.StorageProvider : null;
 
@@ -173,6 +204,5 @@ namespace VesperApp.ViewModels
             }
             set => _storageProvider = value;
         }
-
     }
 }

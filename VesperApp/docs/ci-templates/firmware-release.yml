@@ -22,7 +22,9 @@ env:
   CF_DISTRIBUTION_ID: ${{ vars.RELEASE_CF_DISTRIBUTION_ID }}
   AWS_REGION:         ${{ vars.AWS_REGION }}
   S3_PREFIX: firmware          # CDN path → https://<cdn>/firmware/index.json
-  TARGET:    vesper            # device key the client matches ReleaseEntry.Target on
+  # Device key the client matches ReleaseEntry.Target on. Set per firmware repo as an Actions
+  # variable: FIRMWARE_TARGET=vesper on VesperU5, =kol on Kol. Both publish to the one firmware feed.
+  TARGET:    ${{ vars.FIRMWARE_TARGET }}
 
 jobs:
   release:

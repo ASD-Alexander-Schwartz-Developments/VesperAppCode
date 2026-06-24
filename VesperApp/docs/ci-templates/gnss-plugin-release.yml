@@ -1,10 +1,17 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# COPY TO:  <cg-gnss repo>/.github/workflows/release.yml
+# REFERENCE TEMPLATE — the live, proven copy lives in the cg-gnss repo at
+#   <cg-gnss>/.github/workflows/release.yml   (keep the two in sync).
 #
-# Builds a GNSS plugin pack (per os-arch), uploads it + updates the plugin feed.
-# A pack = ASD.Gnss.dll + geotag(.exe) + aiding-server exe + GeoTagEngine.xml +
-# Ionosphere.cg + plugin.json, zipped. VesperApp's PluginUpdateService reads the
-# feed, downloads the pack for its platform, and stages it (binds next launch).
+# Builds a GNSS plugin pack (per os-arch), uploads it to S3/CloudFront, and updates
+# the plugin feed. A pack = ASD.Gnss.dll + geotag(.exe) + cg-aiding(.exe) +
+# GeoTagEngine.xml + Ionosphere.cg + aiding_sources.json + plugin.json, zipped —
+# assembled by cg-gnss's bindings/dotnet/make-pack.ps1. VesperApp's
+# PluginUpdateService reads the feed, downloads the pack for its platform, and stages
+# it (binds next launch).
+#
+# ASD.Contracts (the plugin's only compile dependency) lives in THIS public VesperApp
+# repo; cg-gnss CI checks it out and compiles against it, so no contract binary lives
+# in the private plugin repo.
 #
 # Publish with:  git tag v1.0.0 && git push --tags
 # ─────────────────────────────────────────────────────────────────────────────
@@ -13,119 +20,143 @@ name: Release GNSS plugin pack
 on:
   push:
     tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build (without leading v), e.g. 1.0.0
+        required: true
 
 permissions:
   contents: read
 
 env:
-  S3_BUCKET:          ${{ vars.RELEASE_S3_BUCKET }}
-  CF_DISTRIBUTION_ID: ${{ vars.RELEASE_CF_DISTRIBUTION_ID }}
-  AWS_REGION:         ${{ vars.AWS_REGION }}
-  S3_PREFIX: plugins/gnss      # CDN path → https://<cdn>/plugins/gnss/index.json
-  ABI: "1"                     # MUST equal ASD.Contracts.ContractsAbi.Version
+  S3_PREFIX: plugins/gnss          # CDN path -> https://<cdn>/plugins/gnss/index.json
+  ABI: "1"                         # MUST equal ASD.Contracts.ContractsAbi.Version
+  VESPERAPP_REPO: ASD-Alexander-Schwartz-Developments/VesperAppCode
 
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, rid: win-x64 }
-          # - { os: windows-latest, rid: win-x86 }   # cg-gnss's golden-validated arch
-          # - { os: ubuntu-latest,  rid: linux-x64 }
+          - { os: windows-latest, rid: win-x64,   arch: x64 }   # cg-gnss golden arch is win-x86
+          - { os: windows-latest, rid: win-x86,   arch: x86 }
+          - { os: ubuntu-latest,  rid: linux-x64, arch: x64 }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4   # the cg-gnss repo
 
-      # 1) ── BUILD THE NATIVES (geotag + aiding-server) for ${{ matrix.rid }} ───
-      #    Use your CMake / make-release flow; copy outputs into pack/.
-      - name: Build cg-gnss natives
-        shell: bash
-        run: |
-          mkdir -p pack
-          # ... cmake build geotag + freeze aiding-server ...
-          # cp build/.../geotag(.exe) pack/
-          # cp build/.../aiding-server(.exe) pack/      # <- the self-contained exe
-          # cp runtime/GeoTagEngine.xml runtime/Ionosphere.cg pack/
+      # ASD.Contracts lives in the (open) VesperApp repo. Remove `token` if it is public.
+      - name: Checkout VesperApp (for ASD.Contracts)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.VESPERAPP_REPO }}
+          path: _vesperapp
+          token: ${{ secrets.VESPERAPP_RO_PAT }}
 
-      # 2) ── BUILD THE .NET ADAPTER (ASD.Gnss.dll) ─────────────────────────────
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: '8.0.x' }
-      - name: Build ASD.Gnss.dll
+
+      # Python freezes cg-aiding (PyInstaller, no-Python target). On Windows the arch
+      # must match the target so the frozen exe is the right bitness.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: ${{ matrix.arch }}
+
+      - name: Resolve version
+        id: ver
         shell: bash
         run: |
-          dotnet build bindings/dotnet/ASD.Gnss.csproj -c Release -o pack-dll   # adjust path
-          cp pack-dll/ASD.Gnss.dll pack/
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then V="${{ inputs.version }}"; else V="${GITHUB_REF_NAME#v}"; fi
+          echo "v=$V" >> "$GITHUB_OUTPUT"
 
-      # 3) ── Write plugin.json + zip the pack ──────────────────────────────────
-      - name: Assemble pack
+      # ── Build the cg-gnss natives + dist for this arch (geotag + frozen cg-aiding) ──
+      - name: Build cg-gnss natives (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pyinstaller
+          & ./tools/build-release.ps1 -Arch ${{ matrix.arch }} -Version ${{ steps.ver.outputs.v }}
+
+      - name: Build cg-gnss natives (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update && sudo apt-get install -y ninja-build
+          python -m pip install --upgrade pyinstaller
+          bash tools/build-release.sh --version "${{ steps.ver.outputs.v }}"
+
+      # ── Assemble the plugin pack (ASD.Gnss.dll + natives + plugin.json) ──
+      - name: Assemble plugin pack
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.ver.outputs.v }}"; $rid = "${{ matrix.rid }}"
+          $distName = $rid -replace '^win', 'windows'
+          & ./bindings/dotnet/make-pack.ps1 -Arch $rid -Version $ver -Abi ([int]$env:ABI) `
+              -Dist "dist/cg-gnss-$ver-$distName" `
+              -ContractsProject "$PWD/_vesperapp/ASD.Contracts/ASD.Contracts.csproj" `
+              -Out "pack"
+
+      - name: Zip pack + feed fragment
         id: pack
         shell: bash
         run: |
-          VER="${GITHUB_REF_NAME#v}"; RID="${{ matrix.rid }}"
-          cat > pack/plugin.json <<JSON
-          { "name":"ASD.Gnss","kind":"gnss","version":"${VER}","abi":${ABI},
-            "platform":"${RID}","entryDll":"ASD.Gnss.dll",
-            "nativeFiles":["geotag","aiding-server","GeoTagEngine.xml","Ionosphere.cg"],
-            "validatedArch":"win-x86","signature":null }
-          JSON
+          VER="${{ steps.ver.outputs.v }}"; RID="${{ matrix.rid }}"
           NAME="gnss-plugin-${VER}-${RID}.zip"
-          ( cd pack && zip -r "../${NAME}" . )
-          echo "ver=$VER"   >> "$GITHUB_OUTPUT"
-          echo "rid=$RID"   >> "$GITHUB_OUTPUT"
+          ( cd pack && zip -qr "../${NAME}" . )
+          SHA=$(sha256sum "${NAME}" | awk '{print $1}')
+          SIZE=$(stat -c%s "${NAME}" 2>/dev/null || stat -f%z "${NAME}")
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "sha=$(sha256sum "$NAME" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
-          echo "size=$(stat -c%s "$NAME")" >> "$GITHUB_OUTPUT"
+          mkdir -p fragments
+          cat > "fragments/${RID}.json" <<JSON
+          { "version":"${VER}", "name":"GNSS plugin ${VER}", "published":"${NOW}",
+            "target":"${RID}", "asset":"${VER}/${NAME}", "size":${SIZE},
+            "sha256":"${SHA}", "abi":${ABI} }
+          JSON
 
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
-
-      - name: Upload pack
-        shell: bash
-        run: |
-          aws s3 cp "${{ steps.pack.outputs.name }}" \
-            "s3://${S3_BUCKET}/${S3_PREFIX}/${{ steps.pack.outputs.ver }}/${{ steps.pack.outputs.name }}" \
-            --no-progress
-
-  # One feed update after all arches are uploaded (keeps index.json consistent).
-  publish-feed:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ vars.AWS_REGION }}
-      - name: Rebuild index.json from S3 listing
+
+      - name: Upload pack to S3
+        shell: bash
+        run: |
+          aws s3 cp "${{ steps.pack.outputs.name }}" \
+            "s3://${{ vars.RELEASE_S3_BUCKET }}/${S3_PREFIX}/${{ steps.ver.outputs.v }}/${{ steps.pack.outputs.name }}" \
+            --no-progress
+
+      - uses: actions/upload-artifact@v4
+        with: { name: feed-fragment-${{ matrix.rid }}, path: fragments/*.json }
+
+  # One feed update after all arches upload (keeps index.json consistent).
+  publish-feed:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: feed-fragment-*, path: fragments, merge-multiple: true }
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ vars.AWS_REGION }}
+      - name: Merge fragments into index.json and publish
         shell: bash
         env:
           S3_BUCKET: ${{ vars.RELEASE_S3_BUCKET }}
           CF_DISTRIBUTION_ID: ${{ vars.RELEASE_CF_DISTRIBUTION_ID }}
-          S3_PREFIX: plugins/gnss
         run: |
-          VER="${GITHUB_REF_NAME#v}"; NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          DESC="$(git tag -l --format='%(contents)' "${GITHUB_REF_NAME}")"
           aws s3 cp "s3://${S3_BUCKET}/${S3_PREFIX}/index.json" index.json \
             || echo '{"schema":1,"releases":[]}' > index.json
-          # One entry per (version, rid) for everything uploaded under this version.
-          ENTRIES="[]"
-          for KEY in $(aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/${VER}/" | awk '{print $4}'); do
-            RID="$(echo "$KEY" | sed -E 's/.*-([a-z0-9]+-[a-z0-9]+)\.zip/\1/')"
-            SIZE=$(aws s3api head-object --bucket "$S3_BUCKET" --key "${S3_PREFIX}/${VER}/${KEY}" --query ContentLength --output text)
-            ENTRIES=$(echo "$ENTRIES" | jq \
-              --arg ver "$VER" --arg name "GNSS plugin ${VER}" --arg desc "$DESC" \
-              --arg pub "$NOW" --arg target "$RID" --arg asset "${VER}/${KEY}" \
-              --argjson size "$SIZE" --argjson abi 1 \
-              '. + [{version:$ver,name:$name,description:$desc,published:$pub,
-                     target:$target,asset:$asset,size:$size,abi:$abi}]')
-          done
-          jq --argjson new "$ENTRIES" --arg pub "$NOW" \
-             '{schema:1, updated:$pub,
-               releases: ($new + .releases) | unique_by(.version + "|" + .target)}' \
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          NEW=$(cat fragments/*.json | jq -s '.')
+          jq --argjson new "$NEW" --arg updated "$NOW" \
+             '{schema:1, updated:$updated, releases: ($new + .releases) | unique_by(.version + "|" + .target)}' \
              index.json > index.new.json
           aws s3 cp index.new.json "s3://${S3_BUCKET}/${S3_PREFIX}/index.json" \
             --content-type application/json --no-progress

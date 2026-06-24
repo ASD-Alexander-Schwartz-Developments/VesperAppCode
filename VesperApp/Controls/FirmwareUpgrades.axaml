@@ -5,7 +5,6 @@
              xmlns:m="using:VesperApp.Models"
              xmlns:vm="using:VesperApp.ViewModels"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
-             xmlns:oc="using:Octokit"
              xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
              xmlns:Controls="using:VesperApp.Controls"
              xmlns:dg="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
