@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:m="using:VesperApp.Models"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="520"
+             x:DataType="vm:GnssRfTestViewModel"
+             x:Class="VesperApp.Controls.GnssRfTest">
+
+	<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" ColumnDefinitions="*" RowDefinitions="60,Auto,Auto,*">
+
+		<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
+			<ui:CommandBar.PrimaryCommands>
+				<ui:CommandBarButton Command="{Binding ToneSelfTestCommand}" IconSource="Audio" Label="Tone Self-Test"
+									 ToolTip.Tip="Transmit a CW tone and run the in-FW go/no-go (VESPER_GPS_SELFTEST)"/>
+				<ui:CommandBarButton Command="{Binding TransmitScenarioCommand}" IconSource="Play" Label="Transmit Scenario"
+									 ToolTip.Tip="Stream the gps-sdr-sim scenario at the calibrated LO (shielded box only)"/>
+				<ui:CommandBarButton Command="{Binding StopTransmitCommand}" IconSource="Stop" Label="Stop TX"/>
+				<ui:CommandBarButton Command="{Binding ValidatePositioningCommand}" IconSource="Target" Label="Validate Fix"
+									 ToolTip.Tip="Decode the captured snapshots and compare the fix to the reference"/>
+				<ui:CommandBarElementContainer>
+					<ui:ProgressRing IsVisible="{Binding IsRunning}" IsActive="{Binding IsRunning}"
+									 Width="22" Height="22" Margin="10,0"/>
+				</ui:CommandBarElementContainer>
+			</ui:CommandBar.PrimaryCommands>
+		</ui:CommandBar>
+
+		<StackPanel Grid.Row="1" Margin="20,6,20,0" Spacing="4">
+			<StackPanel Orientation="Horizontal" Spacing="8">
+				<TextBlock Text="Scenario:" Width="110" VerticalAlignment="Center"/>
+				<TextBlock Text="{Binding ScenarioStatus}" VerticalAlignment="Center" MinWidth="240"/>
+				<Button Content="Download" Command="{Binding DownloadScenarioCommand}" IsVisible="{Binding !ScenarioReady}"/>
+				<ProgressBar Width="160" Minimum="0" Maximum="1" Value="{Binding DownloadProgress}" IsVisible="{Binding IsDownloading}" VerticalAlignment="Center"/>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal" Spacing="8">
+				<TextBlock Text="Captures folder:" Width="110" VerticalAlignment="Center"/>
+				<TextBox Width="430" Text="{Binding CapturesFolder}" IsReadOnly="True" Watermark="Browse to the device's *G.BIN folder"/>
+				<Button Content="Browse…" Command="{Binding BrowseCapturesCommand}"/>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal" Spacing="8">
+				<TextBlock Text="Ref lat:" Width="110" VerticalAlignment="Center"/>
+				<TextBox Width="120" Text="{Binding ReferenceLat}"/>
+				<TextBlock Text="lon:" VerticalAlignment="Center"/>
+				<TextBox Width="120" Text="{Binding ReferenceLon}"/>
+				<TextBlock Text="LO (Hz):" VerticalAlignment="Center"/>
+				<TextBox Width="150" Text="{Binding CalibratedLoHz}"/>
+			</StackPanel>
+		</StackPanel>
+
+		<TextBlock Grid.Row="2" Margin="20,8" Text="{Binding Summary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+
+		<ScrollViewer Grid.Row="3" Margin="20,4,20,20">
+			<ItemsControl ItemsSource="{Binding Results}">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate x:DataType="m:GnssTestRow">
+						<Border Margin="0,0,0,8" Padding="14,10" CornerRadius="6"
+								Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+							<Grid ColumnDefinitions="180,120,*" VerticalAlignment="Center">
+								<TextBlock Grid.Column="0" Text="{Binding Label}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}"
+										   FontWeight="Bold" VerticalAlignment="Center"/>
+								<TextBlock Grid.Column="2" Text="{Binding Detail}" Opacity="0.8"
+										   TextWrapping="Wrap" VerticalAlignment="Center"/>
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
+	</Grid>
+</UserControl>
