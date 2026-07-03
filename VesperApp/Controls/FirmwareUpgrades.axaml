@@ -8,6 +8,7 @@
              xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
              xmlns:Controls="using:VesperApp.Controls"
              xmlns:dg="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
+             xmlns:conv="using:Avalonia.Data.Converters"
              mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="450"
              x:Class="VesperApp.Controls.FirmwareUpgrades">
 
@@ -16,7 +17,7 @@
 	</UserControl.Resources>
 	
 	<HeaderedContentControl Header="Firmware Upgrades" IsVisible="True" UseLayoutRounding="True">
-		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*">
+		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*,Auto">
 			<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
 				<ui:CommandBar.PrimaryCommands>
 					<ui:CommandBarElementContainer>
@@ -29,7 +30,9 @@
 					</ui:CommandBarElementContainer>
 					<ui:CommandBarButton Command="{Binding RefreshReleasesCommand}" IconSource="{StaticResource FwUpdate}" Label="Refresh" ToolTip.Tip="Refresh List of Releases"/>
 					<ui:CommandBarSeparator />
-					<ui:CommandBarButton Command="{Binding DownloadReleaseCommand}" IconSource="Download" Label="Download" ToolTip.Tip="Download Update"/>				
+					<ui:CommandBarButton Command="{Binding DownloadReleaseCommand}" IconSource="Download" Label="Download" ToolTip.Tip="Download Update"/>
+					<ui:CommandBarSeparator />
+					<ui:CommandBarButton Command="{Binding FlashCommand}" IconSource="Sync" Label="Flash to Device" ToolTip.Tip="Flash the selected firmware to the docked device (STM32 via dock USB-DFU)"/>				
 				</ui:CommandBar.PrimaryCommands>
 			
 				<ui:CommandBar.SecondaryCommands>
@@ -74,6 +77,16 @@
 					</dg:DataGrid.Columns>
 				</dg:DataGrid>
 			</Grid>
+
+			<!-- Flash status / progress -->
+			<Border Grid.Row="2" Classes="statusBar" Margin="20,0,20,12"
+					IsVisible="{Binding FlashStatus, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+				<StackPanel Spacing="6">
+					<TextBlock Text="{Binding FlashStatus}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+					<ProgressBar Classes="slim" Minimum="0" Maximum="100" Value="{Binding FlashPercent}"
+								 IsVisible="{Binding IsFlashing}"/>
+				</StackPanel>
+			</Border>
 		</Grid>	
 	</HeaderedContentControl>
 

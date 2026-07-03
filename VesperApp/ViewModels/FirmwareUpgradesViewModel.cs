@@ -30,25 +30,40 @@ namespace VesperApp.ViewModels
         // Firmware updates come from a CDN release feed (index.json) published to S3/CloudFront by CI
         // in the private firmware repo — NOT the GitHub API, so there is no token in the client at all.
         // The client only reads the feed and downloads assets over plain HTTPS, SHA-256-verified by
-        // ReleaseFeedService. See docs/ci-templates/firmware-release.yml / docs/ARCHITECTURE.md.
-        private const string DefaultFirmwareFeed =
-            "https://d11eqmwet07q29.cloudfront.net/firmware/index.json";
+        // ReleaseFeedService. The CDN origin is injected at build time (CdnConfig), not a literal here.
+        // See docs/CDN-HARDENING.md / docs/ci-templates/firmware-release.yml / docs/ARCHITECTURE.md.
+        private const string FirmwareFeedPath = "firmware/index.json";
 
-        /// <summary>The firmware feed URL — overridable via <c>VESPERAPP_FIRMWARE_FEED</c> so the
-        /// CDN prefix can change without a rebuild.</summary>
-        private static Uri FirmwareFeedUrl()
+        /// <summary>The firmware feed URL, or <c>null</c> when no CDN origin is configured in this build.
+        /// Overridable via <c>VESPERAPP_FIRMWARE_FEED</c> (full URL) or <c>VESPERAPP_CDN_BASE</c> (origin)
+        /// so the CDN prefix can change without a rebuild.</summary>
+        private static Uri? FirmwareFeedUrl()
         {
             string? overrideUrl = Environment.GetEnvironmentVariable("VESPERAPP_FIRMWARE_FEED");
-            return new Uri(string.IsNullOrWhiteSpace(overrideUrl) ? DefaultFirmwareFeed : overrideUrl);
+            return !string.IsNullOrWhiteSpace(overrideUrl)
+                ? new Uri(overrideUrl)
+                : CdnConfig.FeedUri(FirmwareFeedPath);
         }
 
-        private readonly ReleaseFeedService feedService;
+        private readonly ReleaseFeedService? feedService;
 
         // Every entry from the last feed read; Releases is this list filtered to SelectedDeviceType.
         private readonly List<ReleaseEntry> allReleases = new();
 
         public ICommand? RefreshReleasesCommand { get; }
         public ICommand? DownloadReleaseCommand { get; }
+        public ICommand? FlashCommand { get; }
+
+        private readonly MainViewViewModel? _main;
+
+        private bool isFlashing;
+        public bool IsFlashing { get => isFlashing; set => this.RaiseAndSetIfChanged(ref isFlashing, value); }
+
+        private int flashPercent;
+        public int FlashPercent { get => flashPercent; set => this.RaiseAndSetIfChanged(ref flashPercent, value); }
+
+        private string flashStatus = string.Empty;
+        public string FlashStatus { get => flashStatus; set => this.RaiseAndSetIfChanged(ref flashStatus, value); }
 
         /// <summary>Releases shown in the grid: the feed, filtered by <see cref="SelectedDeviceType"/>.</summary>
         public ObservableCollection<ReleaseEntry> Releases { get; } = new();
@@ -83,19 +98,31 @@ namespace VesperApp.ViewModels
             set => this.RaiseAndSetIfChanged(ref isLoadingReleases, value);
         }
 
-        public FirmwareUpgradesViewModel()
+        public FirmwareUpgradesViewModel(MainViewViewModel? main)
         {
+            _main = main;
+
             RefreshReleasesCommand = ReactiveCommand.CreateFromTask(RunReleasesRefresh);
             DownloadReleaseCommand = ReactiveCommand.CreateFromTask(RunReleaseDownload);
+            FlashCommand = ReactiveCommand.CreateFromTask(RunFlash);
 
-            feedService = new ReleaseFeedService(FirmwareFeedUrl());
+            Uri? feedUrl = FirmwareFeedUrl();
+            feedService = feedUrl is null ? null : new ReleaseFeedService(feedUrl);
 
-            // Load the releases on initialization.
+            // Load the releases on initialization (no-op when no feed is configured).
             _ = RunReleasesRefresh();
         }
 
+        // Parameterless ctor for the XAML designer / ViewLocator fallback.
+        public FirmwareUpgradesViewModel() : this(null) { }
+
         private async Task<bool> RunReleasesRefresh()
         {
+            if (feedService is null)
+            {
+                Debug.WriteLine("Firmware feed unavailable: no CDN origin configured in this build.");
+                return false;
+            }
             try
             {
                 IsLoadingReleases = true;
@@ -139,7 +166,7 @@ namespace VesperApp.ViewModels
         private async Task<bool> RunReleaseDownload()
         {
             var selected = SelectedFirmwareRelease;
-            if (selected is null || string.IsNullOrWhiteSpace(selected.Asset))
+            if (selected is null || string.IsNullOrWhiteSpace(selected.Asset) || feedService is null)
                 return false;
 
             var filePicker = StorageProvider;
@@ -175,6 +202,141 @@ namespace VesperApp.ViewModels
                 Debug.WriteLine("Firmware download failed: " + ex);
                 return false;
             }
+        }
+
+        // Download the selected release and flash it to the docked device. STM32 products
+        // (Vesper/Kol/Pipistrelle) go through the dock-GPIO USB-DFU path; Nanotag (Microchip
+        // bootloader) is not implemented yet.
+        private async Task<bool> RunFlash()
+        {
+            var selected = SelectedFirmwareRelease;
+            if (selected is null || string.IsNullOrWhiteSpace(selected.Asset))
+            {
+                FlashStatus = "Select a firmware release first.";
+                return false;
+            }
+            if (feedService is null)
+            {
+                FlashStatus = "Firmware updates are unavailable: no update source is configured in this build.";
+                return false;
+            }
+
+            DeviceTypes target = SelectedDeviceType;
+
+            if (target == DeviceTypes.Nanotag)
+            {
+                LoggerDevice? ntag = _main?.SelectedLoggerDevice;
+                if (ntag is null || ntag.DeviceType != DeviceTypes.Nanotag || !ntag.IsConnected)
+                {
+                    FlashStatus = "Connect a Nanotag over USB and select it in the device list first.";
+                    await ShowInfo("Nanotag firmware update", FlashStatus);
+                    return false;
+                }
+                if (!Path.GetFileName(selected.Asset!).EndsWith(".hex", StringComparison.OrdinalIgnoreCase))
+                {
+                    FlashStatus = "Nanotag firmware must be an Intel HEX (.hex) file.";
+                    await ShowInfo("Nanotag firmware update", FlashStatus);
+                    return false;
+                }
+                if (!await ConfirmFlash(target, Path.GetFileName(selected.Asset!)))
+                    return false;
+
+                string ntmp = Path.Combine(Path.GetTempPath(), Path.GetFileName(selected.Asset!));
+                IsFlashing = true;
+                FlashPercent = 0;
+                try
+                {
+                    FlashStatus = "Downloading firmware…";
+                    await feedService.DownloadAssetAsync(selected, ntmp);
+
+                    var prog = new Progress<FlashProgress>(p => { FlashPercent = p.Percent; FlashStatus = p.Status; });
+                    await NanotagFlasher.FlashAsync(ntag, ntmp, prog);
+                    FlashStatus = "Nanotag firmware updated.";
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Nanotag flash failed: " + ex);
+                    FlashStatus = "Flash failed: " + ex.Message;
+                    await ShowInfo("Nanotag firmware update failed", FlashStatus);
+                    return false;
+                }
+                finally
+                {
+                    IsFlashing = false;
+                    try { if (File.Exists(ntmp)) File.Delete(ntmp); } catch { }
+                }
+            }
+
+            DockAdapter? dock = _main?.GlobalDock;
+            if (dock is null || !dock.IsConnected)
+            {
+                FlashStatus = "Connect the docking station first — STM32 flashing drives BOOT0/reset through the dock.";
+                await ShowInfo("Firmware update", FlashStatus);
+                return false;
+            }
+
+            if (!await ConfirmFlash(target, Path.GetFileName(selected.Asset!)))
+                return false;
+
+            string tmp = Path.Combine(Path.GetTempPath(), Path.GetFileName(selected.Asset!));
+
+            IsFlashing = true;
+            FlashPercent = 0;
+            try
+            {
+                FlashStatus = "Downloading firmware…";
+                await feedService.DownloadAssetAsync(selected, tmp);
+
+                var progress = new Progress<FlashProgress>(p =>
+                {
+                    FlashPercent = p.Percent;
+                    FlashStatus = p.Status;
+                });
+
+                await Stm32DfuFlasher.FlashAsync(dock, tmp, progress);
+                FlashStatus = "Firmware updated — device reset into the new application.";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Flash failed: " + ex);
+                FlashStatus = "Flash failed: " + ex.Message;
+                await ShowInfo("Firmware update failed", FlashStatus);
+                return false;
+            }
+            finally
+            {
+                IsFlashing = false;
+                try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+            }
+        }
+
+        private static async Task<bool> ConfirmFlash(DeviceTypes target, string fileName)
+        {
+            var box = MessageBoxManager.GetMessageBoxStandard(new MessageBoxStandardParams
+            {
+                ButtonDefinitions = ButtonEnum.YesNo,
+                ContentTitle = "Flash firmware",
+                ContentHeader = $"Flash {target} firmware?",
+                ContentMessage = $"This writes '{fileName}' to the docked device and reboots it. Make sure the correct device is docked.\n\nContinue?",
+                Icon = MsBox.Avalonia.Enums.Icon.Warning,
+                WindowIcon = App.MainWindow?.Icon,
+            });
+            return await box.ShowWindowDialogAsync(App.MainWindow) == ButtonResult.Yes;
+        }
+
+        private static async Task ShowInfo(string title, string message)
+        {
+            var box = MessageBoxManager.GetMessageBoxStandard(new MessageBoxStandardParams
+            {
+                ButtonDefinitions = ButtonEnum.Ok,
+                ContentTitle = title,
+                ContentMessage = message,
+                Icon = MsBox.Avalonia.Enums.Icon.Info,
+                WindowIcon = App.MainWindow?.Icon,
+            });
+            await box.ShowWindowDialogAsync(App.MainWindow);
         }
 
         private static IStorageProvider? _storageProvider;

@@ -35,8 +35,6 @@ namespace VesperApp.Services
             tokenSource = new CancellationTokenSource();
             token = tokenSource.Token;
 
-           // callBack_connection_done = new AsyncCallback(ProcessConnectionDone);
-
             DisconnectDeviceTestTask = Task.Run(() => DisconnectDeviceTest(token), token);
         }
 
@@ -45,11 +43,6 @@ namespace VesperApp.Services
         private async void DisconnectDeviceTest(CancellationToken ct)
         {
             bool prevcon = this.IsConnected;
-
-            //if (ct.IsCancellationRequested)
-            //{
-            //    ct.ThrowIfCancellationRequested();
-            //}
 
             while (!ct.IsCancellationRequested)
             {
@@ -72,8 +65,6 @@ namespace VesperApp.Services
 
                 await Task.Delay(TimeSpan.FromMilliseconds(250));
             }
-            
-            //ct.ThrowIfCancellationRequested();
         }
 
         public bool IsConnected 
@@ -88,18 +79,7 @@ namespace VesperApp.Services
 
 
 
-        //AsyncCallback callBack_connection_done;
-
         private readonly object someEventLock = new object();
-        private readonly object errorEventLock = new object();
-
-        /*private void ProcessConnectionDone(IAsyncResult result)
-        {
-            if (result.IsCompleted == true)
-            {
-            }
-        }*/
-
 
         protected void OnConnectionEvent(DeviceConnectionEventArgs e)
         {
@@ -111,13 +91,12 @@ namespace VesperApp.Services
             }
             if (handler != null)
             {
-                handler(this, e);//, callBack_connection_done, null);
+                handler(this, e);
             }
         }
 
 
         private EventHandler<DeviceConnectionEventArgs>? connectEvent;
-        //private EventHandler<ErrorEventArgs> errEvent;
 
         public event EventHandler<DeviceConnectionEventArgs> ConnectionEvent
         {
@@ -137,26 +116,6 @@ namespace VesperApp.Services
                 }
             }
         }
-        /*
-        public event EventHandler<ErrorEventArgs> ErrorEvent
-        {
-            add
-            {
-                lock (this.errorEventLock)
-                {
-                    this.errEvent += value;
-                }
-            }
-
-            remove
-            {
-                lock (this.errorEventLock)
-                {
-                    this.errEvent -= value;
-                }
-            }
-        }
-        */
 
         public async void Dispose()
         {
@@ -244,32 +203,6 @@ namespace VesperApp.Services
                         }
                     }
                 }
-/*
-                LoggerDevice[] arrayDevices = new LoggerDevice[this._loggerDevices.Count];
-                this._loggerDevices.CopyTo(arrayDevices, 0);
-
-                foreach (var dev in arrayDevices)
-                {
-                    bool f = false;
-                    foreach (var usbdevice in usbdevices)
-                    {
-                        if (usbdevice.VendorId == vendorid && usbdevice.ProductId == prodid)
-                        {
-                            var devi = new LoggerDevice(this._context, (UsbDevice)usbdevice);
-                            if (dev.USBDevice?.Equals(devi) == true)
-                            {
-                                f = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (f == false)
-                    {
-                        this._loggerDevices.Remove(dev);
-                        Debug.WriteLine("Removing from adapter " + dev.SerialNumber);
-                    }
-                }*/
-
             }
 
             return await Task.FromResult(this._loggerDevices);
