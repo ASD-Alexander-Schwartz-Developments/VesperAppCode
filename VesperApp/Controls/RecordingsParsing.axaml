@@ -6,6 +6,7 @@
 			 xmlns:vm="using:VesperApp.ViewModels"
 		     xmlns:ui="using:FluentAvalonia.UI.Controls"
 		     xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
+		     xmlns:conv="using:Avalonia.Data.Converters"
 		     xmlns:Controls="using:VesperApp.Controls"
              mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="450"
              x:Class="VesperApp.Controls.RecordingsParsing">
@@ -13,43 +14,53 @@
 	<UserControl.Resources>
 		<ui:PathIconSource x:Key="BioWave" Data="M6.2148 31.3867h10.4062c1.0547 0 1.6875-.4687 1.8984-1.4062l3.5157-16.1485 6.164 37.0078c.2813 1.6875 2.8829 1.6641 3.211 0l5.9766-28.0078 1.3827 6.9609c.211 1.0782.8204 1.5938 1.9219 1.5938h9.0938c.9374 0 1.6876-.7265 1.6876-1.6406 0-.9375-.7267-1.6641-1.6876-1.6641h-8.2969l-2.6953-11.9296c-.3516-1.6173-2.7657-1.6173-3.1641.0703l-5.8828 26.2734-6.1406-37.3359c-.2578-1.6407-2.6719-1.6875-3.0469 0l-4.9687 22.9218h-9.375c-.9376 0-1.6875.75-1.6875 1.6641s.7499 1.6406 1.6875 1.6406 Z" />
 	</UserControl.Resources>
-	
+
 	<HeaderedContentControl Header="Recording Data Extraction" IsVisible="True" UseLayoutRounding="True">
 	<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="False">
 		<ui:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
 			<ui:CommandBar.PrimaryCommands>
-				<ui:CommandBarButton Command="{Binding ManualGPSParserCommand}" IconSource="Globe" Label="GNSS" ToolTip.Tip="GNSS Decoder (DAT)"/>
+				<ui:CommandBarButton Command="{Binding ManualGPSParserCommand}" IconSource="Globe" Label="GNSS" ToolTip.Tip="GNSS Decoder (DAT) — pick one or more snap folders; decodes run as background jobs"/>
 				<ui:CommandBarButton Command="{Binding ManualAudioParserCommand}" IconSource="Microphone" Label="Audio" ToolTip.Tip="Audio Decoder"/>
 				<ui:CommandBarButton Command="{Binding ManualMotionParserCommand}" IconSource="Directions" Label="Motion" ToolTip.Tip="Motion Sensor(s) Decoder"/>
 				<ui:CommandBarButton Command="{Binding ManualLeptonParserCommand}" IconSource="Camera" Label="Camera" ToolTip.Tip="Still Camera Decoder"/>
 				<ui:CommandBarButton Command="{Binding ManualTprhParserCommand}" IconSource="WeatherFog" Label="Temp Humidity" ToolTip.Tip="Temperature and Relative Decoder"/>
 				<ui:CommandBarButton Command="{Binding ManualAlsParserCommand}" IconSource="WeatherSunnyLow" Label="Light" ToolTip.Tip="Ambient Light Decoder"/>
-				<ui:CommandBarButton Command="{Binding ManualEXG48ParserCommand}" IconSource="{StaticResource BioWave}" Label="EXG48" ToolTip.Tip="Ambient Light Decoder"/>
+				<ui:CommandBarButton Command="{Binding ManualEXG48ParserCommand}" IconSource="{StaticResource BioWave}" Label="EXG48" ToolTip.Tip="EXG48 (4/6/8ch ECG/EMG/EEG) Sensor Decoder"/>
 				<ui:CommandBarButton Command="{Binding ManualEXG1292ParserCommand}" IconSource="{StaticResource BioWave}" Label="EXG12" ToolTip.Tip="EXG1292 (2ch ECG/EMG/EEG) Sensor Decoder"/>
-				<ui:CommandBarButton Command="{Binding BinaryFilesExtractor}" IconSource="Folder" Label="Binary Parser" ToolTip.Tip="Binary Extractor"/>
-				<ui:CommandBarButton Command="{Binding BinaryAutoFilesExtractor}" IconSource="FolderFilled" Label="Auto Parse" ToolTip.Tip="Automatic Binary Extractor"/>
-				<ui:CommandBarButton Command="{Binding AutoImporterCommand}" IconSource="ImportAll" Label="Auto Import" ToolTip.Tip="Import Recordings Automatically"/>
+				<ui:CommandBarSeparator />
+				<ui:CommandBarButton Command="{Binding BinaryFilesExtractor}" IconSource="Folder" Label="Binary Parser" ToolTip.Tip="Strip/split raw .bin into intermediate files (no decode)"/>
+				<ui:CommandBarButton Command="{Binding BinaryAutoFilesExtractor}" IconSource="Sync" Label="Auto Decode" ToolTip.Tip="Parse raw .bin and decode to WAV / CSV / image / GNSS in one step"/>
+				<ui:CommandBarButton Command="{Binding AutoImporterCommand}" IconSource="ImportAll" Label="Auto Import" ToolTip.Tip="Copy a logger drive to a local folder, then auto-decode it"/>
+				<ui:CommandBarButton Command="{Binding OpenDataFolderCommand}" IconSource="OpenFolder" Label="Open Data" ToolTip.Tip="Browse a previously imported / decoded data folder"/>
 				<ui:CommandBarSeparator />
 			</ui:CommandBar.PrimaryCommands>
 			<ui:CommandBar.SecondaryCommands>
+				<ui:CommandBarButton Command="{Binding ShowDecodeJobsCommand}" IconSource="AllApps"
+									 Label="Decoding Progress" ToolTip.Tip="Show the unified decode/parse progress panel"/>
 			</ui:CommandBar.SecondaryCommands>
 		</ui:CommandBar>
 
-		<!-- Idle guidance / live progress fills the working area below the toolbar. -->
-		<Border Grid.Row="1" Classes="page" VerticalAlignment="Top">
-			<Grid MaxWidth="720" HorizontalAlignment="Left">
+		<!-- Working area: idle hint, live progress, or the imported-data browser. -->
+		<Border Grid.Row="1" Classes="page">
+			<Grid>
 
-				<!-- Idle hint -->
-				<Border Classes="card" IsVisible="{Binding !BinaryParserIsRunning}">
+				<!-- Idle hint (nothing imported yet) -->
+				<Border Classes="card" VerticalAlignment="Top" MaxWidth="720" HorizontalAlignment="Left"
+						IsVisible="{Binding ShowIdleHint}">
 					<StackPanel Spacing="6">
 						<TextBlock Classes="sectionHeader" Text="Decode &amp; import recordings"/>
 						<TextBlock Classes="caption"
-								   Text="Pick a decoder above to convert raw recordings — audio → WAV; motion, biopotentials, temperature/humidity and light → CSV; camera → image; GNSS snaps → fixes. Use Binary Parser or Auto Import to process a whole drive at once."/>
+								   Text="Auto Decode raw .bin files (parse + decode in one step) — audio → WAV; motion, biopotentials, temperature/humidity and light → CSV; camera → image; GNSS snaps → fixes. Auto Import copies a logger drive locally, then auto-decodes it. The per-sensor buttons remain for manual, step-by-step decoding."/>
+						<TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"
+								   Foreground="{DynamicResource SuccessBrush}"
+								   IsVisible="{Binding LastSummary, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+								   Text="{Binding LastSummary}"/>
 					</StackPanel>
 				</Border>
 
 				<!-- Working -->
-				<Border Classes="card" IsVisible="{Binding BinaryParserIsRunning}">
+				<Border Classes="card" VerticalAlignment="Top" MaxWidth="720" HorizontalAlignment="Left"
+						IsVisible="{Binding BinaryParserIsRunning}">
 					<StackPanel Spacing="10">
 						<TextBlock Classes="sectionHeader" Text="Processing…"/>
 						<ProgressBar Classes="slim" Minimum="0" Maximum="100"
@@ -62,6 +73,41 @@
 								   IsVisible="{Binding BinaryParserIndeterminate}"
 								   Text="Working… this can take a moment for large files."/>
 					</StackPanel>
+				</Border>
+
+				<!-- Imported-data browser -->
+				<Border Classes="card" Padding="0" IsVisible="{Binding ShowDataBrowser}">
+					<DockPanel LastChildFill="True">
+						<Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="14,12,14,8">
+							<StackPanel Spacing="2">
+								<TextBlock Classes="sectionHeader" Text="Imported recordings"/>
+								<TextBlock Classes="caption" TextTrimming="CharacterEllipsis" Text="{Binding CurrentDataFolder}"/>
+								<TextBlock FontWeight="SemiBold" Margin="0,2,0,0"
+										   Foreground="{DynamicResource SuccessBrush}"
+										   IsVisible="{Binding LastSummary, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+										   Text="{Binding LastSummary}"/>
+							</StackPanel>
+							<Button Grid.Column="1" Classes="toolbar" Margin="0,0,6,0" VerticalAlignment="Top"
+									Command="{Binding RefreshDataCommand}" Content="Refresh"/>
+							<Button Grid.Column="2" Classes="toolbar" VerticalAlignment="Top"
+									Command="{Binding OpenSelectedCommand}" Content="Open"/>
+						</Grid>
+
+						<TreeView ItemsSource="{Binding ImportedData}"
+								  SelectedItem="{Binding SelectedDataNode}"
+								  DoubleTapped="OnDataDoubleTapped"
+								  Margin="6,0,6,6">
+							<TreeView.ItemTemplate>
+								<TreeDataTemplate ItemsSource="{Binding Children}">
+									<StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+										<ui:SymbolIcon Symbol="{Binding Icon}" VerticalAlignment="Center"/>
+										<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+										<TextBlock Text="{Binding Detail}" Classes="caption" VerticalAlignment="Center"/>
+									</StackPanel>
+								</TreeDataTemplate>
+							</TreeView.ItemTemplate>
+						</TreeView>
+					</DockPanel>
 				</Border>
 
 			</Grid>

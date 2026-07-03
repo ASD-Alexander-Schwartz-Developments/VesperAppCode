@@ -1,0 +1,91 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:svc="using:VesperApp.Services"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="520"
+        x:Class="VesperApp.Views.DecodingProgressWindow"
+        Title="{Binding Summary, StringFormat='Decoding Progress — {0}'}"
+        Icon="/Assets/bat.ico"
+        Width="580" Height="540" MinWidth="420" MinHeight="300">
+
+    <DockPanel Margin="12">
+
+        <!-- Header -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Text="Decoding &amp; parsing" FontSize="16" FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeForegroundBrush}"/>
+                <TextBlock Text="{Binding Summary}" FontSize="12" Opacity="0.7"
+                           Foreground="{DynamicResource ThemeForegroundBrush}"/>
+            </StackPanel>
+            <Button Grid.Column="1" VerticalAlignment="Center" Content="Clear finished"
+                    Command="{Binding ClearFinishedCommand}"/>
+        </Grid>
+
+        <TextBlock DockPanel.Dock="Top" Text="No decode jobs yet."
+                   Margin="4,20" HorizontalAlignment="Center" Opacity="0.6"
+                   IsVisible="{Binding !HasJobs}"
+                   Foreground="{DynamicResource ThemeForegroundBrush}"/>
+
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Jobs}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="svc:DecodeJob">
+                        <Border Background="{DynamicResource AppSurfaceAltBrush}"
+                                BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="1"
+                                CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                            <StackPanel Spacing="6">
+
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Grid.Column="0" Spacing="1">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource ThemeForegroundBrush}"/>
+                                        <TextBlock Text="{Binding StatusText}" FontSize="11.5"
+                                                   TextTrimming="CharacterEllipsis" Opacity="0.75"
+                                                   Foreground="{DynamicResource ThemeForegroundBrush}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Progress, StringFormat='{}{0:0}%'}"
+                                                   IsVisible="{Binding !IsIndeterminate}" FontSize="12"
+                                                   Foreground="{DynamicResource ThemeForegroundBrush}"/>
+                                        <TextBlock Text="{Binding ElapsedText}" FontSize="12" Opacity="0.7"
+                                                   Foreground="{DynamicResource ThemeForegroundBrush}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <ProgressBar Minimum="0" Maximum="100" Height="6"
+                                             Value="{Binding Progress}"
+                                             IsIndeterminate="{Binding IsIndeterminate}"/>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="{Binding IsExpanded, Converter={x:Static svc:DecodeJobConverters.ExpandLabel}}"
+                                            Command="{Binding ToggleExpandedCommand}"/>
+                                    <Button Content="Cancel" Command="{Binding CancelCommand}"
+                                            IsVisible="{Binding IsRunning}"/>
+                                    <Button Content="Open log" Command="{Binding OpenLogCommand}"/>
+                                    <Button Content="Remove" Command="{Binding RemoveCommand}"
+                                            IsVisible="{Binding !IsRunning}"/>
+                                    <TextBlock Text="⚠ errors — see output" VerticalAlignment="Center"
+                                               FontSize="11.5" IsVisible="{Binding HasError}"
+                                               Foreground="{DynamicResource DangerBrush}"/>
+                                </StackPanel>
+
+                                <TextBox Classes="log" IsVisible="{Binding IsExpanded}"
+                                         Text="{Binding LogTail, Mode=OneWay}"
+                                         IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                                         FontFamily="Cascadia Mono,Consolas,Menlo,monospace" FontSize="11.5"
+                                         Height="180" MaxHeight="180"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                         Background="{DynamicResource AppSurfaceBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</Window>
