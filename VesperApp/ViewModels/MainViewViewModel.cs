@@ -32,28 +32,6 @@ using MsBox.Avalonia.Models;
 using FluentAvalonia.UI.Controls;
 using static VesperApp.Models.ConfigurationJSON;
 
-/// <summary>
-/// //// {Binding Description, StringFormat='Description: {0}'}
-/// </summary>
-//////
-///@ECHO OFF
-//SET "OLD_PATH=%PATH%"
-//SET "PATH=C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin;%PATH%"
-//SET PROG_CLI=STM32_Programmer_CLI.exe
-//SET PROG_ARGS=-c port=SWD freq=4000
-//SET START_ADDR=0x80000000
-//SET VERIFY=-v
-
-//%PROG_CLI% %PROG_ARGS% -w "%1" %START_ADDR% %VERIFY%
-
-//SET "PATH=%OLD_PATH%"
-//ECHO ON
-/////
-//To launch command line interface, call 
-//    macOS: STM32CubeProgrammer.app / Contents / MacOs / bin / STM32_Programmer_CLI 
-//    Windows: ..\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin \STM32_Programmer_CLI.exe 
-//    Linux: .. / STMicroelectronics / STM32Cube / STM32CubeProgrammer / bin / STM32_Programmer_CLI
-
 
 
 
@@ -64,6 +42,9 @@ namespace VesperApp.ViewModels
     public class MainViewViewModel : ViewModelBase
     {
         private DockAdapter _globalDockAdapter;
+
+        /// <summary>The shared docking-station adapter — firmware flashing uses it to drive BOOT0/reset.</summary>
+        public DockAdapter GlobalDock => _globalDockAdapter;
         private DeviceUsbAdapter _deviceUsbAdapter;
 
         public bool IsConnected
@@ -155,12 +136,13 @@ namespace VesperApp.ViewModels
 
             Categories = new List<CategoryBase>();
 
-            Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), DataContext = new RecordingParsingViewModel(), Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
+            var recordingsViewModel = new RecordingParsingViewModel();
+            Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), DataContext = recordingsViewModel, Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
             Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), DataContext = new ScheduleEditorViewModel(), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
             Categories.Add(new Category { Name = "Device Tests", Page = typeof(DeviceTests), DataContext = new DeviceTestsViewModel(this), Icon = Symbol.Repair, ToolTip = "Per-sensor test validations (microphones, GNSS/RF, …)" });
             Categories.Add(new VesperApp.Models.Separator());
             Categories.Add(new Category { Name = "Software Upgrades", Page = typeof(UpdateChecker), DataContext = new UpdateCheckerViewModel(), Icon = Symbol.New, ToolTip = "Software Upgrades" });
-            Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
+            Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(this), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
             Categories.Add(new Category { Name = "Plugins", Page = typeof(PluginUpdates), DataContext = new PluginUpdatesViewModel(), Icon = Symbol.Download, ToolTip = "GNSS decoder plugin updates" });
 
             // Open-core seam: entitlement-gated feature modules (cloud sync, GNSS
@@ -171,9 +153,23 @@ namespace VesperApp.ViewModels
                          .GetEntitledNavCategories(ASD.Platform.PlatformServices.Entitlements))
                 Categories.Add(moduleCategory);
 
+            Categories.Add(new Category { Name = "Settings", Page = typeof(SettingsView), DataContext = new SettingsViewModel(), Icon = Symbol.Setting, ToolTip = "Application settings" });
             Categories.Add(new Category { Name = "Help", Icon = Symbol.Help, ToolTip = "Help Documentation" });
 
-            SelectedCategory = Categories[0];
+            // Auto-open the configured working directory in the Recordings data browser so the
+            // user doesn't have to pick a folder each session (configurable in Settings → Workspace).
+            var settings = SettingsService.Current;
+            if (settings.Workspace.OpenWorkingDirOnStartup)
+            {
+                string workingDir = SettingsService.Instance.ResolveWorkingDirectory();
+                if (Directory.Exists(workingDir))
+                    recordingsViewModel.LoadDataFolder(workingDir);
+            }
+
+            // Honour the configured startup tab (defaults to Recordings).
+            Category? startupCategory = Categories.OfType<Category>()
+                .FirstOrDefault(c => string.Equals(c.Name, settings.Ui.StartupCategory, StringComparison.OrdinalIgnoreCase));
+            SelectedCategory = startupCategory ?? (object)Categories[0];
 
             #region Dock Commands
             ConnectDisconnectDockCommand = ReactiveCommand.CreateFromTask(async () =>

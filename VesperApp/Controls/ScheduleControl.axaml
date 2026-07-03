@@ -9,7 +9,7 @@
              x:Class="VesperApp.Controls.ScheduleControl"
 			 MinHeight="300" MaxWidth="800" BorderThickness="1">
 
-	<Border BorderThickness="3" BorderBrush="#909090" HorizontalAlignment="Stretch" Padding="1" CornerRadius="5" VerticalAlignment="Stretch">
+	<Border Classes="surface" HorizontalAlignment="Stretch" Padding="8" VerticalAlignment="Stretch">
 		<DockPanel Margin="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 			<StackPanel Spacing="3" Orientation="Horizontal" HorizontalAlignment="Stretch" DockPanel.Dock="Top">
 				<Label Margin="20,5" Content="Select Schedule Type" VerticalAlignment="Center"/>
@@ -39,11 +39,11 @@
 								YearVisible="{Binding IsYearVisible}"
 								DayVisible="{Binding IsDayVisible}"
 								SelectedDate="{Binding SelectedDate, Mode=TwoWay}" 
-								FontFamily="Lato" FontSize="12" 
+								FontSize="12"
 								x:Name="dpDate" 
 								VerticalAlignment="Center" Padding="0,0,0,14" />
 					<TimePicker SelectedTime="{Binding SelectedTime, Mode=TwoWay}" 
-								FontFamily="Lato" FontSize="12" 
+								FontSize="12"
 								x:Name="tpTime"
 								VerticalAlignment="Center" 
 								Padding="0,0,0,14" ClockIdentifier="24HourClock"/>
@@ -77,7 +77,7 @@
 
 			<StackPanel Margin="1,10,10,0" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Stretch" MinWidth="265" DockPanel.Dock="Left">
 				<Label Content="Operating Schedule Alarms"/>
-				<Border BorderThickness="2">
+				<Border BorderThickness="1" BorderBrush="{DynamicResource AppStrokeBrush}" CornerRadius="6">
 				<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 				<ListBox ItemsSource="{Binding ScheduleEventsList}" 
 						 x:Name="listScheduleEventsList" 
@@ -95,8 +95,8 @@
 									<ColumnDefinition Width="*" />
 								</Grid.ColumnDefinitions>
 								<StackPanel Margin="1,1,1,1" Orientation="Horizontal" Spacing="5">
-									<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontFamily="Lato" FontSize="14" />
-									<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontFamily="Lato" FontSize="14" />
+									<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" Classes="mono" FontSize="13" />
+									<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontSize="13" />
 								</StackPanel>
 							</Grid>
 						</DataTemplate>

@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<!-- Windows (and default dev builds) use the GUI subsystem so no console window
+		     appears. Linux/macOS publishes (-r linux-* / osx-*) produce a normal console
+		     Exe so the app launches from a shell. Driven by the target runtime identifier. -->
 		<OutputType>WinExe</OutputType>
+		<OutputType Condition="'$(RuntimeIdentifier)' != '' And ($(RuntimeIdentifier.StartsWith('linux')) Or $(RuntimeIdentifier.StartsWith('osx')))">Exe</OutputType>
+		<RuntimeIdentifiers>win-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<!--Avalonia doesen't support TrimMode=link currently,but we are working on that https://github.com/AvaloniaUI/Avalonia/issues/6892 -->
@@ -14,7 +19,19 @@
 		<Company>A.S.D</Company>
 		<Product></Product>
 		<PackageIcon>bat.png</PackageIcon>
+		<!-- Client-read CDN origin (self-update + firmware/plugin feeds + scenario assets).
+		     Deliberately NOT a literal in source: CI injects it at publish time with
+		     -p:CdnBaseUrl=https://xxxx.cloudfront.net (from a repo secret). Empty in a plain
+		     local build, in which case update/download features degrade gracefully and are
+		     driven by the VESPERAPP_CDN_BASE / VESPERAPP_*_FEED env overrides instead.
+		     Read at runtime by Services/CdnConfig. See docs/CDN-HARDENING.md. -->
+		<CdnBaseUrl></CdnBaseUrl>
 	</PropertyGroup>
+	<ItemGroup>
+		<!-- Surfaces $(CdnBaseUrl) as [assembly: AssemblyMetadata("CdnBaseUrl", "...")]
+		     (GenerateAssemblyInfo is on by default), which CdnConfig reads via reflection. -->
+		<AssemblyMetadata Include="CdnBaseUrl" Value="$(CdnBaseUrl)" />
+	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
 		<None Remove=".gitignore" />
@@ -47,9 +64,11 @@
 		<TrimmableAssembly Include="Avalonia.Themes.Default" />-->
 	
 	  <AvaloniaXaml Remove="Assets\ResourceDictionary.axaml" />
-	
+
 	  <AvaloniaXaml Remove="Assets\SharedResources.axaml" />
-	
+
+	  <AvaloniaXaml Remove="Assets\Theme.axaml" />
+
 	  <AvaloniaXaml Remove="Assets\VesperIcons.axaml" />
 	</ItemGroup>
 	<ItemGroup>
@@ -77,6 +96,8 @@
 		<ProjectReference Include="..\ASD.Contracts\ASD.Contracts.csproj" />
 		<ProjectReference Include="..\ASD.DeviceCore\ASD.DeviceCore.csproj" />
 		<ProjectReference Include="..\ASD.Devices\ASD.Devices.csproj" />
+		<ProjectReference Include="..\FirmwareUpdater\FirmwareUpdater.csproj" />
+		<ProjectReference Include="..\LibUsbDfu\LibUsbDfu.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Update="Assets\ASD LOGO small-01.jpg">

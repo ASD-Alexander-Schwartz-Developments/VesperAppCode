@@ -1,0 +1,98 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=netstandard">
+	<!--
+	  VesperApp design tokens.
+	  Theme-aware brushes live in ThemeDictionaries (Light / Dark) so they resolve
+	  correctly against the control's ActualThemeVariant. Theme-invariant tokens
+	  (spacing scale, radii, fonts) live at the root. This is the single source of
+	  truth for colour and spacing across the app.
+	-->
+	<ResourceDictionary.ThemeDictionaries>
+
+		<!-- ────────────────────────────── DARK ────────────────────────────── -->
+		<ResourceDictionary x:Key="Dark">
+			<!-- Brand accent (kept in sync with FluentAvaloniaTheme.CustomAccentColor) -->
+			<Color x:Key="AppAccentColor">#818CF8</Color>
+			<SolidColorBrush x:Key="AppAccentBrush" Color="#818CF8" />
+			<SolidColorBrush x:Key="AppAccentSoftBrush" Color="#33818CF8" />
+
+			<!-- Status colours -->
+			<SolidColorBrush x:Key="SuccessBrush" Color="#34D399" />
+			<SolidColorBrush x:Key="DangerBrush" Color="#F87171" />
+			<SolidColorBrush x:Key="WarningBrush" Color="#FBBF24" />
+			<SolidColorBrush x:Key="InfoBrush" Color="#818CF8" />
+
+			<!-- Status pill fills (translucent so the coloured text reads on top) -->
+			<SolidColorBrush x:Key="SuccessSoftBrush" Color="#2634D399" />
+			<SolidColorBrush x:Key="DangerSoftBrush" Color="#26F87171" />
+
+			<!-- Surfaces / structure -->
+			<SolidColorBrush x:Key="AppSurfaceBrush" Color="#1C1C1F" />
+			<SolidColorBrush x:Key="AppSurfaceAltBrush" Color="#232328" />
+			<SolidColorBrush x:Key="AppStrokeBrush" Color="#34343C" />
+
+			<!-- List / table -->
+			<SolidColorBrush x:Key="ListItemPointerOverBrush" Color="#14FFFFFF" />
+			<SolidColorBrush x:Key="ListItemSelectedBrush" Color="#33818CF8" />
+			<SolidColorBrush x:Key="ListItemSelectedForegroundBrush" Color="#FFFFFF" />
+			<SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#26262B" />
+			<SolidColorBrush x:Key="HeaderForegroundBrush" Color="#C8C8D0" />
+			<SolidColorBrush x:Key="HeaderBorderBrush" Color="#34343C" />
+			<SolidColorBrush x:Key="ColumnSeparatorBrush" Color="#2A2A30" />
+			<SolidColorBrush x:Key="RowAltBrush" Color="#0AFFFFFF" />
+
+			<!-- Legacy key shims (still referenced by DeviceBackground / Indicator / SharedResources) -->
+			<SolidColorBrush x:Key="ThemeForegroundBrush" Color="#E6E6E6" />
+			<SolidColorBrush x:Key="ThemeBorderMidBrush" Color="#34343C" />
+			<SolidColorBrush x:Key="ThemeAccentBrush" Color="#818CF8" />
+		</ResourceDictionary>
+
+		<!-- ────────────────────────────── LIGHT ───────────────────────────── -->
+		<ResourceDictionary x:Key="Light">
+			<Color x:Key="AppAccentColor">#5457E6</Color>
+			<SolidColorBrush x:Key="AppAccentBrush" Color="#5457E6" />
+			<SolidColorBrush x:Key="AppAccentSoftBrush" Color="#1F5457E6" />
+
+			<SolidColorBrush x:Key="SuccessBrush" Color="#16A34A" />
+			<SolidColorBrush x:Key="DangerBrush" Color="#DC2626" />
+			<SolidColorBrush x:Key="WarningBrush" Color="#D97706" />
+			<SolidColorBrush x:Key="InfoBrush" Color="#4F46E5" />
+
+			<SolidColorBrush x:Key="SuccessSoftBrush" Color="#1A16A34A" />
+			<SolidColorBrush x:Key="DangerSoftBrush" Color="#1ADC2626" />
+
+			<SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFFFFF" />
+			<SolidColorBrush x:Key="AppSurfaceAltBrush" Color="#F4F5F7" />
+			<SolidColorBrush x:Key="AppStrokeBrush" Color="#E2E4E9" />
+
+			<SolidColorBrush x:Key="ListItemPointerOverBrush" Color="#0F000000" />
+			<SolidColorBrush x:Key="ListItemSelectedBrush" Color="#1F5457E6" />
+			<SolidColorBrush x:Key="ListItemSelectedForegroundBrush" Color="#111827" />
+			<SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#F3F4F6" />
+			<SolidColorBrush x:Key="HeaderForegroundBrush" Color="#4B5563" />
+			<SolidColorBrush x:Key="HeaderBorderBrush" Color="#E5E7EB" />
+			<SolidColorBrush x:Key="ColumnSeparatorBrush" Color="#EEEEEE" />
+			<SolidColorBrush x:Key="RowAltBrush" Color="#06000000" />
+
+			<SolidColorBrush x:Key="ThemeForegroundBrush" Color="#1E1E1E" />
+			<SolidColorBrush x:Key="ThemeBorderMidBrush" Color="#D0D0D0" />
+			<SolidColorBrush x:Key="ThemeAccentBrush" Color="#5457E6" />
+		</ResourceDictionary>
+	</ResourceDictionary.ThemeDictionaries>
+
+	<!-- ───────────────────────── Theme-invariant tokens ───────────────────────── -->
+
+	<!-- Corner radii -->
+	<CornerRadius x:Key="RadiusS">4</CornerRadius>
+	<CornerRadius x:Key="RadiusM">8</CornerRadius>
+	<CornerRadius x:Key="RadiusPill">999</CornerRadius>
+
+	<!-- Typography: Segoe UI (always present on Windows) with sensible fallbacks -->
+	<FontFamily x:Key="AppFontFamily">Segoe UI, Inter, San Francisco, Helvetica Neue, Arial, sans-serif</FontFamily>
+	<FontFamily x:Key="MonoFontFamily">Cascadia Mono, Consolas, Menlo, monospace</FontFamily>
+
+	<!-- List sizing (referenced by App.axaml list / grid styles) -->
+	<sys:Double x:Key="HeaderRowHeight">36</sys:Double>
+	<sys:Double x:Key="ListRowMinHeight">36</sys:Double>
+</ResourceDictionary>

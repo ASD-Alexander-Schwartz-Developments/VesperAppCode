@@ -13,18 +13,9 @@ namespace VesperApp.Views
 {
     public partial class MainView : UserControl
     {
-        
-//        private ConnectToggle _connectToggle;
         public MainView()
         {
             InitializeComponent();
-//            _connectToggle = this.Get<ConnectToggle>("ConnectToggle");
-            //this.WhenActivated(d => d(ViewModel!.ShowDockPickDialog.RegisterHandler(DoShowDockPickDialogAsync)));
         }
-        /*
-        void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
-        }*/
     }
 }

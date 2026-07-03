@@ -5,214 +5,199 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:m="using:VesperApp.Models"
 		xmlns:ui="using:FluentAvalonia.UI.Controls"
-		xmlns:si="clr-namespace:SatialInterfaces.Controls;assembly=CalendarControl"
 		xmlns:Controls="using:VesperApp.Controls"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
-		MinWidth="768"
-		MinHeight="400"
+		MinWidth="860"
+		MinHeight="480"
         x:Class="VesperApp.Views.MainView">
 
-    <Design.DataContext>
-        <vm:MainViewViewModel/>
-    </Design.DataContext>
+	<Design.DataContext>
+		<vm:MainViewViewModel/>
+	</Design.DataContext>
 
+	<Grid Margin="12" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
 
-	<Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="120,*" RowDefinitions="70,200,*,50"  Margin="5" ShowGridLines="False">
-		
-		
-		<StackPanel VerticalAlignment="Stretch" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal">
-			
-			<StackPanel Spacing="1" VerticalAlignment="Center" >
-				<Button Margin="10" Command="{Binding ConnectDisconnectDockCommand}" x:Name="ConnectToggle">
-					<StackPanel Orientation="Horizontal">
-						<Image Source="/Assets/connected.png" IsVisible="{Binding IsConnected}" Width="24"
-											  Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" />
-						<Image Source="/Assets/disconnected.png" IsVisible="{Binding !IsConnected}" Width="24"
-											  Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" />
-						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Connect Dock" IsVisible="{Binding !IsConnected}" Classes="DockControls"/>
-						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Disconnect Dock" IsVisible="{Binding IsConnected}" Classes="DockControls"/>
-					</StackPanel>
-				</Button>
-			</StackPanel>
-			
-			<StackPanel x:Name="spDockControls" Spacing="1" VerticalAlignment="Center" IsEnabled="{Binding IsConnected}" Orientation="Horizontal">
-				
-				<Button Margin="10" Command="{Binding EnableDeviceDockCommand}" x:Name="DockEnableDeviceToggle">
-					<StackPanel Orientation="Horizontal">
-						<Ellipse Fill="Red" Width="24" Height="24" IsVisible="{Binding !IsDeviceEnabled}"/>
-						<Ellipse Fill="Green" Width="24" Height="24" IsVisible="{Binding IsDeviceEnabled}"/>
-						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Enable Device" IsVisible="{Binding !IsDeviceEnabled}" Classes="DockControls"/>
-						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Disable Device" IsVisible="{Binding IsDeviceEnabled}" Classes="DockControls"/>
-					</StackPanel>
-				</Button>
-				<Button Margin="10" Command="{Binding ResetDeviceDockCommand}" x:Name="DockRestDeviceButton">
-					<StackPanel Orientation="Horizontal">
-						<TextBlock VerticalAlignment="Center" Padding="2,6,2,6" Text="Reset Device" IsVisible="True" Classes="DockControls"/>
-					</StackPanel>
-				</Button>
-				<Button Margin="10" Command="{Binding Boot0ModeDockCommand}" x:Name="DockBoot0DeviceToggle">
-					<StackPanel Orientation="Horizontal">
-						<Ellipse Fill="Red" Width="24" Height="24" IsVisible="{Binding !IsDeviceBoot0Mode}"/>
-						<Ellipse Fill="Green" Width="24" Height="24" IsVisible="{Binding IsDeviceBoot0Mode}"/>
-						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Device Boot" IsVisible="{Binding !IsDeviceBoot0Mode}" Classes="DockControls"/>
-						<TextBlock VerticalAlignment="Center" Padding="8,2,2,4" Text="Device Exit Boot" IsVisible="{Binding IsDeviceBoot0Mode}" Classes="DockControls"/>
-					</StackPanel>
-				</Button>
-			</StackPanel>
+		<!-- ═══════════════════════ Header ═══════════════════════ -->
+		<Border Grid.Row="0" Classes="card" Padding="14,10">
+			<Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
 
-
-			<Border Classes="Clock" CornerRadius="3" BorderThickness="2">
-				<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Orientation="Horizontal">
-					<TextBlock HorizontalAlignment="Left" x:Name="textDateTime" VerticalAlignment="Center" Padding="10,0,10,0" Text="{Binding TextDateTimeNow}" FontFamily="Consolas" FontSize="16"/>
-					<CheckBox FlowDirection="LeftToRight" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" x:Name="chkIsUTC" IsChecked="{Binding IsClockUTC}" Content="Is UTC" Padding="10,5,10,0"/>
+				<!-- Brand -->
+				<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+					<Border Width="36" Height="36" CornerRadius="9" Background="{DynamicResource AppAccentSoftBrush}">
+						<Image Source="/Assets/bat.png" Width="22" Height="22"
+							   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+					</Border>
+					<StackPanel VerticalAlignment="Center" Spacing="0">
+						<TextBlock Text="Vesper" FontSize="17" FontWeight="SemiBold"/>
+						<TextBlock Text="Device Console" Classes="caption"/>
+					</StackPanel>
 				</StackPanel>
-			</Border>
-		</StackPanel>
-			
-		<Border Classes="devBorder" CornerRadius="5" BorderThickness="3"  Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2">
-			<Grid ColumnDefinitions="*,100" RowDefinitions="*,35" ShowGridLines="false">
-				<ListBox x:Name="listLoggerDevices" ItemsSource="{Binding LoggerDevices}" SelectionMode="Single" Selection="{Binding SelectedLoggerDeviceModel}" ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+				<!-- Dock connection + controls -->
+				<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
+							HorizontalAlignment="Center" VerticalAlignment="Center">
+
+					<Border Classes="statusPill success" IsVisible="{Binding IsConnected}">
+						<StackPanel Orientation="Horizontal" Spacing="7">
+							<Ellipse Classes="statusDot" Fill="{DynamicResource SuccessBrush}"/>
+							<TextBlock Text="Dock connected" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+					<Border Classes="statusPill danger" IsVisible="{Binding !IsConnected}">
+						<StackPanel Orientation="Horizontal" Spacing="7">
+							<Ellipse Classes="statusDot" Fill="{DynamicResource DangerBrush}"/>
+							<TextBlock Text="No dock" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+
+					<Button Classes="toolbar" Command="{Binding ConnectDisconnectDockCommand}" x:Name="ConnectToggle">
+						<StackPanel Orientation="Horizontal" Spacing="7">
+							<Image Source="/Assets/connected.png" IsVisible="{Binding IsConnected}" Width="18" Height="18" VerticalAlignment="Center"/>
+							<Image Source="/Assets/disconnected.png" IsVisible="{Binding !IsConnected}" Width="18" Height="18" VerticalAlignment="Center"/>
+							<TextBlock VerticalAlignment="Center" Text="Connect Dock" IsVisible="{Binding !IsConnected}"/>
+							<TextBlock VerticalAlignment="Center" Text="Disconnect Dock" IsVisible="{Binding IsConnected}"/>
+						</StackPanel>
+					</Button>
+
+					<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,3" IsVisible="{Binding IsConnected}"/>
+
+					<StackPanel x:Name="spDockControls" Orientation="Horizontal" Spacing="6"
+								IsEnabled="{Binding IsConnected}" IsVisible="{Binding IsConnected}">
+						<Button Classes="toolbar" Command="{Binding EnableDeviceDockCommand}" x:Name="DockEnableDeviceToggle">
+							<StackPanel Orientation="Horizontal" Spacing="7">
+								<Ellipse Classes="statusDot" Fill="{DynamicResource DangerBrush}" IsVisible="{Binding !IsDeviceEnabled}"/>
+								<Ellipse Classes="statusDot" Fill="{DynamicResource SuccessBrush}" IsVisible="{Binding IsDeviceEnabled}"/>
+								<TextBlock VerticalAlignment="Center" Text="Enable Device" IsVisible="{Binding !IsDeviceEnabled}"/>
+								<TextBlock VerticalAlignment="Center" Text="Disable Device" IsVisible="{Binding IsDeviceEnabled}"/>
+							</StackPanel>
+						</Button>
+						<Button Classes="toolbar" Command="{Binding ResetDeviceDockCommand}" x:Name="DockRestDeviceButton" Content="Reset Device"/>
+						<Button Classes="toolbar" Command="{Binding Boot0ModeDockCommand}" x:Name="DockBoot0DeviceToggle">
+							<StackPanel Orientation="Horizontal" Spacing="7">
+								<Ellipse Classes="statusDot" Fill="{DynamicResource WarningBrush}" IsVisible="{Binding IsDeviceBoot0Mode}"/>
+								<TextBlock VerticalAlignment="Center" Text="Device Boot" IsVisible="{Binding !IsDeviceBoot0Mode}"/>
+								<TextBlock VerticalAlignment="Center" Text="Exit Boot" IsVisible="{Binding IsDeviceBoot0Mode}"/>
+							</StackPanel>
+						</Button>
+					</StackPanel>
+				</StackPanel>
+
+				<!-- Clock -->
+				<Border Grid.Column="2" Classes="statusPill" VerticalAlignment="Center">
+					<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+						<TextBlock x:Name="textDateTime" Classes="mono" VerticalAlignment="Center"
+								   FontSize="14" Text="{Binding TextDateTimeNow}"/>
+						<CheckBox x:Name="chkIsUTC" VerticalAlignment="Center" MinWidth="0"
+								  IsChecked="{Binding IsClockUTC}" Content="UTC"/>
+					</StackPanel>
+				</Border>
+			</Grid>
+		</Border>
+
+		<!-- ═══════════════════════ Devices ═══════════════════════ -->
+		<Border Grid.Row="1" Classes="card" Padding="0">
+			<DockPanel LastChildFill="True">
+
+				<Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="14,12,14,8">
+					<TextBlock Text="Logger Devices" Classes="sectionHeader" VerticalAlignment="Center"/>
+					<Border Grid.Column="1" Classes="statusPill" VerticalAlignment="Center">
+						<TextBlock VerticalAlignment="Center">
+							<Run Text="{Binding LoggerDevices.Count}"/><Run Text=" detected"/>
+						</TextBlock>
+					</Border>
+				</Grid>
+
+				<!-- Device actions -->
+				<Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource AppStrokeBrush}"
+						BorderThickness="0,1,0,0" Padding="12,8">
+					<WrapPanel Orientation="Horizontal">
+						<Button Classes="toolbar" Margin="0,2,6,2" Command="{Binding ConnectDisconnectDeviceCommand}" x:Name="DeviceConnectButton">
+							<StackPanel Orientation="Horizontal" Spacing="7">
+								<Image Source="/Assets/connected.png" IsVisible="{Binding IsDeviceConnected}" Width="18" Height="18" VerticalAlignment="Center"/>
+								<Image Source="/Assets/disconnected.png" IsVisible="{Binding !IsDeviceConnected}" Width="18" Height="18" VerticalAlignment="Center"/>
+								<TextBlock VerticalAlignment="Center" Text="Connect Device" IsVisible="{Binding !IsDeviceConnected}"/>
+								<TextBlock VerticalAlignment="Center" Text="Disconnect Device" IsVisible="{Binding IsDeviceConnected}"/>
+							</StackPanel>
+						</Button>
+						<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,4"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Sleep" Command="{Binding SleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Arm Sleep" Command="{Binding ArmSleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Format" Command="{Binding FormatDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Set Time" Command="{Binding SetDateTimeDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Upload" Command="{Binding UploadDeviceConfig}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Download" Command="{Binding DownloadDeviceData}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,0,2" Content="Upgrade Firmware" Command="{Binding BootloaderDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+					</WrapPanel>
+				</Border>
+
+				<!-- Device list -->
+				<ListBox x:Name="listLoggerDevices"
+						 ItemsSource="{Binding LoggerDevices}"
+						 SelectionMode="Single"
+						 Selection="{Binding SelectedLoggerDeviceModel}"
+						 Background="Transparent"
+						 BorderThickness="0"
+						 MinHeight="120" MaxHeight="260"
+						 Margin="6,0,6,4">
 					<ListBox.Styles>
-						<!-- Give the ListBoxItems a fixed with of 100 and right-align them -->
 						<Style Selector="ListBoxItem">
-							<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-							<Setter Property="HorizontalAlignment" Value="Stretch"/>
+							<Setter Property="Padding" Value="10,4"/>
 						</Style>
 					</ListBox.Styles>
 					<ListBox.Template>
 						<ControlTemplate>
-							<DockPanel LastChildFill="True" > 
-								<Grid DockPanel.Dock="Top" Height="35" ShowGridLines="false" >
-									<Grid.ColumnDefinitions>
-										<ColumnDefinition MinWidth="100" Width="*"></ColumnDefinition>
-										<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
-										<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
-										<ColumnDefinition MinWidth="30" Width="*"></ColumnDefinition>
-										<ColumnDefinition MinWidth="30" Width="*"></ColumnDefinition>
-										<ColumnDefinition MinWidth="150" Width="*"></ColumnDefinition>
-										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
-										<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
-									</Grid.ColumnDefinitions>
-									<Label Grid.Column="0" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Serial Number</Label>
-									<Label Grid.Column="1" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Name</Label>
-									<Label Grid.Column="2" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Nickname</Label>
-									<Label Grid.Column="3" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">HwId</Label>
-									<Label Grid.Column="4" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">FwId</Label>
-									<Label Grid.Column="5" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Date Time</Label>
-									<Label Grid.Column="6" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Disk Info</Label>
-									<Label Grid.Column="7" FontWeight="Bold" Padding="1" HorizontalAlignment="Center">Batt</Label>
-								</Grid>
-								<ItemsPresenter></ItemsPresenter>
+							<DockPanel LastChildFill="True">
+								<Border DockPanel.Dock="Top" Background="{DynamicResource HeaderBackgroundBrush}"
+										BorderBrush="{DynamicResource HeaderBorderBrush}" BorderThickness="0,0,0,1"
+										CornerRadius="6,6,0,0" Padding="10,8">
+									<Grid ColumnDefinitions="1.4*,*,*,0.7*,0.7*,1.4*,0.9*,0.6*">
+										<TextBlock Grid.Column="0" Classes="colHeader" Text="Serial Number"/>
+										<TextBlock Grid.Column="1" Classes="colHeader" Text="Name"/>
+										<TextBlock Grid.Column="2" Classes="colHeader" Text="Nickname"/>
+										<TextBlock Grid.Column="3" Classes="colHeader" Text="HwId"/>
+										<TextBlock Grid.Column="4" Classes="colHeader" Text="FwId"/>
+										<TextBlock Grid.Column="5" Classes="colHeader" Text="Date / Time"/>
+										<TextBlock Grid.Column="6" Classes="colHeader" Text="Disk"/>
+										<TextBlock Grid.Column="7" Classes="colHeader" Text="Batt"/>
+									</Grid>
+								</Border>
+								<ScrollViewer x:Name="PART_ScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+									<ItemsPresenter/>
+								</ScrollViewer>
 							</DockPanel>
 						</ControlTemplate>
 					</ListBox.Template>
 					<ListBox.ItemTemplate>
 						<DataTemplate DataType="m:LoggerDevice">
-							<Grid DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" Margin="0,0" ShowGridLines="False">
-								<Grid.ColumnDefinitions>
-									<ColumnDefinition MinWidth="100" Width="*"></ColumnDefinition>
-									<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
-									<ColumnDefinition MinWidth="80" Width="*"></ColumnDefinition>
-									<ColumnDefinition MinWidth="30" Width="*"></ColumnDefinition>
-									<ColumnDefinition MinWidth="30" Width="*"></ColumnDefinition>
-									<ColumnDefinition MinWidth="150" Width="*"></ColumnDefinition>
-									<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
-									<ColumnDefinition MinWidth="40" Width="*"></ColumnDefinition>
-								</Grid.ColumnDefinitions>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="0" TextWrapping="Wrap" Padding="1" Text="{Binding SerialNumber}" TextAlignment="Center"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="1" TextWrapping="Wrap" Padding="1" Text="{Binding Name}" TextAlignment="Center"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="2" TextWrapping="Wrap" Padding="1" Text="{Binding Nickname}" TextAlignment="Center"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="3" TextWrapping="Wrap" Padding="1" Text="{Binding HwId}" TextAlignment="Center"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="4" TextWrapping="Wrap" Padding="1" Text="{Binding FwId}" TextAlignment="Center"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="5" TextWrapping="Wrap" Padding="1" Text="{Binding LocalDateTime}" TextAlignment="Center"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="6" TextWrapping="Wrap" Padding="1" Text="{Binding DiskStatus}" TextAlignment="Center"/>
-								<TextBlock HorizontalAlignment="Stretch" Grid.Column="7" TextWrapping="Wrap" Padding="1" Text="{Binding BatteryChargePercent}" TextAlignment="Center"/>
+							<Grid ColumnDefinitions="1.4*,*,*,0.7*,0.7*,1.4*,0.9*,0.6*" VerticalAlignment="Center">
+								<TextBlock Grid.Column="0" Classes="mono" Text="{Binding SerialNumber}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Column="2" Text="{Binding Nickname}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Column="3" Text="{Binding HwId}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Column="4" Text="{Binding FwId}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Column="5" Classes="mono" Text="{Binding LocalDateTime}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Column="6" Text="{Binding DiskStatus}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Column="7" Text="{Binding BatteryChargePercent}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 							</Grid>
 						</DataTemplate>
 					</ListBox.ItemTemplate>
 				</ListBox>
-
-				<StackPanel IsEnabled="True" Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Spacing="5" Margin="10,1,1,1" HorizontalAlignment="Center">
-					<Button Margin="1" Height="30" Command="{Binding ConnectDisconnectDeviceCommand}" x:Name="DeviceConnectButton">
-						<StackPanel Orientation="Horizontal">
-							<Image Source="/Assets/connected.png" IsVisible="{Binding IsDeviceConnected}" Width="24"
-												  Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" />
-							<Image Source="/Assets/disconnected.png" IsVisible="{Binding !IsDeviceConnected}" Width="24"
-												  Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" />
-							<TextBlock VerticalAlignment="Center" Padding="6,0,0,0" Text="Connect Device" IsVisible="{Binding !IsDeviceConnected}" Classes="DeviceControls"/>
-							<TextBlock VerticalAlignment="Center" Padding="6,0,0,0" Text="Disconnect Device" IsVisible="{Binding IsDeviceConnected}" Classes="DeviceControls"/>
-						</StackPanel>
-					</Button>
-
-					<Button Margin="1" Height="30" Command="{Binding SleepDeviceCommand}" x:Name="bSleepDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock VerticalAlignment="Center" Text="Sleep" IsVisible="True" Classes="DeviceControls"/>
-						</StackPanel>
-					</Button>
-
-					<Button Margin="1" Height="30" Command="{Binding ArmSleepDeviceCommand}" x:Name="bArmSleepDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock VerticalAlignment="Center" Text="Arm Sleep" IsVisible="True" Classes="DeviceControls"/>
-						</StackPanel>
-					</Button>
-
-					<Button Margin="1" Height="30" Command="{Binding FormatDeviceCommand}" x:Name="bFormatDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock VerticalAlignment="Center" Text="Format" IsVisible="True" Classes="DeviceControls"/>
-						</StackPanel>
-					</Button>
-
-					<Button Margin="1" Height="30" Command="{Binding SetDateTimeDeviceCommand}" x:Name="bSetDateTimeDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock VerticalAlignment="Center" Text="Set Time" IsVisible="True" Classes="DeviceControls"/>
-						</StackPanel>
-					</Button>
-
-					<Button Margin="1" Height="30" Command="{Binding UploadDeviceConfig}" x:Name="bUploadDeviceConfigButton" IsEnabled="{Binding IsDeviceConnected}">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock VerticalAlignment="Center" Text="Upload" IsVisible="True" Classes="DeviceControls"/>
-						</StackPanel>
-					</Button>
-
-					<Button Margin="1" Height="30" Command="{Binding DownloadDeviceData}" x:Name="bDownloadDeviceDataButton" IsEnabled="{Binding IsDeviceConnected}">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock VerticalAlignment="Center" Text="Download" IsVisible="True" Classes="DeviceControls"/>
-						</StackPanel>
-					</Button>
-
-					<Button Margin="1" Height="30" Command="{Binding BootloaderDeviceCommand}" x:Name="bBootloadDeviceButton" IsEnabled="{Binding IsDeviceConnected}">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock VerticalAlignment="Center" Text="Upgrade Firmware" IsVisible="True" Classes="DeviceControls"/>
-						</StackPanel>
-					</Button>
-
-				</StackPanel>
-			</Grid>
+			</DockPanel>
 		</Border>
-					
 
-		<Border Classes="tabBorder" BorderThickness="3" CornerRadius="5" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2" HorizontalAlignment="Stretch" Padding="0">
+		<!-- ═══════════════════════ Navigation / pages ═══════════════════════ -->
+		<Border Grid.Row="2" Classes="surface" Padding="0" ClipToBounds="True">
 			<ui:NavigationView x:Name="TabbedNavigationView"
-                                           PaneDisplayMode="LeftCompact"
-                                           MenuItemsSource="{Binding Categories}"
-                                           Content="{Binding CurrentPage}"
-                                           SelectedItem="{Binding SelectedCategory}">
+							   PaneDisplayMode="LeftCompact"
+							   IsSettingsVisible="False"
+							   MenuItemsSource="{Binding Categories}"
+							   Content="{Binding CurrentPage}"
+							   SelectedItem="{Binding SelectedCategory}">
 				<ui:NavigationView.MenuItemTemplateSelector>
-					<!-- 
-                    If you need to bind to multiple different containers,
-				    like including separators, you'll need to use a DataTemplateSelector
-                    -->
 					<m:MenuItemTemplateSelector>
-						<!-- 
-						Default DataTemplate
-						Our binded collection has 4 items and a Separator. This template
-						will apply to all items, the separator was defined in the 
-						MenuItemTemplateSelector
-						-->
 						<DataTemplate DataType="{x:Type m:Category}">
 							<ui:NavigationViewItem Content="{Binding Name}" IconSource="{Binding Icon}" ToolTip.Tip="{Binding ToolTip}" />
 						</DataTemplate>
-
 						<m:MenuItemTemplateSelector.SeparatorTemplate>
 							<DataTemplate DataType="{x:Type m:Separator}">
 								<ui:NavigationViewItemSeparator />
@@ -220,15 +205,16 @@
 						</m:MenuItemTemplateSelector.SeparatorTemplate>
 					</m:MenuItemTemplateSelector>
 				</ui:NavigationView.MenuItemTemplateSelector>
-
 			</ui:NavigationView>
 		</Border>
-		<Border BorderThickness="1" CornerRadius="5" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Padding="0,1">
-			<Grid Margin="1">
-				<TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" x:Name="textLogWindow" Text="{Binding TextMessageBottom}"/>
-			</Grid>
-		</Border>		
+
+		<!-- ═══════════════════════ Status bar ═══════════════════════ -->
+		<Border Grid.Row="3" Classes="statusBar">
+			<StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+				<Ellipse Classes="statusDot" Fill="{DynamicResource InfoBrush}"/>
+				<TextBlock x:Name="textLogWindow" Classes="subtle" VerticalAlignment="Center"
+						   TextTrimming="CharacterEllipsis" Text="{Binding TextMessageBottom}"/>
+			</StackPanel>
+		</Border>
 	</Grid>
-	
-	
 </UserControl>

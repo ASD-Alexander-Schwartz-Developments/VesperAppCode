@@ -1,13 +1,9 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sys="clr-namespace:System;assembly=netstandard">
-  <!-- Shared application resources (colors, brushes, sizes, common styles) -->
-  
-    <!-- Fonts -->
-    <FontFamily x:Key="NunitoFont">avares://GoogleFonts/Assets/Fonts#Assistant</FontFamily>
-
-    <!-- Accent / palette -->
-    <Color x:Key="SystemAccentColor">DarkBlue</Color>
+  <!-- Shared application resources (button brushes).
+       Colour, spacing, typography and list/table tokens now live in Theme.axaml
+       (theme-aware). This file only carries the accent-tinted button brushes. -->
 
     <!-- Buttons -->
     <SolidColorBrush x:Key="ButtonBackgroundApp" Color="{DynamicResource SystemAccentColorLight2}" Opacity="0.35" />
@@ -43,18 +39,5 @@
 
     <SolidColorBrush x:Key="ButtonBorderBrushDisabledApp" Color="{DynamicResource ControlFillColorTransparent}" Opacity="0.35" />
     <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="ButtonBorderBrushDisabledApp" />
-
-    <!-- List / table brushes -->
-    <SolidColorBrush x:Key="ListItemPointerOverBrush" Color="#F0F8FF" />
-    <SolidColorBrush x:Key="ListItemSelectedBrush" Color="#D6EAF8" />
-    <SolidColorBrush x:Key="ListItemSelectedForegroundBrush" Color="{DynamicResource ThemeForegroundBrush}" />
-    <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#F3F3F3" />
-    <SolidColorBrush x:Key="HeaderBorderBrush" Color="#E6E6E6" />
-    <SolidColorBrush x:Key="ColumnSeparatorBrush" Color="#EEE" />
-
-    <!-- Sizes and spacing -->
-    <sys:Double x:Key="HeaderRowHeight">40</sys:Double>
-    <sys:Double x:Key="ListRowMinHeight">44</sys:Double>
-    <Thickness x:Key="DefaultCellPadding">12,0,12,0</Thickness>
 
 </ResourceDictionary>

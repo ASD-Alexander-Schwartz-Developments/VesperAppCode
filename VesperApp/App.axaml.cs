@@ -2,7 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Avalonia.VisualTree;
+using FluentAvalonia.Styling;
 using System;
 using System.Collections.Generic;
 using VesperApp.ViewModels;
@@ -25,7 +27,19 @@ namespace VesperApp
         {
             instance = this;
             AvaloniaXamlLoader.Load(this);
-           // Styles.Add(new VesperApp.Themes.Light());
+
+            // Drive the whole Fluent palette (nav selection, buttons, focus rings)
+            // from one brand accent so the app reads as a single cohesive identity.
+            foreach (var style in Styles)
+            {
+                if (style is FluentAvaloniaTheme faTheme)
+                {
+                    faTheme.PreferSystemTheme = false;
+                    faTheme.PreferUserAccentColor = false;
+                    faTheme.CustomAccentColor = Color.Parse("#6366F1");
+                    break;
+                }
+            }
         }
 
         public static void WindowClosed(Window sender)
@@ -42,6 +56,10 @@ namespace VesperApp
             ASD.Platform.PluginLoader.LoadFrom();
             ASD.Platform.PlatformServices.Initialize();
             ASD.Modules.ModuleHost.Instance.UseContext(ASD.Platform.PlatformServices.Context);
+
+            // Let the decode-job manager (Services, no view refs) pop the unified, non-modal
+            // Decoding Progress panel when a job starts, without Services depending on Views.
+            VesperApp.Services.DecodeJobManager.PanelOpener = DecodingProgressWindow.ShowSingleton;
 
             MainViewViewModel mainViewModel = new();
             TopLevel? rootTopLevel = null;
