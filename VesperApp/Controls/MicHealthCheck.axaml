@@ -15,7 +15,8 @@
 			<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
 				<ui:CommandBar.PrimaryCommands>
 					<ui:CommandBarElementContainer>
-						<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+						<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0"
+									IsVisible="{Binding IsSupported}">
 							<TextBlock Text="Microphones:" VerticalAlignment="Center" Margin="0,0,8,0"/>
 							<ComboBox Width="80"
 									  ItemsSource="{Binding MicCountOptions}"

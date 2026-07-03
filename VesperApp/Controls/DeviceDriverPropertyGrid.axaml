@@ -2,52 +2,102 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-			 xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:serv="using:VesperApp.Services"
+             xmlns:controls="using:VesperApp.Controls"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
              x:Class="VesperApp.Controls.DeviceDriverPropertyGrid"
-	         xmlns:vm="using:VesperApp.ViewModels"
-			 xmlns:controls="using:VesperApp.Controls"
-			 xmlns:serv="using:VesperApp.Services"
-			 xmlns:c="using:Avalonia.Collections"
-			 xmlns:sys="using:System"
-			 MinHeight="200">
+             MinHeight="200">
 
-
-	<Border BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" HorizontalAlignment="Stretch" Padding="2" CornerRadius="6" VerticalAlignment="Stretch">
-		<DockPanel Margin="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"> 
-<!--			<StackPanel Orientation="Vertical" Spacing="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"> -->
-<!--				<Border BorderThickness="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"> -->
-					<DataGrid ItemsSource="{Binding PropertiesView}"
-						BorderThickness="3"
-						RowBackground="Transparent"
-						SelectedItem="{Binding SelectedProperty, Mode=TwoWay}"
-						CanUserResizeColumns="true"
-						x:Name="gridEditProperties"
-						HorizontalAlignment="Stretch"
-						VerticalAlignment="Stretch"
-						VerticalScrollBarVisibility="Auto"
-						HorizontalScrollBarVisibility="Auto"
-						Margin="5,5,5,5" Padding="1">
-						<DataGrid.Styles>
-							<Style Selector="TextBlock">
-								<Setter Property="TextWrapping" Value="WrapWithOverflow" />
-								<Setter Property="VerticalAlignment" Value="Center" />
-							</Style>
-						</DataGrid.Styles>
-						<DataGrid.Columns>
-							<DataGridTextColumn Width="*" MinWidth="80" Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
-							<DataGridTemplateColumn Width="*" MinWidth="80" Header="Value">
-								<DataGridTemplateColumn.CellTemplate>
-									<DataTemplate DataType="vm:DriverPropertyViewModel">
-										<TextBlock Text="{Binding Value, StringFormat='{}{0}'}" VerticalAlignment="Center" HorizontalAlignment="Stretch" />
-									</DataTemplate>
-								</DataGridTemplateColumn.CellTemplate>
-							</DataGridTemplateColumn>
-							<DataGridTextColumn Width="2*" Header="Description" Binding="{Binding Description}" MinWidth="100"/>
-						</DataGrid.Columns>
-					</DataGrid>
-<!--				</Border>	-->
-<!--			</StackPanel>  -->
-		</DockPanel> 
+	<!--
+	  The value cell uses PropertyEditorTemplateSelector to realise exactly ONE
+	  editor per row, chosen from DriverPropertyViewModel.EditorKind. Editors are
+	  always live (no separate edit mode) — the usual property-grid feel — and the
+	  view never needs to know about specific sensor types.
+	-->
+	<Border Classes="surface" Padding="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+		<DataGrid ItemsSource="{Binding PropertiesView}"
+				  x:Name="gridEditProperties"
+				  IsReadOnly="True"
+				  SelectedItem="{Binding SelectedProperty, Mode=TwoWay}"
+				  CanUserResizeColumns="True"
+				  CanUserSortColumns="False"
+				  RowBackground="Transparent"
+				  BorderThickness="0"
+				  HorizontalAlignment="Stretch"
+				  VerticalAlignment="Stretch"
+				  VerticalScrollBarVisibility="Auto"
+				  HorizontalScrollBarVisibility="Auto"
+				  Margin="2">
+			<DataGrid.Styles>
+				<Style Selector="DataGridCell TextBlock">
+					<Setter Property="TextWrapping" Value="WrapWithOverflow" />
+					<Setter Property="VerticalAlignment" Value="Center" />
+				</Style>
+			</DataGrid.Styles>
+			<DataGrid.Columns>
+				<DataGridTextColumn Width="*" MinWidth="120" Header="Property" Binding="{Binding Name}" IsReadOnly="True" />
+				<DataGridTemplateColumn Width="1.2*" MinWidth="150" Header="Value">
+					<DataGridTemplateColumn.CellTemplate>
+						<DataTemplate DataType="vm:DriverPropertyViewModel">
+							<ContentControl Content="{Binding}" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+								<ContentControl.ContentTemplate>
+									<controls:PropertyEditorTemplateSelector>
+										<!-- Enums + sensor option wrappers -->
+										<controls:PropertyEditorTemplateSelector.Options>
+											<DataTemplate DataType="vm:DriverPropertyViewModel">
+												<ComboBox Margin="8,3"
+														  ItemsSource="{Binding Options}"
+														  SelectedItem="{Binding Value, Mode=TwoWay}"
+														  HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+											</DataTemplate>
+										</controls:PropertyEditorTemplateSelector.Options>
+										<!-- UInt32 -->
+										<controls:PropertyEditorTemplateSelector.Integer>
+											<DataTemplate DataType="vm:DriverPropertyViewModel">
+												<ui:NumberBox Margin="8,3"
+															  Value="{Binding Value, Mode=TwoWay, Converter={x:Static serv:UpDownUintConverter.Instance}}"
+															  Minimum="0" Maximum="10000000"
+															  SmallChange="1" LargeChange="1000"
+															  SpinButtonPlacementMode="Compact"
+															  HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+											</DataTemplate>
+										</controls:PropertyEditorTemplateSelector.Integer>
+										<!-- Double -->
+										<controls:PropertyEditorTemplateSelector.Real>
+											<DataTemplate DataType="vm:DriverPropertyViewModel">
+												<ui:NumberBox Margin="8,3"
+															  Value="{Binding Value, Mode=TwoWay}"
+															  SmallChange="1" LargeChange="10"
+															  SpinButtonPlacementMode="Compact"
+															  HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+											</DataTemplate>
+										</controls:PropertyEditorTemplateSelector.Real>
+										<!-- Bool -->
+										<controls:PropertyEditorTemplateSelector.Boolean>
+											<DataTemplate DataType="vm:DriverPropertyViewModel">
+												<CheckBox Margin="8,3"
+														  IsChecked="{Binding Value, Mode=TwoWay}"
+														  HorizontalAlignment="Left" VerticalAlignment="Center" />
+											</DataTemplate>
+										</controls:PropertyEditorTemplateSelector.Boolean>
+										<!-- Text / fallback -->
+										<controls:PropertyEditorTemplateSelector.Text>
+											<DataTemplate DataType="vm:DriverPropertyViewModel">
+												<TextBox Margin="8,3"
+														 Text="{Binding Value, Mode=TwoWay}"
+														 HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+											</DataTemplate>
+										</controls:PropertyEditorTemplateSelector.Text>
+									</controls:PropertyEditorTemplateSelector>
+								</ContentControl.ContentTemplate>
+							</ContentControl>
+						</DataTemplate>
+					</DataGridTemplateColumn.CellTemplate>
+				</DataGridTemplateColumn>
+				<DataGridTextColumn Width="2*" MinWidth="120" Header="Description" Binding="{Binding Description}" IsReadOnly="True" />
+			</DataGrid.Columns>
+		</DataGrid>
 	</Border>
 </UserControl>

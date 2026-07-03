@@ -15,7 +15,8 @@ namespace VesperApp.ViewModels
     /// User-facing microphone health check: capture each mic in turn over the USB
     /// console (VESPER_TEST_AUDIO) and report a friendly per-mic OK / Problem
     /// verdict. Aimed at end users assessing device health, not factory go/no-go.
-    /// KOL supports up to 4 mics; the user picks how many the unit has.
+    /// Mic count, options and applicability follow the detected product via
+    /// <see cref="DeviceCapabilities"/> (KOL has 4, Vesper/Pipistrelle 1, Nanotag none).
     /// </summary>
     public class MicHealthCheckViewModel : ViewModelBase
     {
@@ -29,10 +30,17 @@ namespace VesperApp.ViewModels
         private readonly MainViewViewModel _main;
 
         public ObservableCollection<MicHealthResult> Results { get; } = new();
-        public int[] MicCountOptions { get; } = { 1, 2, 4 };
 
-        private int _micCount = 4;
+        // Both follow the detected product (see RefreshForDevice); 1-mic fallback.
+        private int[] _micCountOptions = { 1 };
+        public int[] MicCountOptions { get => _micCountOptions; private set => this.RaiseAndSetIfChanged(ref _micCountOptions, value); }
+
+        private int _micCount = 1;
         public int MicCount { get => _micCount; set => this.RaiseAndSetIfChanged(ref _micCount, value); }
+
+        // False when the selected product has no microphones (test not applicable).
+        private bool _isSupported;
+        public bool IsSupported { get => _isSupported; private set => this.RaiseAndSetIfChanged(ref _isSupported, value); }
 
         private bool _isRunning;
         public bool IsRunning { get => _isRunning; set => this.RaiseAndSetIfChanged(ref _isRunning, value); }
@@ -45,12 +53,46 @@ namespace VesperApp.ViewModels
         public MicHealthCheckViewModel(MainViewViewModel main)
         {
             _main = main;
-            var canRun = this.WhenAnyValue(x => x.IsRunning, running => !running);
+            var canRun = this.WhenAnyValue(x => x.IsRunning, x => x.IsSupported,
+                                           (running, supported) => !running && supported);
             RunCommand = ReactiveCommand.CreateFromTask(RunAsync, canRun);
+
+            // Track the device selected in the main list so the mic count, options and
+            // applicability always match the connected product.
+            if (_main?.SelectedLoggerDeviceModel != null)
+                _main.SelectedLoggerDeviceModel.SelectionChanged += OnDeviceSelectionChanged;
+            RefreshForDevice(_main?.SelectedLoggerDevice);
         }
 
         // Parameterless ctor for the XAML designer / ViewLocator fallback.
         public MicHealthCheckViewModel() : this(null!) { }
+
+        private void OnDeviceSelectionChanged(object? sender,
+            Avalonia.Controls.Selection.SelectionModelSelectionChangedEventArgs<LoggerDevice> e)
+        {
+            LoggerDevice? dev = (e.SelectedItems != null && e.SelectedItems.Count > 0) ? e.SelectedItems[0] : null;
+            Dispatcher.UIThread.Post(() => RefreshForDevice(dev));
+        }
+
+        /// <summary>Align the mic-count options/default and applicability with the product.</summary>
+        public void RefreshForDevice(LoggerDevice? dev)
+        {
+            if (dev != null && DeviceCapabilities.HasMicrophones(dev.DeviceType))
+            {
+                MicCountOptions = DeviceCapabilities.MicCountOptions(dev.DeviceType);
+                MicCount = DeviceCapabilities.MicCount(dev.DeviceType);
+                IsSupported = true;
+                Summary = $"{dev.DeviceType}: {MicCount} microphone(s) expected. Connect over USB, then start the check.";
+            }
+            else
+            {
+                MicCountOptions = System.Array.Empty<int>();
+                IsSupported = false;
+                Summary = dev != null
+                    ? $"{dev.DeviceType} has no microphones to test."
+                    : "Select a connected device with microphones, then start the check.";
+            }
+        }
 
         private async Task RunAsync()
         {
@@ -58,18 +100,21 @@ namespace VesperApp.ViewModels
 
             if (dev == null || dev.IsConnected == false || dev.IsComportDevice == false)
             {
-                Summary = "No connected USB device found. Connect your KOL and press Connect first.";
+                Summary = "No connected USB device found. Connect a device and press Connect first.";
                 return;
             }
-            if (dev.DeviceType != DeviceTypes.Kol)
+            if (!DeviceCapabilities.HasMicrophones(dev.DeviceType))
             {
-                Summary = "The microphone health check currently supports KOL devices.";
+                Summary = $"{dev.DeviceType} has no microphones to test.";
                 return;
             }
 
+            // Clamp to the product's mic count in case the UI default lagged a selection change.
+            int micsToTest = System.Math.Min(MicCount, DeviceCapabilities.MicCount(dev.DeviceType));
+
             IsRunning = true;
             Results.Clear();
-            for (int i = 0; i < MicCount; i++)
+            for (int i = 0; i < micsToTest; i++)
                 Results.Add(new MicHealthResult(i) { Status = "Testing…", StatusBrush = Brushes.Gray });
 
             Summary = "Play a steady tone near the device (e.g. from your phone) while the check runs…";
@@ -77,7 +122,7 @@ namespace VesperApp.ViewModels
             int healthy = 0;
             try
             {
-                for (int i = 0; i < MicCount; i++)
+                for (int i = 0; i < micsToTest; i++)
                 {
                     MicHealthResult row = Results[i];
                     byte[] req = AudioBenchTest.BuildRequest(SampleRate, DurationMs, SnrThreshDb, Tones, (byte)i);
@@ -89,7 +134,7 @@ namespace VesperApp.ViewModels
                 }
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
-                    Summary = $"{healthy} of {MicCount} microphone(s) healthy.");
+                    Summary = $"{healthy} of {micsToTest} microphone(s) healthy.");
             }
             finally
             {
