@@ -41,16 +41,58 @@ namespace VesperApp.Services
             string.IsNullOrEmpty(_requiredEntitlement) ||
             PlatformServices.Entitlements.Has(_requiredEntitlement!);
 
-        /// <summary>The newest feed entry matching this host's platform, or null.</summary>
+        /// <summary>The highest-version feed entry matching this host's platform, or null. Does not
+        /// rely on feed ordering — entries are compared by semantic version so the true newest wins.</summary>
         public async Task<ReleaseEntry?> CheckLatestAsync(CancellationToken ct = default)
         {
             string plat = PluginLoader.CurrentPlatform();
             var releases = await _feed.GetReleasesAsync(ct).ConfigureAwait(false);
-            // Feed convention: newest first. Accept an entry with no Target (any) or a matching one.
-            return releases.FirstOrDefault(r =>
-                string.IsNullOrWhiteSpace(r.Target) ||
-                string.Equals(r.Target, plat, StringComparison.OrdinalIgnoreCase));
+            // Accept an entry with no Target (any) or one matching this platform.
+            return releases
+                .Where(r => string.IsNullOrWhiteSpace(r.Target) ||
+                            string.Equals(r.Target, plat, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(r => ParseVersion(r.Version))
+                .ThenByDescending(r => r.Version, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
         }
+
+        /// <summary>The version of the currently-installed pack (from its <c>plugin.json</c>), or
+        /// null when the pack isn't installed. Checks the per-user data folder first, then the
+        /// bundled folder next to the binary.</summary>
+        public string? InstalledVersion()
+        {
+            foreach (string root in new[] { PluginLoader.DataPluginsDir, PluginLoader.BundledPluginsDir })
+            {
+                string packDir = Path.Combine(root, _packName);
+                if (!Directory.Exists(packDir)) continue;
+                try
+                {
+                    string? manifest = Directory
+                        .EnumerateFiles(packDir, "plugin.json", SearchOption.AllDirectories)
+                        .FirstOrDefault();
+                    if (manifest is null) continue;
+                    PluginManifest? m = PluginManifest.TryLoad(manifest);
+                    if (!string.IsNullOrWhiteSpace(m?.Version)) return m!.Version;
+                }
+                catch { /* unreadable pack — treat as not installed */ }
+            }
+            return null;
+        }
+
+        /// <summary>True when <paramref name="feedVersion"/> is strictly newer than
+        /// <paramref name="installedVersion"/> (or nothing is installed). Falls back to a
+        /// case-insensitive string difference when a version isn't a parseable dotted number.</summary>
+        public static bool IsNewer(string? feedVersion, string? installedVersion)
+        {
+            if (string.IsNullOrWhiteSpace(feedVersion)) return false;
+            if (string.IsNullOrWhiteSpace(installedVersion)) return true;
+            Version? f = ParseVersion(feedVersion), i = ParseVersion(installedVersion);
+            if (f is not null && i is not null) return f > i;
+            return !string.Equals(feedVersion.Trim(), installedVersion.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static Version? ParseVersion(string? v) =>
+            Version.TryParse((v ?? string.Empty).Trim().TrimStart('v', 'V'), out Version? parsed) ? parsed : null;
 
         /// <summary>
         /// Download, verify and stage the pack into the per-user plugins folder (applied next launch).

@@ -8,6 +8,13 @@
 plugins/
 **/plugins/
 
+# Local dev launch profiles: may contain the CDN origin (VESPERAPP_CDN_BASE / *_FEED),
+# which is deliberately kept out of source. Keep this per-developer and out of the repo.
+**/Properties/launchSettings.json
+
+# Claude Code local settings (per-developer permissions)
+.claude/
+
 # User-specific files
 *.rsuser
 *.suo

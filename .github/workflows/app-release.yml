@@ -1,0 +1,156 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# VesperApp desktop installer → S3 / CloudFront (Velopack) — Windows + Linux.
+#
+# SECURITY MODEL (this replaces the deleted local release_pack.ps1/.cmd, which had an
+# inline, now-revoked AWS access key):
+#   • No credentials, bucket name, region, or distribution id are hard-coded here.
+#   • Topology (bucket/region/dist) comes from repo *Variables*; AWS creds from repo
+#     *Secrets* (or an OIDC role). aws-actions/configure-aws-credentials injects them
+#     into the standard AWS_* env vars; both `vpk` and `aws` read those from the AWS
+#     default credential chain, so nothing is ever passed on the command line.
+#   • A clean CI checkout has no plugins/ folder, so the installer ships as the free,
+#     open-core app — the proprietary GNSS pack is delivered separately, only to
+#     entitled (registered) users, via the plugin feed.
+#
+# CUT A RELEASE:
+#   1. bump <Version> in VesperApp/VesperApp.csproj
+#   2. git tag v1.0.29 && git push origin v1.0.29        (version = tag without "v")
+#   Or run manually:  Actions → "Release app" → Run workflow → choose the ring.
+#
+# ONE-TIME REPO SETUP  (Settings → Secrets and variables → Actions):
+#   Variables:  RELEASE_S3_BUCKET, AWS_REGION (eu-central-1), RELEASE_CF_DISTRIBUTION_ID
+#   Secrets:    AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+#               CDN_BASE_URL  — the client-read CloudFront origin the app fetches from
+#                 (e.g. https://xxxx.cloudfront.net, NO trailing slash). Baked into the build so
+#                 the origin is not published in this (public) repo. It is NOT sensitive and NOT a
+#                 security control (recoverable from the shipped binary); a repo *Variable* works
+#                 equally well — a Secret is used only to keep it out of the source. Abuse limiting
+#                 is done at the edge (CloudFront WAF + S3 OAC). See VesperApp/docs/CDN-HARDENING.md.
+#   IAM (least privilege, scoped to the release bucket + its CloudFront distribution):
+#     s3:GetObject, s3:PutObject, s3:ListBucket, s3:DeleteObject (for --keepMaxReleases),
+#     cloudfront:CreateInvalidation.
+#   Hardening (recommended): use OIDC instead of static keys — see the credentials step.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Release app
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      ring:
+        description: Release ring
+        type: choice
+        options: [ stable, beta ]
+        default: stable
+
+permissions:
+  contents: read     # read the tag annotation for release notes
+  id-token: write    # enable OIDC role assumption (harmless when using static keys)
+
+env:
+  PACK_ID:      VesperApp
+  PACK_TITLE:   Vesper
+  PACK_AUTHORS: A.S.D
+  S3_BUCKET:    ${{ vars.RELEASE_S3_BUCKET }}
+  AWS_REGION:   ${{ vars.AWS_REGION }}
+  CF_DIST_ID:   ${{ vars.RELEASE_CF_DISTRIBUTION_ID }}
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false        # a Windows failure must not abort the Linux release
+      matrix:
+        include:
+          - { os: windows-latest, rid: win-x64,   mainExe: VesperApp.exe, icon: 'VesperApp/Assets/bat.ico' }
+          - { os: ubuntu-latest,  rid: linux-x64, mainExe: VesperApp,     icon: '' }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash           # one shell across both runners (git-bash on Windows)
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # need tags + annotation for versioning / release notes
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Resolve version, channel, notes
+        id: meta
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VER="${GITHUB_REF_NAME#v}"
+            git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md || true
+          else
+            VER="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' VesperApp/VesperApp.csproj | head -n1)"
+            : > notes.md
+          fi
+          RING="${{ github.event.inputs.ring }}"; RING="${RING:-stable}"
+          echo "version=$VER"                    >> "$GITHUB_OUTPUT"
+          echo "channel=${{ matrix.rid }}-$RING" >> "$GITHUB_OUTPUT"
+          echo "→ version=$VER  channel=${{ matrix.rid }}-$RING"
+
+      - name: Install Velopack CLI (vpk)
+        run: |
+          dotnet tool install -g vpk
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Publish self-contained (${{ matrix.rid }})
+        # CDN_BASE_URL is the client-read origin (e.g. https://xxxx.cloudfront.net) baked into the
+        # binary so the app knows where to fetch updates/feeds — kept out of the public source and
+        # injected here. Not a security boundary (recoverable from the binary); abuse limiting is at
+        # the CloudFront edge. See VesperApp/docs/CDN-HARDENING.md.
+        run: >
+          dotnet publish VesperApp/VesperApp.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+          -p:CdnBaseUrl=${{ secrets.CDN_BASE_URL }}
+          -o publish/${{ matrix.rid }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # ── Hardening: OIDC (no long-lived keys). Create a least-privilege role,
+          #    set vars.RELEASE_ROLE_ARN, then DELETE the two key lines below and use:
+          #        role-to-assume: ${{ vars.RELEASE_ROLE_ARN }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Pull existing channel feed (for delta generation)
+        run: |
+          # Credentials are read from the AWS env vars set above — never passed on the CLI.
+          vpk download s3 --bucket "$S3_BUCKET" --region "$AWS_REGION" \
+            --channel "${{ steps.meta.outputs.channel }}" \
+            || echo "No prior feed for this channel (first release) — continuing."
+
+      - name: Pack installer
+        run: |
+          ICON="${{ matrix.icon }}"
+          NOTES_FLAG=""; [ -s notes.md ] && NOTES_FLAG="--releaseNotes notes.md"
+          vpk pack \
+            --packId "$PACK_ID" \
+            --packTitle "$PACK_TITLE" \
+            --packAuthors "$PACK_AUTHORS" \
+            --packVersion "${{ steps.meta.outputs.version }}" \
+            --packDir "publish/${{ matrix.rid }}" \
+            --mainExe "${{ matrix.mainExe }}" \
+            --channel "${{ steps.meta.outputs.channel }}" \
+            --runtime "${{ matrix.rid }}" \
+            ${ICON:+--icon "$ICON"} \
+            $NOTES_FLAG
+
+      - name: Upload to S3 (channel ${{ steps.meta.outputs.channel }})
+        run: |
+          vpk upload s3 --bucket "$S3_BUCKET" --region "$AWS_REGION" \
+            --channel "${{ steps.meta.outputs.channel }}" \
+            --outputDir Releases --keepMaxReleases 10
+
+      - name: Invalidate CDN feed
+        if: ${{ env.CF_DIST_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$CF_DIST_ID" \
+            --paths "/releases.${{ steps.meta.outputs.channel }}.json"

@@ -42,15 +42,42 @@
                                     Command="{Binding CheckCommand}"/>
                         </Grid>
 
+                        <!-- Installed / available versions -->
+                        <Border Classes="card" Padding="12">
+                            <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="caption" Text="Installed"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" FontWeight="SemiBold"
+                                           Text="{Binding CurrentVersion}"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Text="→"
+                                           Margin="16,0" VerticalAlignment="Center" Opacity="0.5"
+                                           IsVisible="{Binding IsUpdateAvailable}"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Classes="caption" Text="Available"
+                                           IsVisible="{Binding IsUpdateAvailable}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="2" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AppAccentBrush}"
+                                           Text="{Binding LatestVersion}"
+                                           IsVisible="{Binding IsUpdateAvailable}"/>
+                            </Grid>
+                        </Border>
+
                         <ProgressBar Classes="slim" IsIndeterminate="True"
                                      IsVisible="{Binding IsChecking}"/>
 
-                        <!-- Update available -->
+                        <!-- Update available (newer version) -->
                         <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsUpdateAvailable}">
                             <TextBlock Grid.Column="0" VerticalAlignment="Center"
-                                       Text="{Binding LatestVersion, StringFormat='Version {0} is available.'}"/>
+                                       Text="{Binding LatestVersion, StringFormat='Version {0} is available to install.'}"/>
                             <Button Grid.Column="1" Classes="accent"
                                     Content="Download &amp; install"
+                                    Command="{Binding DownloadCommand}"/>
+                        </Grid>
+
+                        <!-- Up to date → offer reinstall (repair a corrupt pack) -->
+                        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsReinstallAvailable}">
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                       Text="Latest version already installed. Reinstall only if the pack is damaged."/>
+                            <Button Grid.Column="1"
+                                    Content="Reinstall"
                                     Command="{Binding DownloadCommand}"/>
                         </Grid>
 

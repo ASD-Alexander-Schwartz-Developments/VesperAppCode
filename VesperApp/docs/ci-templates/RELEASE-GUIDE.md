@@ -16,10 +16,10 @@ use, what CI does, and how to verify. Sister doc to [`README.md`](README.md) (on
 | GNSS decoder plugin | `cg-gnss` | tag `v*` or manual | `plugins/gnss/<ver>/` | `…/plugins/gnss/index.json` |
 | Firmware — Vesper | `VesperU5` | tag `v*` | `firmware/<ver>/` | `…/firmware/index.json` (`target=vesper`) |
 | Firmware — KOL | `Kol` | tag `v*` | `firmware/<ver>/` | `…/firmware/index.json` (`target=kol`) |
-| Desktop shell | local `release_pack.ps1` | manual (Velopack) | Velopack channels | Velopack |
+| Desktop shell | `VesperApp` (this repo) | tag `v*` or manual | bucket **root** (Velopack) | `…/releases.<channel>.json` |
 
 All share one bucket **`<bucket>`** (eu-central-1) behind CloudFront
-**`d11eqmwet07q29.cloudfront.net`** (distribution `<distribution-id>`). Clients read the feeds over
+**`<cdn-origin>`** (distribution `<distribution-id>`). Clients read the feeds over
 plain HTTPS with no credentials; CI holds the only secret (the AWS key). Both firmware products
 publish to the **same** `firmware/index.json`; the client tells them apart by `target`.
 
@@ -97,6 +97,20 @@ the entry to `firmware/index.json` → CloudFront invalidate.
 | `STM32CUBEIDE_PATH` (optional) | — | if not on PATH | if not on PATH |
 | `.github/workflows/release.yml` committed | ✅ (branch `feature/release-pipeline`) | ✅ (branch) | ✅ (branch) |
 
+**Desktop shell (VesperApp, this repo).** Builds the installer with Velopack on a matrix of
+`win-x64` (windows-latest) + `linux-x64` (ubuntu-latest) and publishes to the **bucket root** — the
+app's Velopack channels (`win-x64-stable` / `linux-x64-stable`, plus `-beta`), which is what the
+in-app updater reads (`UpdateCheckerViewModel._updateUrl` = the CDN root). Workflow:
+`.github/workflows/app-release.yml`. It needs the same `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
+secrets and `RELEASE_S3_BUCKET` / `AWS_REGION` / `RELEASE_CF_DISTRIBUTION_ID` variables as the others
+(no `FIRMWARE_TARGET`); the IAM principal also needs `s3:DeleteObject` (for `--keepMaxReleases`).
+Trigger with `git tag v1.0.29 && git push --tags`, or run it manually and pick the ring; the version
+is the tag minus `v` (falls back to the csproj `<Version>` for manual runs). A clean CI checkout has
+no `plugins/`, so the installer is the open-core app — the GNSS pack is delivered to entitled users
+through the plugin feed, not bundled. Linux in-app auto-update is now wired
+(`UpdateCheckerViewModel` selects the channel per OS); macOS isn't published by this workflow yet.
+**Full setup + operations:** [APP-RELEASE-SETUP.md](APP-RELEASE-SETUP.md).
+
 ## Firmware build: self-hosted STM32CubeIDE runner
 
 VesperU5 and Kol are STM32CubeIDE managed-build projects, so their committed
@@ -119,8 +133,8 @@ workflow) to confirm the IDE path, the `stm32` runner label, and that the Releas
 
 ## Verify a release
 ```bash
-curl -s https://d11eqmwet07q29.cloudfront.net/plugins/gnss/index.json | jq .
-curl -s https://d11eqmwet07q29.cloudfront.net/firmware/index.json     | jq .
+curl -s https://<cdn-origin>/plugins/gnss/index.json | jq .
+curl -s https://<cdn-origin>/firmware/index.json     | jq .
 ```
 The new version should appear (newest-first). In the app: the GNSS pack shows on the plugin-updates
 page (if the account is entitled to `gnss.postprocess`); firmware shows on **Firmware Upgrades**,

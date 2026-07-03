@@ -15,24 +15,30 @@ namespace VesperApp.Services
     /// </summary>
     public sealed class GnssScenarioService
     {
-        // Same CloudFront origin the firmware/plugin feeds use. Override with
-        // VESPERAPP_GNSS_SCENARIO_URL (parity with VESPERAPP_FIRMWARE_FEED).
-        public const string DefaultScenarioUrl =
-            "https://d11eqmwet07q29.cloudfront.net/scenarios/static_tokyo_s2600k_30s.bin";
+        // Asset path on the same client-read CDN origin the firmware/plugin feeds use (CdnConfig).
+        // The origin is injected at build time, not a literal here. Override the whole URL with
+        // VESPERAPP_GNSS_SCENARIO_URL, or the origin with VESPERAPP_CDN_BASE. See docs/CDN-HARDENING.md.
+        public const string ScenarioRelativePath = "scenarios/static_tokyo_s2600k_30s.bin";
 
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
 
-        public Uri Url { get; }
+        /// <summary>The resolved asset URL, or <c>null</c> when no CDN origin is configured in this build.</summary>
+        public Uri? Url { get; }
         public string FileName { get; }
         public string LocalPath { get; }
 
+        /// <summary>True when an asset source is configured (build-time origin or an override).</summary>
+        public bool IsConfigured => Url is not null;
+
         public GnssScenarioService(string? url = null)
         {
-            string u = url
+            string? u = url
                 ?? Environment.GetEnvironmentVariable("VESPERAPP_GNSS_SCENARIO_URL")
-                ?? DefaultScenarioUrl;
-            Url = new Uri(u);
-            FileName = Path.GetFileName(Url.LocalPath);
+                ?? CdnConfig.FeedUri(ScenarioRelativePath)?.ToString();
+            Url = string.IsNullOrWhiteSpace(u) ? null : new Uri(u);
+            // Keep a stable file name (and thus LocalPath) even when unconfigured, so the cache
+            // location and Exists check are consistent regardless of how the URL was resolved.
+            FileName = Path.GetFileName(Url?.LocalPath ?? ScenarioRelativePath);
             string dir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "VesperApp", "gnss-scenarios");
@@ -49,6 +55,11 @@ namespace VesperApp.Services
         /// </summary>
         public async Task DownloadAsync(IProgress<double>? progress = null, CancellationToken ct = default)
         {
+            if (Url is null)
+                throw new InvalidOperationException(
+                    "No GNSS scenario source configured: set VESPERAPP_GNSS_SCENARIO_URL, " +
+                    "or build with -p:CdnBaseUrl=… (see docs/CDN-HARDENING.md).");
+
             Directory.CreateDirectory(Path.GetDirectoryName(LocalPath)!);
             string tmp = LocalPath + ".part";
 

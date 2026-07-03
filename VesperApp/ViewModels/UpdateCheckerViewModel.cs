@@ -9,21 +9,16 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Velopack;
 using Velopack.Sources;
-
-
-/*
- * 
- *  rem win-x64-stable
-    rem win-x64-beta
-    rem osx-arm64-stable
-    rem osx-arm64-beta
- */
+using VesperApp.Services;
 
 namespace VesperApp.ViewModels
 {
     public class UpdateCheckerViewModel : ViewModelBase
     {
-        private readonly string _updateUrl = "https://d11eqmwet07q29.cloudfront.net";
+        // Velopack self-update feed root — the client-read CDN origin, injected at build time
+        // (CdnConfig / [AssemblyMetadata]) and overridable via VESPERAPP_CDN_BASE. Empty in a dev
+        // build with no origin configured, in which case update checks are disabled gracefully.
+        private readonly string _updateUrl = CdnConfig.BaseUrl;
         private readonly string updateFileName = "VesperAppSetup.msi";
         private readonly string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         private readonly List<string> _channels;
@@ -34,7 +29,7 @@ namespace VesperApp.ViewModels
         private bool _isUpdateDownloading;
         private string? _status;
 
-        private UpdateManager _um;
+        private UpdateManager? _um;
         private UpdateInfo? _update;
 
         private Velopack.VelopackAsset? _latestRelease;
@@ -79,32 +74,21 @@ namespace VesperApp.ViewModels
             UpdateCommand = ReactiveCommand.CreateFromTask(PerformUpdateAsync, this.WhenAnyValue(x => x.IsUpdateAvailable));
             RestartApplyCommand = ReactiveCommand.Create(RestartApplyUpdate, this.WhenAnyValue(x => x.IsPendingRestart));
 
-            if (Design.IsDesignMode == false)
+            if (Design.IsDesignMode == false && !string.IsNullOrWhiteSpace(_updateUrl))
             {
-                if (OperatingSystem.IsWindows())
-                {
-                    _channels = new List<string>
-                {
-                    "win-x64-stable",
-                    "win-x64-beta",
-                };
-                }
-                else if (OperatingSystem.IsMacOS())
-                {
-                    _channels = new List<string>
-                {
-                    "osx-arm64-stable",
-                    "osx-arm64-beta"
-                };
-                }
-                else
-                {
-                    _channels = new List<string>();
-                }
+                // Pick the auto-update channel for THIS OS. Previously the channel was hardcoded to
+                // win-x64-stable, so non-Windows hosts polled the wrong feed and Linux had none —
+                // the app-release CI now publishes win-x64 and linux-x64 channels to the same root.
+                string stable, beta;
+                if (OperatingSystem.IsWindows())    { stable = "win-x64-stable";   beta = "win-x64-beta"; }
+                else if (OperatingSystem.IsMacOS()) { stable = "osx-arm64-stable"; beta = "osx-arm64-beta"; }
+                else                                { stable = "linux-x64-stable"; beta = "linux-x64-beta"; }
+
+                _channels = new List<string> { stable, beta };
 
                 _um = new UpdateManager(_updateUrl, new UpdateOptions
                 {
-                    ExplicitChannel = "win-x64-stable",
+                    ExplicitChannel = stable,
                     AllowVersionDowngrade = true,
                 });
             }
@@ -114,7 +98,7 @@ namespace VesperApp.ViewModels
 
         private void RestartApplyUpdate()
         {
-            if(_update != null)
+            if(_update != null && _um != null)
             {
                 _um.ApplyUpdatesAndRestart(_update);
             }
@@ -131,6 +115,12 @@ namespace VesperApp.ViewModels
 
         private async Task CheckForUpdatesAsync()
         {
+            if (_um is null)
+            {
+                Status = "Updates unavailable: no update source is configured in this build.";
+                return;
+            }
+
             IsChecking = true;
             Status = "Checking for updates...";
             AvailableUpdates.Clear();
@@ -168,7 +158,7 @@ namespace VesperApp.ViewModels
             if (_latestRelease == null)
                 return;
 
-            if (_update != null)
+            if (_update != null && _um != null)
             {
                 IsChecking = true;
                 Status = "Downloading and applying update...";
@@ -191,15 +181,6 @@ namespace VesperApp.ViewModels
             {
                 Status = "No update available to apply.";
             }
-        }
-
-        private void Working()
-        {
-            Program.Log.LogInformation("");
-            IsChecking = false;
-            IsUpdateDownloading = false;
-            IsPendingRestart = false;
-            Status = "Working...";
         }
 
     }
