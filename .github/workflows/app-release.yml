@@ -13,9 +13,14 @@
 #     entitled (registered) users, via the plugin feed.
 #
 # CUT A RELEASE:
-#   1. bump <Version> in VesperApp/VesperApp.csproj
-#   2. git tag v1.0.29 && git push origin v1.0.29        (version = tag without "v")
-#   Or run manually:  Actions → "Release app" → Run workflow → choose the ring.
+#   • Automatic:  Actions → "Release app" → Run workflow → choose ring + bump
+#     (patch/minor/major). The next version is computed from the latest v* tag
+#     (first release falls back to <Version> in VesperApp/VesperApp.csproj), an
+#     annotated tag is pushed, and the release runs — no manual version editing.
+#   • Pinned:  git tag -a v1.0.29 -m "notes" && git push origin v1.0.29
+#     (version = tag without "v"; the annotation becomes the release notes)
+#   The tag is the single source of truth: it is injected into the build via
+#   -p:Version, so the csproj <Version> only matters for local dev builds.
 #
 # ONE-TIME REPO SETUP  (Settings → Secrets and variables → Actions):
 #   Variables:  RELEASE_S3_BUCKET, AWS_REGION (eu-central-1), RELEASE_CF_DISTRIBUTION_ID
@@ -43,9 +48,14 @@ on:
         type: choice
         options: [ stable, beta ]
         default: stable
+      bump:
+        description: Version bump (next version is derived from the latest v* tag)
+        type: choice
+        options: [ patch, minor, major ]
+        default: patch
 
 permissions:
-  contents: read     # read the tag annotation for release notes
+  contents: write    # push the auto-increment tag; also covers reading annotations
   id-token: write    # enable OIDC role assumption (harmless when using static keys)
 
 env:
@@ -57,7 +67,52 @@ env:
   CF_DIST_ID:   ${{ vars.RELEASE_CF_DISTRIBUTION_ID }}
 
 jobs:
+  # Resolve the release version exactly once (the release matrix has two legs that
+  # must not both try to create the tag). Tag pushes pass the tag version through;
+  # manual dispatches auto-increment from the latest v* tag and push an annotated
+  # tag. Pushing with GITHUB_TOKEN does NOT re-trigger this workflow, so the
+  # release continues in this run only.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # full history: latest v* tag + commit log for notes
+
+      - name: Resolve or auto-increment version
+        id: ver
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VER="${GITHUB_REF_NAME#v}"
+            echo "→ pinned by tag: $VER"
+          else
+            PREV="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
+            BASE="${PREV#v}"
+            # First release ever: fall back to the csproj version as the base.
+            [ -n "$BASE" ] || BASE="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' VesperApp/VesperApp.csproj | head -n1)"
+            IFS=. read -r MA MI PA <<< "$BASE"
+            case "${{ github.event.inputs.bump }}" in
+              major) MA=$((MA+1)); MI=0; PA=0 ;;
+              minor) MI=$((MI+1)); PA=0 ;;
+              *)     PA=$((PA+1)) ;;
+            esac
+            VER="$MA.$MI.$PA"
+            echo "→ auto-increment (${{ github.event.inputs.bump }}): $BASE → $VER"
+
+            # Annotate the tag with the commit list since the previous release —
+            # the release job reads the annotation as the release notes.
+            git log ${PREV:+$PREV..}HEAD --no-merges --pretty='- %s' > notes.txt
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "v$VER" -F notes.txt
+            git push origin "v$VER"
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: version
     strategy:
       fail-fast: false        # a Windows failure must not abort the Linux release
       matrix:
@@ -78,16 +133,14 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Resolve version, channel, notes
+      - name: Resolve channel, notes
         id: meta
         run: |
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            VER="${GITHUB_REF_NAME#v}"
-            git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md || true
-          else
-            VER="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' VesperApp/VesperApp.csproj | head -n1)"
-            : > notes.md
-          fi
+          VER="${{ needs.version.outputs.version }}"
+          # Both flows have a v$VER tag by now (pushed manually or by the version
+          # job); its annotation is the release notes. Lightweight tags → empty.
+          git fetch origin "refs/tags/v$VER:refs/tags/v$VER" --force || true
+          git tag -l --format='%(contents)' "v$VER" > notes.md || true
           RING="${{ github.event.inputs.ring }}"; RING="${RING:-stable}"
           echo "version=$VER"                    >> "$GITHUB_OUTPUT"
           echo "channel=${{ matrix.rid }}-$RING" >> "$GITHUB_OUTPUT"
@@ -106,6 +159,7 @@ jobs:
         run: >
           dotnet publish VesperApp/VesperApp.csproj
           -c Release -r ${{ matrix.rid }} --self-contained true
+          -p:Version=${{ steps.meta.outputs.version }}
           -p:CdnBaseUrl=${{ secrets.CDN_BASE_URL }}
           -o publish/${{ matrix.rid }}
 
