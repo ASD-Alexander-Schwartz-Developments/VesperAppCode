@@ -42,7 +42,7 @@
 			<SolidColorBrush x:Key="ColumnSeparatorBrush" Color="#2A2A30" />
 			<SolidColorBrush x:Key="RowAltBrush" Color="#0AFFFFFF" />
 
-			<!-- Legacy key shims (still referenced by DeviceBackground / Indicator / SharedResources) -->
+			<!-- Legacy key shims (still referenced by SharedResources) -->
 			<SolidColorBrush x:Key="ThemeForegroundBrush" Color="#E6E6E6" />
 			<SolidColorBrush x:Key="ThemeBorderMidBrush" Color="#34343C" />
 			<SolidColorBrush x:Key="ThemeAccentBrush" Color="#818CF8" />

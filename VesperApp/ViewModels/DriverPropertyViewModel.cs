@@ -234,9 +234,4 @@ namespace VesperApp.ViewModels
             catch { return null; }
         }
     }
-
-    public class DeviceDriverProperties : ObservableCollection<DriverPropertyViewModel>
-    {
-
-    }
 }
