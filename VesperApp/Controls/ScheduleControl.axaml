@@ -22,16 +22,6 @@
 						  SelectionChanged="OnSelectionChanged_ScheduleType"/>
 			</StackPanel>
 
-			<StackPanel Margin="1" Orientation="Vertical" DockPanel.Dock="Right" IsEnabled="True">
-				<StackPanel Orientation="Vertical" VerticalAlignment="Top">
-					<CheckBox x:Name="cbIsPoweronRelative" IsThreeState="False" IsChecked="{Binding IsPowerOnRelative}" ToolTip.Tip="When checked, PowerOn uses relative timing (magnet activation is time 0)"> 
-						Is Relative 
-					</CheckBox>
-					<Label Content="Power ON trigger time"/>
-					<MaskedTextBox x:Name="maskPoweron" Text="{Binding PowerOnText, Mode=TwoWay}" Mask="{Binding PowerOnEditMask}" Focusable="True"/>
-				</StackPanel>
-			</StackPanel>
-
 			<StackPanel Margin="1,10,10,0" Orientation="Vertical" DockPanel.Dock="Right" IsEnabled="{Binding IsAddingNewEntry}">
 				<StackPanel Orientation="Vertical" VerticalAlignment="Center">
 					<DatePicker IsEnabled="{Binding IsDateEnabled}" 

@@ -51,6 +51,107 @@ namespace VesperApp.ViewModels
         }
 
 
+        #region General device settings
+
+        public string DeviceName
+        {
+            get => _deviceName;
+            set => this.RaiseAndSetIfChanged(ref _deviceName, value);
+        }
+        private string _deviceName = string.Empty;
+
+        public string MinimumHardware
+        {
+            get => _minimumHardware;
+            set => this.RaiseAndSetIfChanged(ref _minimumHardware, value);
+        }
+        private string _minimumHardware = string.Empty;
+
+        public bool IsMagnetOffEnabled
+        {
+            get => _isMagnetOffEnabled;
+            set => this.RaiseAndSetIfChanged(ref _isMagnetOffEnabled, value);
+        }
+        private bool _isMagnetOffEnabled = true;
+
+        public decimal BatteryCapacity
+        {
+            get => _batteryCapacity;
+            set => this.RaiseAndSetIfChanged(ref _batteryCapacity, value);
+        }
+        private decimal _batteryCapacity;
+
+        public decimal? ClockDrift
+        {
+            get => _clockDrift;
+            set => this.RaiseAndSetIfChanged(ref _clockDrift, value);
+        }
+        private decimal? _clockDrift;
+
+        public bool IsPowerOnRelative
+        {
+            get => _isPowerOnRelative;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isPowerOnRelative, value);
+                PowerOnEditMask = value ? "00 00:00:00" : "0000-00-00 00:00:00";
+            }
+        }
+        private bool _isPowerOnRelative = true;
+
+        public string PowerOnText
+        {
+            get => _powerOnText;
+            set => this.RaiseAndSetIfChanged(ref _powerOnText, value);
+        }
+        private string _powerOnText = string.Empty;
+
+        public string PowerOnEditMask
+        {
+            get => _powerOnEditMask;
+            set => this.RaiseAndSetIfChanged(ref _powerOnEditMask, value);
+        }
+        private string _powerOnEditMask = "00 00:00:00";
+
+        /// <summary>Reflect the general device settings of <paramref name="config"/> in the editor.</summary>
+        private async Task ShowGeneralSettings(ConfigurationJSON config)
+        {
+            DeviceName = config.Name;
+            MinimumHardware = config.MinimumSupportedHardware;
+            IsMagnetOffEnabled = config.IsMagnetOffEnabled;
+            BatteryCapacity = config.BatteryCapacity;
+            ClockDrift = config.CDrift;
+
+            // Switch the mask first and let it apply before setting the text,
+            // otherwise the MaskedTextBox drops the new value.
+            IsPowerOnRelative = config.PowerOn.IsRelative;
+            await Task.Delay(100);
+            PowerOnText = config.PowerOn.PowerOn;
+            await Task.Delay(100);
+        }
+
+        /// <summary>Write the general device settings shown in the editor into <paramref name="config"/>.</summary>
+        private void ApplyGeneralSettings(ConfigurationJSON config)
+        {
+            config.Name = DeviceName;
+            config.MinimumSupportedHardware = MinimumHardware;
+            config.IsMagnetOffEnabled = IsMagnetOffEnabled;
+            config.BatteryCapacity = (UInt32)BatteryCapacity;
+            config.CDrift = ClockDrift.HasValue ? (UInt32)ClockDrift.Value : null;
+
+            if (PowerOnText.Length > 0)
+            {
+                config.PowerOn.IsRelative = IsPowerOnRelative;
+                config.PowerOn.PowerOn = PowerOnText;
+            }
+            else
+            {
+                config.PowerOn = new PowerOnTime();
+            }
+        }
+
+        #endregion
+
         public ScheduleControlViewModel ScheduleViewModel { get; private set; }
         DeviceDriverPropertyGridViewModel DriverEditorGridViewModel { get; set; }
         public SelectDeviceDriverViewModel DriversViewModel { get; private set; }
@@ -61,6 +162,12 @@ namespace VesperApp.ViewModels
         {
             configurationJSONInstance = new ConfigurationJSON();
             _config = new ConfigurationJSON();
+
+            DeviceName = configurationJSONInstance.Name;
+            MinimumHardware = configurationJSONInstance.MinimumSupportedHardware;
+            IsMagnetOffEnabled = configurationJSONInstance.IsMagnetOffEnabled;
+            BatteryCapacity = configurationJSONInstance.BatteryCapacity;
+            ClockDrift = configurationJSONInstance.CDrift;
 
             ScheduleViewModel = new ScheduleControlViewModel(configurationJSONInstance.Schedule);
             DriversViewModel = new SelectDeviceDriverViewModel(new List<ConfigurationDeviceDriver>());
@@ -103,6 +210,7 @@ namespace VesperApp.ViewModels
 
             UpdateSelectedDeviceDriverPropertiesView(_selectedDeviceDriver);
             configurationJSONInstance.Load(new ConfigurationJSON());
+            await ShowGeneralSettings(configurationJSONInstance);
 
             await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
             ScheduleViewModel.SelectedScheduleType = ScheduleTypes.Continues;
@@ -167,17 +275,9 @@ namespace VesperApp.ViewModels
                                         configurationJSONInstance.Schedule.Add(item);
 
                                     configurationJSONInstance.ScheduleType = ScheduleViewModel.SelectedScheduleType;
-
-                                    if (ScheduleViewModel.PowerOnText.Length > 0)
-                                    {
-                                        configurationJSONInstance.PowerOn.IsRelative = ScheduleViewModel.IsPowerOnRelative;
-                                        configurationJSONInstance.PowerOn.PowerOn = ScheduleViewModel.PowerOnText;
-                                    }
-                                    else
-                                    {
-                                        configurationJSONInstance.PowerOn = new PowerOnTime();
-                                    }
                                 }
+
+                                ApplyGeneralSettings(configurationJSONInstance);
 
                                 json = JsonSerializer.Serialize<ConfigurationJSON>(configurationJSONInstance, options);
 
@@ -342,10 +442,7 @@ namespace VesperApp.ViewModels
                                     }
                                 }
 
-                                ScheduleViewModel.IsPowerOnRelative = configurationJSONInstance.PowerOn.IsRelative;
-                                await Task.Delay(100);
-                                ScheduleViewModel.PowerOnText = configurationJSONInstance.PowerOn.PowerOn;
-                                await Task.Delay(100);
+                                await ShowGeneralSettings(config);
                             }
                             else
                             {
@@ -417,30 +514,30 @@ namespace VesperApp.ViewModels
                 {
                     case DeviceTypes.Nanotag:
                         await DriversViewModel.UpdateDeviceDriverCollection(Nanotag.SupportedDeviceDrivers);
-                        configurationJSONInstance.Name = "Nanotag";
-                        configurationJSONInstance.CDrift = null;
+                        DeviceName = "Nanotag";
+                        ClockDrift = null;
                         break;
 
                     case DeviceTypes.Vesper:
                         await DriversViewModel.UpdateDeviceDriverCollection(Vesper.SupportedDeviceDrivers);
-                        configurationJSONInstance.Name = "Vesper";
-                        configurationJSONInstance.CDrift = 32999;
+                        DeviceName = "Vesper";
+                        ClockDrift = 32999;
                         break;
                     case DeviceTypes.Pipistrelle:
                         await DriversViewModel.UpdateDeviceDriverCollection(Pipistrelle.SupportedDeviceDrivers);
-                        configurationJSONInstance.Name = "Vesper";
-                        configurationJSONInstance.CDrift = 32999;
+                        DeviceName = "Vesper";
+                        ClockDrift = 32999;
                         break;
                     case DeviceTypes.Kol:
                         await DriversViewModel.UpdateDeviceDriverCollection(Kol.SupportedDeviceDrivers);
-                        configurationJSONInstance.Name = "Kol";
-                        configurationJSONInstance.CDrift = 32999;
+                        DeviceName = "Kol";
+                        ClockDrift = 32999;
                         break;
 
                     default:
                         await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
-                        configurationJSONInstance.Name = "Vesper";
-                        configurationJSONInstance.CDrift = null;
+                        DeviceName = "Vesper";
+                        ClockDrift = 32999;
                         break;
                 }
             }
