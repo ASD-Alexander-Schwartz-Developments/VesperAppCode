@@ -41,10 +41,14 @@ namespace VesperApp.ViewModels
         public ICommand? ManualGPSParserCommand { get; }
         public ICommand? ShowDecodeJobsCommand { get; }
 
-        // Central data browser (locally imported / decoded recordings)
+        // Central data browser (live view of the working directory)
         public ICommand? OpenDataFolderCommand { get; }
         public ICommand? RefreshDataCommand { get; }
         public ICommand? OpenSelectedCommand { get; }
+        public ICommand? DecodeSelectedCommand { get; }
+        public ICommand? ParseSelectedCommand { get; }
+        public ICommand? ShowInExplorerCommand { get; }
+        public ICommand? DeleteSelectedCommand { get; }
 
         public ObservableCollection<RecordingDataNode> ImportedData { get; } = new();
 
@@ -180,6 +184,17 @@ namespace VesperApp.ViewModels
             RefreshDataCommand = ReactiveCommand.Create(() => LoadDataFolder(CurrentDataFolder));
             OpenSelectedCommand = ReactiveCommand.Create(() => OpenNode(SelectedDataNode));
 
+            // Selection actions (context menu) — same pipeline the toolbar pickers use,
+            // just fed from the tree selection instead of a file dialog.
+            DecodeSelectedCommand = ReactiveCommand.CreateFromTask(DecodeSelection);
+            ParseSelectedCommand = ReactiveCommand.CreateFromTask(ParseSelection);
+            ShowInExplorerCommand = ReactiveCommand.Create(ShowSelectionInExplorer);
+            DeleteSelectedCommand = ReactiveCommand.CreateFromTask(DeleteSelection);
+
+            // Live view: filesystem events are debounced into a rescan, so the browser
+            // follows imports, decodes and external changes without a manual refresh.
+            _fsDebounce.Elapsed += (_, _) => LoadDataFolder(CurrentDataFolder);
+
             // Re-scan the current folder when settings change (e.g. the "hide intermediate
             // files" toggle) so the browser reflects the new preference immediately.
             SettingsService.Instance.Changed += (_, _) => LoadDataFolder(CurrentDataFolder);
@@ -267,22 +282,106 @@ namespace VesperApp.ViewModels
             return true;
         }
 
-        /// <summary>Scan a local folder and present its recordings grouped by sensor type.</summary>
+        /// <summary>Scan a local folder and present its full recording tree. When re-scanning
+        /// the same folder (live refresh), nodes are merged in place so the tree's expansion
+        /// and selection state survive; switching folders rebuilds from scratch.</summary>
         public void LoadDataFolder(string? folder)
         {
             List<RecordingDataNode> nodes = BuildDataNodes(folder);
 
             void Apply()
             {
-                ImportedData.Clear();
-                foreach (RecordingDataNode n in nodes) ImportedData.Add(n);
+                if (string.Equals(CurrentDataFolder, folder, StringComparison.OrdinalIgnoreCase))
+                {
+                    SyncNodes(ImportedData, nodes);
+                }
+                else
+                {
+                    ImportedData.Clear();
+                    foreach (RecordingDataNode n in nodes) ImportedData.Add(n);
+                }
                 CurrentDataFolder = folder;
                 HasData = ImportedData.Count > 0;
+                WatchFolder(folder);
             }
 
             if (Dispatcher.UIThread.CheckAccess()) Apply();
             else Dispatcher.UIThread.Post(Apply);
         }
+
+        // ─────────────────── live updates (FileSystemWatcher) ───────────────────
+
+        private FileSystemWatcher? _watcher;
+        private readonly System.Timers.Timer _fsDebounce = new(600) { AutoReset = false };
+
+        /// <summary>(Re)attach the recursive watcher to the browsed folder. Any filesystem
+        /// event just restarts the debounce timer; a quiet 600 ms triggers one rescan.</summary>
+        private void WatchFolder(string? folder)
+        {
+            if (_watcher != null && string.Equals(_watcher.Path, folder, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _watcher?.Dispose();
+            _watcher = null;
+
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) return;
+
+            try
+            {
+                _watcher = new FileSystemWatcher(folder)
+                {
+                    IncludeSubdirectories = true,
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size | NotifyFilters.LastWrite,
+                };
+                _watcher.Created += OnFsEvent;
+                _watcher.Changed += OnFsEvent;
+                _watcher.Deleted += OnFsEvent;
+                _watcher.Renamed += OnFsEvent;
+                _watcher.Error += (_, _) => { _fsDebounce.Stop(); _fsDebounce.Start(); };
+                _watcher.EnableRaisingEvents = true;
+            }
+            catch { _watcher = null; }   // e.g. folder vanished mid-attach; next load retries
+        }
+
+        private void OnFsEvent(object? sender, FileSystemEventArgs e)
+        {
+            _fsDebounce.Stop();
+            _fsDebounce.Start();
+        }
+
+        /// <summary>Merge a freshly scanned node list into the displayed one, keyed by path:
+        /// update details in place, add what appeared, drop what disappeared, keep order.</summary>
+        private static void SyncNodes(ObservableCollection<RecordingDataNode> current, IList<RecordingDataNode> fresh)
+        {
+            for (int i = current.Count - 1; i >= 0; i--)
+                if (!fresh.Any(f => SameNode(f, current[i])))
+                    current.RemoveAt(i);
+
+            for (int i = 0; i < fresh.Count; i++)
+            {
+                RecordingDataNode f = fresh[i];
+                RecordingDataNode? existing = current.FirstOrDefault(c => SameNode(f, c));
+
+                if (existing == null)
+                {
+                    current.Insert(Math.Min(i, current.Count), f);
+                }
+                else
+                {
+                    existing.Name = f.Name;
+                    existing.Detail = f.Detail;
+                    existing.Icon = f.Icon;
+                    SyncNodes(existing.Children, f.Children);
+
+                    int ci = current.IndexOf(existing);
+                    if (ci != i && i < current.Count) current.Move(ci, i);
+                }
+            }
+        }
+
+        private static bool SameNode(RecordingDataNode a, RecordingDataNode b) =>
+            a.IsFile == b.IsFile &&
+            string.Equals(a.FullPath, b.FullPath, StringComparison.OrdinalIgnoreCase);
 
         // Friendly category per known sensor subfolder the parse phase produces.
         private static readonly (string sub, string label, Symbol icon)[] DataCategories =
@@ -303,6 +402,9 @@ namespace VesperApp.ViewModels
         private static readonly HashSet<string> IntermediateExtensions =
             new(StringComparer.OrdinalIgnoreCase) { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN" };
 
+        /// <summary>Build the full recursive tree of the browsed folder: every session
+        /// folder and file (minus hidden sidecars / intermediates per Settings), with
+        /// known sensor folders labelled and iconed via <see cref="DataCategories"/>.</summary>
         private static List<RecordingDataNode> BuildDataNodes(string? folder)
         {
             var list = new List<RecordingDataNode>();
@@ -310,27 +412,9 @@ namespace VesperApp.ViewModels
 
             try
             {
-                foreach (var (sub, label, icon) in DataCategories)
-                {
-                    string p = Path.Combine(folder, sub);
-                    if (!Directory.Exists(p)) continue;
-
-                    var cat = new RecordingDataNode { Name = label, Icon = icon, FullPath = p };
-                    AddFolderFiles(cat, p);
-                    if (cat.Children.Count > 0)
-                    {
-                        cat.Detail = cat.Children.Count + " item(s)";
-                        list.Add(cat);
-                    }
-                }
-
-                var raws = Directory.EnumerateFiles(folder, "*.bin").OrderBy(f => f).ToList();
-                if (raws.Count > 0)
-                {
-                    var cat = new RecordingDataNode { Name = "Raw recordings", Icon = Symbol.Folder, FullPath = folder, Detail = raws.Count + " file(s)" };
-                    foreach (string f in raws) cat.Children.Add(MakeFileNode(f));
-                    list.Add(cat);
-                }
+                var root = new RecordingDataNode { FullPath = folder };
+                AddFolderFiles(root, folder);
+                list.AddRange(root.Children);
             }
             catch { }
 
@@ -350,11 +434,20 @@ namespace VesperApp.ViewModels
                 }
                 foreach (string d in Directory.EnumerateDirectories(folderPath).OrderBy(x => x))
                 {
-                    var sub = new RecordingDataNode { Name = Path.GetFileName(d), Icon = Symbol.Folder, FullPath = d };
+                    string dirName = Path.GetFileName(d);
+                    var known = DataCategories.FirstOrDefault(c => string.Equals(c.sub, dirName, StringComparison.OrdinalIgnoreCase));
+
+                    var sub = new RecordingDataNode
+                    {
+                        Name = dirName,
+                        Icon = known.sub != null ? known.icon : Symbol.Folder,
+                        FullPath = d,
+                    };
                     AddFolderFiles(sub, d);
                     if (sub.Children.Count > 0)
                     {
-                        sub.Detail = sub.Children.Count + " item(s)";
+                        string count = sub.Children.Count + " item(s)";
+                        sub.Detail = known.sub != null ? known.label + " · " + count : count;
                         parent.Children.Add(sub);
                     }
                 }
@@ -402,6 +495,167 @@ namespace VesperApp.ViewModels
                 Process.Start(new ProcessStartInfo(node.FullPath) { UseShellExecute = true });
             }
             catch (Exception e) { Debug.WriteLine(e); }
+        }
+
+        // ─────────────────── selection actions (context menu) ───────────────────
+        // The tree selection feeds the SAME pipeline as the toolbar's file pickers —
+        // two ways in (selection or dialog), one decode path. Mirrors the legacy
+        // VesperStudio design where checked-list and OpenFileDialog shared the parsers.
+
+        private IReadOnlyList<RecordingDataNode> _selection = Array.Empty<RecordingDataNode>();
+
+        /// <summary>Called from the view whenever the tree selection changes.</summary>
+        public void SetSelection(IReadOnlyList<RecordingDataNode> nodes) => _selection = nodes;
+
+        private IReadOnlyList<RecordingDataNode> EffectiveSelection() =>
+            _selection.Count > 0 ? _selection
+            : SelectedDataNode != null ? new[] { SelectedDataNode }
+            : Array.Empty<RecordingDataNode>();
+
+        /// <summary>Classify the selection into decode inputs: raw .bin files (need
+        /// parse + decode) and decodable targets (intermediates / DAT snap folders).
+        /// Folders contribute everything under them.</summary>
+        private (List<string> Raws, List<string> Decodables) CollectSelectionTargets()
+        {
+            var raws = new List<string>();
+            var dec = new List<string>();
+
+            foreach (RecordingDataNode n in EffectiveSelection())
+            {
+                if (n.FullPath == null) continue;
+
+                if (n.IsFile)
+                {
+                    if (RecordingPipeline.IsRawBin(n.FullPath)) raws.Add(n.FullPath);
+                    else if (RecordingPipeline.IsDecodableIntermediate(n.FullPath)) dec.Add(n.FullPath);
+                    else if (n.FullPath.EndsWith(".dat", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // A picked snapshot decodes as its containing DAT set.
+                        string? dir = Path.GetDirectoryName(n.FullPath);
+                        if (dir != null && RecordingPipeline.IsGnssSnapFolder(dir)) dec.Add(dir);
+                    }
+                }
+                else if (Directory.Exists(n.FullPath))
+                {
+                    if (RecordingPipeline.IsGnssSnapFolder(n.FullPath)) { dec.Add(n.FullPath); continue; }
+
+                    raws.AddRange(RecordingPipeline.FindRawBinFiles(n.FullPath));
+                    try
+                    {
+                        dec.AddRange(Directory.EnumerateFiles(n.FullPath, "*", SearchOption.AllDirectories)
+                            .Where(RecordingPipeline.IsDecodableIntermediate));
+                        dec.AddRange(Directory.EnumerateDirectories(n.FullPath, "*", SearchOption.AllDirectories)
+                            .Where(RecordingPipeline.IsGnssSnapFolder));
+                    }
+                    catch { }
+                }
+            }
+
+            return (raws.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                    dec.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
+        }
+
+        private static void Merge(DecodeSummary into, DecodeSummary from)
+        {
+            into.RawParsed += from.RawParsed;
+            into.Wav += from.Wav;
+            into.Csv += from.Csv;
+            into.Image += from.Image;
+            into.GnssSets += from.GnssSets;
+            into.Skipped += from.Skipped;
+            into.Failed += from.Failed;
+        }
+
+        /// <summary>Decode whatever is selected: raw .bin → parse + decode; intermediates
+        /// and DAT folders → decode. Runs as a job in the Decoding Progress panel.</summary>
+        private async Task DecodeSelection()
+        {
+            var (raws, decodables) = CollectSelectionTargets();
+            int count = raws.Count + decodables.Count;
+            if (count == 0) return;
+
+            DecodeJob job = DecodeJobManager.Instance.Run(
+                $"Decode selection ({count} item{(count == 1 ? "" : "s")})",
+                async (log, pct, ct) =>
+                {
+                    var sum = new DecodeSummary();
+                    var progress = new Progress<int>(p => pct.Report(p));
+                    if (raws.Count > 0) Merge(sum, await RecordingPipeline.AutoDecodeAsync(raws, progress));
+                    if (decodables.Count > 0) Merge(sum, await RecordingPipeline.DecodeFilesAsync(decodables, progress));
+                    log.Report(sum.ToString());
+                    return new DecodeOutcome(sum.Failed == 0, sum.ToString());
+                });
+
+            DecodeOutcome outcome = await job.Completion;
+            LastSummary = outcome.Message;
+        }
+
+        /// <summary>Parse only: strip/split the selected raw .bin files into intermediates
+        /// without decoding — the selection-driven twin of the Binary Parser button.</summary>
+        private async Task ParseSelection()
+        {
+            var (raws, _) = CollectSelectionTargets();
+            if (raws.Count == 0) return;
+
+            DecodeJob job = DecodeJobManager.Instance.Run(
+                $"Parse selection ({raws.Count} file{(raws.Count == 1 ? "" : "s")})",
+                async (log, pct, ct) =>
+                {
+                    var progress = new Progress<int>(p => pct.Report(p));
+                    DecodeSummary sum = await RecordingPipeline.ParseRawFilesAsync(raws, progress);
+                    string msg = $"Parsed {sum.RawParsed} raw file(s)" + (sum.Failed > 0 ? $" · {sum.Failed} failed" : "") + ".";
+                    log.Report(msg);
+                    return new DecodeOutcome(sum.Failed == 0, msg);
+                });
+
+            DecodeOutcome outcome = await job.Completion;
+            LastSummary = outcome.Message;
+        }
+
+        private void ShowSelectionInExplorer()
+        {
+            RecordingDataNode? node = EffectiveSelection().FirstOrDefault();
+            if (node?.FullPath == null) return;
+            string? folder = node.IsFile ? Path.GetDirectoryName(node.FullPath) : node.FullPath;
+            if (folder == null) return;
+            try
+            {
+                Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+            }
+            catch (Exception e) { Debug.WriteLine(e); }
+        }
+
+        private async Task DeleteSelection()
+        {
+            var targets = EffectiveSelection().Where(n => n.FullPath != null).ToList();
+            if (targets.Count == 0) return;
+
+            var confirm = MessageBoxManager.GetMessageBoxStandard(new MessageBoxStandardParams
+            {
+                ButtonDefinitions = ButtonEnum.YesNo,
+                ContentTitle = "Delete from disk",
+                ContentHeader = $"Delete {targets.Count} selected item{(targets.Count == 1 ? "" : "s")}?",
+                ContentMessage = string.Join("\n", targets.Take(8).Select(t => t.Name))
+                                 + (targets.Count > 8 ? $"\n… and {targets.Count - 8} more" : ""),
+                Icon = Icon.Warning,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                WindowIcon = App.MainWindow?.Icon,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            });
+
+            if (await confirm.ShowWindowDialogAsync(App.MainWindow) != ButtonResult.Yes) return;
+
+            foreach (RecordingDataNode t in targets)
+            {
+                try
+                {
+                    if (t.IsFile) File.Delete(t.FullPath!);
+                    else if (Directory.Exists(t.FullPath!)) Directory.Delete(t.FullPath!, true);
+                }
+                catch (Exception e) { Debug.WriteLine("Delete failed: " + e.Message); }
+            }
+
+            LoadDataFolder(CurrentDataFolder);   // watcher would catch it; refresh now for snappiness
         }
 
 
@@ -1610,66 +1864,29 @@ namespace VesperApp.ViewModels
             DirectoryInfo? sourceDirectoryInfo = null;
             DirectoryInfo? destinationDirectoryInfo = null;
 
-            FolderPickerOpenOptions options = new()
+            if (App.MainWindow == null)
+                return false;
+
+            // Guided import: step 1 pick the auto-detected device drive, step 2 confirm the
+            // pre-filled structured target (<working dir>/<device id>/<recording date>).
+            // Everything on the drive is copied, incl. config + UID.txt (self-documenting).
+            ImportDeviceWindow importDialog = new();
+            importDialog.DataContext = new ImportDeviceWindowViewModel();
+            ImportDeviceRequest? request = await importDialog.ShowDialog<ImportDeviceRequest?>(App.MainWindow);
+
+            if (request == null)
+                return false;
+
+            try
             {
-                Title = "Select Vesper drive to import data from",
-                AllowMultiple = false,
-            };
-
-            Task<IReadOnlyList<IStorageFolder>> dialog = App.AppTopLevel!.StorageProvider!.OpenFolderPickerAsync(options);
-
-            await dialog.ContinueWith(delegate (Task<IReadOnlyList<IStorageFolder>> dialogs)
+                sourceDirectoryInfo = new DirectoryInfo(request.SourcePath);
+                destinationDirectoryInfo = Directory.CreateDirectory(request.TargetPath);
+            }
+            catch (Exception ex)
             {
-                try
-                {
-                    IReadOnlyList<IStorageFolder> folders = dialog.Result;
-                    string? path = null;
-
-                    if (folders.Count > 0)
-                    {
-                        path = folders[0].TryGetLocalPath();
-                    }
-
-                    if (path != null && path.Length > 0)
-                    {
-                        sourceDirectoryInfo = new DirectoryInfo(path);
-                    }
-                }
-                catch { }
-            });
-
-            if (sourceDirectoryInfo == null)
-            {
+                Debug.WriteLine("Import target could not be created: " + ex.Message);
                 return false;
             }
-
-            options = new()
-            {
-                Title = "Select local folder to import data to",
-                AllowMultiple = false,
-            };
-
-            Task<IReadOnlyList<IStorageFolder>> dialogf = App.AppTopLevel!.StorageProvider!.OpenFolderPickerAsync(options);
-
-            await dialogf.ContinueWith(delegate (Task<IReadOnlyList<IStorageFolder>> dialogs)
-            {
-                try
-                {
-                    IReadOnlyList<IStorageFolder> folders = dialogf.Result;
-                    string? path = null;
-
-                    if (folders.Count > 0)
-                    {
-                        path = folders[0].TryGetLocalPath();
-                    }
-
-                    if (path != null && path.Length > 0)
-                    {
-                        destinationDirectoryInfo = new DirectoryInfo(path);
-                    }
-                }
-                catch { }
-            });
 
             if (destinationDirectoryInfo != null && sourceDirectoryInfo != null && App.MainWindow != null)
             {
@@ -1701,10 +1918,13 @@ namespace VesperApp.ViewModels
                     progressDialogW.Close();
                     await progressWindowTask;
 
-                    // Auto Import = import + Auto Decode the recordings just copied in.
+                    // Auto Import = import + (per Settings) Auto Decode the recordings just
+                    // copied in. Either way, surface the imported session in the browser.
                     var importedRaws = RecordingPipeline.FindRawBinFiles(destinationDirectoryInfo!.FullName);
-                    if (importedRaws.Count > 0)
+                    if (importedRaws.Count > 0 && SettingsService.Current.Recordings.AutoDecodeOnImport)
                         await RunAutoDecodePipeline(importedRaws);
+                    else
+                        LoadDataFolder(destinationDirectoryInfo.FullName);
 
                 }, DispatcherPriority.Background);
             }
@@ -1765,6 +1985,11 @@ namespace VesperApp.ViewModels
 
         private void HandleProgessUpdatedEvent(IProgressStatus progressStatus) => ProgressUpdatedEventLast = DateTime.Now.ToString();
         #endregion
+
+        /// <summary>A purely numeric folder name — the device's auto-incrementing
+        /// 256-file chunk folders that are flattened away on import.</summary>
+        private static bool IsChunkFolder(string name) =>
+            name.Length > 0 && name.All(char.IsAsciiDigit);
 
         private async Task<bool> CopyTo(DirectoryInfo source, DirectoryInfo destination, IProgressStatus progressStatus)
         {
@@ -1854,7 +2079,15 @@ namespace VesperApp.ViewModels
 
                     foreach (DirectoryInfo drs in source.GetDirectories())
                     {
-                        if (await CopyTo(drs, destination, progressStatus) == false)
+                        // Per-sensor folders (gps, aud, imu, …) are preserved. The
+                        // auto-incrementing chunk folders inside them (0, 1, 2, … with up
+                        // to 256 files each — a FAT directory-size workaround on the
+                        // device) are flattened away, so all of a sensor's recordings
+                        // land directly in that sensor's folder.
+                        DirectoryInfo sub = IsChunkFolder(drs.Name)
+                            ? destination
+                            : new DirectoryInfo(Path.Combine(destination.FullName, drs.Name));
+                        if (await CopyTo(drs, sub, progressStatus) == false)
                         {
                             progressStatus.IsFinished = true;
 

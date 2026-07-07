@@ -92,6 +92,47 @@ namespace VesperApp.Services
             return sum;
         }
 
+        /// <summary>Parse raw logger .bin files into intermediates only — the strip/split
+        /// half of the pipeline, without decoding. Used by "Parse only" on a browser
+        /// selection; mirrors phase 1 of <see cref="AutoDecodeAsync"/>.</summary>
+        public static async Task<DecodeSummary> ParseRawFilesAsync(IReadOnlyList<string> rawFiles, IProgress<int>? progress = null)
+        {
+            var sum = new DecodeSummary();
+            int total = Math.Max(1, rawFiles.Count);
+            int done = 0;
+
+            foreach (string raw in rawFiles)
+            {
+                try { await ParseRawAsync(raw); sum.RawParsed++; }
+                catch { sum.Failed++; }
+                progress?.Report((int)(100.0 * ++done / total));
+            }
+
+            progress?.Report(100);
+            return sum;
+        }
+
+        /// <summary>Decode already-parsed targets: intermediate files (.UBN/.MBN/…) and/or
+        /// DAT snap folders. Per-item entry point for "Decode" on a browser selection —
+        /// same decoders phase 2 of <see cref="AutoDecodeAsync"/> uses.</summary>
+        public static async Task<DecodeSummary> DecodeFilesAsync(IReadOnlyList<string> targets, IProgress<int>? progress = null)
+        {
+            var sum = new DecodeSummary();
+            int total = Math.Max(1, targets.Count);
+            int done = 0;
+
+            foreach (string t in targets)
+            {
+                if (Directory.Exists(t) && IsSnapFolder(t)) await DecodeSnapFolderAsync(t, sum);
+                else if (File.Exists(t) && IsDecodableIntermediate(t)) DecodeIntermediate(t, sum);
+                else sum.Skipped++;
+                progress?.Report((int)(100.0 * ++done / total));
+            }
+
+            progress?.Report(100);
+            return sum;
+        }
+
         /// <summary>Find raw logger .bin files under a folder (recursively) for Auto Import → Auto Decode.</summary>
         public static List<string> FindRawBinFiles(string folder)
         {
@@ -104,7 +145,15 @@ namespace VesperApp.Services
             catch { return new List<string>(); }
         }
 
-        private static bool IsRawBin(string path)
+        /// <summary>True for an intermediate file the decode phase knows how to turn
+        /// into WAV/CSV/image (.UBN/.MBN/.ABN/.LBN/.RBN/.EBN/.CBN).</summary>
+        public static bool IsDecodableIntermediate(string path) =>
+            DecodableExts.Contains(Path.GetExtension(path).ToUpperInvariant());
+
+        /// <summary>True for a folder of GNSS snapshot .dat files (named "DAT").</summary>
+        public static bool IsGnssSnapFolder(string folder) => IsSnapFolder(folder);
+
+        public static bool IsRawBin(string path)
         {
             // Logger raws end in <type-letter>.bin (G/U/U0-3/M/E/R/L/X/O/S/C). Skip our own
             // intermediates (.UBN etc.) and decode outputs.
