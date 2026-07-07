@@ -20,14 +20,23 @@ namespace ASD.Devices
     /// </summary>
     public static class AsdDeviceIds
     {
-        // STMicroelectronics VID; STM32U5 USB-CDC product ids.
+        // STMicroelectronics VID.
         public const int StVid = 0x0483;        // 1155
-        public const int KolVesperPid = 0x5710; // 22288 (KOL and Vesper share this)
-        public const int PipistrellePid = 0x570F; // 22287
 
-        public static readonly AsdDeviceId Kol = new(AsdDeviceKind.Kol, StVid, KolVesperPid, AsdBus.SerialCdc, "KOL");
-        public static readonly AsdDeviceId Vesper = new(AsdDeviceKind.Vesper, StVid, KolVesperPid, AsdBus.SerialCdc, "VT04-VESPER");
-        public static readonly AsdDeviceId Pipistrelle = new(AsdDeviceKind.Pipistrelle, StVid, PipistrellePid, AsdBus.SerialCdc, "VT04-PP");
+        /// <summary>The product id licensed from ST explicitly for the ASD loggers —
+        /// shared by KOL, Vesper and Pipistrelle (composite device, CDC data on MI_01,
+        /// e.g. <c>USB\VID_0483&amp;PID_A4F4&amp;MI_01</c>). Devices are disambiguated by
+        /// the firmware GET_VER device-type byte.</summary>
+        public const int CdcLoggerPid = 0xA4F4;
+
+        // Deprecated temporary ids used by older firmware versions — still accepted by
+        // the discovery filter for backwards compatibility, never used on new firmware.
+        public const int LegacyKolVesperPid = 0x5710;   // 22288
+        public const int LegacyPipistrellePid = 0x570F; // 22287
+
+        public static readonly AsdDeviceId Kol = new(AsdDeviceKind.Kol, StVid, CdcLoggerPid, AsdBus.SerialCdc, "KOL");
+        public static readonly AsdDeviceId Vesper = new(AsdDeviceKind.Vesper, StVid, CdcLoggerPid, AsdBus.SerialCdc, "VT04-VESPER");
+        public static readonly AsdDeviceId Pipistrelle = new(AsdDeviceKind.Pipistrelle, StVid, CdcLoggerPid, AsdBus.SerialCdc, "VT04-PP");
         public static readonly AsdDeviceId Nanotag = new(AsdDeviceKind.Nanotag, 0x04D8, 0xFE57, AsdBus.LibUsbBulk, "Nanotag");
         public static readonly AsdDeviceId Dock = new(AsdDeviceKind.Dock, 0x0403, 0x6001, AsdBus.Ftdi, "Dock");
 
@@ -37,7 +46,7 @@ namespace ASD.Devices
         /// <summary>True when (vid,pid) is one of OUR CDC loggers — the filter that
         /// replaces "open and probe every COM port".</summary>
         public static bool IsCdcLogger(int? vid, int? pid) =>
-            vid == StVid && (pid == KolVesperPid || pid == PipistrellePid);
+            vid == StVid && (pid == CdcLoggerPid || pid == LegacyKolVesperPid || pid == LegacyPipistrellePid);
 
         /// <summary>The libusb (non-serial) device ids we look for.</summary>
         public static IEnumerable<AsdDeviceId> LibUsbIds =>
