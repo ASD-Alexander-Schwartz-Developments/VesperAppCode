@@ -47,6 +47,11 @@ namespace VesperApp.Models
         public string ThemeVariant { get; set; } = "Dark";   // reserved (Dark | Light)
         public string AccentColor { get; set; } = "#6366F1"; // reserved
         public string StartupCategory { get; set; } = "Recordings";
+
+        /// <summary>Whether the Logger Devices console (device list + actions) is shown.
+        /// Collapsing it gives the working area (editor, Help, …) the full window height;
+        /// it re-expands automatically when a dock connects.</summary>
+        public bool DeviceConsoleExpanded { get; set; } = true;
     }
 
     /// <summary>Defaults for the recordings parse/decode pipeline.</summary>

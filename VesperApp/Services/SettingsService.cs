@@ -8,7 +8,8 @@ namespace VesperApp.Services
 {
     /// <summary>
     /// Loads and persists <see cref="AppConfig"/> at
-    /// <c>%LOCALAPPDATA%/VesperApp/config.json</c> — cross-platform via
+    /// <c>%LOCALAPPDATA%/VesperApp/config.json</c> (macOS: <c>~/Library/Application Support/VesperApp</c>,
+    /// Linux: <c>~/.local/share/VesperApp</c>) — cross-platform via
     /// <see cref="Environment.SpecialFolder.LocalApplicationData"/>, the same root
     /// <c>PluginLoader</c> uses for its per-user plugins folder. Tolerant of a missing or
     /// corrupt file (falls back to defaults so the app always starts) and writes atomically
@@ -44,7 +45,7 @@ namespace VesperApp.Services
         public static string ConfigPath => Path.Combine(ConfigDirectory, "config.json");
 
         /// <summary>The out-of-the-box working directory when none is configured:
-        /// <c>~/Documents/MyVesperData</c> (matches the legacy VesperOutputFolder root).</summary>
+        /// <c>~/Documents/MyVesperData</c>.</summary>
         public static string DefaultWorkingDirectory => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MyVesperData");
 

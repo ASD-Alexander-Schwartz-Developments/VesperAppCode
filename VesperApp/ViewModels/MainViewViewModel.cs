@@ -64,6 +64,33 @@ namespace VesperApp.ViewModels
 
         private bool _isDeviceConnected = false;
 
+        /// <summary>
+        /// Whether the Logger Devices console (list + device actions) is shown. Collapsed, the
+        /// working area (editor, Help, …) gets the full height — for offline work the console is
+        /// just dead space. Persisted across sessions; connecting a dock re-expands it because
+        /// that's the moment the console becomes relevant.
+        /// </summary>
+        public bool IsDeviceConsoleExpanded
+        {
+            get => _isDeviceConsoleExpanded;
+            set
+            {
+                if (_isDeviceConsoleExpanded == value) return;
+                this.RaiseAndSetIfChanged(ref _isDeviceConsoleExpanded, value);
+
+                var cfg = SettingsService.Current;
+                if (cfg.Ui.DeviceConsoleExpanded != value)
+                {
+                    cfg.Ui.DeviceConsoleExpanded = value;
+                    SettingsService.Instance.Save();
+                }
+            }
+        }
+
+        private bool _isDeviceConsoleExpanded = true;
+
+        public ICommand ToggleDeviceConsoleCommand { get; }
+
 
         public bool IsDeviceEnabled
         {
@@ -154,17 +181,21 @@ namespace VesperApp.ViewModels
                 Categories.Add(moduleCategory);
 
             Categories.Add(new Category { Name = "Settings", Page = typeof(SettingsView), DataContext = new SettingsViewModel(), Icon = Symbol.Setting, ToolTip = "Application settings" });
-            Categories.Add(new Category { Name = "Help", Icon = Symbol.Help, ToolTip = "Help Documentation" });
+            Categories.Add(new Category { Name = "Help", Page = typeof(HelpView), DataContext = new HelpViewModel(), Icon = Symbol.Help, ToolTip = "Help Documentation" });
 
-            // Auto-open the configured working directory in the Recordings data browser so the
-            // user doesn't have to pick a folder each session (configurable in Settings → Workspace).
+            ToggleDeviceConsoleCommand = ReactiveCommand.Create(
+                () => { IsDeviceConsoleExpanded = !IsDeviceConsoleExpanded; });
+
             var settings = SettingsService.Current;
-            if (settings.Workspace.OpenWorkingDirOnStartup)
-            {
-                string workingDir = SettingsService.Instance.ResolveWorkingDirectory();
-                if (Directory.Exists(workingDir))
-                    recordingsViewModel.LoadDataFolder(workingDir);
-            }
+            _isDeviceConsoleExpanded = settings.Ui.DeviceConsoleExpanded;
+
+            // Ensure the working directory exists on every launch (first run creates
+            // ~/Documents/MyVesperData) — imports and decodes land there, so it must exist.
+            string workingDir = SettingsService.Instance.ResolveWorkingDirectory();
+
+            // The Recordings data browser is the live main view of the working directory:
+            // always rooted there at startup, kept current by a FileSystemWatcher.
+            recordingsViewModel.LoadDataFolder(workingDir);
 
             // Honour the configured startup tab (defaults to Recordings).
             Category? startupCategory = Categories.OfType<Category>()
@@ -448,14 +479,12 @@ namespace VesperApp.ViewModels
         {
             if (e.IsConnected != IsConnected)
             {
-                if (e.IsConnected == true && e.Dock != null)
-                {                  
-                }
-                else
-                {
-                }
-
                 IsConnected = e.IsConnected;
+
+                // The console is where the freshly connected dock's devices appear — surface it
+                // even if the user had collapsed it for offline work.
+                if (e.IsConnected)
+                    IsDeviceConsoleExpanded = true;
             }
         }
 

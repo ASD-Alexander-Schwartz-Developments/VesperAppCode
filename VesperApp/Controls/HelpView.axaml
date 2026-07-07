@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:md="https://github.com/whistyun/Markdown.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="640"
+             x:Class="VesperApp.Controls.HelpView">
+
+    <Design.DataContext>
+        <vm:HelpViewModel/>
+    </Design.DataContext>
+
+    <Border Classes="page">
+        <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="240,16,*">
+
+            <!-- Header -->
+            <Grid Grid.Row="0" Grid.ColumnSpan="3" ColumnDefinitions="*,Auto,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Classes="pageTitle" Text="Help"/>
+                    <TextBlock Classes="caption"
+                               Text="Documentation is fetched live from the project wiki; the last fetched copy is kept for offline use."/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Refresh"
+                        Command="{Binding RefreshCommand}" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                <Button Grid.Column="2" Content="Open in browser"
+                        Command="{Binding OpenInBrowserCommand}" VerticalAlignment="Top"/>
+            </Grid>
+
+            <!-- Offline notice -->
+            <Border Grid.Row="1" Grid.ColumnSpan="3" Classes="card" Margin="0,10,0,0"
+                    IsVisible="{Binding HasBanner}">
+                <TextBlock Classes="caption" Text="{Binding Banner}" TextWrapping="Wrap"/>
+            </Border>
+
+            <!-- Page navigation (driven by the wiki's _Sidebar.md) -->
+            <ListBox Grid.Row="2" Grid.Column="0" Margin="0,12,0,0"
+                     Background="Transparent"
+                     ItemsSource="{Binding Pages}"
+                     SelectedItem="{Binding SelectedPage}">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="IsEnabled" Value="{Binding IsPage}"/>
+                        <Setter Property="MinHeight" Value="30"/>
+                        <Setter Property="Padding" Value="10,4"/>
+                    </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Panel>
+                            <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14"
+                                       Margin="0,10,0,2"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                       IsVisible="{Binding IsSection}"/>
+                            <TextBlock Text="{Binding Title}" Margin="12,0,0,0"
+                                       IsVisible="{Binding IsPage}"/>
+                        </Panel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Rendered page -->
+            <Border Grid.Row="2" Grid.Column="2" Classes="card" Margin="0,12,0,0" Padding="16,8">
+                <Grid>
+                    <md:MarkdownScrollViewer x:Name="MdViewer"
+                                             Markdown="{Binding PageMarkdown}"
+                                             MarkdownStyleName="FluentAvalonia"/>
+                    <ProgressBar IsIndeterminate="True" Height="3"
+                                 VerticalAlignment="Top"
+                                 IsVisible="{Binding IsBusy}"/>
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Border>
+</UserControl>

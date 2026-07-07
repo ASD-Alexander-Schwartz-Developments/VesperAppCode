@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Publish VesperApp/docs/wiki/ → the repo's GitHub wiki (VesperAppCode.wiki.git).
+#
+# docs/wiki/ in this repo is the SINGLE SOURCE OF TRUTH for the user documentation:
+#   • the app embeds those pages as its offline Help fallback (AvaloniaResource),
+#   • the Help tab fetches the same pages live from the published wiki,
+#   • the wiki is therefore a *publish target*, never an editing surface.
+# Edit docs under docs/wiki/ in a normal PR; on merge to master this workflow
+# mirrors the folder into the wiki. Direct wiki edits will be overwritten on the
+# next publish (mirror push) — by design.
+#
+# Uses the built-in GITHUB_TOKEN (contents: write covers the wiki repo of the
+# same repository) — no extra secrets. NOTE: GitHub cannot create the wiki repo
+# itself; the very first wiki page must once be created by hand in the web UI,
+# after which this workflow keeps it in sync.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Publish wiki
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "VesperApp/docs/wiki/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki-publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Mirror docs/wiki into the wiki repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          WIKI_URL="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+
+          if ! git ls-remote "$WIKI_URL" >/dev/null 2>&1; then
+            echo "::error::The wiki repository does not exist yet. Create the first wiki page once in the GitHub web UI, then re-run this workflow."
+            exit 1
+          fi
+
+          git clone --depth 1 "$WIKI_URL" wiki
+          # Mirror semantics: pages deleted from docs/wiki disappear from the wiki too.
+          find wiki -mindepth 1 -maxdepth 1 -not -name .git -exec rm -rf {} +
+          cp -r VesperApp/docs/wiki/. wiki/
+
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+            exit 0
+          fi
+          git commit -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7} (docs/wiki)"
+          git push
