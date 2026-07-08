@@ -113,9 +113,11 @@ namespace ASD.Devices.Dock
 
         public async Task<bool> ResetAsync()
         {
-            if (!await SetLinesAsync(_ven, _boot0, false)) return false;
-            await Task.Delay(50);
-            return await SetLinesAsync(_ven, _boot0, true);
+            // Bit TRUE asserts NRST, FALSE releases (device runs with all bits low) —
+            // same order and 150 ms width as the proven legacy DockAdapter pulse.
+            if (!await SetLinesAsync(_ven, _boot0, true)) return false;
+            await Task.Delay(150);
+            return await SetLinesAsync(_ven, _boot0, false);
         }
 
         public Task CloseAsync()

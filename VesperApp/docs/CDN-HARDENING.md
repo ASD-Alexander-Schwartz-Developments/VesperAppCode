@@ -28,8 +28,14 @@ Verified after cutover: CloudFront serves `plugins/gnss/*`, `releases.*` (HTTP 2
 - Promote the two managed rule groups from **Count → Block** after a few days of clean sampled
   traffic (WAF console → VesperReleaseCDN → Rules; watch `AWSManagedIpReputation` /
   `AWSCommonRuleSet` CloudWatch metrics first — CommonRuleSet can false-positive on binary uploads).
-- `firmware/index.json` is not published yet (no `firmware/` objects in the bucket); that feed is
-  produced by the firmware repo's CI, independent of this work.
+- `firmware/index.json` is live (2026-07-08): the historical VesperU5 releases v1.9–v1.20 were
+  backfilled from the GitHub releases (assets at `firmware/<ver>/firmware-<ver>-vesper.hex`,
+  SHA-256-pinned, release notes as descriptions). VesperU5 firmware serves Vesper AND Pipistrelle,
+  and the client filters on a single `target` string — so each release has TWO feed entries
+  (`target=vesper` + `target=pipistrelle`) pointing at the same asset. Keep doing this for new
+  releases (the VesperU5 CI's single FIRMWARE_TARGET only emits the vesper entry — needs the same
+  doubling). Kol (`target=kol`) and Nanotag (`target=nanotag`) feeds are separate and not yet
+  backfilled.
 - If you ever add a second distribution for this bucket, its ARN must be added to the bucket policy's
   `AWS:SourceArn` condition or its CloudFront requests will 403.
 

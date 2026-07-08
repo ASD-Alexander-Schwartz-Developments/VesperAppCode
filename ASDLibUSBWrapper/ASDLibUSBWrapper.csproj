@@ -25,6 +25,10 @@
     <None Update="LibUsb\Win\x86\libusb-1.0.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- NOTE: the arch-matching root-level copy of libusb-1.0.dll (which shields the
+         app from stray 32-bit libusb copies on PATH, e.g. the ST-Link server's) is
+         done by the APP project (VesperApp.csproj) — the RuntimeIdentifier needed to
+         pick the right architecture is not set when this library builds. -->
   </ItemGroup>
 
 </Project>

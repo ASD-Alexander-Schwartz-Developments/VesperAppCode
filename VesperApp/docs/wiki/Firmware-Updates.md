@@ -8,8 +8,10 @@ The **Firmware Upgrades** tab downloads released device firmware and flashes it 
 
 ## Getting firmware
 
-1. Open **Firmware Upgrades** and pick your **device type** (VT04-VESPER, VT04-PP, KOL or Nanotag). The release list filters to that product.
+1. Open **Firmware Upgrades** and pick your **device type** (VT04-VESPER, VT04-PP, KOL or Nanotag). The release list filters to that product, showing each release's **version**, name, release notes and publish date.
 2. Select a release and press **Download**. Firmware comes from the official release feed over HTTPS and every download is integrity-checked (SHA-256) before it can be flashed.
+
+VT04-VESPER and VT04-PP share the same firmware — the board is auto-detected at runtime — so the same releases appear under both device types.
 
 ## Flashing a VT04-VESPER / VT04-PP / KOL
 
@@ -20,9 +22,11 @@ These devices flash over **USB DFU** using the ST system bootloader, and the who
 3. The app powers the device through the dock, holds the boot-select line and pulses reset — the device re-appears as an ST DFU bootloader, the firmware is written and verified, and the device is reset back into normal operation.
 4. The progress bar runs from entering the bootloader through writing to the final reset. When it completes, the device boots the new firmware.
 
-Supported firmware file formats: `.dfu` (DfuSe), `.hex` (Intel HEX) and raw `.bin` images.
+Supported firmware file formats: `.dfu` (DfuSe), `.hex` (Intel HEX) and raw `.bin` images. Images are automatically padded and aligned to the STM32U5's 16-byte flash programming granularity before writing — no preparation of the file is needed.
 
-**During the flash:** leave the device seated and the dock plugged in. If the process is interrupted, the device remains in its ROM bootloader and cannot be bricked by a failed write — simply run the flash again.
+**During the flash:** leave the device seated and the dock plugged in. If the process is interrupted or fails, the device cannot be bricked: the boot line is always restored and the device stays recoverable through its ROM bootloader — simply run the flash again.
+
+**First flash on a Windows machine:** the very first time the bootloader appears, Windows may take a while to bind its driver — the app waits up to 20 seconds. If it consistently reports that a DFU device was detected but could not be opened, install the "STM32 BOOTLOADER" WinUSB driver (included with STM32CubeProgrammer) once.
 
 ## Flashing a Nanotag
 
@@ -39,4 +43,3 @@ Nanotag firmware is distributed as Intel HEX (`.hex`) files.
 - Reconnect / re-detect the device and confirm the reported firmware version.
 - Device configurations are independent of firmware, but after a major firmware upgrade it is good practice to reload and re-save your configuration ([Configuration Editor](Configuration-Editor)) and run a [mic health check](Device-Tests).
 
-**Note: All content on this page is still work in progress and may be incomplete or inaccurate. Please check back later for updates.* 

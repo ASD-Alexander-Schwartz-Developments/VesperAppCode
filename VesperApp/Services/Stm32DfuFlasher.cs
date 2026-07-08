@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ASDLibUSBWrapper;
@@ -45,32 +46,57 @@ namespace VesperApp.Services
             await dock.ResetDevice();           // pulse NRST
             await Task.Delay(800, ct);          // allow USB re-enumeration as DFU
 
-            // 2-5. Blocking libusb work runs off the UI thread.
-            bool ok = await Task.Run(() => FlashCore(firmwarePath, progress, ct), ct);
-
-            // 6. Drop BOOT0 and reset so the device boots the freshly-written application.
-            progress?.Report(new FlashProgress { Percent = 100, Status = "Resetting into application…" });
-            await dock.SetBoot0Mode(false);
-            await dock.ResetDevice();
-            return ok;
+            try
+            {
+                // 2-5. Blocking libusb work runs off the UI thread.
+                return await Task.Run(() => FlashCore(firmwarePath, progress, ct), ct);
+            }
+            finally
+            {
+                // 6. ALWAYS drop BOOT0 and reset — also when the flash failed or was
+                // cancelled. Leaving BOOT0 asserted would strand the device in the
+                // bootloader (and re-enter it on every reset) until a power cycle.
+                progress?.Report(new FlashProgress { Percent = 100, Status = "Resetting into application…" });
+                try
+                {
+                    await dock.SetBoot0Mode(false);
+                    await dock.ResetDevice();
+                }
+                catch { /* dock connection may be gone; nothing more we can do */ }
+            }
         }
 
         private static bool FlashCore(string firmwarePath, IProgress<FlashProgress>? progress, CancellationToken ct)
         {
             using var context = new UsbContext();
 
-            // Wait for the ST DFU device to appear (re-enumeration takes a moment).
+            // Wait for the ST DFU device to appear. Re-enumeration normally takes ~1 s,
+            // but the FIRST DFU attach on a Windows host can take considerably longer
+            // while the driver binds — so give it a generous 20 s.
             LibUsbDfu.Device? dfu = null;
-            for (int attempt = 0; attempt < 24 && dfu == null; attempt++)
+            Exception? lastOpenError = null;
+            for (int attempt = 0; attempt < 80 && dfu == null; attempt++)
             {
                 ct.ThrowIfCancellationRequested();
-                try { dfu = LibUsbDfu.Device.OpenFirst(context, StVid, StDfuPid); }
-                catch (ArgumentException) { Thread.Sleep(250); } // not enumerated yet
+
+                // Probe for an exact 0483:DF11 match ourselves before opening —
+                // OpenFirst's VID-only fallback could otherwise latch onto the CDC
+                // application device (0483:A4F4) when the bootloader never started.
+                bool present;
+                using (var probe = context.FindMultipleDevices(d => d.VendorId == StVid && d.ProductId == StDfuPid))
+                    present = probe.Count > 0;
+
+                if (present)
+                {
+                    try { dfu = LibUsbDfu.Device.OpenFirst(context, StVid, StDfuPid); break; }
+                    catch (Exception ex) { lastOpenError = ex; }   // seen, not openable (yet)
+                }
+
+                Thread.Sleep(250);
             }
 
             if (dfu == null)
-                throw new InvalidOperationException(
-                    $"No STM32 DFU device ({StVid:X4}:{StDfuPid:X4}) appeared. Check the dock connection and that the device entered the bootloader.");
+                throw new InvalidOperationException(BuildNoDfuMessage(context, lastOpenError));
 
             try
             {
@@ -79,6 +105,11 @@ namespace VesperApp.Services
 
                 progress?.Report(new FlashProgress { Percent = 0, Status = "Writing firmware…" });
 
+                // The U585 ROM bootloader programs 16-byte quad-words and SILENTLY
+                // ignores writes at unaligned addresses (verified on hardware: a hex
+                // segment at 0x08000238 left its whole region erased while every write
+                // reported success) — so .hex/.bin images are merged/padded to quad-word
+                // alignment first. ST-produced .dfu files are already aligned per target.
                 string ext = Path.GetExtension(firmwarePath).ToLowerInvariant();
                 switch (ext)
                 {
@@ -86,17 +117,20 @@ namespace VesperApp.Services
                         dfu.DownloadFirmware(FirmwareUpdater.FileFormat.Dfu.ParseFile(firmwarePath));
                         break;
                     case ".hex":
-                        dfu.DownloadFirmware(IntelHex.ParseFile(firmwarePath));
+                        dfu.DownloadFirmware(FlashAlignment.Normalize(IntelHex.ParseFile(firmwarePath)));
                         break;
                     case ".bin":
-                        dfu.DownloadFirmware(BinToMemory(firmwarePath, FlashBaseAddress));
+                        dfu.DownloadFirmware(FlashAlignment.Normalize(BinToMemory(firmwarePath, FlashBaseAddress)));
                         break;
                     default:
                         throw new NotSupportedException($"Unsupported firmware type '{ext}'. Use .dfu, .hex or .bin.");
                 }
 
                 progress?.Report(new FlashProgress { Percent = 100, Status = "Finishing…" });
-                dfu.Manifest(); // leave DFU and reset into the new firmware
+                // Leave DFU. Some ROM bootloaders stall the status phase on the leave
+                // command; the dock-driven BOOT0-low reset that follows boots the new
+                // firmware regardless, so a manifest hiccup is not a flash failure.
+                try { dfu.Manifest(); } catch { }
                 return true;
             }
             finally
@@ -104,6 +138,32 @@ namespace VesperApp.Services
                 try { if (dfu.IsOpen()) dfu.Close(); } catch { }
                 dfu.Dispose();
             }
+        }
+
+        /// <summary>Build an actionable timeout message: distinguish "device never came
+        /// back on USB", "device booted its application instead of the bootloader" and
+        /// "DFU present but unopenable (driver)" — each has a different remedy.</summary>
+        private static string BuildNoDfuMessage(UsbContext context, Exception? lastOpenError)
+        {
+            string seen;
+            try
+            {
+                using var st = context.FindMultipleDevices(d => d.VendorId == StVid);
+                seen = st.Count == 0
+                    ? "No ST (0483:*) USB device is visible at all — the device did not re-enumerate. "
+                      + "Check that it is seated in the dock (TOP marking aligned) and powered (Enable Device)."
+                    : "Visible ST devices: " + string.Join(", ", st.Select(d => $"0483:{d.ProductId:X4}")) + ". "
+                      + "If the application id (A4F4) is listed, the device booted its firmware instead of the "
+                      + "bootloader — the BOOT0 line had no effect (check dock contact / device option bytes nSWBOOT0).";
+            }
+            catch { seen = "USB enumeration failed while diagnosing."; }
+
+            string driverHint = lastOpenError != null
+                ? $" A DFU device was detected but could not be opened ({lastOpenError.Message}) — on Windows, "
+                  + "install the WinUSB driver for 'STM32 BOOTLOADER' (included with STM32CubeProgrammer)."
+                : string.Empty;
+
+            return $"No usable STM32 DFU device ({StVid:X4}:{StDfuPid:X4}) appeared after the BOOT0/reset sequence. {seen}{driverHint}";
         }
 
         private static RawMemory BinToMemory(string path, ulong baseAddress)

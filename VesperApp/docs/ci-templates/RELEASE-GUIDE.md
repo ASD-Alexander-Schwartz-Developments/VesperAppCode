@@ -14,7 +14,7 @@ use, what CI does, and how to verify. Sister doc to [`README.md`](README.md) (on
 | Channel | Source repo | Trigger | Lands in S3 | Feed (CloudFront) |
 |---|---|---|---|---|
 | GNSS decoder plugin | `cg-gnss` | tag `v*` or manual | `plugins/gnss/<ver>/` | `…/plugins/gnss/index.json` |
-| Firmware — Vesper | `VesperU5` | tag `v*` | `firmware/<ver>/` | `…/firmware/index.json` (`target=vesper`) |
+| Firmware — Vesper/Pipistrelle | `VesperU5` | tag `v*` | `firmware/<ver>/` | `…/firmware/index.json` (one entry per target: `vesper` + `pipistrelle`, same asset) |
 | Firmware — KOL | `Kol` | tag `v*` | `firmware/<ver>/` | `…/firmware/index.json` (`target=kol`) |
 | Desktop shell | `VesperApp` (this repo) | tag `v*` or manual | bucket **root** (Velopack) | `…/releases.<channel>.json` |
 
@@ -93,7 +93,7 @@ the entry to `firmware/index.json` → CloudFront invalidate.
 | `RELEASE_S3_BUCKET` = `<bucket>` | ✅ | ✅ | ✅ |
 | `AWS_REGION` = `eu-central-1` | ✅ | ✅ | ✅ |
 | `RELEASE_CF_DISTRIBUTION_ID` = `<distribution-id>` | ✅ | ✅ | ✅ |
-| `FIRMWARE_TARGET` | — | `vesper` | `kol` |
+| `FIRMWARE_TARGET` | — | `vesper pipistrelle` (space/comma-separated; one feed entry per key) | `kol` |
 | `STM32CUBEIDE_PATH` (optional) | — | if not on PATH | if not on PATH |
 | `.github/workflows/release.yml` committed | ✅ (branch `feature/release-pipeline`) | ✅ (branch) | ✅ (branch) |
 

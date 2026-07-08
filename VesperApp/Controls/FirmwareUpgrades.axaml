@@ -71,9 +71,10 @@
 					</dg:DataGrid.Resources>
 
 					<dg:DataGrid.Columns>
-						<dg:DataGridTextColumn Header="Ver" Binding="{Binding Name}" Width="1*" MinWidth="80"/>
+						<dg:DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="Auto" MinWidth="70"/>
+						<dg:DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="1*" MinWidth="120"/>
 						<dg:DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*" MinWidth="200"/>
-						<dg:DataGridTextColumn Header="Publish Date" Binding="{Binding Published}" Width="2*" MinWidth="120"/>
+						<dg:DataGridTextColumn Header="Publish Date" Binding="{Binding Published}" Width="Auto" MinWidth="120"/>
 					</dg:DataGrid.Columns>
 				</dg:DataGrid>
 			</Grid>

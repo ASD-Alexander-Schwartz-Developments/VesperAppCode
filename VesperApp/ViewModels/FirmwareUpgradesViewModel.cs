@@ -109,6 +109,12 @@ namespace VesperApp.ViewModels
             Uri? feedUrl = FirmwareFeedUrl();
             feedService = feedUrl is null ? null : new ReleaseFeedService(feedUrl);
 
+            // Surface the missing-feed condition on the page instead of a silent empty
+            // list (typical for local dev builds, where CI hasn't baked the CDN origin).
+            if (feedService is null)
+                FlashStatus = "No update source is configured in this build — the release list is unavailable. "
+                            + "Use a released build, or set VESPERAPP_CDN_BASE for a local build.";
+
             // Load the releases on initialization (no-op when no feed is configured).
             _ = RunReleasesRefresh();
         }
@@ -209,15 +215,24 @@ namespace VesperApp.ViewModels
         // bootloader) is not implemented yet.
         private async Task<bool> RunFlash()
         {
+            // Order matters for a truthful message: an unconfigured feed or an empty
+            // list are the actual problem far more often than a missing selection.
+            if (feedService is null)
+            {
+                FlashStatus = "No update source is configured in this build — releases cannot be listed or flashed. "
+                            + "Use a released build, or set VESPERAPP_CDN_BASE for a local build.";
+                return false;
+            }
+            if (Releases.Count == 0)
+            {
+                FlashStatus = $"No firmware releases loaded for {SelectedDeviceType}. Press Refresh, or check the update source.";
+                return false;
+            }
+
             var selected = SelectedFirmwareRelease;
             if (selected is null || string.IsNullOrWhiteSpace(selected.Asset))
             {
-                FlashStatus = "Select a firmware release first.";
-                return false;
-            }
-            if (feedService is null)
-            {
-                FlashStatus = "Firmware updates are unavailable: no update source is configured in this build.";
+                FlashStatus = "Select a firmware release in the list first.";
                 return false;
             }
 

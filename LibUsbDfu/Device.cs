@@ -161,33 +161,42 @@ namespace LibUsbDfu
                  (iinfo.Protocol == InterfaceProtocol_DFU));
         }
 
-        // The DFU functional descriptor (type 0x21) lives in the interface's "extra"
-        // descriptors, exposed flat by the wrapper. Walk the length-prefixed list.
+        // The DFU functional descriptor (type 0x21) lives in an interface's "extra"
+        // descriptors, exposed flat by the wrapper. libusb attaches trailing extras to
+        // the LAST parsed alt-setting, while we match/claim alt-setting 0 — so search
+        // every interface entry of the configuration, not just the one we claimed
+        // (observed on the STM32U585 ROM bootloader: 3 alt settings, descriptor on the
+        // last one only).
         private void LoadDfuDescriptor()
         {
-            var raw = InterfaceInfo.CustomDescriptors;
-            byte[] extra = new byte[raw.Count];
-            for (int i = 0; i < raw.Count; i++) extra[i] = raw[i];
-
-            for (int i = 0; i + 1 < extra.Length;)
+            foreach (var iface in ConfigInfo.Interfaces)
             {
-                byte len = extra[i];
-                if (len == 0) break;
-                byte type = extra[i + 1];
-                if (type == FunctionalDescriptor.Type &&
-                    len >= FunctionalDescriptor.Size &&
-                    i + FunctionalDescriptor.Size <= extra.Length)
+                var raw = iface.CustomDescriptors;
+                if (raw == null || raw.Count == 0) continue;
+
+                byte[] extra = new byte[raw.Count];
+                for (int i = 0; i < raw.Count; i++) extra[i] = raw[i];
+
+                for (int i = 0; i + 1 < extra.Length;)
                 {
-                    try
+                    byte len = extra[i];
+                    if (len == 0) break;
+                    byte type = extra[i + 1];
+                    if (type == FunctionalDescriptor.Type &&
+                        len >= FunctionalDescriptor.Size &&
+                        i + FunctionalDescriptor.Size <= extra.Length)
                     {
-                        dfuDesc = new FunctionalDescriptor(extra, i);
-                        return;
+                        try
+                        {
+                            dfuDesc = new FunctionalDescriptor(extra, i);
+                            return;
+                        }
+                        catch (Exception)
+                        {
+                        }
                     }
-                    catch (Exception)
-                    {
-                    }
+                    i += len;
                 }
-                i += len;
             }
 
             throw new ApplicationException(String.Format("Failed to find the DFU Functional Descriptor on target {0}", this));

@@ -46,10 +46,13 @@ namespace ASD.Devices.Dock
 
         public async Task<bool> ResetAsync()
         {
-            // Pulse NRST low then release, preserving VEN/BOOT0.
-            if (!await SetLinesAsync(_ven, _boot0, false)) return false;
-            await Task.Delay(50);
-            return await SetLinesAsync(_ven, _boot0, true);
+            // Pulse reset, preserving VEN/BOOT0. Bit TRUE asserts NRST, FALSE releases
+            // it (the device runs with all bits low) — same order and 150 ms width as
+            // the proven legacy DockAdapter. Ending on TRUE would hold the device in
+            // reset and take it off the USB bus entirely.
+            if (!await SetLinesAsync(_ven, _boot0, true)) return false;
+            await Task.Delay(150);
+            return await SetLinesAsync(_ven, _boot0, false);
         }
 
         public Task CloseAsync()
