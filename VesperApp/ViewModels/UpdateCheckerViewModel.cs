@@ -76,13 +76,19 @@ namespace VesperApp.ViewModels
 
             if (Design.IsDesignMode == false && !string.IsNullOrWhiteSpace(_updateUrl))
             {
-                // Pick the auto-update channel for THIS OS. Previously the channel was hardcoded to
-                // win-x64-stable, so non-Windows hosts polled the wrong feed and Linux had none —
-                // the app-release CI now publishes win-x64 and linux-x64 channels to the same root.
-                string stable, beta;
-                if (OperatingSystem.IsWindows())    { stable = "win-x64-stable";   beta = "win-x64-beta"; }
-                else if (OperatingSystem.IsMacOS()) { stable = "osx-arm64-stable"; beta = "osx-arm64-beta"; }
-                else                                { stable = "linux-x64-stable"; beta = "linux-x64-beta"; }
+                // Pick the auto-update channel for THIS OS + process architecture, so an
+                // x86 install doesn't update itself into an x64 build (and vice versa).
+                // The app-release CI publishes win-x64 / win-x86 / linux-x64 channels.
+                string rid;
+                if (OperatingSystem.IsWindows())
+                    rid = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture ==
+                          System.Runtime.InteropServices.Architecture.X86 ? "win-x86" : "win-x64";
+                else if (OperatingSystem.IsMacOS())
+                    rid = "osx-arm64";
+                else
+                    rid = "linux-x64";
+
+                string stable = rid + "-stable", beta = rid + "-beta";
 
                 _channels = new List<string> { stable, beta };
 

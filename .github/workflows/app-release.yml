@@ -1,5 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# VesperApp desktop installer → S3 / CloudFront (Velopack) — Windows + Linux.
+# VesperApp desktop installer → S3 / CloudFront (Velopack) — win-x64 + win-x86 always;
+# linux-x64 only on manual dispatch with publish_linux=true (pending field verification).
 #
 # SECURITY MODEL (this replaces the deleted local release_pack.ps1/.cmd, which had an
 # inline, now-revoked AWS access key):
@@ -53,6 +54,10 @@ on:
         type: choice
         options: [ patch, minor, major ]
         default: patch
+      publish_linux:
+        description: Also publish the linux-x64 channel (kept off until the Linux build is field-verified)
+        type: boolean
+        default: false
 
 permissions:
   contents: write    # push the auto-increment tag; also covers reading annotations
@@ -76,6 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.ver.outputs.version }}
+      matrix: ${{ steps.targets.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -111,14 +117,28 @@ jobs:
           fi
           echo "version=$VER" >> "$GITHUB_OUTPUT"
 
+      - name: Compute release targets
+        id: targets
+        run: |
+          # win-x64 + win-x86 always. linux-x64 only on manual dispatch with
+          # publish_linux=true — the Linux build is verified manually until proven.
+          MATRIX='[
+            {"os":"windows-latest","rid":"win-x64","mainExe":"VesperApp.exe","icon":"VesperApp/Assets/bat.ico"},
+            {"os":"windows-latest","rid":"win-x86","mainExe":"VesperApp.exe","icon":"VesperApp/Assets/bat.ico"}]'
+          if [ "${{ inputs.publish_linux }}" = "true" ]; then
+            MATRIX=$(echo "$MATRIX" | jq -c '. + [{"os":"ubuntu-latest","rid":"linux-x64","mainExe":"VesperApp","icon":""}]')
+          else
+            MATRIX=$(echo "$MATRIX" | jq -c '.')
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "→ targets: $MATRIX"
+
   release:
     needs: version
     strategy:
-      fail-fast: false        # a Windows failure must not abort the Linux release
+      fail-fast: false        # one leg's failure must not abort the others
       matrix:
-        include:
-          - { os: windows-latest, rid: win-x64,   mainExe: VesperApp.exe, icon: 'VesperApp/Assets/bat.ico' }
-          - { os: ubuntu-latest,  rid: linux-x64, mainExe: VesperApp,     icon: '' }
+        include: ${{ fromJSON(needs.version.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:

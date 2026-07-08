@@ -16,7 +16,7 @@
 		<!-- Dev-build fallback only. Release builds get the real version injected by CI
 		     (-p:Version=<tag>, see .github/workflows/app-release.yml); AssemblyVersion and
 		     FileVersion are derived from Version by the SDK, so don't set them here. -->
-		<Version>1.0.28</Version>
+		<Version>1.0.29</Version>
 		<Company>A.S.D</Company>
 		<Product></Product>
 		<!-- Client-read CDN origin (self-update + firmware/plugin feeds + scenario assets).
@@ -48,6 +48,23 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="Assets\bat.ico" />
+		<!-- Arch-matching libusb at the output ROOT: Windows resolves DLLs from the app
+		     directory before PATH, so this wins over stray 32-bit libusb copies other
+		     tools put on PATH (e.g. the ST-Link server's — BadImageFormatException at
+		     startup otherwise). Lives here, not in ASDLibUSBWrapper, because the
+		     RuntimeIdentifier is only set on the app: win-x86 publishes get the x86
+		     build, everything else Windows-built (incl. dev builds, no RID) gets x64. -->
+		<!-- Condition on the TARGET rid, not the build OS: cross-publishing linux-x64
+		     from a Windows machine must not ship a Windows DLL. No-RID (dev) builds
+		     get the x64 copy; it is inert on non-Windows dev hosts. -->
+		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x64\libusb-1.0.dll" Link="libusb-1.0.dll"
+		         Condition="'$(RuntimeIdentifier)' == '' Or '$(RuntimeIdentifier)' == 'win-x64'">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x86\libusb-1.0.dll" Link="libusb-1.0.dll"
+		         Condition="'$(RuntimeIdentifier)' == 'win-x86'">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 	<ItemGroup><!--This helps with theme dll-s trimming.
 	If you will publish your application in self-contained mode with p:PublishTrimmed=true and it will use Fluent theme Default theme will be trimmed from the output and vice versa.
