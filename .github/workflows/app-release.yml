@@ -224,7 +224,14 @@ jobs:
 
       - name: Invalidate CDN feed
         if: ${{ env.CF_DIST_ID != '' }}
+        env:
+          # git-bash on the Windows runners rewrites arguments starting with "/" into
+          # C:/Program Files/Git/... filesystem paths, which CloudFront rejects with
+          # InvalidArgument. Disable MSYS path conversion for this step.
+          MSYS_NO_PATHCONV: "1"
+          MSYS2_ARG_CONV_EXCL: "*"
         run: |
           aws cloudfront create-invalidation \
             --distribution-id "$CF_DIST_ID" \
-            --paths "/releases.${{ steps.meta.outputs.channel }}.json"
+            --paths "/releases.${{ steps.meta.outputs.channel }}.json" \
+                    "/assets.${{ steps.meta.outputs.channel }}.json"
