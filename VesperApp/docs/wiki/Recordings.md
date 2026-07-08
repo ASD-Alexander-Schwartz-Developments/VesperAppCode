@@ -56,7 +56,15 @@ Everything lands in your **working directory** (default `Documents/MyVesperData`
 
 ## The live data browser
 
-The Recordings tab's browser is a **live view of the working directory**: it opens there on every start and follows changes on disk automatically — imports, decodes, or files added by other programs appear within a second, with the tree's expansion state preserved. Known sensor folders are labelled (Audio, Motion, GNSS, …); metadata sidecars are hidden, and intermediates can be hidden too ([Settings](Settings)).
+The Recordings tab's browser is a **live view of the working directory**: it opens there on every start (the full path is shown in the bar above the tree) and follows changes on disk automatically — imports, decodes, or files added by other programs appear within a second, with the tree's expansion state preserved. No manual refresh is needed or offered.
+
+The tree has four columns — **Name**, **Type**, **Size** and **Modified**. Click a column header to sort by it (click again to reverse); folders always sort before files, at every level. The Type column identifies raw recordings by their sensor (GPS, Audio, Motion, …), parsed intermediates, and decoded outputs. Known sensor folders are labelled (Audio, Motion, GNSS, …); metadata sidecars are hidden, and intermediates can be hidden too ([Settings](Settings)).
+
+Double-click behaviour:
+
+- **Folder** — expand / collapse.
+- **Configuration `.json`** — if the file is recognised as a device configuration, the app offers to open it in the [Configuration editor](Configuration-Editor) (with a confirmation, since unsaved editor changes would be lost). Other `.json` files open normally.
+- **Any other file** — open with the OS default application.
 
 Right-click a selection (multi-select works) for actions:
 
@@ -64,11 +72,11 @@ Right-click a selection (multi-select works) for actions:
 |---|---|
 | **Decode** | Raw `.bin` → parse + decode; intermediates / `DAT` folders → decode. Folders decode everything under them. |
 | **Parse only** | Strip/split raw `.bin` into intermediates without decoding |
-| **Open** | Open the file/folder with the OS default app (double-click does the same) |
-| **Show in Explorer** | Reveal the item in the system file manager |
+| **Open** | Open the file/folder with the OS default app |
+| **Open in system file explorer** | Open the folder (or the file's folder) in the OS file manager — Explorer, Finder or the Linux default |
 | **Delete…** | Delete the selection from disk (with confirmation) |
 
-Selection actions and the toolbar's file-picker buttons feed the same decoders — use whichever fits the moment.
+Right-clicking selects the row under the cursor, so the menu always acts on what you clicked. Selection actions and the toolbar's file-picker buttons feed the same decoders — use whichever fits the moment.
 
 ## Raw file format reference
 

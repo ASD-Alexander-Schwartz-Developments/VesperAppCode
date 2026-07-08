@@ -43,14 +43,66 @@ namespace VesperApp.ViewModels
 
         // Central data browser (live view of the working directory)
         public ICommand? OpenDataFolderCommand { get; }
-        public ICommand? RefreshDataCommand { get; }
         public ICommand? OpenSelectedCommand { get; }
+        public ICommand? ActivateSelectedCommand { get; }
+
+        // For cross-tab actions (open a config file in the Configuration editor).
+        private readonly MainViewViewModel? _main;
         public ICommand? DecodeSelectedCommand { get; }
         public ICommand? ParseSelectedCommand { get; }
         public ICommand? ShowInExplorerCommand { get; }
         public ICommand? DeleteSelectedCommand { get; }
 
         public ObservableCollection<RecordingDataNode> ImportedData { get; } = new();
+
+        // ───────────────────────── browser column sorting ─────────────────────────
+        // Click a column header to sort (toggle asc/desc). Folders always sort before
+        // files; the comparer is applied per tree level on every (re)scan, so live
+        // refreshes keep the chosen order.
+
+        private enum DataSortColumn { Name, Kind, Size, Modified }
+
+        private DataSortColumn _sortColumn = DataSortColumn.Name;
+        private bool _sortAscending = true;
+
+        public ICommand? SortByCommand { get; }
+
+        public string NameHeader => HeaderText("Name", DataSortColumn.Name);
+        public string TypeHeader => HeaderText("Type", DataSortColumn.Kind);
+        public string SizeHeader => HeaderText("Size", DataSortColumn.Size);
+        public string ModifiedHeader => HeaderText("Modified", DataSortColumn.Modified);
+
+        private string HeaderText(string title, DataSortColumn col) =>
+            _sortColumn == col ? title + (_sortAscending ? "  ▲" : "  ▼") : title;
+
+        private void SortBy(string column)
+        {
+            var col = Enum.Parse<DataSortColumn>(column);
+            if (col == _sortColumn) _sortAscending = !_sortAscending;
+            else { _sortColumn = col; _sortAscending = true; }
+
+            this.RaisePropertyChanged(nameof(NameHeader));
+            this.RaisePropertyChanged(nameof(TypeHeader));
+            this.RaisePropertyChanged(nameof(SizeHeader));
+            this.RaisePropertyChanged(nameof(ModifiedHeader));
+
+            LoadDataFolder(CurrentDataFolder);
+        }
+
+        private int CompareNodes(RecordingDataNode a, RecordingDataNode b)
+        {
+            if (a.IsFile != b.IsFile) return a.IsFile ? 1 : -1;   // folders first, always
+
+            int c = _sortColumn switch
+            {
+                DataSortColumn.Kind => string.Compare(a.Kind, b.Kind, StringComparison.OrdinalIgnoreCase),
+                DataSortColumn.Size => a.SizeSort.CompareTo(b.SizeSort),
+                DataSortColumn.Modified => Nullable.Compare(a.Modified, b.Modified),
+                _ => 0,
+            };
+            if (c == 0) c = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            return _sortAscending ? c : -c;
+        }
 
         private bool _hasData;
         public bool HasData
@@ -141,8 +193,13 @@ namespace VesperApp.ViewModels
         }
 
 
-        public RecordingParsingViewModel()
+        // Parameterless ctor for the XAML designer / ViewLocator fallback.
+        public RecordingParsingViewModel() : this(null) { }
+
+        public RecordingParsingViewModel(MainViewViewModel? main)
         {
+            _main = main;
+
             #region Parser Commands
             AutoImporterCommand = ReactiveCommand.CreateFromTask(RunDataImporter);
 
@@ -181,8 +238,9 @@ namespace VesperApp.ViewModels
             #endregion
 
             OpenDataFolderCommand = ReactiveCommand.CreateFromTask(BrowseDataFolder);
-            RefreshDataCommand = ReactiveCommand.Create(() => LoadDataFolder(CurrentDataFolder));
             OpenSelectedCommand = ReactiveCommand.Create(() => OpenNode(SelectedDataNode));
+            ActivateSelectedCommand = ReactiveCommand.CreateFromTask(() => ActivateNode(SelectedDataNode));
+            SortByCommand = ReactiveCommand.Create<string>(SortBy);
 
             // Selection actions (context menu) — same pipeline the toolbar pickers use,
             // just fed from the tree selection instead of a file dialog.
@@ -239,8 +297,9 @@ namespace VesperApp.ViewModels
 
         // Shared parse+decode driver used by Auto Decode (picked files) and Auto Import
         // (copied files). Runs as a job in the unified Decoding Progress panel with a real
-        // 0–100% bar; the heavy work runs off the UI thread.
-        private async Task RunAutoDecodePipeline(IReadOnlyList<string> rawPaths)
+        // 0–100% bar; the heavy work runs off the UI thread. Returns the outcome so the
+        // import path can act on success (e.g. delete-raw-after-import).
+        private async Task<DecodeOutcome> RunAutoDecodePipeline(IReadOnlyList<string> rawPaths)
         {
             LastSummary = string.Empty;
 
@@ -259,6 +318,8 @@ namespace VesperApp.ViewModels
 
             // Surface what landed locally in the central data browser.
             LoadDataFolder(rawPaths.Count > 0 ? Path.GetDirectoryName(rawPaths[0]) : CurrentDataFolder);
+
+            return outcome;
         }
 
         // ───────────────────────── data browser ─────────────────────────
@@ -369,7 +430,10 @@ namespace VesperApp.ViewModels
                 else
                 {
                     existing.Name = f.Name;
-                    existing.Detail = f.Detail;
+                    existing.Kind = f.Kind;
+                    existing.SizeText = f.SizeText;
+                    existing.SizeSort = f.SizeSort;
+                    existing.Modified = f.Modified;
                     existing.Icon = f.Icon;
                     SyncNodes(existing.Children, f.Children);
 
@@ -404,8 +468,9 @@ namespace VesperApp.ViewModels
 
         /// <summary>Build the full recursive tree of the browsed folder: every session
         /// folder and file (minus hidden sidecars / intermediates per Settings), with
-        /// known sensor folders labelled and iconed via <see cref="DataCategories"/>.</summary>
-        private static List<RecordingDataNode> BuildDataNodes(string? folder)
+        /// known sensor folders labelled and iconed via <see cref="DataCategories"/>.
+        /// Each level is sorted by the active column (folders first).</summary>
+        private List<RecordingDataNode> BuildDataNodes(string? folder)
         {
             var list = new List<RecordingDataNode>();
             if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) return list;
@@ -421,18 +486,19 @@ namespace VesperApp.ViewModels
             return list;
         }
 
-        private static void AddFolderFiles(RecordingDataNode parent, string folderPath)
+        private void AddFolderFiles(RecordingDataNode parent, string folderPath)
         {
             try
             {
+                var children = new List<RecordingDataNode>();
                 bool hideIntermediates = SettingsService.Current.Recordings.HideIntermediateFiles;
-                foreach (string f in Directory.EnumerateFiles(folderPath).OrderBy(x => x))
+                foreach (string f in Directory.EnumerateFiles(folderPath))
                 {
                     if (f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)) continue; // hide metadata sidecars
                     if (hideIntermediates && IntermediateExtensions.Contains(Path.GetExtension(f))) continue;
-                    parent.Children.Add(MakeFileNode(f));
+                    children.Add(MakeFileNode(f));
                 }
-                foreach (string d in Directory.EnumerateDirectories(folderPath).OrderBy(x => x))
+                foreach (string d in Directory.EnumerateDirectories(folderPath))
                 {
                     string dirName = Path.GetFileName(d);
                     var known = DataCategories.FirstOrDefault(c => string.Equals(c.sub, dirName, StringComparison.OrdinalIgnoreCase));
@@ -442,15 +508,20 @@ namespace VesperApp.ViewModels
                         Name = dirName,
                         Icon = known.sub != null ? known.icon : Symbol.Folder,
                         FullPath = d,
+                        Kind = known.sub != null ? known.label : "Folder",
                     };
+                    try { sub.Modified = Directory.GetLastWriteTime(d); } catch { }
                     AddFolderFiles(sub, d);
                     if (sub.Children.Count > 0)
                     {
-                        string count = sub.Children.Count + " item(s)";
-                        sub.Detail = known.sub != null ? known.label + " · " + count : count;
-                        parent.Children.Add(sub);
+                        sub.SizeSort = sub.Children.Count;
+                        sub.SizeText = sub.Children.Count + (sub.Children.Count == 1 ? " item" : " items");
+                        children.Add(sub);
                     }
                 }
+
+                children.Sort(CompareNodes);
+                foreach (RecordingDataNode c in children) parent.Children.Add(c);
             }
             catch { }
         }
@@ -458,7 +529,14 @@ namespace VesperApp.ViewModels
         private static RecordingDataNode MakeFileNode(string path)
         {
             long size = 0;
-            try { size = new FileInfo(path).Length; } catch { }
+            DateTime? modified = null;
+            try
+            {
+                var fi = new FileInfo(path);
+                size = fi.Length;
+                modified = fi.LastWriteTime;
+            }
+            catch { }
 
             return new RecordingDataNode
             {
@@ -466,8 +544,45 @@ namespace VesperApp.ViewModels
                 FullPath = path,
                 IsFile = true,
                 Icon = IconForFile(path),
-                Detail = HumanSize(size),
+                Kind = KindForFile(path),
+                SizeText = HumanSize(size),
+                SizeSort = size,
+                Modified = modified,
             };
+        }
+
+        // Sensor label per raw-recording type letter (the letter before ".bin"), matching
+        // the on-device naming — same mapping the legacy app showed in its Type column.
+        private static readonly Dictionary<char, string> RawTypeLetters = new()
+        {
+            ['G'] = "GPS", ['U'] = "Audio", ['M'] = "Motion", ['E'] = "EXG",
+            ['R'] = "Temp/RH", ['L'] = "Light", ['X'] = "Proximity",
+            ['O'] = "Log", ['S'] = "Analog", ['C'] = "Camera",
+        };
+
+        private static string KindForFile(string path)
+        {
+            string name = Path.GetFileNameWithoutExtension(path).ToUpperInvariant();
+            switch (Path.GetExtension(path).ToUpperInvariant())
+            {
+                case ".BIN":
+                    // Raw logger recording: classify by the trailing type letter (U0-U3 = KOL audio).
+                    char last = name.Length > 0 ? name[^1] : ' ';
+                    if (char.IsDigit(last) && name.Length > 1 && name[^2] == 'U') return "Audio (raw)";
+                    return RawTypeLetters.TryGetValue(last, out string? label) ? label + " (raw)" : "Raw";
+                case ".UBN": return "Audio (parsed)";
+                case ".MBN": return "Motion (parsed)";
+                case ".ABN": return "Acceleration (parsed)";
+                case ".LBN": return "Light (parsed)";
+                case ".RBN": return "Temp/RH (parsed)";
+                case ".EBN": return "EXG (parsed)";
+                case ".CBN": return "Camera (parsed)";
+                case ".WAV": return "Audio (WAV)";
+                case ".CSV": return "Data (CSV)";
+                case ".JPG": case ".JPEG": case ".PNG": return "Image";
+                case ".DAT": return "GNSS snapshot";
+                default: return Path.GetExtension(path).TrimStart('.').ToUpperInvariant();
+            }
         }
 
         private static Symbol IconForFile(string path) => Path.GetExtension(path).ToUpperInvariant() switch
@@ -495,6 +610,50 @@ namespace VesperApp.ViewModels
                 Process.Start(new ProcessStartInfo(node.FullPath) { UseShellExecute = true });
             }
             catch (Exception e) { Debug.WriteLine(e); }
+        }
+
+        /// <summary>Double-click behaviour: folders expand/collapse (handled by the tree
+        /// itself); a .json that parses as a device configuration offers to open in the
+        /// Configuration editor; anything else opens with the OS default app.</summary>
+        private async Task ActivateNode(RecordingDataNode? node)
+        {
+            if (node?.FullPath == null || !node.IsFile) return;
+
+            if (node.FullPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase) &&
+                await TryOpenConfigInEditor(node.FullPath))
+                return;
+
+            OpenNode(node);
+        }
+
+        /// <summary>If <paramref name="path"/> holds a device configuration, ask the user
+        /// and load it into the Configuration editor. Returns true when the double-click
+        /// was handled (config recognised), false to fall back to the OS default app.</summary>
+        private async Task<bool> TryOpenConfigInEditor(string path)
+        {
+            string json;
+            try { json = File.ReadAllText(path); }
+            catch { return false; }
+
+            ConfigurationJSON? config = ConfigurationJSON.TryParse(json);
+            if (config == null) return false;
+
+            var confirm = MessageBoxManager.GetMessageBoxStandard(new MessageBoxStandardParams
+            {
+                ButtonDefinitions = ButtonEnum.YesNo,
+                ContentTitle = "Open in Configuration editor",
+                ContentHeader = $"\"{Path.GetFileName(path)}\" is a device configuration ({config.Name}).",
+                ContentMessage = "Open it in the Configuration editor? Unsaved changes in the editor will be lost.",
+                Icon = Icon.Question,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                WindowIcon = App.MainWindow?.Icon,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            });
+
+            if (await confirm.ShowWindowDialogAsync(App.MainWindow) == ButtonResult.Yes && _main != null)
+                await _main.OpenConfigurationInEditor(json);
+
+            return true;   // recognised as a config — never fall through to the OS app
         }
 
         // ─────────────────── selection actions (context menu) ───────────────────
@@ -1890,6 +2049,12 @@ namespace VesperApp.ViewModels
 
             if (destinationDirectoryInfo != null && sourceDirectoryInfo != null && App.MainWindow != null)
             {
+                // Raw files already in the target before this import: exempt from
+                // delete-raw-after-import — only files THIS session copies may be deleted.
+                var preExistingRaws = new HashSet<string>(
+                    RecordingPipeline.FindRawBinFiles(destinationDirectoryInfo.FullName),
+                    StringComparer.OrdinalIgnoreCase);
+
                 IProgressStatus progressStatus = new ProgressStatus();
                 progressStatus.ProgressUpdated += HandleProgessUpdatedEvent;
                 progressStatus.Finished += HandleFinishedEvent;
@@ -1922,9 +2087,23 @@ namespace VesperApp.ViewModels
                     // copied in. Either way, surface the imported session in the browser.
                     var importedRaws = RecordingPipeline.FindRawBinFiles(destinationDirectoryInfo!.FullName);
                     if (importedRaws.Count > 0 && SettingsService.Current.Recordings.AutoDecodeOnImport)
-                        await RunAutoDecodePipeline(importedRaws);
+                    {
+                        DecodeOutcome outcome = await RunAutoDecodePipeline(importedRaws);
+
+                        // Settings → "Delete raw .bin files after a successful import":
+                        // reclaim space only when EVERY imported raw decoded cleanly, and
+                        // only for files this import copied in — never pre-existing raws
+                        // in the target, never anything on the source device drive.
+                        if (outcome.Succeeded && SettingsService.Current.Recordings.DeleteRawAfterImport)
+                        {
+                            DeleteImportedRaws(importedRaws.Where(r => !preExistingRaws.Contains(r)).ToList());
+                            LoadDataFolder(CurrentDataFolder);   // reflect the removals right away
+                        }
+                    }
                     else
+                    {
                         LoadDataFolder(destinationDirectoryInfo.FullName);
+                    }
 
                 }, DispatcherPriority.Background);
             }
@@ -1990,6 +2169,27 @@ namespace VesperApp.ViewModels
         /// 256-file chunk folders that are flattened away on import.</summary>
         private static bool IsChunkFolder(string name) =>
             name.Length > 0 && name.All(char.IsAsciiDigit);
+
+        /// <summary>Delete raw .bin files this import session copied in, after they all
+        /// decoded successfully (Settings → "Delete raw .bin files after a successful
+        /// import"). Per-file failures are non-fatal; the count lands in the summary.</summary>
+        private void DeleteImportedRaws(IReadOnlyList<string> rawPaths)
+        {
+            int deleted = 0;
+            foreach (string p in rawPaths)
+            {
+                try
+                {
+                    File.Delete(p);
+                    deleted++;
+                }
+                catch (Exception e) { Debug.WriteLine("Raw delete after import failed: " + e.Message); }
+            }
+
+            if (deleted > 0)
+                LastSummary = (LastSummary.Length > 0 ? LastSummary + " " : "")
+                              + $"Deleted {deleted} imported raw file{(deleted == 1 ? "" : "s")} (per Settings).";
+        }
 
         private async Task<bool> CopyTo(DirectoryInfo source, DirectoryInfo destination, IProgressStatus progressStatus)
         {

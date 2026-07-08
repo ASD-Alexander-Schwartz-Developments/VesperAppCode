@@ -15,6 +15,20 @@
 		<ui:PathIconSource x:Key="BioWave" Data="M6.2148 31.3867h10.4062c1.0547 0 1.6875-.4687 1.8984-1.4062l3.5157-16.1485 6.164 37.0078c.2813 1.6875 2.8829 1.6641 3.211 0l5.9766-28.0078 1.3827 6.9609c.211 1.0782.8204 1.5938 1.9219 1.5938h9.0938c.9374 0 1.6876-.7265 1.6876-1.6406 0-.9375-.7267-1.6641-1.6876-1.6641h-8.2969l-2.6953-11.9296c-.3516-1.6173-2.7657-1.6173-3.1641.0703l-5.8828 26.2734-6.1406-37.3359c-.2578-1.6407-2.6719-1.6875-3.0469 0l-4.9687 22.9218h-9.375c-.9376 0-1.6875.75-1.6875 1.6641s.7499 1.6406 1.6875 1.6406 Z" />
 	</UserControl.Resources>
 
+	<UserControl.Styles>
+		<!-- Flat, clickable column-header buttons for the data browser -->
+		<Style Selector="Button.colSort">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="CornerRadius" Value="0"/>
+			<Setter Property="Padding" Value="6,7"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}"/>
+			<Setter Property="HorizontalContentAlignment" Value="Left"/>
+		</Style>
+	</UserControl.Styles>
+
 	<HeaderedContentControl Header="Recording Data Extraction" IsVisible="True" UseLayoutRounding="True">
 	<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,*" ShowGridLines="False">
 		<ui:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
@@ -75,49 +89,91 @@
 					</StackPanel>
 				</Border>
 
-				<!-- Imported-data browser -->
-				<Border Classes="card" Padding="0" IsVisible="{Binding ShowDataBrowser}">
+				<!-- Data browser: live view of the working directory -->
+				<Border Classes="card" Padding="0" ClipToBounds="True" IsVisible="{Binding ShowDataBrowser}">
 					<DockPanel LastChildFill="True">
-						<Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="14,12,14,8">
-							<StackPanel Spacing="2">
-								<TextBlock Classes="sectionHeader" Text="Recordings — live view"/>
-								<TextBlock Classes="caption" TextTrimming="CharacterEllipsis" Text="{Binding CurrentDataFolder}"/>
-								<TextBlock FontWeight="SemiBold" Margin="0,2,0,0"
+						<!-- Slim path header, visually separated from the content below -->
+						<Border DockPanel.Dock="Top"
+								Background="{DynamicResource AppSurfaceAltBrush}"
+								BorderBrush="{DynamicResource AppStrokeBrush}"
+								BorderThickness="0,0,0,1" Padding="14,7">
+							<StackPanel Orientation="Horizontal" Spacing="12">
+								<TextBlock Classes="caption" TextTrimming="CharacterEllipsis"
+										   VerticalAlignment="Center" Text="{Binding CurrentDataFolder}"/>
+								<TextBlock FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"
 										   Foreground="{DynamicResource SuccessBrush}"
 										   IsVisible="{Binding LastSummary, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
 										   Text="{Binding LastSummary}"/>
 							</StackPanel>
-							<Button Grid.Column="1" Classes="toolbar" Margin="0,0,6,0" VerticalAlignment="Top"
-									Command="{Binding RefreshDataCommand}" Content="Refresh"/>
-							<Button Grid.Column="2" Classes="toolbar" VerticalAlignment="Top"
-									Command="{Binding OpenSelectedCommand}" Content="Open"/>
-						</Grid>
+						</Border>
 
-						<TreeView ItemsSource="{Binding ImportedData}"
+						<!-- Sortable column headers (Type / Size / Modified are right-docked with
+						     fixed widths so they align with the item rows at any tree depth). -->
+						<Border DockPanel.Dock="Top" Background="{DynamicResource HeaderBackgroundBrush}"
+								BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="0,0,0,1">
+							<DockPanel LastChildFill="True" Margin="6,0,24,0">
+								<Button DockPanel.Dock="Right" Width="130" Classes="colSort"
+										Command="{Binding SortByCommand}" CommandParameter="Modified"
+										Content="{Binding ModifiedHeader}"/>
+								<Button DockPanel.Dock="Right" Width="90" Classes="colSort"
+										Command="{Binding SortByCommand}" CommandParameter="Size"
+										Content="{Binding SizeHeader}"/>
+								<Button DockPanel.Dock="Right" Width="150" Classes="colSort"
+										Command="{Binding SortByCommand}" CommandParameter="Kind"
+										Content="{Binding TypeHeader}"/>
+								<Button Classes="colSort" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+										Command="{Binding SortByCommand}" CommandParameter="Name"
+										Content="{Binding NameHeader}" Margin="18,0,0,0"/>
+							</DockPanel>
+						</Border>
+
+						<TreeView x:Name="dataTree"
+								  ItemsSource="{Binding ImportedData}"
 								  SelectedItem="{Binding SelectedDataNode}"
 								  SelectionMode="Multiple"
 								  SelectionChanged="OnDataSelectionChanged"
 								  DoubleTapped="OnDataDoubleTapped"
-								  Margin="6,0,6,6">
-							<TreeView.ContextMenu>
-								<ContextMenu>
+								  Background="Transparent"
+								  Margin="6,2,6,6">
+							<TreeView.Styles>
+								<!-- Stretch each row's header so the right-docked Type/Size/Modified
+								     columns align across all rows regardless of tree depth. -->
+								<Style Selector="TreeViewItem /template/ ContentPresenter#PART_HeaderPresenter">
+									<Setter Property="HorizontalAlignment" Value="Stretch"/>
+									<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+								</Style>
+								<!-- Persist expansion on the node so it survives live refreshes and
+								     can be toggled programmatically. -->
+								<Style Selector="TreeViewItem">
+									<Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+								</Style>
+							</TreeView.Styles>
+							<TreeView.ContextFlyout>
+								<MenuFlyout>
 									<MenuItem Header="Decode" Command="{Binding DecodeSelectedCommand}"
 											  ToolTip.Tip="Raw .bin → parse + decode; intermediates / DAT folders → decode"/>
 									<MenuItem Header="Parse only (raw → intermediates)" Command="{Binding ParseSelectedCommand}"/>
 									<Separator/>
 									<MenuItem Header="Open" Command="{Binding OpenSelectedCommand}"/>
-									<MenuItem Header="Show in Explorer" Command="{Binding ShowInExplorerCommand}"/>
+									<MenuItem Header="Open in system file explorer" Command="{Binding ShowInExplorerCommand}"/>
 									<Separator/>
 									<MenuItem Header="Delete…" Command="{Binding DeleteSelectedCommand}"/>
-								</ContextMenu>
-							</TreeView.ContextMenu>
+								</MenuFlyout>
+							</TreeView.ContextFlyout>
 							<TreeView.ItemTemplate>
 								<TreeDataTemplate ItemsSource="{Binding Children}">
-									<StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
-										<ui:SymbolIcon Symbol="{Binding Icon}" VerticalAlignment="Center"/>
-										<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-										<TextBlock Text="{Binding Detail}" Classes="caption" VerticalAlignment="Center"/>
-									</StackPanel>
+									<DockPanel LastChildFill="True" Margin="0,2">
+										<TextBlock DockPanel.Dock="Right" Width="130" Text="{Binding ModifiedText}"
+												   Classes="caption" VerticalAlignment="Center"/>
+										<TextBlock DockPanel.Dock="Right" Width="82" Margin="0,0,8,0" Text="{Binding SizeText}"
+												   Classes="caption" TextAlignment="Right" VerticalAlignment="Center"/>
+										<TextBlock DockPanel.Dock="Right" Width="150" Text="{Binding Kind}"
+												   Classes="caption" VerticalAlignment="Center"/>
+										<StackPanel Orientation="Horizontal" Spacing="8">
+											<ui:SymbolIcon Symbol="{Binding Icon}" VerticalAlignment="Center"/>
+											<TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+										</StackPanel>
+									</DockPanel>
 								</TreeDataTemplate>
 							</TreeView.ItemTemplate>
 						</TreeView>

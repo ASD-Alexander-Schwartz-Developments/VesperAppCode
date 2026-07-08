@@ -8,14 +8,13 @@ The **Settings** tab holds this application (VesperApp) preferences. They are st
 
 ## Workspace
 
-- **Working directory** — where imported recordings and decoded output live. Default: `Documents/MyVesperData`. Use **Browse…** to relocate it (existing data is not moved automatically).
-- **Open the working directory on startup** — when enabled, the Recordings data browser opens your working directory automatically each session.
+- **Working directory** — where imported recordings and decoded output live. Default: `Documents/MyVesperData`. Use **Browse…** to relocate it (existing data is not moved automatically). The Recordings data browser is always rooted here on startup and follows changes on disk live — see [Recordings](Recordings).
 
 ## Recordings
 
 - **Auto-decode after import** — chain parsing and decoding onto every import ([Recordings](Recordings)).
 - **Hide intermediate files** — hides `.UBN` / `.MBN` and other intermediates in the data browser so you only see raw input and final output.
-- **Delete raw .bin files after a successful import** — reclaims disk space once recordings are safely parsed. Only enable this if you don't need to re-parse originals.
+- **Delete raw .bin files after a successful import** — reclaims disk space once recordings are safely parsed. Deletion is deliberately conservative: it only happens when **every** raw file of the import decoded without errors, it only touches the copies that this import brought into the working directory (never files already there, never the device drive), and it requires *Auto-decode after import* to be on. Only enable this if you don't need to re-parse originals.
 
 ## Configuration file
 

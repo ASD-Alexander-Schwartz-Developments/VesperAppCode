@@ -163,7 +163,7 @@ namespace VesperApp.ViewModels
 
             Categories = new List<CategoryBase>();
 
-            var recordingsViewModel = new RecordingParsingViewModel();
+            var recordingsViewModel = new RecordingParsingViewModel(this);
             Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), DataContext = recordingsViewModel, Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
             Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), DataContext = new ScheduleEditorViewModel(), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
             Categories.Add(new Category { Name = "Device Tests", Page = typeof(DeviceTests), DataContext = new DeviceTestsViewModel(this), Icon = Symbol.Repair, ToolTip = "Per-sensor test validations (microphones, GNSS/RF, …)" });
@@ -647,6 +647,19 @@ namespace VesperApp.ViewModels
         {
             get => _currentPage;
             set => this.RaiseAndSetIfChanged(ref _currentPage, value);
+        }
+
+        /// <summary>Load an already-validated configuration JSON into the Configuration
+        /// editor and navigate to that tab. Used by the Recordings browser when the user
+        /// double-clicks a recognised config file.</summary>
+        public async Task OpenConfigurationInEditor(string json)
+        {
+            Category? cat = Categories.OfType<Category>()
+                .FirstOrDefault(c => string.Equals(c.Name, "Configuration", StringComparison.OrdinalIgnoreCase));
+            if (cat?.DataContext is not ScheduleEditorViewModel editor) return;
+
+            if (await editor.LoadConfigurationFromJsonAsync(json))
+                SelectedCategory = cat;
         }
 
         private void SetCurrentPage()

@@ -1,6 +1,6 @@
 # Configuration Editor
 
-The **Configuration** tab edits the JSON configuration that tells a device *what to record and when*. You can load a configuration from a file, adjust it, and save it back.
+The **Configuration** tab edits the JSON configuration that tells a device *what to record and when*. You can load a configuration from a file, adjust it, and save it back. Configuration files can also be opened straight from the [Recordings](Recordings) data browser — double-click a `.json` that the app recognises as a device configuration (e.g. the config imported alongside a device's recordings) and confirm.
 
 ![The Configuration tab](images/tab-configuration.png)
 

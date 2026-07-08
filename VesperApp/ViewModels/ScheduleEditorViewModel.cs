@@ -367,106 +367,7 @@ namespace VesperApp.ViewModels
                                 exception = ex.Message;
                             }
 
-                            var options = new JsonSerializerOptions();
-                            options.WriteIndented = false;
-                            options.Converters.Add(new ScheduleTypesEnumConverter());
-                            options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
-                            options.Converters.Add(new VesperDateTimeConverter());
-                            options.Converters.Add(new VesperPowerOnConverter());
-                            options.Converters.Add(new VesperDateTimeAlarmConverter());
-                            ConfigurationJSON? config = null;
-                            try
-                            {
-                                config = JsonSerializer.Deserialize<ConfigurationJSON>(jsonString, options);
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine(ex);
-                                exception = ex.Message;
-                            }
-                            finally
-                            { }
-
-                            if (config != null)
-                            {
-                                string cn = config.Name.ToLower();
-
-                                if (cn == DeviceTypes.Nanotag.ToString().ToLower())                   // it's a nanotag configuration
-                                {
-                                    this.SelectedDeviceType = DeviceTypes.Nanotag;
-                                }
-                                else if (cn == DeviceTypes.Vesper.ToString().ToLower())
-                                {
-                                    this.SelectedDeviceType = DeviceTypes.Vesper;
-                                }
-                                else if (cn == DeviceTypes.Pipistrelle.ToString().ToLower())
-                                {
-                                    this.SelectedDeviceType = DeviceTypes.Pipistrelle;
-                                }
-                                else if (cn == DeviceTypes.Kol.ToString().ToLower())
-                                {
-                                    this.SelectedDeviceType = DeviceTypes.Kol;
-                                }
-                                else
-                                {
-                                    this.SelectedDeviceType = null;
-                                }
-
-
-                                if (this.SelectedDeviceType != null && DriversViewModel != null)
-                                {
-                                    configurationJSONInstance = config;
-
-                                    //DriversViewModel.DeviceDriversCollection.Clear();
-                                    DriversViewModel.ActiveDeviceDriversCollection.Clear();
-
-                                    foreach (ConfigurationDeviceDriver drv in config.DeviceDrivers)
-                                    {
-                                        int index = DriversViewModel.DeviceDriversCollection.IndexOf(drv);
-
-                                        if (index >= 0 && index < DriversViewModel.DeviceDriversCollection.Count)
-                                        {
-                                            DriversViewModel.DeviceDriversCollection[index].Load(drv);
-                                            DriversViewModel.DeviceDriversCollection[index].IsChecked = true;
-                                        }
-                                    }
-                                }
-
-                                ScheduleViewModel.ScheduleEventsList.Clear();
-                                ScheduleViewModel.SelectedScheduleType = configurationJSONInstance.ScheduleType;
-                                if (configurationJSONInstance.Schedule.Count > 0)
-                                {
-                                    foreach (ConfigScheduleJSONItem jSONItem in configurationJSONInstance.Schedule)
-                                    {
-                                        ScheduleViewModel.ScheduleEventsList.Add(jSONItem);
-                                    }
-                                }
-
-                                await ShowGeneralSettings(config);
-                            }
-                            else
-                            {
-                                Dispatcher.UIThread.Post(() =>
-                                {
-                                    MessageBoxStandardParams parm = new()
-                                    {
-                                        ContentTitle = "Load Configuration Error",
-                                        Icon = Icon.Error,
-                                        EnterDefaultButton = ClickEnum.Ok,
-                                        ButtonDefinitions = ButtonEnum.Ok,
-                                        ShowInCenter = true,
-                                        SizeToContent = SizeToContent.WidthAndHeight,
-                                        ContentMessage = exception
-                                    };
-
-                                    var msgbox = MessageBoxManager.GetMessageBoxStandard(parm);
-                                    if (msgbox != null)
-                                    {
-                                        Task<ButtonResult> dialogm = msgbox.ShowAsync();
-                                    }
-
-                                }, DispatcherPriority.Background);
-                            }
+                            await LoadConfigurationFromJsonAsync(jsonString);
                         }
                     }
                 }
@@ -479,6 +380,113 @@ namespace VesperApp.ViewModels
             ok = true;
 
             return ok;
+        }
+
+        /// <summary>Parse raw configuration JSON and apply it to the editor. Public so other
+        /// views can open config files here (e.g. double-click in the Recordings browser).
+        /// Shows an error dialog and returns false when the JSON is not a configuration.</summary>
+        public async Task<bool> LoadConfigurationFromJsonAsync(string jsonString)
+        {
+            var options = new JsonSerializerOptions();
+            options.WriteIndented = false;
+            options.Converters.Add(new ScheduleTypesEnumConverter());
+            options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+            options.Converters.Add(new VesperDateTimeConverter());
+            options.Converters.Add(new VesperPowerOnConverter());
+            options.Converters.Add(new VesperDateTimeAlarmConverter());
+            ConfigurationJSON? config = null;
+            string exception = string.Empty;
+            try
+            {
+                config = JsonSerializer.Deserialize<ConfigurationJSON>(jsonString, options);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+                exception = ex.Message;
+            }
+
+            if (config != null)
+            {
+                string cn = config.Name.ToLower();
+
+                if (cn == DeviceTypes.Nanotag.ToString().ToLower())                   // it's a nanotag configuration
+                {
+                    this.SelectedDeviceType = DeviceTypes.Nanotag;
+                }
+                else if (cn == DeviceTypes.Vesper.ToString().ToLower())
+                {
+                    this.SelectedDeviceType = DeviceTypes.Vesper;
+                }
+                else if (cn == DeviceTypes.Pipistrelle.ToString().ToLower())
+                {
+                    this.SelectedDeviceType = DeviceTypes.Pipistrelle;
+                }
+                else if (cn == DeviceTypes.Kol.ToString().ToLower())
+                {
+                    this.SelectedDeviceType = DeviceTypes.Kol;
+                }
+                else
+                {
+                    this.SelectedDeviceType = null;
+                }
+
+
+                if (this.SelectedDeviceType != null && DriversViewModel != null)
+                {
+                    configurationJSONInstance = config;
+
+                    //DriversViewModel.DeviceDriversCollection.Clear();
+                    DriversViewModel.ActiveDeviceDriversCollection.Clear();
+
+                    foreach (ConfigurationDeviceDriver drv in config.DeviceDrivers)
+                    {
+                        int index = DriversViewModel.DeviceDriversCollection.IndexOf(drv);
+
+                        if (index >= 0 && index < DriversViewModel.DeviceDriversCollection.Count)
+                        {
+                            DriversViewModel.DeviceDriversCollection[index].Load(drv);
+                            DriversViewModel.DeviceDriversCollection[index].IsChecked = true;
+                        }
+                    }
+                }
+
+                ScheduleViewModel.ScheduleEventsList.Clear();
+                ScheduleViewModel.SelectedScheduleType = configurationJSONInstance.ScheduleType;
+                if (configurationJSONInstance.Schedule.Count > 0)
+                {
+                    foreach (ConfigScheduleJSONItem jSONItem in configurationJSONInstance.Schedule)
+                    {
+                        ScheduleViewModel.ScheduleEventsList.Add(jSONItem);
+                    }
+                }
+
+                await ShowGeneralSettings(config);
+                return true;
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                MessageBoxStandardParams parm = new()
+                {
+                    ContentTitle = "Load Configuration Error",
+                    Icon = Icon.Error,
+                    EnterDefaultButton = ClickEnum.Ok,
+                    ButtonDefinitions = ButtonEnum.Ok,
+                    ShowInCenter = true,
+                    SizeToContent = SizeToContent.WidthAndHeight,
+                    ContentMessage = exception
+                };
+
+                var msgbox = MessageBoxManager.GetMessageBoxStandard(parm);
+                if (msgbox != null)
+                {
+                    Task<ButtonResult> dialogm = msgbox.ShowAsync();
+                }
+
+            }, DispatcherPriority.Background);
+
+            return false;
         }
 
 
