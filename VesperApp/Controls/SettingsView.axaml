@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="640"
+             x:Class="VesperApp.Controls.SettingsView">
+
+    <Design.DataContext>
+        <vm:SettingsViewModel/>
+    </Design.DataContext>
+
+    <Border Classes="page">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
+
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="pageTitle" Text="Settings"/>
+                    <TextBlock Classes="caption"
+                               Text="Preferences are stored locally in config.json and applied on the next launch."/>
+                </StackPanel>
+
+                <!-- Workspace -->
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="sectionHeader" Text="Workspace"/>
+                        <TextBlock Classes="caption"
+                                   Text="The working directory is the Recordings tab's live home view: it opens there on every start and the browser follows changes on disk automatically."/>
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBox Grid.Column="0" Text="{Binding WorkingDirectory}"
+                                     Watermark="Working directory…" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="Browse…"
+                                    Command="{Binding BrowseWorkingDirectoryCommand}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Recordings -->
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="sectionHeader" Text="Recordings"/>
+                        <CheckBox Content="Auto-decode after import"
+                                  IsChecked="{Binding AutoDecodeOnImport}"/>
+                        <CheckBox Content="Hide intermediate files (.UBN / .MBN …) in the data browser"
+                                  IsChecked="{Binding HideIntermediateFiles}"/>
+                        <CheckBox Content="Delete raw .bin files after a successful import"
+                                  IsChecked="{Binding DeleteRawAfterImport}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Configuration file -->
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="sectionHeader" Text="Configuration file"/>
+                        <TextBlock Classes="caption" Text="{Binding ConfigPath}" TextWrapping="Wrap"/>
+                        <Button Content="Open config folder"
+                                Command="{Binding OpenConfigFolderCommand}"
+                                HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Save -->
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button Classes="accent" Content="Save" Command="{Binding SaveCommand}"/>
+                    <TextBlock Classes="caption" Text="{Binding Status}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

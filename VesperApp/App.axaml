@@ -2,7 +2,8 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:local="using:VesperApp"
 			 xmlns:sty="using:FluentAvalonia.Styling"
-			 x:Class="VesperApp.App">
+			 x:Class="VesperApp.App"
+			 RequestedThemeVariant="Dark">
 	<Application.DataTemplates>
 		<local:ViewLocator/>
 	</Application.DataTemplates>
@@ -11,63 +12,161 @@
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceInclude Source="avares://VesperApp/Assets/ResourceDictionary.axaml"/>
-				<!-- Shared resources and common styles -->
+				<!-- Shared button brushes -->
 				<ResourceInclude Source="avares://VesperApp/Assets/SharedResources.axaml"/>
+				<!-- Theme-aware design tokens (colours, spacing, typography) -->
+				<ResourceInclude Source="avares://VesperApp/Assets/Theme.axaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Application.Resources>
-	<!-- Keep application-level styles and include shared resources -->
+
 	<Application.Styles>
 		<sty:FluentAvaloniaTheme />
 		<StyleInclude Source="avares://VesperApp/Assets/FluentUiIcons_Filled.xaml"/>
 
+		<!-- ════════════════════════ Typography ════════════════════════ -->
+		<Style Selector="TextBlock.pageTitle">
+			<Setter Property="FontSize" Value="22"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Margin" Value="0,0,0,2"/>
+		</Style>
+		<Style Selector="TextBlock.sectionHeader">
+			<Setter Property="FontSize" Value="16"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Margin" Value="0,0,0,4"/>
+		</Style>
+		<Style Selector="TextBlock.caption">
+			<Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+			<Setter Property="FontSize" Value="12.5"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+		</Style>
+		<Style Selector="TextBlock.subtle">
+			<Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+		</Style>
+		<Style Selector="TextBlock.mono">
+			<Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}"/>
+		</Style>
+		<!-- Reusable column-header label for hand-built list grids -->
+		<Style Selector="TextBlock.colHeader">
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
 
+		<!-- ════════════════════════ Surfaces ════════════════════════ -->
+		<!-- Card: elevated rounded surface with a soft shadow. -->
+		<Style Selector="Border.card">
+			<Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AppStrokeBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="{StaticResource RadiusM}"/>
+			<Setter Property="Padding" Value="16"/>
+			<Setter Property="BoxShadow" Value="0 1 3 0 #22000000"/>
+		</Style>
+		<!-- Surface: flat rounded panel, no shadow (for nested groupings). -->
+		<Style Selector="Border.surface">
+			<Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AppStrokeBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="{StaticResource RadiusM}"/>
+		</Style>
+		<Style Selector="Border.page">
+			<Setter Property="Padding" Value="16"/>
+		</Style>
+		<!-- Bottom status strip -->
+		<Style Selector="Border.statusBar">
+			<Setter Property="Background" Value="{DynamicResource AppSurfaceAltBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AppStrokeBrush}"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="CornerRadius" Value="{StaticResource RadiusM}"/>
+			<Setter Property="Padding" Value="12,6"/>
+		</Style>
 
-		<!-- Text styles
-		<Style x:Key="HeaderText" Selector="TextBlock">
-		<Setter Property="FontWeight" Value="Bold"/>
-		<Setter Property="VerticalAlignment" Value="Center"/>
-		<Setter Property="Margin" Value="12,0,12,0"/>
-		</Style>-->
+		<!-- ════════════════════════ Status pill ════════════════════════ -->
+		<Style Selector="Border.statusPill">
+			<Setter Property="CornerRadius" Value="{StaticResource RadiusPill}"/>
+			<Setter Property="Padding" Value="10,4"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Background" Value="{DynamicResource AppSurfaceAltBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AppStrokeBrush}"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+		<Style Selector="Border.statusPill.success">
+			<Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/>
+		</Style>
+		<Style Selector="Border.statusPill.danger">
+			<Setter Property="Background" Value="{DynamicResource DangerSoftBrush}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/>
+		</Style>
+		<Style Selector="Ellipse.statusDot">
+			<Setter Property="Width" Value="9"/>
+			<Setter Property="Height" Value="9"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
 
-		<!-- Shared styles (ListBox/ListView full-row selection, header helpers) -->
+		<!-- ════════════════════════ Buttons ════════════════════════ -->
+		<!-- Square icon button (toolbars) -->
+		<Style Selector="Button.icon">
+			<Setter Property="CornerRadius" Value="{StaticResource RadiusS}"/>
+			<Setter Property="Padding" Value="8"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+		<!-- Flat toolbar button (icon + text) -->
+		<Style Selector="Button.toolbar">
+			<Setter Property="CornerRadius" Value="{StaticResource RadiusS}"/>
+			<Setter Property="Padding" Value="12,8"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+
+		<!-- ════════════════════════ Progress ════════════════════════ -->
+		<Style Selector="ProgressBar.slim">
+			<Setter Property="Height" Value="6"/>
+			<Setter Property="CornerRadius" Value="3"/>
+			<Setter Property="MinHeight" Value="6"/>
+		</Style>
+
+		<!-- ════════════════════════ Expander ════════════════════════ -->
+		<Style Selector="Expander.section /template/ ToggleButton#ExpanderHeader TextBlock">
+			<Setter Property="FontWeight" Value="SemiBold"/>
+		</Style>
+
+		<!-- ════════════════════════ Lists ════════════════════════ -->
 		<Style Selector="ListBoxItem">
 			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
 			<Setter Property="Background" Value="Transparent"/>
 			<Setter Property="MinHeight" Value="{StaticResource ListRowMinHeight}"/>
 			<Setter Property="VerticalContentAlignment" Value="Center"/>
+			<Setter Property="CornerRadius" Value="{StaticResource RadiusS}"/>
 			<Style Selector="^:pointerover">
-				<Setter Property="Background" Value="{StaticResource ListItemPointerOverBrush}"/>
+				<Setter Property="Background" Value="{DynamicResource ListItemPointerOverBrush}"/>
 			</Style>
 			<Style Selector="^:selected">
-				<Setter Property="Background" Value="{StaticResource ListItemSelectedBrush}"/>
-				<Setter Property="Foreground" Value="{StaticResource ListItemSelectedForegroundBrush}"/>
+				<Setter Property="Background" Value="{DynamicResource ListItemSelectedBrush}"/>
+				<Setter Property="Foreground" Value="{DynamicResource ListItemSelectedForegroundBrush}"/>
 			</Style>
 		</Style>
 
-		<!-- Small utility styles -->
-		<Style Selector="StackPanel.collapseAnimation">
-			<Setter Property="Transitions">
-				<Transitions>
-					<DoubleTransition Property="Opacity" Duration="0:0:0.2" />
-				</Transitions>
-			</Setter>
+		<!-- ════════════════════════ DataGrid ════════════════════════ -->
+		<Style Selector="DataGrid">
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="GridLinesVisibility" Value="Horizontal"/>
+			<Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource ColumnSeparatorBrush}"/>
+			<Setter Property="VerticalGridLinesBrush" Value="{DynamicResource ColumnSeparatorBrush}"/>
 		</Style>
-
-		<Style Selector="Border.Clock">
-			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorLight1}"/>
+		<Style Selector="DataGridColumnHeader">
+			<Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}"/>
+			<Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Padding" Value="12,8"/>
+			<Setter Property="MinHeight" Value="{StaticResource HeaderRowHeight}"/>
 		</Style>
-		<Style Selector="Border.devBorder">
-			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorDark1}"/>
+		<Style Selector="DataGridRow">
+			<Setter Property="MinHeight" Value="{StaticResource ListRowMinHeight}"/>
 		</Style>
-		<Style Selector="Border.tabBorder">
-			<Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorDark2}"/>
-		</Style>
-
-
-		<!-- Any additional app-specific styles can remain here -->
-		<Style Selector="Button">
-			<!-- App-wide button tweaks can live here -->
+		<Style Selector="DataGridCell">
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
 		</Style>
 	</Application.Styles>
 

@@ -23,33 +23,18 @@ namespace VesperApp.ViewModels
 
         public DeviceDriverPropertyGridViewModel()
         {
-            //var view = new DataGridCollectionView(new List<object>());
-            //this.PropertiesView = view;
-
-            //this._propertyIndex = new Dictionary<object, List<DriverPropertyViewModel>>();
-            
-            /*_devicedriver = new ConfigACLYSDriver();
-            Type to = _devicedriver.GetType();
-            */
-            List<DriverPropertyViewModel> properties = new List<DriverPropertyViewModel>();//to.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                //.Select(x => new DriverPropertyViewModel(_devicedriver, x))
-                //.OrderBy(x => x, PropertyComparer.Instance)
-                //.ThenBy(x => x.Name)
-                //.ToList();
+            List<DriverPropertyViewModel> properties = new List<DriverPropertyViewModel>();
 
             _propertyIndex = properties.GroupBy(x => x.Key).ToDictionary(x => x.Key, x => x.ToList());
-
 
             PropertiesCollectionView = new ObservableCollection<DriverPropertyViewModel>(properties);
 
             var view = new DataGridCollectionView(PropertiesCollectionView);
             view.GroupDescriptions.Add(new DataGridPathGroupDescription(nameof(DriverPropertyViewModel.Group)));
-            //view.Filter = FilterProperty;
-            PropertiesView = view;          
+            PropertiesView = view;
 
             _devicedriver = null;
             _selectedProperty = null;
-           // PropertiesView = null;
         }
 
 
@@ -79,7 +64,6 @@ namespace VesperApp.ViewModels
                     .ToList();
 
                 IDictionary<object, List<DriverPropertyViewModel>> _propertyI = properties.GroupBy(x => x.Key).ToDictionary(x => x.Key, x => x.ToList());
-                //_propertyIndex = properties.GroupBy(x => x.Key).ToDictionary(x => x.Key, x => x.ToList());
 
                 _propertyIndex.Clear();
                 foreach (var propI in _propertyI)
@@ -100,9 +84,7 @@ namespace VesperApp.ViewModels
             return await Task.FromResult(true);
         }
 
-        //public TreePageViewModel TreePage { get; }
-
-        public DataGridCollectionView? PropertiesView 
+        public DataGridCollectionView? PropertiesView
         {
             get => _propView;
             protected set => this.RaiseAndSetIfChanged(ref _propView, value); 
@@ -119,66 +101,12 @@ namespace VesperApp.ViewModels
 
         public void Dispose()
         {
-            
             if (_devicedriver is INotifyPropertyChanged inpc)
             {
                 inpc.PropertyChanged -= ControlPropertyChanged;
             }
-            /*
-            if (_control is AvaloniaObject ao)
-            {
-                ao.PropertyChanged -= ControlPropertyChanged;
-            }*/
-        }
-        /*
-        private IEnumerable<PropertyViewModel> GetAvaloniaProperties(object o)
-        {
-            if (o is AvaloniaObject ao)
-            {
-                return AvaloniaPropertyRegistry.Instance.GetRegistered(ao)
-                    .Union(AvaloniaPropertyRegistry.Instance.GetRegisteredAttached(ao.GetType()))
-                    .Select(x => new AvaloniaPropertyViewModel(ao, x));
-            }
-            else
-            {
-                return Enumerable.Empty<AvaloniaPropertyViewModel>();
-            }
         }
 
-        private IEnumerable<PropertyViewModel> GetClrProperties(object o)
-        {
-            foreach (var p in GetClrProperties(o, o.GetType()))
-            {
-                yield return p;
-            }
-
-            foreach (var i in o.GetType().GetInterfaces())
-            {
-                foreach (var p in GetClrProperties(o, i))
-                {
-                    yield return p;
-                }
-            }
-        }
-
-        private IEnumerable<PropertyViewModel> GetClrProperties(object o, Type t)
-        {
-            return t.GetProperties()
-                .Where(x => x.GetIndexParameters().Length == 0)
-                .Select(x => new ClrPropertyViewModel(o, x));
-        }
-
-        private void ControlPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
-        {
-            if (_propertyIndex.TryGetValue(e.Property, out var properties))
-            {
-                foreach (var property in properties)
-                {
-                    property.Update();
-                }
-            }
-        }
-        */
         private void ControlPropertyChanged(object ? sender, PropertyChangedEventArgs e)
         {
             if (sender != null && e.PropertyName != null)
@@ -203,22 +131,6 @@ namespace VesperApp.ViewModels
                 }
             }
         }
-        /*
-        private bool FilterProperty(object arg)
-        {
-            if (!string.IsNullOrWhiteSpace(TreePage.PropertyFilter) && arg is PropertyViewModel property)
-            {
-                if (TreePage.UseRegexFilter)
-                {
-                    return TreePage.FilterRegex?.IsMatch(property.Name) ?? true;
-                }
-
-                return property.Name.IndexOf(TreePage.PropertyFilter, StringComparison.OrdinalIgnoreCase) != -1;
-            }
-
-            return true;
-        }*/
-
         private class PropertyComparer : IComparer<PropertyViewModel>
         {
             public static PropertyComparer Instance { get; } = new PropertyComparer();
@@ -247,8 +159,6 @@ namespace VesperApp.ViewModels
                 switch (group)
                 {
                     case "Properties": return 0;
-                    //case "Attached Properties": return 1;
-                    //case "CLR Properties": return 2;
                     default: return 3;
                 }
             }

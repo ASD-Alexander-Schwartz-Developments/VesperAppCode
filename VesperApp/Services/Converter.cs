@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
-using AvaloniaEdit;
 using System;
 using System.Diagnostics;
 using System.Globalization;

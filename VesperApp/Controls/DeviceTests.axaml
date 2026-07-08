@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:controls="using:VesperApp.Controls"
+             mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="600"
+             x:DataType="vm:DeviceTestsViewModel"
+             x:Class="VesperApp.Controls.DeviceTests">
+
+	<HeaderedContentControl Header="Device Test Validations" UseLayoutRounding="True">
+		<TabControl Margin="8">
+			<TabItem Header="Microphones">
+				<controls:MicHealthCheck DataContext="{Binding Mic}"/>
+			</TabItem>
+			<TabItem Header="GNSS / RF">
+				<controls:GnssRfTest DataContext="{Binding Gnss}"/>
+			</TabItem>
+		</TabControl>
+	</HeaderedContentControl>
+</UserControl>

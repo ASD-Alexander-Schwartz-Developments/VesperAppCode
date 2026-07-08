@@ -32,14 +32,6 @@ namespace VesperApp.ViewModels
             IsYearVisible = false;
             IsDayVisible = false;
 
-            isPowerOnRelative = true;
-            ponEditMask = "";
-            ponText = string.Empty;
-
-            IsPowerOnRelative = true;
-            PowerOnEditMask = "00 00:00:00";
-            PowerOnText = string.Empty;
-
             CommandAddButton = ReactiveCommand.Create(async () =>
             {
                 if(SelectedScheduleType == ScheduleTypes.Continues)
@@ -277,41 +269,7 @@ namespace VesperApp.ViewModels
 
 
 
-        public bool IsPowerOnRelative
-        {
-            get => isPowerOnRelative;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref isPowerOnRelative, value);
-
-                if(value == true)
-                {
-                    PowerOnEditMask = "00 00:00:00";
-                }
-                else
-                {
-                    PowerOnEditMask = "0000-00-00 00:00:00";
-                }
-            }
-        }
-        private bool isPowerOnRelative;
-
-        public string PowerOnText
-        {
-            get => ponText;
-            set => this.RaiseAndSetIfChanged(ref ponText, value);
-        }
-        private string ponText;
-
-
-        public string PowerOnEditMask
-        {
-            get => ponEditMask;
-            set => this.RaiseAndSetIfChanged(ref ponEditMask, value);
-        }
-        private string ponEditMask;
-
-        public DateTimeOffset? SelectedDate 
+        public DateTimeOffset? SelectedDate
         { 
             get => selectedDate; 
             set => this.RaiseAndSetIfChanged(ref selectedDate, value); 

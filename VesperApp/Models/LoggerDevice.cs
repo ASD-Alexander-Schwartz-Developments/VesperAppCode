@@ -23,7 +23,9 @@ namespace VesperApp.Models
     {
         private UsbContext? _usbContext;
         private UsbDevice? _usbDevice;
-        private SerialMessage? _comport;
+        // CDC transport: async AsdConsoleClient-backed shim (replaces the legacy
+        // three-thread SerialMessage). Same surface + wire framing. See ConsoleTransport.
+        private ConsoleTransport? _comport;
         private string _serialnumber;
         private string _name;
         private DeviceTypes? _type;
@@ -44,6 +46,7 @@ namespace VesperApp.Models
         public string ComPort => (_comport != null) ? _comport.PortName : string.Empty;
         public string? SerialNumber { get => _serialnumber; }
         public string? Name { get => _name; }
+        public DeviceTypes? DeviceType => _type;
 
         public string? Nickname { get; set; }
 
@@ -90,7 +93,7 @@ namespace VesperApp.Models
 
         public LoggerDevice(string port, int baudrate, DeviceTypes type, uint serial)
         {
-            this._comport = new SerialMessage(port, baudrate);
+            this._comport = new ConsoleTransport(port, baudrate);
             _serialnumber = serial.ToString("X");
             this._usbDevice = null;
             _type = type;
@@ -713,8 +716,53 @@ namespace VesperApp.Models
                 moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_SET_RTC, (byte)data.Length, data, 0);
                 this._comport.SendMessage(moea);
             }
-            
+
             return await Task.FromResult(r);
+        }
+
+
+
+        /// <summary>
+        /// Send a binary command frame over the CDC console and await the matching
+        /// response payload, correlating by message type via the comport
+        /// MessageEvent. Returns the response payload bytes (header/checksum
+        /// stripped), or null on timeout or when this is not a running comport
+        /// device. Used by the microphone health check (VESPER_TEST_AUDIO).
+        /// </summary>
+        public async Task<byte[]?> SendCommandAsync(MessageTypes type, byte[] payload, int timeoutMs = 8000)
+        {
+            if (this._comport == null || this._comport.IsRunning == false)
+                return null;
+
+            payload ??= new byte[0];
+
+            var tcs = new TaskCompletionSource<byte[]?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<MessageEventArgs> handler = null!;
+            handler = (s, e) =>
+            {
+                if (e.typeOfMessage == type)
+                    tcs.TrySetResult(e.MessageData);
+            };
+
+            this._comport.MessageEvent += handler;
+            try
+            {
+                // OutMsgID = 0 matches the rest of this class; the device's checksum
+                // uses whatever id we send, so it must be the same we sum here.
+                byte[] frame = SerialMessage.PROTO_MsgBuild((byte)type, (byte)payload.Length, payload, 0);
+                this._comport.SendToDevice(frame, 0, frame.Length);
+
+                using (var cts = new System.Threading.CancellationTokenSource(timeoutMs))
+                using (cts.Token.Register(() => tcs.TrySetResult(null)))
+                {
+                    return await tcs.Task.ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                this._comport.MessageEvent -= handler;
+            }
         }
 
 

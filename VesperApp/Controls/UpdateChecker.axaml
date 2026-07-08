@@ -3,28 +3,63 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              x:Class="VesperApp.Controls.UpdateChecker"
-             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200">
-             
-    <StackPanel Margin="16" Spacing="8">
-        <TextBlock Text="Application Updates" FontWeight="Bold" FontSize="18"/>
-        <Button Content="Check for Updates"
-                Command="{Binding CheckUpdatesCommand}"
-                IsEnabled="{Binding !IsChecking}"/>
-        <TextBlock Text="{Binding Status}" Foreground="Gray"/>
-        <ItemsControl ItemsSource="{Binding AvailableUpdates}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding Version}"/>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        <Button Content="Update Now"
-                Command="{Binding UpdateCommand}"
-                IsEnabled="{Binding IsUpdateAvailable}"/>
-        <ProgressBar IsIndeterminate="True"
-                      IsVisible="{Binding IsChecking}"
-                      Margin="0,8,0,0"/>
+             mc:Ignorable="d" d:DesignWidth="720" d:DesignHeight="420">
 
-    </StackPanel>
+    <Border Classes="page">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14" MaxWidth="680" HorizontalAlignment="Left">
+
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="pageTitle" Text="Application Updates"/>
+                    <TextBlock Classes="caption" Text="Check for and install new versions of VesperApp."/>
+                </StackPanel>
+
+                <Border Classes="card">
+                    <StackPanel Spacing="14">
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Classes="sectionHeader" Text="Updates"/>
+                                <TextBlock Classes="caption" Text="{Binding Status}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" VerticalAlignment="Center"
+                                    Content="Check for updates"
+                                    Command="{Binding CheckUpdatesCommand}"
+                                    IsEnabled="{Binding !IsChecking}"/>
+                        </Grid>
+
+                        <ProgressBar Classes="slim" IsIndeterminate="True"
+                                     IsVisible="{Binding IsChecking}"/>
+
+                        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsUpdateAvailable}">
+                            <ItemsControl Grid.Column="0" VerticalAlignment="Center"
+                                          ItemsSource="{Binding AvailableUpdates}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Version}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Grid.Column="1" Classes="accent"
+                                    Content="Download &amp; install"
+                                    Command="{Binding UpdateCommand}"/>
+                        </Grid>
+
+                        <ui:InfoBar IsOpen="{Binding IsPendingRestart}" IsClosable="False"
+                                    Severity="Success"
+                                    Title="Update downloaded"
+                                    Message="Restart VesperApp to apply the update.">
+                            <ui:InfoBar.ActionButton>
+                                <Button Content="Restart now" Command="{Binding RestartApplyCommand}"/>
+                            </ui:InfoBar.ActionButton>
+                        </ui:InfoBar>
+
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
 </UserControl>

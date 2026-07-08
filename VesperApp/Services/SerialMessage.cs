@@ -70,6 +70,16 @@ namespace VesperApp.Services
         VESPER_SET_FILESIZES,
         VESPER_BURN_CONFIG,
 
+        // Dock/USB bench-test commands. VESPER_TEST_AUDIO captures one mic and
+        // returns per-tone SNR go/no-go (KOL pins it at 60; see audio_bench_format.md).
+        VESPER_TEST_AUDIO = 60,
+
+        // GNSS front-end bench test (VESPER_TEST_GPS): device captures a short
+        // snapshot to RAM, detects the injected CW tone, and returns front-end
+        // go/no-go (gps_test_resp_t). Must match the VesperU5 FW MSG enum
+        // (feature/dock-bench-test) — see VesperU5 docs/GNSS-BENCH-BRINGUP.md.
+        VESPER_TEST_GPS = 61,
+
         UDSP_GET_VER = 200,
         UDSP_SLEEP,
         UDSP_GET_CONFIG,

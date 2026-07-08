@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:VesperApp.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="520"
+        x:Class="VesperApp.Views.ImportDeviceWindow"
+        Title="Import from device"
+        Topmost="True"
+        Icon="/Assets/bat.ico"
+        CanResize="False"
+        Width="560"
+        Height="520"
+        WindowStartupLocation="CenterOwner">
+
+	<Design.DataContext>
+		<vm:ImportDeviceWindowViewModel/>
+	</Design.DataContext>
+
+	<DockPanel Margin="16">
+
+		<!-- Bottom action row -->
+		<Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto,Auto" Margin="0,14,0,0" ColumnSpacing="8">
+			<Button Grid.Column="1" x:Name="btnCancel" Content="Cancel" MinWidth="90"/>
+			<Button Grid.Column="2" x:Name="btnImport" Classes="accent" Content="Import"
+					MinWidth="120" FontWeight="Bold" IsEnabled="{Binding CanImport}"/>
+		</Grid>
+
+		<StackPanel Spacing="10">
+
+			<!-- Step 1: source drive -->
+			<TextBlock FontWeight="SemiBold" Text="1.  Select the device drive"/>
+			<TextBlock Classes="caption" TextWrapping="Wrap"
+					   Text="Removable drives are detected automatically. Everything on the drive is imported — including the configuration file and UID.txt, so the session is self-documenting."/>
+
+			<Border BorderThickness="1" BorderBrush="{DynamicResource AppStrokeBrush}" CornerRadius="6">
+				<ListBox Height="180" ItemsSource="{Binding Drives}" SelectionMode="Single"
+						 SelectedItem="{Binding SelectedDrive}">
+					<ListBox.ItemTemplate>
+						<DataTemplate DataType="vm:ImportDriveInfo">
+							<StackPanel Margin="4,2">
+								<TextBlock FontWeight="SemiBold" Text="{Binding Title}"/>
+								<TextBlock FontSize="12" Text="{Binding DeviceText}"/>
+								<TextBlock FontSize="12" Text="{Binding ContentText}"/>
+							</StackPanel>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+			</Border>
+
+			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+				<TextBox Grid.Column="0" Text="{Binding SourcePath}" IsReadOnly="True"
+						 Watermark="No device drive detected — insert the device or browse…"/>
+				<Button Grid.Column="1" Content="Browse…" Command="{Binding BrowseSourceCommand}"
+						ToolTip.Tip="Import from any folder instead of a detected drive"/>
+			</Grid>
+
+			<!-- Step 2: target folder -->
+			<TextBlock FontWeight="SemiBold" Text="2.  Import to" Margin="0,8,0,0"/>
+			<TextBlock Classes="caption" TextWrapping="Wrap"
+					   Text="Pre-filled from your working directory: device ID / recording date. Edit if needed."/>
+
+			<Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+				<TextBox Grid.Column="0" Text="{Binding TargetPath}"/>
+				<Button Grid.Column="1" Content="Browse…" Command="{Binding BrowseTargetCommand}"/>
+			</Grid>
+
+		</StackPanel>
+	</DockPanel>
+</Window>

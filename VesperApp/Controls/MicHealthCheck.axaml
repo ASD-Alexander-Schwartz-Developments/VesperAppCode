@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:m="using:VesperApp.Models"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="450"
+             x:DataType="vm:MicHealthCheckViewModel"
+             x:Class="VesperApp.Controls.MicHealthCheck">
+
+	<HeaderedContentControl Header="Microphone Health Check" IsVisible="True" UseLayoutRounding="True">
+		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,Auto,*">
+
+			<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
+				<ui:CommandBar.PrimaryCommands>
+					<ui:CommandBarElementContainer>
+						<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0"
+									IsVisible="{Binding IsSupported}">
+							<TextBlock Text="Microphones:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<ComboBox Width="80"
+									  ItemsSource="{Binding MicCountOptions}"
+									  SelectedItem="{Binding MicCount}"/>
+						</StackPanel>
+					</ui:CommandBarElementContainer>
+					<ui:CommandBarButton Command="{Binding RunCommand}" IconSource="Audio" Label="Run Check"
+										 ToolTip.Tip="Capture each microphone and report its health"/>
+					<ui:CommandBarElementContainer>
+						<ui:ProgressRing IsVisible="{Binding IsRunning}" IsActive="{Binding IsRunning}"
+										 Width="22" Height="22" Margin="10,0"/>
+					</ui:CommandBarElementContainer>
+				</ui:CommandBar.PrimaryCommands>
+			</ui:CommandBar>
+
+			<StackPanel Grid.Row="1" Margin="20,6,20,0" Spacing="2">
+				<TextBlock Text="{Binding Summary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+				<TextBlock Text="Tip: play a steady test tone close to the device so each microphone has something to hear."
+						   Opacity="0.7" TextWrapping="Wrap"/>
+			</StackPanel>
+
+			<ScrollViewer Grid.Row="2" Margin="20,10,20,20">
+				<ItemsControl ItemsSource="{Binding Results}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="m:MicHealthResult">
+							<Border Margin="0,0,0,8" Padding="14,10" CornerRadius="6"
+									Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+								<Grid ColumnDefinitions="160,140,*" VerticalAlignment="Center">
+									<TextBlock Grid.Column="0" Text="{Binding MicLabel}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+									<TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}"
+											   FontWeight="Bold" VerticalAlignment="Center"/>
+									<TextBlock Grid.Column="2" Text="{Binding Detail}" Opacity="0.8"
+											   TextWrapping="Wrap" VerticalAlignment="Center"/>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</ScrollViewer>
+		</Grid>
+	</HeaderedContentControl>
+
+</UserControl>

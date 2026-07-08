@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# COPY TO:  <VesperU5 firmware repo>/.github/workflows/release.yml
+#
+# Publishes a firmware release to S3/CloudFront and updates the client's feed
+# (index.json) — the VesperApp firmware page reads that feed with NO credentials.
+# The only secret (AWS keys) lives here in Actions, never in the client.
+#
+# Publish a release with:   git tag v1.2.3 && git push --tags
+# ─────────────────────────────────────────────────────────────────────────────
+name: Release firmware
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: read   # to read the tag annotation for the changelog
+
+env:
+  # Repo Variables (Settings → Secrets and variables → Actions → Variables):
+  S3_BUCKET:          ${{ vars.RELEASE_S3_BUCKET }}            # e.g. my-vesper-releases
+  CF_DISTRIBUTION_ID: ${{ vars.RELEASE_CF_DISTRIBUTION_ID }}
+  AWS_REGION:         ${{ vars.AWS_REGION }}
+  S3_PREFIX: firmware          # CDN path → https://<cdn>/firmware/index.json
+  # Device key the client matches ReleaseEntry.Target on. Set per firmware repo as an Actions
+  # variable: FIRMWARE_TARGET=vesper on VesperU5, =kol on Kol. Both publish to the one firmware feed.
+  TARGET:    ${{ vars.FIRMWARE_TARGET }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1) ── BUILD YOUR FIRMWARE HERE ──────────────────────────────────────────
+      #    Replace with your real ARM build; it must produce one artifact file.
+      - name: Build firmware
+        id: build
+        run: |
+          # ... your toolchain / make here ...
+          test -f build/firmware.hex        # <-- adjust to your output
+          echo "artifact=build/firmware.hex" >> "$GITHUB_OUTPUT"
+
+      # 2) ── Name + checksum the artifact ──────────────────────────────────────
+      - name: Derive names + checksum
+        id: meta
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          ART="${{ steps.build.outputs.artifact }}"; EXT="${ART##*.}"
+          NAME="firmware-${VER}-${TARGET}.${EXT}"
+          cp "$ART" "$NAME"
+          echo "ver=$VER"                                   >> "$GITHUB_OUTPUT"
+          echo "name=$NAME"                                 >> "$GITHUB_OUTPUT"
+          echo "sha=$(sha256sum "$NAME" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "size=$(stat -c%s "$NAME")"                  >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      # 3) ── Upload the artifact ───────────────────────────────────────────────
+      - name: Upload artifact
+        run: |
+          aws s3 cp "${{ steps.meta.outputs.name }}" \
+            "s3://${S3_BUCKET}/${S3_PREFIX}/${{ steps.meta.outputs.ver }}/${{ steps.meta.outputs.name }}" \
+            --no-progress
+
+      # 4) ── Prepend the entry to index.json and write it back ──────────────────
+      #    asset is RELATIVE to the feed URL (.../firmware/), so "<ver>/<name>".
+      - name: Update index.json
+        run: |
+          aws s3 cp "s3://${S3_BUCKET}/${S3_PREFIX}/index.json" index.json \
+            || echo '{"schema":1,"releases":[]}' > index.json
+          DESC="$(git tag -l --format='%(contents)' "${GITHUB_REF_NAME}")"
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          jq \
+            --arg ver   "${{ steps.meta.outputs.ver }}" \
+            --arg name  "Firmware ${{ steps.meta.outputs.ver }}" \
+            --arg desc  "$DESC" \
+            --arg pub   "$NOW" \
+            --arg target "${TARGET}" \
+            --arg asset "${{ steps.meta.outputs.ver }}/${{ steps.meta.outputs.name }}" \
+            --argjson size ${{ steps.meta.outputs.size }} \
+            --arg sha   "${{ steps.meta.outputs.sha }}" \
+            '{schema:1, updated:$pub,
+              releases: ([{version:$ver,name:$name,description:$desc,published:$pub,
+                           target:$target,asset:$asset,size:$size,sha256:$sha}] + .releases)
+                        | unique_by(.version + "|" + .target)}' \
+            index.json > index.new.json
+          aws s3 cp index.new.json "s3://${S3_BUCKET}/${S3_PREFIX}/index.json" \
+            --content-type application/json --no-progress
+
+      - name: Invalidate CDN
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${CF_DISTRIBUTION_ID}" \
+            --paths "/${S3_PREFIX}/index.json"

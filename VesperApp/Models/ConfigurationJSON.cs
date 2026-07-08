@@ -45,6 +45,32 @@ namespace VesperApp.Models
         }
 
 
+        /// <summary>Try to parse <paramref name="json"/> as a device configuration using the
+        /// full converter set. Returns null when the JSON is not a valid configuration —
+        /// used e.g. by the Recordings browser to recognise config files on double-click.</summary>
+        public static ConfigurationJSON? TryParse(string json)
+        {
+            try
+            {
+                var options = new JsonSerializerOptions();
+                options.Converters.Add(new ScheduleTypesEnumConverter());
+                options.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+                options.Converters.Add(new VesperDateTimeConverter());
+                options.Converters.Add(new VesperPowerOnConverter());
+                options.Converters.Add(new VesperDateTimeAlarmConverter());
+
+                ConfigurationJSON? config = JsonSerializer.Deserialize<ConfigurationJSON>(json, options);
+
+                // A device configuration names its device model; arbitrary JSON that
+                // happens to deserialize (e.g. "{}") is not one.
+                return string.IsNullOrWhiteSpace(config?.Name) ? null : config;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public void Load(ConfigurationJSON newconf)
         {
             this.Name = newconf.name;
@@ -432,71 +458,6 @@ namespace VesperApp.Models
                 }
             }
         }
-
-
-
-
-        /*
-
-        [Fact]
-        public static void CustomEnumConverter()
-        {
-            var options = new JsonSerializerOptions();
-            options.Converters.Add(new ScheduleTypesEnumConverter());
-
-            {
-                ScheduleTypes value = JsonSerializer.Deserialize<ScheduleTypes>(@"""TRUE""", options);
-                Assert.Equal(ScheduleTypes.SCH_CONTINUES, value);
-                Assert.Equal(@"""TRUE""", JsonSerializer.Serialize(value, options));
-            }
-
-            {
-                MyBoolEnum value = JsonSerializer.Deserialize<MyBoolEnum>(@"""FALSE""", options);
-                Assert.Equal(MyBoolEnum.False, value);
-                Assert.Equal(@"""FALSE""", JsonSerializer.Serialize(value, options));
-            }
-
-            {
-                MyBoolEnum value = JsonSerializer.Deserialize<MyBoolEnum>(@"""?""", options);
-                Assert.Equal(MyBoolEnum.Unknown, value);
-                Assert.Equal(@"""?""", JsonSerializer.Serialize(value, options));
-            }
-        }
-
-        [Fact]
-        public static void NullableCustomEnumConverter()
-        {
-            var options = new JsonSerializerOptions();
-            options.Converters.Add(new MyBoolEnumConverter());
-
-            {
-                MyBoolEnum? value = JsonSerializer.Deserialize<MyBoolEnum?>(@"null", options);
-                Assert.Null(value);
-            }
-
-            {
-                MyBoolEnum? value = JsonSerializer.Deserialize<MyBoolEnum?>(@"""TRUE""", options);
-                Assert.Equal(MyBoolEnum.True, value);
-                Assert.Equal(@"""TRUE""", JsonSerializer.Serialize(value, options));
-            }
-
-            {
-                MyBoolEnum? value = JsonSerializer.Deserialize<MyBoolEnum?>(@"""FALSE""", options);
-                Assert.Equal(MyBoolEnum.False, value);
-                Assert.Equal(@"""FALSE""", JsonSerializer.Serialize(value, options));
-            }
-
-            {
-                MyBoolEnum? value = JsonSerializer.Deserialize<MyBoolEnum?>(@"""?""", options);
-                Assert.Equal(MyBoolEnum.Unknown, value);
-                Assert.Equal(@"""?""", JsonSerializer.Serialize(value, options));
-            }
-        }
-
-        */
-
-
-
     }
 
 }

@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<!-- Windows (and default dev builds) use the GUI subsystem so no console window
+		     appears. Linux/macOS publishes (-r linux-* / osx-*) produce a normal console
+		     Exe so the app launches from a shell. Driven by the target runtime identifier. -->
 		<OutputType>WinExe</OutputType>
+		<OutputType Condition="'$(RuntimeIdentifier)' != '' And ($(RuntimeIdentifier.StartsWith('linux')) Or $(RuntimeIdentifier.StartsWith('osx')))">Exe</OutputType>
+		<RuntimeIdentifiers>win-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<!--Avalonia doesen't support TrimMode=link currently,but we are working on that https://github.com/AvaloniaUI/Avalonia/issues/6892 -->
@@ -8,37 +13,58 @@
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 		<ApplicationIcon>Assets\bat.ico</ApplicationIcon>
 		<StartupObject>VesperApp.Program</StartupObject>
-		<AssemblyVersion>1.0.28</AssemblyVersion>
-		<FileVersion>1.0.28</FileVersion>
-		<Version>1.0.28</Version>
+		<!-- Dev-build fallback only. Release builds get the real version injected by CI
+		     (-p:Version=<tag>, see .github/workflows/app-release.yml); AssemblyVersion and
+		     FileVersion are derived from Version by the SDK, so don't set them here. -->
+		<Version>1.0.29</Version>
 		<Company>A.S.D</Company>
 		<Product></Product>
-		<PackageIcon>bat.png</PackageIcon>
+		<!-- Client-read CDN origin (self-update + firmware/plugin feeds + scenario assets).
+		     Deliberately NOT a literal in source: CI injects it at publish time with
+		     -p:CdnBaseUrl=https://xxxx.cloudfront.net (from a repo secret). Empty in a plain
+		     local build, in which case update/download features degrade gracefully and are
+		     driven by the VESPERAPP_CDN_BASE / VESPERAPP_*_FEED env overrides instead.
+		     Read at runtime by Services/CdnConfig. See docs/CDN-HARDENING.md. -->
+		<CdnBaseUrl></CdnBaseUrl>
 	</PropertyGroup>
 	<ItemGroup>
+		<!-- Surfaces $(CdnBaseUrl) as [assembly: AssemblyMetadata("CdnBaseUrl", "...")]
+		     (GenerateAssemblyInfo is on by default), which CdnConfig reads via reflection. -->
+		<AssemblyMetadata Include="CdnBaseUrl" Value="$(CdnBaseUrl)" />
+	</ItemGroup>
+	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
+		<!-- Offline first-run copy of the Help documentation. The Help tab fetches these
+		     pages live from the GitHub wiki (docs/wiki is the wiki's in-repo source of
+		     truth); the embedded copy is the fallback before any fetch has succeeded.
+		     Pages reference images relatively (images/...), resolved through the same
+		     cache→embedded chain. See Services/WikiHelpService.cs. -->
+		<AvaloniaResource Include="docs\wiki\*.md" />
+		<AvaloniaResource Include="docs\wiki\images\*" />
 		<None Remove=".gitignore" />
-		<None Remove="Assets\ASD-LOGO-01.png" />
 		<None Remove="Assets\connected.png" />
 		<None Remove="Assets\disconnected.png" />
-		<None Remove="Assets\download.gif" />
 		<None Remove="Assets\FluentUiIcons_Filled.xaml" />
-		<None Remove="Assets\icons8-done-48.png" />
-		<None Remove="Assets\icons8-download-from-cloud-48.png" />
-		<None Remove="Assets\icons8-ok-16.png" />
-		<None Remove="Assets\redFlag.png" />
-		<None Remove="Assets\rotation.png" />
-		<None Remove="Assets\update.png" />
-		<None Remove="Assets\updated.png" />
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="Assets\bat.ico" />
-	</ItemGroup>
-	<ItemGroup>
-		<None Include="..\..\..\VesperAppCode\VesperApp\Assets\bat.png">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
+		<!-- Arch-matching libusb at the output ROOT: Windows resolves DLLs from the app
+		     directory before PATH, so this wins over stray 32-bit libusb copies other
+		     tools put on PATH (e.g. the ST-Link server's — BadImageFormatException at
+		     startup otherwise). Lives here, not in ASDLibUSBWrapper, because the
+		     RuntimeIdentifier is only set on the app: win-x86 publishes get the x86
+		     build, everything else Windows-built (incl. dev builds, no RID) gets x64. -->
+		<!-- Condition on the TARGET rid, not the build OS: cross-publishing linux-x64
+		     from a Windows machine must not ship a Windows DLL. No-RID (dev) builds
+		     get the x64 copy; it is inert on non-Windows dev hosts. -->
+		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x64\libusb-1.0.dll" Link="libusb-1.0.dll"
+		         Condition="'$(RuntimeIdentifier)' == '' Or '$(RuntimeIdentifier)' == 'win-x64'">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x86\libusb-1.0.dll" Link="libusb-1.0.dll"
+		         Condition="'$(RuntimeIdentifier)' == 'win-x86'">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 	<ItemGroup><!--This helps with theme dll-s trimming.
 	If you will publish your application in self-contained mode with p:PublishTrimmed=true and it will use Fluent theme Default theme will be trimmed from the output and vice versa.
@@ -47,26 +73,26 @@
 		<TrimmableAssembly Include="Avalonia.Themes.Default" />-->
 	
 	  <AvaloniaXaml Remove="Assets\ResourceDictionary.axaml" />
-	
+
 	  <AvaloniaXaml Remove="Assets\SharedResources.axaml" />
-	
+
+	  <AvaloniaXaml Remove="Assets\Theme.axaml" />
+
 	  <AvaloniaXaml Remove="Assets\VesperIcons.axaml" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="11.3.2" />
-		<PackageReference Include="Avalonia.AvaloniaEdit" Version="11.3.0" />
 		<PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.2" />
 		<PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
 		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
 		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.2" />
 		<PackageReference Include="Avalonia.ReactiveUI" Version="11.3.2" />
-		<PackageReference Include="AvaloniaEdit.TextMate" Version="11.3.0" />
 		<PackageReference Include="CalendarControl.Avalonia" Version="11.2.5" />
 		<PackageReference Include="FluentAvaloniaUI" Version="2.3.0" />
 		<PackageReference Include="FTD2XX.Net" Version="1.2.1" />
+		<PackageReference Include="Markdown.Avalonia" Version="11.0.3" />
 		<PackageReference Include="MessageBox.Avalonia" Version="3.2.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.6" />
-		<PackageReference Include="Octokit" Version="14.0.0" />
 		<PackageReference Include="System.IO.Ports" Version="9.0.6" />
 		<PackageReference Include="System.Text.Json" Version="9.0.6" />
 		<PackageReference Include="Velopack" Version="0.0.1298" />
@@ -74,11 +100,13 @@
 	<ItemGroup>
 		<ProjectReference Include="..\ASDLibUSBWrapper\ASDLibUSBWrapper.csproj" />
 		<ProjectReference Include="..\ASDWaveLib\ASDWaveLib.csproj" />
+		<ProjectReference Include="..\ASD.Contracts\ASD.Contracts.csproj" />
+		<ProjectReference Include="..\ASD.DeviceCore\ASD.DeviceCore.csproj" />
+		<ProjectReference Include="..\ASD.Devices\ASD.Devices.csproj" />
+		<ProjectReference Include="..\FirmwareUpdater\FirmwareUpdater.csproj" />
+		<ProjectReference Include="..\LibUsbDfu\LibUsbDfu.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<AvaloniaResource Update="Assets\ASD LOGO small-01.jpg">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</AvaloniaResource>
 		<AvaloniaResource Update="Assets\bat.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</AvaloniaResource>
@@ -107,14 +135,12 @@
 		</Compile>
 	</ItemGroup>
 	<ItemGroup>
-		<None Update="CG\**">
+		<!-- Proprietary GNSS decode is provided by the ASD.Gnss plugin (over cg-gnss)
+		     loaded at runtime from the gitignored plugins/ folder; the legacy CG\
+		     GeoTag bundle has been removed from this repo. See docs/ARCHITECTURE.md. -->
+		<None Include="plugins\**" Condition="Exists('plugins')">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>plugins\%(RecursiveDir)%(Filename)%(Extension)</Link>
 		</None>
-		<None Update="FirmwareUpdater\**">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Releases\" />
 	</ItemGroup>
 </Project>

@@ -32,28 +32,6 @@ using MsBox.Avalonia.Models;
 using FluentAvalonia.UI.Controls;
 using static VesperApp.Models.ConfigurationJSON;
 
-/// <summary>
-/// //// {Binding Description, StringFormat='Description: {0}'}
-/// </summary>
-//////
-///@ECHO OFF
-//SET "OLD_PATH=%PATH%"
-//SET "PATH=C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin;%PATH%"
-//SET PROG_CLI=STM32_Programmer_CLI.exe
-//SET PROG_ARGS=-c port=SWD freq=4000
-//SET START_ADDR=0x80000000
-//SET VERIFY=-v
-
-//%PROG_CLI% %PROG_ARGS% -w "%1" %START_ADDR% %VERIFY%
-
-//SET "PATH=%OLD_PATH%"
-//ECHO ON
-/////
-//To launch command line interface, call 
-//    macOS: STM32CubeProgrammer.app / Contents / MacOs / bin / STM32_Programmer_CLI 
-//    Windows: ..\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin \STM32_Programmer_CLI.exe 
-//    Linux: .. / STMicroelectronics / STM32Cube / STM32CubeProgrammer / bin / STM32_Programmer_CLI
-
 
 
 
@@ -64,6 +42,9 @@ namespace VesperApp.ViewModels
     public class MainViewViewModel : ViewModelBase
     {
         private DockAdapter _globalDockAdapter;
+
+        /// <summary>The shared docking-station adapter — firmware flashing uses it to drive BOOT0/reset.</summary>
+        public DockAdapter GlobalDock => _globalDockAdapter;
         private DeviceUsbAdapter _deviceUsbAdapter;
 
         public bool IsConnected
@@ -82,6 +63,33 @@ namespace VesperApp.ViewModels
         }
 
         private bool _isDeviceConnected = false;
+
+        /// <summary>
+        /// Whether the Logger Devices console (list + device actions) is shown. Collapsed, the
+        /// working area (editor, Help, …) gets the full height — for offline work the console is
+        /// just dead space. Persisted across sessions; connecting a dock re-expands it because
+        /// that's the moment the console becomes relevant.
+        /// </summary>
+        public bool IsDeviceConsoleExpanded
+        {
+            get => _isDeviceConsoleExpanded;
+            set
+            {
+                if (_isDeviceConsoleExpanded == value) return;
+                this.RaiseAndSetIfChanged(ref _isDeviceConsoleExpanded, value);
+
+                var cfg = SettingsService.Current;
+                if (cfg.Ui.DeviceConsoleExpanded != value)
+                {
+                    cfg.Ui.DeviceConsoleExpanded = value;
+                    SettingsService.Instance.Save();
+                }
+            }
+        }
+
+        private bool _isDeviceConsoleExpanded = true;
+
+        public ICommand ToggleDeviceConsoleCommand { get; }
 
 
         public bool IsDeviceEnabled
@@ -155,14 +163,44 @@ namespace VesperApp.ViewModels
 
             Categories = new List<CategoryBase>();
 
-            Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), DataContext = new RecordingParsingViewModel(), Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
+            var recordingsViewModel = new RecordingParsingViewModel(this);
+            Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), DataContext = recordingsViewModel, Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
             Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), DataContext = new ScheduleEditorViewModel(), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
+            Categories.Add(new Category { Name = "Device Tests", Page = typeof(DeviceTests), DataContext = new DeviceTestsViewModel(this), Icon = Symbol.Repair, ToolTip = "Per-sensor test validations (microphones, GNSS/RF, …)" });
             Categories.Add(new VesperApp.Models.Separator());
             Categories.Add(new Category { Name = "Software Upgrades", Page = typeof(UpdateChecker), DataContext = new UpdateCheckerViewModel(), Icon = Symbol.New, ToolTip = "Software Upgrades" });
-            Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
-            Categories.Add(new Category { Name = "Help", Icon = Symbol.Help, ToolTip = "Help Documentation" });
+            Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(this), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
+            Categories.Add(new Category { Name = "Plugins", Page = typeof(PluginUpdates), DataContext = new PluginUpdatesViewModel(), Icon = Symbol.Download, ToolTip = "GNSS decoder plugin updates" });
 
-            SelectedCategory = Categories[0];
+            // Open-core seam: entitlement-gated feature modules (cloud sync, GNSS
+            // post-processing, remote BLE download) contribute their own nav entries.
+            // The open-source build ships no such modules, so this appends nothing
+            // today. See docs/ARCHITECTURE.md.
+            foreach (var moduleCategory in ASD.Modules.ModuleHost.Instance
+                         .GetEntitledNavCategories(ASD.Platform.PlatformServices.Entitlements))
+                Categories.Add(moduleCategory);
+
+            Categories.Add(new Category { Name = "Settings", Page = typeof(SettingsView), DataContext = new SettingsViewModel(), Icon = Symbol.Setting, ToolTip = "Application settings" });
+            Categories.Add(new Category { Name = "Help", Page = typeof(HelpView), DataContext = new HelpViewModel(), Icon = Symbol.Help, ToolTip = "Help Documentation" });
+
+            ToggleDeviceConsoleCommand = ReactiveCommand.Create(
+                () => { IsDeviceConsoleExpanded = !IsDeviceConsoleExpanded; });
+
+            var settings = SettingsService.Current;
+            _isDeviceConsoleExpanded = settings.Ui.DeviceConsoleExpanded;
+
+            // Ensure the working directory exists on every launch (first run creates
+            // ~/Documents/MyVesperData) — imports and decodes land there, so it must exist.
+            string workingDir = SettingsService.Instance.ResolveWorkingDirectory();
+
+            // The Recordings data browser is the live main view of the working directory:
+            // always rooted there at startup, kept current by a FileSystemWatcher.
+            recordingsViewModel.LoadDataFolder(workingDir);
+
+            // Honour the configured startup tab (defaults to Recordings).
+            Category? startupCategory = Categories.OfType<Category>()
+                .FirstOrDefault(c => string.Equals(c.Name, settings.Ui.StartupCategory, StringComparison.OrdinalIgnoreCase));
+            SelectedCategory = startupCategory ?? (object)Categories[0];
 
             #region Dock Commands
             ConnectDisconnectDockCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -441,14 +479,12 @@ namespace VesperApp.ViewModels
         {
             if (e.IsConnected != IsConnected)
             {
-                if (e.IsConnected == true && e.Dock != null)
-                {                  
-                }
-                else
-                {
-                }
-
                 IsConnected = e.IsConnected;
+
+                // The console is where the freshly connected dock's devices appear — surface it
+                // even if the user had collapsed it for offline work.
+                if (e.IsConnected)
+                    IsDeviceConsoleExpanded = true;
             }
         }
 
@@ -611,6 +647,19 @@ namespace VesperApp.ViewModels
         {
             get => _currentPage;
             set => this.RaiseAndSetIfChanged(ref _currentPage, value);
+        }
+
+        /// <summary>Load an already-validated configuration JSON into the Configuration
+        /// editor and navigate to that tab. Used by the Recordings browser when the user
+        /// double-clicks a recognised config file.</summary>
+        public async Task OpenConfigurationInEditor(string json)
+        {
+            Category? cat = Categories.OfType<Category>()
+                .FirstOrDefault(c => string.Equals(c.Name, "Configuration", StringComparison.OrdinalIgnoreCase));
+            if (cat?.DataContext is not ScheduleEditorViewModel editor) return;
+
+            if (await editor.LoadConfigurationFromJsonAsync(json))
+                SelectedCategory = cat;
         }
 
         private void SetCurrentPage()
