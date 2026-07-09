@@ -48,9 +48,18 @@ The **app data folder** is `%LOCALAPPDATA%\VesperApp` on Windows, `~/Library/App
 
 | What | Where |
 |---|---|
+| Application log | `logs/VesperApp_<date>.log` in the app data folder |
+| Startup crash reports | `logs/crash-<timestamp>.log` in the app data folder |
 | GNSS decode job logs | `logs/gnss/` in the app data folder |
 | App configuration | `config.json` in the app data folder |
 | Decoded data | Your working directory (default `Documents/MyVesperData` in your user profile) |
+
+**The app doesn't start at all.**
+- Since v1.0.35 a startup failure shows an error dialog and writes a
+  `crash-<timestamp>.log` (see above) — attach that file when reporting.
+- On a brand-new Windows machine, make sure Windows Update has run once; the FTDI
+  dock driver installs through it when the dock is first plugged in (the app itself
+  does not require it to start).
 
 ## Reporting an issue
 
