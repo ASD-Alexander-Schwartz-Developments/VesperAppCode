@@ -19,9 +19,6 @@ namespace VesperApp.ViewModels
         // (CdnConfig / [AssemblyMetadata]) and overridable via VESPERAPP_CDN_BASE. Empty in a dev
         // build with no origin configured, in which case update checks are disabled gracefully.
         private readonly string _updateUrl = CdnConfig.BaseUrl;
-        private readonly string updateFileName = "VesperAppSetup.msi";
-        private readonly string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        private readonly List<string> _channels;
 
         private bool _isChecking;
         private bool _isUpdateAvailable;
@@ -88,13 +85,11 @@ namespace VesperApp.ViewModels
                 else
                     rid = "linux-x64";
 
-                string stable = rid + "-stable", beta = rid + "-beta";
-
-                _channels = new List<string> { stable, beta };
-
+                // NOTE: self-update follows the stable channel only; beta-ring releases
+                // are not offered to installed clients.
                 _um = new UpdateManager(_updateUrl, new UpdateOptions
                 {
-                    ExplicitChannel = stable,
+                    ExplicitChannel = rid + "-stable",
                     AllowVersionDowngrade = true,
                 });
             }
@@ -134,8 +129,11 @@ namespace VesperApp.ViewModels
             {
                 // Adjust the source as needed (e.g., GithubSource, FileSource, etc.)
                 _update = await _um.CheckForUpdatesAsync();
-                if (_update?.DeltasToTarget.Length > 0)
+                if (_update != null)
                 {
+                    // DeltasToTarget may be empty when no delta chain reaches the target
+                    // (client too far behind, old fulls purged) — the full release still
+                    // constitutes an available update, so don't gate on deltas.
                     foreach (var rel in _update.DeltasToTarget)
                         AvailableUpdates.Add(rel);
 

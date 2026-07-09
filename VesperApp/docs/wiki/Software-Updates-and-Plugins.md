@@ -10,11 +10,13 @@ The **Software Upgrades** tab manages the application's own updates:
 
 *The Software Upgrades tab.*
 
-1. Press **Check Updates**. The app polls its release channel for your platform (stable or beta).
-2. If a newer version exists, its version number is shown next to your installed version. Press **Download** — updates are delta-patched where possible, so downloads are small.
+1. Press **Check Updates**. The app polls the **stable** release channel for your platform.
+2. If a newer version exists, its version number is shown next to your installed version. Press **Download** — updates are delta-patched where possible, so downloads are small (a full download is used automatically when no delta path exists).
 3. When the download finishes, press **Restart & Apply**. The app relaunches on the new version.
 
-Updates are published per platform (Windows x64, macOS Apple Silicon, Linux x64) on **stable** and **beta** channels. Beta receives features earlier; stable is recommended for production benches.
+Updates are published per platform (Windows x64, Windows x86, Linux x64). Beta-channel builds exist for early testing but are installed manually — the in-app updater always follows stable.
+
+On **Linux**, applying an update replaces the AppImage file in place, so the AppImage must live in a user-writable location — see [Linux Setup](Linux-Setup).
 
 ## Plugins
 

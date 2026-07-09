@@ -227,8 +227,25 @@ namespace VesperApp.ViewModels
                         {
                             var dockdevice = await _globalDockAdapter.GetDockBySerialNumberAsync(result.Id ?? string.Empty);
 
-                            if (dockdevice != null)
-                                await _globalDockAdapter.DockConnect(dockdevice);
+                            bool connected = dockdevice != null
+                                && await _globalDockAdapter.DockConnect(dockdevice);
+                            if (!connected)
+                            {
+                                string hint = OperatingSystem.IsWindows()
+                                    ? "Make sure the dock is plugged in and the FTDI D2XX driver is installed, then try again."
+                                    : "Make sure the dock is plugged in and your user is allowed to access it. " +
+                                      "On Linux this usually means installing the VesperApp udev rules " +
+                                      "(see Help → Linux Setup) and replugging the dock.";
+                                await MessageBoxManager.GetMessageBoxStandard(new MessageBoxStandardParams
+                                {
+                                    ButtonDefinitions = ButtonEnum.Ok,
+                                    ContentTitle = "Docking station",
+                                    ContentHeader = "Could not connect to the docking station.",
+                                    ContentMessage = hint,
+                                    Icon = MsBox.Avalonia.Enums.Icon.Warning,
+                                    WindowIcon = App.MainWindow?.Icon,
+                                }).ShowWindowDialogAsync(App.MainWindow);
+                            }
 
                             //IsConnected = _globalDockAdapter.IsConnected;
                         }

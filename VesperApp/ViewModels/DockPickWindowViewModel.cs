@@ -85,7 +85,14 @@ namespace VesperApp.ViewModels
                     //Docks.Clear();
                     foreach (DockDevice dockDevice in docks)
                     {
-                        if (Docks.Contains(dockDevice.Info) == false)
+                        // Match by Id: each scan creates fresh DockDeviceInfo instances,
+                        // so reference equality would re-add the same dock every tick.
+                        bool known = false;
+                        foreach (DockDeviceInfo dockinfo in Docks)
+                        {
+                            if (dockinfo.Id == dockDevice.Info.Id) known = true;
+                        }
+                        if (known == false)
                             Docks.Add(dockDevice.Info);
                     }
 

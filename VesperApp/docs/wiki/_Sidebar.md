@@ -2,6 +2,7 @@
 
 **Setup**
 - [Getting Started](Getting-Started)
+- [Linux Setup](Linux-Setup)
 - [Docking Station](Docking-Station)
 - [Supported Devices](Supported-Devices)
 

@@ -89,6 +89,7 @@ namespace VesperApp.Services
                         Id = d.SerialNumber ?? d.Key,
                         Text = d.Description,
                         Description = "FTDI Dock",
+                        SerialNumber = d.SerialNumber, // null: libusb discovery doesn't open devices
                     }));
                 }
             }
@@ -117,6 +118,7 @@ namespace VesperApp.Services
                         Id = list[i].SerialNumber,
                         Text = list[i].Description,
                         Description = "FTDI",
+                        SerialNumber = list[i].SerialNumber,
                     }));
             }
             return result;
@@ -135,7 +137,10 @@ namespace VesperApp.Services
         public async Task<bool> DockConnect(DockDevice d)
         {
             if (_controller.IsOpen) return true;
-            bool ok = await _controller.OpenAsync(d.Info.Id).ConfigureAwait(false);
+            // Filter the open on the real FTDI serial only. On Linux discovery cannot read
+            // it (no open), Info.Id is a synthetic key like "usb:Dock:0403:6001", and passing
+            // that as a serial would reject every device — open the first matching dock instead.
+            bool ok = await _controller.OpenAsync(d.Info.SerialNumber).ConfigureAwait(false);
             if (ok)
             {
                 _connectedDock = d;

@@ -14,6 +14,11 @@ namespace VesperApp.Models
         public string? Text { get; set; }
         public string? Description { get; set; }
 
+        /// <summary>The FTDI serial number, when discovery could read it. Null on Linux,
+        /// where libusb discovery deliberately does not open devices — there <see cref="Id"/>
+        /// is a synthetic discovery key and must NOT be used to filter the open.</summary>
+        public string? SerialNumber { get; set; }
+
         protected bool SetProperty<T>(ref T backingStore, T value,
         [CallerMemberName] string propertyName = "",
         Action onChanged = null)

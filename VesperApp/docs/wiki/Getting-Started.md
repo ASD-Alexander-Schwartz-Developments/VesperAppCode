@@ -14,6 +14,9 @@ The application is self-contained — no separate .NET installation is required.
 2. Run the installer. The app installs per-user and keeps itself up to date automatically — see [Software Updates and Plugins](Software-Updates-and-Plugins).
 3. Launch **VesperApp**.
 
+On **Linux** the download is a portable AppImage rather than an installer, and USB
+access needs a one-time udev setup — follow [Linux Setup](Linux-Setup).
+
 ## First run
 
 On first launch the app creates:
