@@ -160,6 +160,9 @@ namespace VesperApp.Services
             this.serialPort.BaudRate = 19200;
             this.serialPort.ReadTimeout = -1;
             this.serialPort.WriteTimeout = -1;
+            // STM32 CDC firmware may hold TX until the host asserts DTR; Windows
+            // drivers often mask this, Linux cdc_acm does not.
+            this.serialPort.DtrEnable = true;
 
             callBack_message_done = new AsyncCallback(ProcessMessageDone);
 

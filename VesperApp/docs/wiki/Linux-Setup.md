@@ -56,6 +56,11 @@ Then **unplug and replug** the dock and devices. The rules cover:
 | STM32 DFU bootloader (firmware flashing) | `0483:df11` |
 | Nanotag bootloader | `04d8:fe57` |
 
+The rules also tell **ModemManager** (which runs by default on Ubuntu/Fedora desktops)
+to leave the loggers' serial port alone — without that it grabs every newly plugged
+CDC device for ~30 seconds of modem probing, which blocks device detection.
+If you installed an earlier version of this rules file, re-install it and replug.
+
 ## 3. Serial port access (loggers)
 
 The loggers present a USB CDC serial port (`/dev/ttyACM*`), which belongs to the
@@ -70,8 +75,11 @@ sudo usermod -aG dialout $USER
 * Plug in the dock: `lsusb` should list `0403:6001 Future Technology Devices`.
 * In VesperApp, connect to the dock — the dock controls (device power, BOOT0, reset)
   should activate.
-* Dock a logger and enable device power: `/dev/ttyACM0` should appear and the device
-  should show up in VesperApp.
+* Dock a logger and enable device power: `lsusb` should list `0483:a4f4` and
+  `/dev/ttyACM0` should appear (`ls /dev/ttyACM*`); within a few seconds the device
+  shows up in VesperApp's device list.
+* **Running in a VM?** The logger is a separate USB device from the dock — add a USB
+  filter (VirtualBox: Devices → USB) for `0483:a4f4` too, or the guest never sees it.
 * Open **Software Upgrades** and press **Check Updates** — it should report either an
   update or *"No updates available"* (not a configuration error).
 

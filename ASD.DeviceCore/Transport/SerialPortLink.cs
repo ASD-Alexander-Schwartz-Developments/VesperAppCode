@@ -21,6 +21,9 @@ namespace ASD.DeviceCore.Transport
                 Handshake = Handshake.None,
                 ReadTimeout = SerialPort.InfiniteTimeout,
                 WriteTimeout = 2000,
+                // CDC firmware may hold TX until the host asserts DTR (visible on
+                // Linux cdc_acm; Windows drivers often mask it).
+                DtrEnable = true,
             };
         }
 

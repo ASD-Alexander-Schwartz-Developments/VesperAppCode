@@ -239,6 +239,9 @@ namespace VesperApp.Services
                         this._serialPort.PortName = s;
                         this._serialPort.ReadTimeout = 100;
                         this._serialPort.WriteTimeout = 100;
+                        // STM32 CDC firmware may hold TX until the host asserts DTR;
+                        // Windows drivers often mask this, Linux cdc_acm does not.
+                        this._serialPort.DtrEnable = true;
                         this._serialPort.Open();
                         if (this._serialPort.IsOpen)
                         {
@@ -249,29 +252,36 @@ namespace VesperApp.Services
                                 0, new byte[0], 0);
                             this._serialPort.Write(buffer, 0, buffer.Length);
 
-                            await Task.Delay(75);
-
-                            buffer = new byte[16];
-                            if (this._serialPort.Read(buffer, 0, buffer.Length) >= 8)
+                            // Accumulate the GET_VER reply: serial data may arrive in
+                            // chunks (especially on Linux cdc_acm), so a single Read —
+                            // which returns whatever happens to be buffered — can be
+                            // short even when the device answered.
+                            byte[] resp = new byte[32];
+                            int got = 0;
+                            DateTime deadline = DateTime.UtcNow.AddMilliseconds(500);
+                            while (got < 12 && DateTime.UtcNow < deadline)
                             {
-                                int i;
-                                for (i = 0; i < buffer.Length; i++)
+                                await Task.Delay(25);
+                                try
                                 {
-                                    if (buffer[i] == 0x5A)
-                                        break;
+                                    int n = this._serialPort.Read(resp, got, resp.Length - got);
+                                    if (n > 0) got += n;
                                 }
-                                if (buffer[i] == 0x5A && buffer[i + 2] == (byte)MessageTypes.VESPER_GET_VER)             /// need to implement something real here
-                                {
-                                    byte major = (byte)(buffer[i + 4]);
-                                    byte minor = (byte)(buffer[i + 5]);
-                                    uint serial = (uint)((uint)buffer[i + 6] + ((uint)buffer[i + 7] << 8) + ((uint)buffer[i + 8] << 16) + ((uint)buffer[i + 9] << 24));
-                                    DeviceTypes type = (DeviceTypes)buffer[i + 10];
+                                catch (TimeoutException) { }
+                            }
 
-                                    var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial);
+                            int i = got > 0 ? Array.IndexOf(resp, (byte)0x5A, 0, got) : -1;
+                            if (i >= 0 && i + 10 < got && resp[i + 2] == (byte)MessageTypes.VESPER_GET_VER)             /// need to implement something real here
+                            {
+                                byte major = (byte)(resp[i + 4]);
+                                byte minor = (byte)(resp[i + 5]);
+                                uint serial = (uint)((uint)resp[i + 6] + ((uint)resp[i + 7] << 8) + ((uint)resp[i + 8] << 16) + ((uint)resp[i + 9] << 24));
+                                DeviceTypes type = (DeviceTypes)resp[i + 10];
 
-                                    if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
-                                        this._loggerDevices.Add(dev);
-                                }
+                                var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial);
+
+                                if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
+                                    this._loggerDevices.Add(dev);
                             }
 
                             this._serialPort?.Close();
