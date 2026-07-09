@@ -272,7 +272,9 @@ namespace VesperApp.ViewModels
                     {
                         new("Raw logger recordings (.bin)")
                         {
-                            Patterns = new[] { "*.bin" },
+                            // Both cases: devices write uppercase ".BIN" and Linux
+                            // file-picker patterns are case-sensitive.
+                            Patterns = new[] { "*.bin", "*.BIN" },
                             MimeTypes = new[] { "bin/*" }
                         }
                     },
@@ -908,59 +910,62 @@ namespace VesperApp.ViewModels
                     //SuggestedStartLocation =,
                     FileTypeFilter = new List<FilePickerFileType>
                     {
+                        // Every filter lists both cases: devices write uppercase ".BIN"
+                        // (FAT 8.3) and Linux file-picker patterns are case-sensitive.
                         new("All binary files (.bin) ")
                         {
-                            Patterns = new[]{"*.bin"},
+                            Patterns = new[]{"*.bin", "*.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("GPS Snap (.bin) ")
                         {
-                            Patterns = new[]{"*G.bin"},
+                            Patterns = new[]{"*G.bin", "*G.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Audio Recording (.bin) ")
                         {
-                            Patterns = new[]{"*U.bin", "*U0.bin", "*U1.bin", "*U2.bin", "*U3.bin"},
+                            Patterns = new[]{"*U.bin", "*U0.bin", "*U1.bin", "*U2.bin", "*U3.bin",
+                                             "*U.BIN", "*U0.BIN", "*U1.BIN", "*U2.BIN", "*U3.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Motion (Innertial) Recording (.bin) ")
                         {
-                            Patterns = new[]{"*M.bin"},
+                            Patterns = new[]{"*M.bin", "*M.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Ambient Light Level (Lux) Recording (.bin) ")
                         {
-                            Patterns = new[]{"*L.bin"},
+                            Patterns = new[]{"*L.bin", "*L.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Temperature and Relative Humidity Recording (.bin) ")
                         {
-                            Patterns = new[]{"*R.bin"},
+                            Patterns = new[]{"*R.bin", "*R.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Biopotentials (EEG/EMG/ECG) Recording (.bin) ")
                         {
-                            Patterns = new[]{"*E.bin"},
+                            Patterns = new[]{"*E.bin", "*E.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Aux Analog sensor Recording (.bin) ")
                         {
-                            Patterns = new[]{"*S.bin"},
+                            Patterns = new[]{"*S.bin", "*S.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Proximity Recording (.bin) ")
                         {
-                            Patterns = new[]{"*X.bin"},
+                            Patterns = new[]{"*X.bin", "*X.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Thermal Camera (Lepton) (.bin) ")
                         {
-                            Patterns = new[]{"*C.bin"},
+                            Patterns = new[]{"*C.bin", "*C.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                         new("Self Log Recording (.bin) ")
                         {
-                            Patterns = new[]{"*O.bin"},
+                            Patterns = new[]{"*O.bin", "*O.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
                     },

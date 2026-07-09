@@ -264,7 +264,8 @@ namespace VesperApp.ViewModels
             {
                 string snapDir = Path.Combine(CapturesFolder, "_snaps");
                 Directory.CreateDirectory(snapDir);
-                string[] bins = Directory.GetFiles(CapturesFolder, "*G.BIN");
+                string[] bins = Directory.GetFiles(CapturesFolder, "*G.BIN",
+                    new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive });
                 foreach (string bin in bins)
                     await BinaryParser.ExtractVesperSnap(bin, snapDir, TimeSpan.Zero);
 

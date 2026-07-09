@@ -190,7 +190,9 @@ namespace VesperApp.ViewModels
                     if (line.Length > 0) uid = line;
                 }
 
-                foreach (FileInfo f in root.EnumerateFiles("*.bin", SearchOption.AllDirectories))
+                // Devices write uppercase ".BIN" (FAT 8.3) — match case-insensitively on Linux.
+                foreach (FileInfo f in root.EnumerateFiles("*.bin", new EnumerationOptions
+                    { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive }))
                 {
                     count++;
                     if (newest == null || f.LastWriteTime > newest) newest = f.LastWriteTime;

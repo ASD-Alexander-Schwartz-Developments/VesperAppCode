@@ -138,7 +138,10 @@ namespace VesperApp.Services
         {
             try
             {
-                return Directory.EnumerateFiles(folder, "*.bin", SearchOption.AllDirectories)
+                // Devices write FAT 8.3 names, i.e. uppercase ".BIN" — match case-insensitively
+                // (Windows does implicitly, Linux does not).
+                return Directory.EnumerateFiles(folder, "*.bin", new EnumerationOptions
+                    { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive })
                     .Where(IsRawBin)
                     .ToList();
             }
