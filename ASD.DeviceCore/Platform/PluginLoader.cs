@@ -70,6 +70,10 @@ namespace ASD.Platform
                     continue;
                 }
 
+                // Repair packs whose native executables lost their execute bit in
+                // zip transit — otherwise Process.Start fails with EACCES on Unix.
+                EnsureUnixExecutables(dir, log);
+
                 foreach (string dll in Directory.EnumerateFiles(dir, "*.dll", SearchOption.AllDirectories))
                 {
                     // A higher-precedence folder already provided this DLL name; don't double-load.
@@ -167,6 +171,50 @@ namespace ASD.Platform
                 }
             }
             return bound;
+        }
+
+        /// <summary>
+        /// Restore the execute bit on native executables (ELF / Mach-O / shebang scripts)
+        /// under a plugin folder. Zip archives don't reliably carry Unix permissions, so a
+        /// pack extracted on Linux/macOS can ship its <c>geotag</c>/<c>cg-aiding</c> binaries
+        /// non-executable — making <c>Process.Start</c> fail with EACCES. Idempotent, cheap
+        /// (only files with the bit missing are sniffed), no-op on Windows.
+        /// </summary>
+        public static void EnsureUnixExecutables(string dir, ILogger? log = null)
+        {
+            if (OperatingSystem.IsWindows() || !Directory.Exists(dir)) return;
+            log ??= NullLogger.Instance;
+
+            foreach (string f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+            {
+                try
+                {
+                    UnixFileMode mode = File.GetUnixFileMode(f);
+                    if ((mode & UnixFileMode.UserExecute) != 0) continue;
+                    if (!LooksExecutable(f)) continue;
+
+                    File.SetUnixFileMode(f,
+                        mode | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+                    log.LogInformation("Restored execute permission on {File}.", f);
+                }
+                catch (Exception ex)
+                {
+                    log.LogWarning(ex, "Could not inspect/repair execute bit on {File}.", f);
+                }
+            }
+        }
+
+        /// <summary>True when the file starts with an ELF/Mach-O magic or a shebang.</summary>
+        private static bool LooksExecutable(string path)
+        {
+            Span<byte> b = stackalloc byte[4];
+            using FileStream fs = File.OpenRead(path);
+            if (fs.Read(b) < 4) return false;
+
+            if (b[0] == 0x7F && b[1] == (byte)'E' && b[2] == (byte)'L' && b[3] == (byte)'F') return true; // ELF
+            if (b[0] == (byte)'#' && b[1] == (byte)'!') return true;                                       // script
+            uint m = BitConverter.ToUInt32(b);
+            return m is 0xFEEDFACE or 0xFEEDFACF or 0xCEFAEDFE or 0xCFFAEDFE or 0xCAFEBABE or 0xBEBAFECA; // Mach-O
         }
 
         private static bool IsAbiSupported(int abi) =>

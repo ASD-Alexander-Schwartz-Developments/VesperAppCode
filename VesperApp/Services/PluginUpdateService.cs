@@ -117,6 +117,9 @@ namespace VesperApp.Services
 
                 Directory.CreateDirectory(stagingDir);
                 ZipFile.ExtractToDirectory(tempZip, stagingDir, overwriteFiles: true);
+                // Zips don't reliably carry Unix permissions — restore the execute bit on
+                // the pack's native binaries or Process.Start fails with EACCES on Linux.
+                PluginLoader.EnsureUnixExecutables(stagingDir);
 
                 // Swap staging into place; move the old aside first so a locked DLL doesn't block us.
                 Directory.CreateDirectory(Path.GetDirectoryName(targetDir)!);
