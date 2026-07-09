@@ -15,7 +15,7 @@ namespace VesperApp.Services
     {
         readonly List<Models.LoggerDevice> _loggerDevices;
 
-        UsbContext _context;
+        UsbContext? _context;
         LoggerDevice ? _device;
 
         Task ? DisconnectDeviceTestTask;
@@ -29,7 +29,21 @@ namespace VesperApp.Services
         {
             _loggerDevices = new List<Models.LoggerDevice>();
 
-            _context = new UsbContext();
+            // libusb is only needed for non-serial devices (Nanotag bulk); if the
+            // native library can't load, degrade to serial-only discovery instead of
+            // killing startup (seen on a fresh Windows: a libusb build that depended
+            // on the absent VC++ runtime took the whole app down here).
+            try
+            {
+                _context = new UsbContext();
+            }
+            catch (Exception ex)
+            {
+                _context = null;
+                Debug.WriteLine("libusb unavailable - USB (non-serial) device discovery disabled: " + ex.Message);
+                System.Diagnostics.Trace.TraceWarning(
+                    "libusb unavailable - USB (non-serial) device discovery disabled: " + ex.Message);
+            }
             _device = null;
             _serialPort = new SerialPort();
             tokenSource = new CancellationTokenSource();
