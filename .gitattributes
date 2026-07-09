@@ -61,3 +61,10 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+###############################################################################
+# Files consumed on Linux must keep LF endings even on Windows checkouts
+# (udev silently misparses CRLF rules).
+###############################################################################
+*.rules text eol=lf
+*.sh    text eol=lf
