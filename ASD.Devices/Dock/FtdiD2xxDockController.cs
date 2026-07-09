@@ -19,11 +19,14 @@ namespace ASD.Devices.Dock
 
         public bool IsOpen => _ftdi.IsOpen;
 
+        public string? LastError { get; private set; }
+
         public Task<bool> OpenAsync(string? serialNumber = null)
         {
             FTDI.FT_STATUS st = serialNumber is { Length: > 0 }
                 ? _ftdi.OpenBySerialNumber(serialNumber)
                 : _ftdi.OpenByIndex(0);
+            LastError = st == FTDI.FT_STATUS.FT_OK ? null : $"FTDI D2XX open failed ({st}).";
             return Task.FromResult(st == FTDI.FT_STATUS.FT_OK);
         }
 

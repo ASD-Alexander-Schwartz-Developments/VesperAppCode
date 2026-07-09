@@ -43,14 +43,23 @@ namespace ASD.Devices.Dock
 
         public bool IsOpen => _device?.IsOpen == true;
 
+        public string? LastError { get; private set; }
+
         public Task<bool> OpenAsync(string? serialNumber = null)
         {
+            LastError = null;
+            bool sawDock = false;
             foreach (UsbDevice d in _context.UsbDevices())
             {
                 if (d.VendorId != AsdDeviceIds.Dock.Vid || d.ProductId != AsdDeviceIds.Dock.Pid)
                     continue;
+                sawDock = true;
                 if (!d.TryOpen())
+                {
+                    LastError = "the dock was found but could not be opened — on Linux this "
+                        + "usually means the udev rules are not installed (or the dock was not replugged).";
                     continue;
+                }
                 try
                 {
                     if (serialNumber is { Length: > 0 } && d.Info?.SerialNumber != serialNumber)
@@ -59,17 +68,34 @@ namespace ASD.Devices.Dock
                         continue;
                     }
                     try { d.SetAutoDetachKernelDriver(true); } catch { }
+                    // On Linux, ftdi_sio binds to the dock at plug time. While a kernel
+                    // driver holds an interface, SET_CONFIGURATION fails with
+                    // LIBUSB_ERROR_BUSY — auto-detach only applies at claim time — so
+                    // detach explicitly before touching the configuration.
+                    try
+                    {
+                        if (d.IsKernelDriverActive(0))
+                            d.DetachKernelDriver(0);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogWarning(ex, "Kernel driver detach failed; continuing.");
+                    }
                     d.SetConfiguration(1);
                     d.ClaimInterface(0); // FTDI port A control
                     _device = d;
+                    LastError = null;
                     return Task.FromResult(true);
                 }
                 catch (Exception ex)
                 {
+                    LastError = ex.Message;
                     _log.LogWarning(ex, "Failed to open dock over libusb.");
                     try { d.Close(); } catch { }
                 }
             }
+            if (!sawDock)
+                LastError = "no dock was found on the USB bus.";
             return Task.FromResult(false);
         }
 

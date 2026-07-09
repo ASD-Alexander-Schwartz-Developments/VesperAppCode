@@ -236,6 +236,9 @@ namespace VesperApp.ViewModels
                                     : "Make sure the dock is plugged in and your user is allowed to access it. " +
                                       "On Linux this usually means installing the VesperApp udev rules " +
                                       "(see Help → Linux Setup) and replugging the dock.";
+                                string? detail = _globalDockAdapter.LastConnectError;
+                                if (!string.IsNullOrEmpty(detail))
+                                    hint += $"\n\nDetails: {detail}";
                                 await MessageBoxManager.GetMessageBoxStandard(new MessageBoxStandardParams
                                 {
                                     ButtonDefinitions = ButtonEnum.Ok,

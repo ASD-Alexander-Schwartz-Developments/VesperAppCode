@@ -15,6 +15,9 @@ namespace ASD.Devices.Dock
     {
         bool IsOpen { get; }
 
+        /// <summary>Human-readable detail of the last failed <see cref="OpenAsync"/>, or null.</summary>
+        string? LastError { get; }
+
         /// <summary>Open the dock by its serial number (or the first dock if null).</summary>
         Task<bool> OpenAsync(string? serialNumber = null);
 

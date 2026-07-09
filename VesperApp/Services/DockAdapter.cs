@@ -43,6 +43,9 @@ namespace VesperApp.Services
 
         public bool IsConnected => _controller.IsOpen;
 
+        /// <summary>Detail of the last failed connect attempt, or null.</summary>
+        public string? LastConnectError => _controller.LastError;
+
         public event EventHandler<DockConnectionEventArgs> ConnectionEvent
         {
             add { lock (_eventLock) _connectEvent += value; }
