@@ -163,6 +163,12 @@ namespace ASD.Platform
                     log.LogInformation("Bound IPlmClient from {Type} ({Dll}).", t.FullName, Path.GetFileName(dllPath));
                     bound++;
                 }
+                else if (typeof(ISoundClassifier).IsAssignableFrom(t))
+                {
+                    PlatformServices.Bind(soundClassifier: (ISoundClassifier)Activator.CreateInstance(t)!);
+                    log.LogInformation("Bound ISoundClassifier from {Type} ({Dll}).", t.FullName, Path.GetFileName(dllPath));
+                    bound++;
+                }
                 else if (typeof(IEntitlementProvider).IsAssignableFrom(t))
                 {
                     PlatformServices.Bind(entitlements: (IEntitlementProvider)Activator.CreateInstance(t)!);

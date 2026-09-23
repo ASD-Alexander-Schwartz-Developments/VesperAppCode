@@ -80,6 +80,17 @@ namespace VesperApp.Services
         // (feature/dock-bench-test) — see VesperU5 docs/GNSS-BENCH-BRINGUP.md.
         VESPER_TEST_GPS = 61,
 
+        // KOL USB operational modes + commanded bootloader entry (KOL kol.h, commit
+        // d31da4c; contract in asd-interfaces interfaces/boot-and-modes.md). Every
+        // one of these is ACKed BEFORE the transition - after the ACK the CDC port
+        // is expected to disappear (mode switch re-enumerates; sampling and the
+        // bootloader detach).
+        VESPER_SET_USB_MODE = 62,       // payload[0]: KolUsbMode (0 Idle, 1 Sampling, 2 LiveAudio)
+        VESPER_GET_USB_MODE = 63,       // reply: [0] active mode, [1] pending mode
+        VESPER_ENTER_BOOTLOADER = 64,   // ACK, then the device re-enumerates as ST DFU 0483:DF11
+        VESPER_SET_MIC_PARAMS = 65,     // payload: KolMicParams.Pack() (gain i8, hpf, dfilter u16 LE, cic4); ACK; applied live
+        VESPER_GET_MIC_PARAMS = 66,     // reply: KolMicParams (5 B) + status: streaming, capturing, saturated, fs u32 LE
+
         UDSP_GET_VER = 200,
         UDSP_SLEEP,
         UDSP_GET_CONFIG,

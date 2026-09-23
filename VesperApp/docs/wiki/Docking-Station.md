@@ -50,7 +50,7 @@ To release the hardware for other software, use **Disconnect**.
 
 | Operation | Dock required? |
 |---|---|
-| Firmware flashing of VT04-VESPER / VT04-PP / KOL | **Yes** — the DFU boot sequence is driven through the dock's control lines |
+| Firmware flashing of VT04-VESPER / VT04-PP | **Yes** — the DFU boot sequence is driven through the dock's control lines (the KOL enters its bootloader on command and flashes over its own USB cable; the dock remains a fallback for old KOL firmware) |
 | Recording import from device storage | Yes, for docked products |
 | Configuration read/write | Yes, for docked products |
 | Device Tests (mic health, GNSS self-test) | Yes, for docked products |

@@ -39,7 +39,7 @@ using static VesperApp.Models.ConfigurationJSON;
 
 namespace VesperApp.ViewModels
 {
-    public class MainViewViewModel : ViewModelBase
+    public partial class MainViewViewModel : ViewModelBase
     {
         private DockAdapter _globalDockAdapter;
 
@@ -125,7 +125,26 @@ namespace VesperApp.ViewModels
 
         private string _textDateTimeNow = (DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToLongTimeString());
 
-        public LoggerDevice? SelectedLoggerDevice { get; set; }
+        /// <summary>
+        /// The device highlighted in the list. Change notification is dispatched to the
+        /// UI thread (the periodic pollers assign this from worker threads) and feeds
+        /// the KOL mode panel (MainViewViewModel.Kol.cs).
+        /// </summary>
+        public LoggerDevice? SelectedLoggerDevice
+        {
+            get => _selectedLoggerDevice;
+            set
+            {
+                if (ReferenceEquals(_selectedLoggerDevice, value)) return;
+                _selectedLoggerDevice = value;
+                RunOnUi(() =>
+                {
+                    this.RaisePropertyChanged(nameof(SelectedLoggerDevice));
+                    OnSelectedLoggerDeviceChanged();
+                });
+            }
+        }
+        private LoggerDevice? _selectedLoggerDevice;
 
         private System.Timers.Timer? _timer;
         private System.Timers.Timer? _timerClock;
@@ -167,6 +186,7 @@ namespace VesperApp.ViewModels
             Categories.Add(new Category { Name = "Recordings", Page = typeof(RecordingsParsing), DataContext = recordingsViewModel, Icon = Symbol.ContactInfo, ToolTip = "Import, Parse and decode recordings" });
             Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), DataContext = new ScheduleEditorViewModel(), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
             Categories.Add(new Category { Name = "Device Tests", Page = typeof(DeviceTests), DataContext = new DeviceTestsViewModel(this), Icon = Symbol.Repair, ToolTip = "Per-sensor test validations (microphones, GNSS/RF, …)" });
+            Categories.Add(new Category { Name = "Live View", Page = typeof(LiveView), DataContext = new LiveViewViewModel(this), Icon = Symbol.Audio, ToolTip = "Real-time microphone view: scope, spectrum, spectrogram, PDM and sound recognition (KOL 4-ch USB stream or PC microphone)" });
             Categories.Add(new VesperApp.Models.Separator());
             Categories.Add(new Category { Name = "Software Upgrades", Page = typeof(UpdateChecker), DataContext = new UpdateCheckerViewModel(), Icon = Symbol.New, ToolTip = "Software Upgrades" });
             Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(this), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
@@ -185,6 +205,8 @@ namespace VesperApp.ViewModels
 
             ToggleDeviceConsoleCommand = ReactiveCommand.Create(
                 () => { IsDeviceConsoleExpanded = !IsDeviceConsoleExpanded; });
+
+            InitKolCommands();
 
             var settings = SettingsService.Current;
             _isDeviceConsoleExpanded = settings.Ui.DeviceConsoleExpanded;
@@ -316,9 +338,10 @@ namespace VesperApp.ViewModels
                         this._timer?.Stop();
                         await Task.Delay(250);
                     }
+                    bool connected = false;
                     try
                     {
-                        await _deviceUsbAdapter.DeviceConnect(SelectedLoggerDevice);
+                        connected = await _deviceUsbAdapter.DeviceConnect(SelectedLoggerDevice);
                     }
                     catch (Exception ex)
                     { }
@@ -327,6 +350,8 @@ namespace VesperApp.ViewModels
                         if (this._timer?.Enabled == false)
                             this._timer.Start();
                     }
+                    if (connected)
+                        await OnDeviceConnectedAsync();   // KOL: read its USB mode on connect
 
                 }
             });
@@ -384,6 +409,21 @@ namespace VesperApp.ViewModels
             {
                 if (SelectedLoggerDevice != null)
                 {
+                    if (SelectedLoggerDevice.IsKol)
+                    {
+                        // KOL flashes from the Firmware Upgrades page (commanded DFU entry +
+                        // the STM32 DFU flasher, no dock). Sending the bare bootloader
+                        // command here would strand the user in DFU with nothing to flash.
+                        Category? fw = Categories.OfType<Category>()
+                            .FirstOrDefault(c => c.DataContext is FirmwareUpgradesViewModel);
+                        if (fw != null)
+                        {
+                            if (fw.DataContext is FirmwareUpgradesViewModel fwvm)
+                                fwvm.SelectedDeviceType = DeviceTypes.Kol;
+                            SelectedCategory = fw;
+                        }
+                        return;
+                    }
                     await SelectedLoggerDevice.Bootloader();
                 }
             });
@@ -511,6 +551,7 @@ namespace VesperApp.ViewModels
         private void _deviceUsbAdapter_ConnectionEvent(object? sender, DeviceConnectionEventArgs e)
         {
             IsDeviceConnected = e.IsConnected;
+            RunOnUi(RaiseKolProperties);   // CanUseDeviceDisk follows the connection state
         }
 
 

@@ -45,5 +45,20 @@ namespace VesperApp.Models
             DeviceTypes.Vesper => true,
             _ => false,
         };
+
+        /// <summary>
+        /// Whether the product exposes host-commanded USB operational modes
+        /// (<see cref="KolUsbMode"/>: Idle / Sampling / Live Audio). KOL only today;
+        /// VesperU5 is slated to adopt the same contract.
+        /// </summary>
+        public static bool HasUsbModes(DeviceTypes? product) => product == DeviceTypes.Kol;
+
+        /// <summary>
+        /// Whether firmware is flashed straight over the device's own USB connection
+        /// (no docking station): Nanotag (HID bootloader) and KOL (commanded ST DFU
+        /// entry). VT04-VESPER / VT04-PP need the dock's BOOT0/reset lines.
+        /// </summary>
+        public static bool FlashesWithoutDock(DeviceTypes? product) =>
+            product == DeviceTypes.Nanotag || product == DeviceTypes.Kol;
     }
 }

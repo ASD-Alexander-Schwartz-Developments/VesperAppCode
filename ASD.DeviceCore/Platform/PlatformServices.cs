@@ -18,6 +18,9 @@ namespace ASD.Platform
         public static IPlmClient Plm { get; private set; } = new StubPlmClient();
         public static IGnssDecoder Gnss { get; private set; } = new StubGnssDecoder();
         public static IEntitlementProvider Entitlements { get; private set; } = new OfflineEntitlementProvider();
+        /// <summary>Optional real-time sound classifier plugin (Live View). Null = none bound;
+        /// the shell falls back to its built-in demo heuristic.</summary>
+        public static ISoundClassifier? SoundClassifier { get; private set; }
 
         /// <summary>The bound services as a context object, for handing to modules.</summary>
         public static IPlatformContext Context { get; private set; } =
@@ -33,8 +36,10 @@ namespace ASD.Platform
         public static void Bind(
             IPlmClient? plm = null,
             IGnssDecoder? gnss = null,
-            IEntitlementProvider? entitlements = null)
+            IEntitlementProvider? entitlements = null,
+            ISoundClassifier? soundClassifier = null)
         {
+            if (soundClassifier != null) SoundClassifier = soundClassifier;
             if (plm != null) Plm = plm;
             if (gnss != null) Gnss = gnss;
             if (entitlements != null) Entitlements = entitlements;

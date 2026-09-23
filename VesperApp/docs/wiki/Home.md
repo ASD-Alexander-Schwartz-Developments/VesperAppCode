@@ -11,6 +11,7 @@ From one application you can:
 - **Configure devices** — recording schedules, sensor drivers and power behaviour — through a guided configuration editor.
 - **Import, parse and decode recordings** from a device's storage into WAV audio, CSV sensor data, thermal-camera images and GNSS position fixes.
 - **Test hardware** with built-in per-sensor checks (microphone health, GNSS/RF self-test).
+- **Listen live** to a KOL's four microphones (or your PC microphone) with a scope, spectrum analyser and spectrogram, adjust the device's microphone parameters on the fly and try sound recognition — see [Live View](Live-View).
 - **Update firmware** on devices through the docking station, and keep the app itself and its plugins up to date.
 
 ![A tour of the main tabs of VesperApp](images/app-tour.gif)
@@ -27,6 +28,7 @@ From one application you can:
 | Decode GNSS snapshots | [GNSS Decoding](GNSS-Decoding) |
 | Configure a device's schedule | [Configuration Editor](Configuration-Editor) |
 | Check microphones or GNSS | [Device Tests](Device-Tests) |
+| See and hear the microphones live | [Live View](Live-View) |
 | Update device firmware | [Firmware Updates](Firmware-Updates) |
 | Update the app or plugins | [Software Updates and Plugins](Software-Updates-and-Plugins) |
 | Change app preferences | [Settings](Settings) |

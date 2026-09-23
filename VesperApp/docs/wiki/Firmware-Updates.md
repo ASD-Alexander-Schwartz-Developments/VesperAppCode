@@ -1,6 +1,6 @@
 # Firmware Updates
 
-The **Firmware Upgrades** tab downloads released device firmware and flashes it — through the docking station for the VT04 family, or directly over USB for the Nanotag.
+The **Firmware Upgrades** tab downloads released device firmware and flashes it — through the docking station for the VT04 family, or directly over USB for the KOL and the Nanotag.
 
 ![The Firmware Upgrades tab](images/tab-firmware-upgrades.png)
 
@@ -13,7 +13,7 @@ The **Firmware Upgrades** tab downloads released device firmware and flashes it 
 
 VT04-VESPER and VT04-PP share the same firmware — the board is auto-detected at runtime — so the same releases appear under both device types.
 
-## Flashing a VT04-VESPER / VT04-PP / KOL
+## Flashing a VT04-VESPER / VT04-PP
 
 These devices flash over **USB DFU** using the ST system bootloader, and the whole boot-mode dance is automated by the [docking station](Docking-Station):
 
@@ -27,6 +27,18 @@ Supported firmware file formats: `.dfu` (DfuSe), `.hex` (Intel HEX) and raw `.bi
 **During the flash:** leave the device seated and the dock plugged in. If the process is interrupted or fails, the device cannot be bricked: the boot line is always restored and the device stays recoverable through its ROM bootloader — simply run the flash again.
 
 **First flash on a Windows machine:** the very first time the bootloader appears, Windows may take a while to bind its driver — the app waits up to 20 seconds. If it consistently reports that a DFU device was detected but could not be opened, install the "STM32 BOOTLOADER" WinUSB driver (included with STM32CubeProgrammer) once.
+
+## Flashing a KOL
+
+The KOL flashes over the **same ST USB DFU bootloader**, but needs **no dock**: its firmware enters the bootloader on command.
+
+1. Connect the KOL over USB, select it in the device list and press **Connect Device**.
+2. In Firmware Upgrades pick the **KOL** device type, select the downloaded release and press **Flash**. (The **Upgrade Firmware** button on the device console takes you to the same page.)
+3. The app commands the running firmware into the bootloader over its console, waits for the ST DFU device to appear, writes and verifies the image, and leaves the bootloader — the KOL restarts into the new firmware and is reconnected automatically in Idle mode.
+
+Nothing is changed on the device when it enters the bootloader, so the process cannot brick it: if a flash is interrupted, unplugging and replugging the USB cable (or any reset) boots whatever firmware is in flash, and you simply run the flash again. If the KOL does not reappear on its own after a successful write, replug its cable.
+
+Older KOL firmware that predates commanded bootloader entry will not acknowledge the command; flash such a unit once through the docking station (BOOT0/reset lines), after which the direct path works.
 
 ## Flashing a Nanotag
 

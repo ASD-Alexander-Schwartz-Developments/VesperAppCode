@@ -49,7 +49,7 @@ namespace VesperApp.Services
             try
             {
                 // 2-5. Blocking libusb work runs off the UI thread.
-                return await Task.Run(() => FlashCore(firmwarePath, progress, ct), ct);
+                return await Task.Run(() => FlashCore(firmwarePath, progress, ct, viaDock: true), ct);
             }
             finally
             {
@@ -66,7 +66,24 @@ namespace VesperApp.Services
             }
         }
 
-        private static bool FlashCore(string firmwarePath, IProgress<FlashProgress>? progress, CancellationToken ct)
+        /// <summary>
+        /// Program a device that is ALREADY in (or about to enter) the ST ROM DFU
+        /// bootloader, without touching any dock line - the KOL path, where the
+        /// running firmware was commanded into DFU over its own CDC console
+        /// (<c>VESPER_ENTER_BOOTLOADER</c>). Waits up to ~20 s for 0483:DF11, writes,
+        /// then issues the DFU leave; the ROM bootloader jumps to the new application
+        /// (and any reset does the same - nothing persistent changed on entry).
+        /// </summary>
+        public static Task<bool> FlashDfuDeviceAsync(string firmwarePath, IProgress<FlashProgress>? progress,
+            CancellationToken ct = default, bool viaDock = false)
+        {
+            if (!File.Exists(firmwarePath))
+                throw new FileNotFoundException("Firmware file not found.", firmwarePath);
+            progress?.Report(new FlashProgress { Percent = 0, Status = "Waiting for the DFU bootloader…" });
+            return Task.Run(() => FlashCore(firmwarePath, progress, ct, viaDock), ct);
+        }
+
+        private static bool FlashCore(string firmwarePath, IProgress<FlashProgress>? progress, CancellationToken ct, bool viaDock)
         {
             using var context = new UsbContext();
 
@@ -96,7 +113,7 @@ namespace VesperApp.Services
             }
 
             if (dfu == null)
-                throw new InvalidOperationException(BuildNoDfuMessage(context, lastOpenError));
+                throw new InvalidOperationException(BuildNoDfuMessage(context, lastOpenError, viaDock));
 
             try
             {
@@ -143,18 +160,30 @@ namespace VesperApp.Services
         /// <summary>Build an actionable timeout message: distinguish "device never came
         /// back on USB", "device booted its application instead of the bootloader" and
         /// "DFU present but unopenable (driver)" — each has a different remedy.</summary>
-        private static string BuildNoDfuMessage(UsbContext context, Exception? lastOpenError)
+        private static string BuildNoDfuMessage(UsbContext context, Exception? lastOpenError, bool viaDock)
         {
             string seen;
             try
             {
                 using var st = context.FindMultipleDevices(d => d.VendorId == StVid);
-                seen = st.Count == 0
-                    ? "No ST (0483:*) USB device is visible at all — the device did not re-enumerate. "
-                      + "Check that it is seated in the dock (TOP marking aligned) and powered (Enable Device)."
-                    : "Visible ST devices: " + string.Join(", ", st.Select(d => $"0483:{d.ProductId:X4}")) + ". "
-                      + "If the application id (A4F4) is listed, the device booted its firmware instead of the "
-                      + "bootloader — the BOOT0 line had no effect (check dock contact / device option bytes nSWBOOT0).";
+                if (st.Count == 0)
+                {
+                    seen = viaDock
+                        ? "No ST (0483:*) USB device is visible at all — the device did not re-enumerate. "
+                          + "Check that it is seated in the dock (TOP marking aligned) and powered (Enable Device)."
+                        : "No ST (0483:*) USB device is visible at all — the device did not re-enumerate after the "
+                          + "bootloader command. Check the USB cable, then unplug and replug the device: it boots its "
+                          + "previous firmware on any reset.";
+                }
+                else
+                {
+                    seen = "Visible ST devices: " + string.Join(", ", st.Select(d => $"0483:{d.ProductId:X4}")) + ". "
+                        + (viaDock
+                            ? "If the application id (A4F4) is listed, the device booted its firmware instead of the "
+                              + "bootloader — the BOOT0 line had no effect (check dock contact / device option bytes nSWBOOT0)."
+                            : "If the application id (A4F4) is listed, the device is still running its firmware — the "
+                              + "bootloader jump did not happen. Retry, or flash once through the docking station.");
+                }
             }
             catch { seen = "USB enumeration failed while diagnosing."; }
 
@@ -163,7 +192,8 @@ namespace VesperApp.Services
                   + "install the WinUSB driver for 'STM32 BOOTLOADER' (included with STM32CubeProgrammer)."
                 : string.Empty;
 
-            return $"No usable STM32 DFU device ({StVid:X4}:{StDfuPid:X4}) appeared after the BOOT0/reset sequence. {seen}{driverHint}";
+            string trigger = viaDock ? "after the BOOT0/reset sequence" : "after the bootloader command";
+            return $"No usable STM32 DFU device ({StVid:X4}:{StDfuPid:X4}) appeared {trigger}. {seen}{driverHint}";
         }
 
         private static RawMemory BinToMemory(string path, ulong baseAddress)

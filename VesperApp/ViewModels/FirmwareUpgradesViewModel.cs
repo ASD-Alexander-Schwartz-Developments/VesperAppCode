@@ -25,7 +25,7 @@ using VesperApp.Views;
 
 namespace VesperApp.ViewModels
 {
-    public class FirmwareUpgradesViewModel : ViewModelBase
+    public partial class FirmwareUpgradesViewModel : ViewModelBase
     {
         // Firmware updates come from a CDN release feed (index.json) published to S3/CloudFront by CI
         // in the private firmware repo — NOT the GitHub API, so there is no token in the client at all.
@@ -282,6 +282,9 @@ namespace VesperApp.ViewModels
                     try { if (File.Exists(ntmp)) File.Delete(ntmp); } catch { }
                 }
             }
+
+            if (target == DeviceTypes.Kol)
+                return await RunKolFlash(selected);   // commanded DFU entry over CDC, no dock
 
             DockAdapter? dock = _main?.GlobalDock;
             if (dock is null || !dock.IsConnected)

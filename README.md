@@ -18,3 +18,7 @@ Prerequisites
 - Platform-specific native libraries for libusb if using DFU features
 
 Build
+
+## Third-party components and licenses
+
+VesperApp is LGPL-3.0 (see `LICENSE`). It distributes open-source and vendor components under their own licenses - Avalonia, FluentAvalonia, ReactiveUI, Markdown.Avalonia, Velopack, PortAudio / PortAudioSharp2 (Live View audio capture), libusb / LibUsbDotNet, FTDI FTD2XX_NET and others. The complete list with copyright notices is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md); full license texts are in [`licenses/`](licenses/). Both are shipped with every build.

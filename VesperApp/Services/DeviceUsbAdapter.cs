@@ -336,6 +336,37 @@ namespace VesperApp.Services
 
 
 
+        /// <summary>
+        /// Poll CDC discovery until a logger with <paramref name="serial"/> is present
+        /// (a device re-enumerating after a commanded USB mode switch or a firmware
+        /// flash). Returns the discovered, not-yet-connected device, or null on timeout.
+        /// Callers should pause the periodic scan while waiting.
+        /// </summary>
+        public async Task<LoggerDevice?> WaitForComportDeviceAsync(string serial, TimeSpan timeout,
+            CancellationToken ct = default)
+        {
+            DateTime deadline = DateTime.UtcNow + timeout;
+            while (DateTime.UtcNow < deadline && !ct.IsCancellationRequested)
+            {
+                List<LoggerDevice> devices;
+                try
+                {
+                    devices = (await ScanComPortsAsync(false)).ToList();
+                }
+                catch
+                {
+                    devices = new List<LoggerDevice>();
+                }
+
+                LoggerDevice? hit = devices.FirstOrDefault(d => d.IsComportDevice
+                    && string.Equals(d.SerialNumber, serial, StringComparison.OrdinalIgnoreCase));
+                if (hit != null) return hit;
+
+                try { await Task.Delay(500, ct); } catch (OperationCanceledException) { break; }
+            }
+            return null;
+        }
+
         public Task<LoggerDevice?> GetDiviceBySerialNumberAsync(string serialnum)
         {
             LoggerDevice? r = null;

@@ -1,3 +1,13 @@
-Place full license texts for third-party components here. Filenames used in this repo:
-- libusb-LICENSE.txt
-- LibUsbDotNet-LICENSE.txt
+Full license texts for third-party components distributed with VesperApp.
+The component-to-license mapping is in ../THIRD-PARTY-NOTICES.md (regenerate it when adding a dependency).
+
+Files:
+- MIT.txt                        MIT template (copyright holders per component in the notices file)
+- Apache-2.0.txt                 Apache License 2.0 (canonical text)
+- PortAudioSharp2-LICENSE.txt    PortAudioSharp2 binding (Apache-2.0, Copyright 2019 Benjamin N. Summerton)
+- PortAudio-LICENSE.txt          PortAudio native library (PortAudio license, Ross Bencina and Phil Burk)
+- ANGLE-BSD-3-Clause.txt         ANGLE (Avalonia.Angle.Windows.Natives)
+- MS-PL.txt                      Microsoft Public License (Svg.Custom)
+- Fizzler-LGPL-3.0.txt           Fizzler (via Markdown.Avalonia.Html)
+- FTD2XX.Net-LICENSE.txt         FTDI FTD2XX_NET.dll licence
+Also at the repository root: libusb-LICENSE.txt (LGPL-2.1), LibUsbDotNet-LICENSE.txt (LGPL-3.0), LICENSE (VesperApp, LGPL-3.0).

@@ -1,0 +1,292 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:la="using:VesperApp.Controls.LiveAudio"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="760"
+             x:DataType="vm:LiveViewViewModel"
+             x:Class="VesperApp.Controls.LiveView">
+
+	<UserControl.Styles>
+		<Style Selector="TextBlock.h">
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="Margin" Value="0,0,0,6"/>
+		</Style>
+		<Style Selector="TextBlock.lbl">
+			<Setter Property="Opacity" Value="0.75"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+		</Style>
+		<Style Selector="Border.panel">
+			<Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+			<Setter Property="CornerRadius" Value="8"/>
+			<Setter Property="Padding" Value="14,12"/>
+			<Setter Property="Margin" Value="0,0,0,10"/>
+		</Style>
+		<Style Selector="Ellipse.chdot">
+			<Setter Property="Width" Value="10"/>
+			<Setter Property="Height" Value="10"/>
+			<Setter Property="Margin" Value="0,0,6,0"/>
+		</Style>
+		<!-- instrument overlay buttons (focus / pop out) -->
+		<Style Selector="Button.inst">
+			<Setter Property="Padding" Value="6,2"/>
+			<Setter Property="MinWidth" Value="0"/>
+			<Setter Property="MinHeight" Value="0"/>
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="Background" Value="#33101828"/>
+			<Setter Property="Foreground" Value="#CBD5E1"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="CornerRadius" Value="4"/>
+		</Style>
+		<Style Selector="Button.inst:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#66334155"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,*" Margin="12">
+
+		<!-- ═══════════ command bar ═══════════ -->
+		<Border Grid.Row="0" Grid.ColumnSpan="2" Classes="panel" Padding="12,8">
+			<Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" VerticalAlignment="Center">
+				<StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+					<Button Classes="accent" Command="{Binding StartCommand}" IsEnabled="{Binding IsIdle}" MinWidth="110">
+						<StackPanel Orientation="Horizontal" Spacing="7">
+							<ui:SymbolIcon Symbol="Play"/>
+							<TextBlock Text="Start" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Button>
+					<Button Command="{Binding StopCommand}" IsEnabled="{Binding IsRunning}" MinWidth="110">
+						<StackPanel Orientation="Horizontal" Spacing="7">
+							<ui:SymbolIcon Symbol="Stop"/>
+							<TextBlock Text="Stop" VerticalAlignment="Center"/>
+						</StackPanel>
+					</Button>
+					<ToggleButton IsChecked="{Binding ShowControls}" ToolTip.Tip="Show / hide the settings column" Padding="8,4">
+						<TextBlock Text="⚙ Controls"/>
+					</ToggleButton>
+				</StackPanel>
+				<Border Grid.Column="1" Width="1" Margin="12,2" Background="{DynamicResource AppStrokeBrush}"/>
+				<StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+					<TextBlock Text="{Binding StatusText}" TextWrapping="Wrap"/>
+					<TextBlock Text="{Binding StreamInfoText}" Classes="lbl" IsVisible="{Binding IsRunning}"/>
+				</StackPanel>
+				<Border Grid.Column="3" Classes="statusPill" VerticalAlignment="Center" Margin="0,0,8,0" IsVisible="{Binding IsFocused}">
+					<Button Classes="inst" Command="{Binding FocusCommand}" CommandParameter="{Binding FocusedView}" ToolTip.Tip="Back to all instruments">
+						<TextBlock Text="⤡ all views"/>
+					</Button>
+				</Border>
+				<Border Grid.Column="4" Classes="statusPill" VerticalAlignment="Center" IsVisible="{Binding IsRunning}">
+					<StackPanel Orientation="Horizontal" Spacing="7">
+						<Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}"/>
+						<TextBlock Text="LIVE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Border>
+			</Grid>
+		</Border>
+
+		<!-- ═══════════ left: source, KOL parameters, processing, display, recognition ═══════════ -->
+		<ScrollViewer Grid.Row="1" Grid.Column="0" Width="372" Margin="0,0,10,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding ShowControls}">
+			<StackPanel>
+
+				<Border Classes="panel">
+					<StackPanel Spacing="8">
+						<TextBlock Classes="h" Text="Source"/>
+						<RadioButton GroupName="src" IsChecked="{Binding IsKolSource}" Content="KOL — 4 microphones over USB"/>
+						<TextBlock Text="{Binding KolAvailabilityText}" Classes="lbl" Margin="28,0,0,4"/>
+						<RadioButton GroupName="src" IsChecked="{Binding IsPcSource}" Content="This computer's microphone"/>
+						<Grid ColumnDefinitions="*,Auto,Auto" Margin="28,0,0,0" IsEnabled="{Binding IsPcSource}">
+							<ComboBox Grid.Column="0" ItemsSource="{Binding PcDevices}" SelectedItem="{Binding SelectedPcDevice}" HorizontalAlignment="Stretch" MinWidth="0"/>
+							<ComboBox Grid.Column="1" Width="64" Margin="6,0,0,0" ItemsSource="{Binding PcChannelOptions}" SelectedItem="{Binding PcChannels}"/>
+							<Button Grid.Column="2" Margin="6,0,0,0" Command="{Binding RefreshDevicesCommand}" ToolTip.Tip="Rescan audio devices">
+								<ui:SymbolIcon Symbol="Refresh"/>
+							</Button>
+						</Grid>
+						<TextBlock Text="{Binding AudioBackendProblem}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap"
+								   IsVisible="{Binding AudioBackendProblem, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+					</StackPanel>
+				</Border>
+
+				<Border Classes="panel" IsEnabled="{Binding IsKolSource}">
+					<StackPanel Spacing="6">
+						<TextBlock Classes="h" Text="KOL microphone parameters (on the device)"/>
+						<TextBlock Classes="lbl" Text="Sent on Start; Apply pushes changes into a running stream (the MDF filters are reprogrammed in place, no interruption)."/>
+						<Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6" Margin="0,4,0,0">
+							<TextBlock Grid.Row="0" Classes="lbl" Text="Sample rate"/>
+							<Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*">
+								<ComboBox Width="104" ItemsSource="{Binding SampleRates}" SelectedItem="{Binding SelectedSampleRate}"/>
+								<TextBlock Grid.Column="1" Classes="lbl" Margin="8,0,0,0" Text="{Binding RateNoteText}"/>
+							</Grid>
+							<TextBlock Grid.Row="1" Classes="lbl" Text="Gain"/>
+							<StackPanel Grid.Row="1" Grid.Column="1">
+								<Slider Minimum="-16" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding GainStep}"/>
+								<TextBlock Classes="lbl" Text="{Binding GainText}" HorizontalAlignment="Right"/>
+							</StackPanel>
+							<TextBlock Grid.Row="2" Classes="lbl" Text="High-pass"/>
+							<ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding HpfOptions}" SelectedIndex="{Binding HpfIndex}" HorizontalAlignment="Stretch"/>
+							<TextBlock Grid.Row="3" Classes="lbl" Text="Reshape filter"/>
+							<WrapPanel Grid.Row="3" Grid.Column="1">
+								<CheckBox IsChecked="{Binding ReshapeEnabled}" Content="enabled" Margin="0,0,12,0"/>
+								<CheckBox IsChecked="{Binding ReshapeRatioOne}" IsEnabled="{Binding ReshapeEnabled}" Content="ratio /1 (else /4)"/>
+							</WrapPanel>
+							<TextBlock Grid.Row="4" Classes="lbl" Text="CIC filter"/>
+							<StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="12">
+								<RadioButton GroupName="cic" IsChecked="{Binding !Cic4}" Content="SINC5"/>
+								<RadioButton GroupName="cic" IsChecked="{Binding Cic4}" Content="SINC4"/>
+							</StackPanel>
+							<WrapPanel Grid.Row="5" Grid.Column="1" Margin="0,4,0,0">
+								<Button Command="{Binding ApplyKolParamsCommand}" IsEnabled="{Binding IsKolAvailable}" Content="Apply" Margin="0,0,8,6"/>
+								<Button Command="{Binding ReadKolParamsCommand}" IsEnabled="{Binding IsKolAvailable}" Content="Read" Margin="0,0,8,6"/>
+								<Button Command="{Binding KolToIdleCommand}" IsEnabled="{Binding IsKolAvailable}" Content="KOL → Idle" Margin="0,0,0,6" ToolTip.Tip="Stop streaming and return the KOL to Idle (console + disk)"/>
+							</WrapPanel>
+						</Grid>
+					</StackPanel>
+				</Border>
+
+				<Border Classes="panel">
+					<StackPanel Spacing="6">
+						<Grid ColumnDefinitions="*,Auto">
+							<TextBlock Classes="h" Text="Local processing (on this computer)"/>
+							<ToggleSwitch Grid.Column="1" IsChecked="{Binding ProcessingEnabled}" OnContent="" OffContent="" Margin="0,-6,0,0"/>
+						</Grid>
+						<TextBlock Classes="lbl" Text="Applied to the received samples before the instruments and the recognizer; the device stream itself is untouched."/>
+						<Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6" Margin="0,4,0,0" IsEnabled="{Binding ProcessingEnabled}">
+							<TextBlock Grid.Row="0" Classes="lbl" Text="Post gain"/>
+							<StackPanel Grid.Row="0" Grid.Column="1">
+								<Slider Minimum="-30" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding PostGainDb}"/>
+								<TextBlock Classes="lbl" Text="{Binding PostGainText}" HorizontalAlignment="Right"/>
+							</StackPanel>
+							<CheckBox Grid.Row="1" IsChecked="{Binding HpEnabled}" Content="High-pass"/>
+							<WrapPanel Grid.Row="1" Grid.Column="1" IsEnabled="{Binding HpEnabled}">
+								<NumericUpDown Value="{Binding HpHz}" Minimum="1" Maximum="100000" Increment="10" Width="104" FormatString="0" Margin="0,0,6,4"/>
+								<TextBlock Classes="lbl" Text="Hz · order" Margin="0,0,6,4"/>
+								<ComboBox Width="62" ItemsSource="{Binding FilterOrders}" SelectedItem="{Binding HpOrder}" Margin="0,0,0,4"/>
+							</WrapPanel>
+							<CheckBox Grid.Row="2" IsChecked="{Binding LpEnabled}" Content="Low-pass" ToolTip.Tip="Anti-alias / band-limit before display (Butterworth)"/>
+							<WrapPanel Grid.Row="2" Grid.Column="1" IsEnabled="{Binding LpEnabled}">
+								<NumericUpDown Value="{Binding LpHz}" Minimum="10" Maximum="200000" Increment="100" Width="104" FormatString="0" Margin="0,0,6,4"/>
+								<TextBlock Classes="lbl" Text="Hz · order" Margin="0,0,6,4"/>
+								<ComboBox Width="62" ItemsSource="{Binding FilterOrders}" SelectedItem="{Binding LpOrder}" Margin="0,0,0,4"/>
+							</WrapPanel>
+							<CheckBox Grid.Row="3" IsChecked="{Binding NotchEnabled}" Content="Mains notch"/>
+							<WrapPanel Grid.Row="3" Grid.Column="1" IsEnabled="{Binding NotchEnabled}">
+								<ComboBox Width="70" ItemsSource="{Binding NotchFrequencies}" SelectedItem="{Binding NotchHz}" Margin="0,0,6,4"/>
+								<TextBlock Classes="lbl" Text="Hz · harmonics" Margin="0,0,6,4"/>
+								<ComboBox Width="62" ItemsSource="{Binding NotchHarmonicOptions}" SelectedItem="{Binding NotchHarmonics}" Margin="0,0,0,4"/>
+							</WrapPanel>
+							<TextBlock Grid.Row="4" Grid.ColumnSpan="2" Classes="lbl" Text="{Binding ProcessingText}"/>
+						</Grid>
+					</StackPanel>
+				</Border>
+
+				<Border Classes="panel">
+					<StackPanel Spacing="8">
+						<TextBlock Classes="h" Text="Display"/>
+						<TextBlock Classes="lbl" Text="Channels in scope / spectrum"/>
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<CheckBox IsChecked="{Binding Ch0On}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#22D3EE"/><TextBlock Text="0"/></StackPanel></CheckBox>
+							<CheckBox IsChecked="{Binding Ch1On}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#A3E635"/><TextBlock Text="1"/></StackPanel></CheckBox>
+							<CheckBox IsChecked="{Binding Ch2On}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#FBBF24"/><TextBlock Text="2"/></StackPanel></CheckBox>
+							<CheckBox IsChecked="{Binding Ch3On}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#F472B6"/><TextBlock Text="3"/></StackPanel></CheckBox>
+						</StackPanel>
+						<Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
+							<TextBlock Grid.Row="0" Classes="lbl" Text="Spectrogram and recognizer input"/>
+							<ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding ChannelOptions}" SelectedIndex="{Binding ChannelOptionIndex}" HorizontalAlignment="Stretch"/>
+							<TextBlock Grid.Row="1" Classes="lbl" Text="Scope window"/>
+							<StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="6">
+								<ComboBox Width="90" ItemsSource="{Binding ScopeWindowOptions}" SelectedItem="{Binding ScopeWindowMs}"/>
+								<TextBlock Classes="lbl" Text="ms"/>
+							</StackPanel>
+							<TextBlock Grid.Row="2" Classes="lbl" Text="FFT size"/>
+							<WrapPanel Grid.Row="2" Grid.Column="1">
+								<ComboBox Width="90" ItemsSource="{Binding FftSizeOptions}" SelectedItem="{Binding FftSize}" Margin="0,0,12,0"/>
+								<CheckBox IsChecked="{Binding LogFrequency}" Content="log frequency"/>
+							</WrapPanel>
+							<TextBlock Grid.Row="3" Classes="lbl" Text="Waterfall span"/>
+							<StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="6">
+								<ComboBox Width="90" ItemsSource="{Binding SpectrogramSecondsOptions}" SelectedItem="{Binding SpectrogramSeconds}"/>
+								<TextBlock Classes="lbl" Text="s"/>
+							</StackPanel>
+							<TextBlock Grid.Row="4" Classes="lbl" Text="Waterfall floor"/>
+							<StackPanel Grid.Row="4" Grid.Column="1">
+								<Slider Minimum="-140" Maximum="-40" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding SpectrogramFloorDb}"/>
+								<TextBlock Classes="lbl" Text="{Binding SpectrogramFloorText}" HorizontalAlignment="Right"/>
+							</StackPanel>
+						</Grid>
+					</StackPanel>
+				</Border>
+
+				<Border Classes="panel">
+					<StackPanel Spacing="8">
+						<Grid ColumnDefinitions="*,Auto">
+							<TextBlock Classes="h" Text="Sound recognition"/>
+							<ToggleSwitch Grid.Column="1" IsChecked="{Binding ClassifierEnabled}" OnContent="" OffContent="" Margin="0,-6,0,0"/>
+						</Grid>
+						<TextBlock Classes="lbl" Text="Runs continuously while streaming: every 0.6 s the last second of the selected channel (or mix) is analysed and the ranked guesses are shown below. Changes of the top guess are written to the detection log."/>
+						<TextBlock Classes="lbl" Text="{Binding ClassifierName}"/>
+						<TextBlock Classes="lbl" Foreground="{DynamicResource WarningBrush}" IsVisible="{Binding ClassifierIsDemo}"
+								   Text="Demo model: broad sound classes from spectral rules, not species identification. A trained model (e.g. BirdNET / a bat-call classifier as ONNX) plugs in as an ISoundClassifier plugin and replaces it here."/>
+						<TextBlock Text="{Binding BestLabel}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource AppAccentBrush}"/>
+						<ItemsControl ItemsSource="{Binding ClassifierLabels}">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="vm:ClassLabelRow">
+									<Grid ColumnDefinitions="*,48" Margin="0,2">
+										<StackPanel Spacing="2">
+											<TextBlock Text="{Binding Label}" FontSize="12"/>
+											<ProgressBar Minimum="0" Maximum="1" Value="{Binding Confidence}" Height="6" CornerRadius="3"/>
+										</StackPanel>
+										<TextBlock Grid.Column="1" Text="{Binding PercentText}" Classes="lbl" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+									</Grid>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+						<Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+							<TextBlock Classes="lbl" Text="Detection log"/>
+							<Button Grid.Column="1" Classes="inst" Command="{Binding ClearDetectionsCommand}" Content="clear"/>
+						</Grid>
+						<ItemsControl ItemsSource="{Binding DetectionLog}">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="x:String">
+									<TextBlock Text="{Binding}" FontFamily="Consolas, Menlo, monospace" FontSize="11" Opacity="0.85"/>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</StackPanel>
+				</Border>
+
+			</StackPanel>
+		</ScrollViewer>
+
+		<!-- ═══════════ right: instruments (2 x 2 grid; focus mode spans one over all) ═══════════ -->
+		<Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,*" RowDefinitions="*,*" ColumnSpacing="10" RowSpacing="10">
+
+			<Grid Grid.Row="{Binding ScopeRow}" Grid.Column="{Binding ScopeCol}" Grid.RowSpan="{Binding ScopeRowSpan}" Grid.ColumnSpan="{Binding ScopeColSpan}" IsVisible="{Binding ScopeVisible}">
+				<la:ScopeView Title="Time series" Source="{Binding DisplayBuffer}" ChannelMask="{Binding ChannelMask}" WindowMs="{Binding ScopeWindowMs}"/>
+				<StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,6,0">
+					<Button Classes="inst" Command="{Binding FocusCommand}" CommandParameter="Scope" ToolTip.Tip="Focus this instrument (click again to restore)"><TextBlock Text="⤢"/></Button>
+					<Button Classes="inst" Tag="Scope" Click="PopOut_Click" ToolTip.Tip="Open in its own window"><TextBlock Text="⧉"/></Button>
+				</StackPanel>
+			</Grid>
+
+			<Grid Grid.Row="{Binding SpectrumRow}" Grid.Column="{Binding SpectrumCol}" Grid.RowSpan="{Binding SpectrumRowSpan}" Grid.ColumnSpan="{Binding SpectrumColSpan}" IsVisible="{Binding SpectrumVisible}">
+				<la:SpectrumView Title="Spectrum" Source="{Binding DisplayBuffer}" ChannelMask="{Binding ChannelMask}" FftSize="{Binding FftSize}" LogFrequency="{Binding LogFrequency}"/>
+				<StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,6,0">
+					<Button Classes="inst" Command="{Binding FocusCommand}" CommandParameter="Spectrum" ToolTip.Tip="Focus this instrument (click again to restore)"><TextBlock Text="⤢"/></Button>
+					<Button Classes="inst" Tag="Spectrum" Click="PopOut_Click" ToolTip.Tip="Open in its own window"><TextBlock Text="⧉"/></Button>
+				</StackPanel>
+			</Grid>
+
+			<Grid Grid.Row="{Binding SpectrogramRow}" Grid.Column="{Binding SpectrogramCol}" Grid.RowSpan="{Binding SpectrogramRowSpan}" Grid.ColumnSpan="{Binding SpectrogramColSpan}" IsVisible="{Binding SpectrogramVisible}">
+				<la:SpectrogramView Title="Spectrogram" Source="{Binding DisplayBuffer}" SelectedChannel="{Binding SelectedChannel}" Seconds="{Binding SpectrogramSeconds}" MinDb="{Binding SpectrogramFloorDb}"/>
+				<StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,6,0">
+					<Button Classes="inst" Command="{Binding FocusCommand}" CommandParameter="Spectrogram" ToolTip.Tip="Focus this instrument (click again to restore)"><TextBlock Text="⤢"/></Button>
+					<Button Classes="inst" Tag="Spectrogram" Click="PopOut_Click" ToolTip.Tip="Open in its own window"><TextBlock Text="⧉"/></Button>
+				</StackPanel>
+			</Grid>
+		</Grid>
+	</Grid>
+</UserControl>

@@ -16,7 +16,7 @@
 		<!-- Dev-build fallback only. Release builds get the real version injected by CI
 		     (-p:Version=<tag>, see .github/workflows/app-release.yml); AssemblyVersion and
 		     FileVersion are derived from Version by the SDK, so don't set them here. -->
-		<Version>1.0.29</Version>
+		<Version>1.1.0</Version>
 		<Company>A.S.D</Company>
 		<Product></Product>
 		<!-- Client-read CDN origin (self-update + firmware/plugin feeds + scenario assets).
@@ -57,12 +57,10 @@
 		<!-- Condition on the TARGET rid, not the build OS: cross-publishing linux-x64
 		     from a Windows machine must not ship a Windows DLL. No-RID (dev) builds
 		     get the x64 copy; it is inert on non-Windows dev hosts. -->
-		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x64\libusb-1.0.dll" Link="libusb-1.0.dll"
-		         Condition="'$(RuntimeIdentifier)' == '' Or '$(RuntimeIdentifier)' == 'win-x64'">
+		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x64\libusb-1.0.dll" Link="libusb-1.0.dll" Condition="'$(RuntimeIdentifier)' == '' Or '$(RuntimeIdentifier)' == 'win-x64'">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x86\libusb-1.0.dll" Link="libusb-1.0.dll"
-		         Condition="'$(RuntimeIdentifier)' == 'win-x86'">
+		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x86\libusb-1.0.dll" Link="libusb-1.0.dll" Condition="'$(RuntimeIdentifier)' == 'win-x86'">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
@@ -93,6 +91,7 @@
 		<PackageReference Include="Markdown.Avalonia" Version="11.0.3" />
 		<PackageReference Include="MessageBox.Avalonia" Version="3.2.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.6" />
+		<PackageReference Include="PortAudioSharp2" Version="1.0.6" />
 		<PackageReference Include="System.IO.Ports" Version="9.0.6" />
 		<PackageReference Include="System.Text.Json" Version="9.0.6" />
 		<PackageReference Include="Velopack" Version="0.0.1298" />
@@ -138,6 +137,12 @@
 		<!-- Proprietary GNSS decode is provided by the ASD.Gnss plugin (over cg-gnss)
 		     loaded at runtime from the gitignored plugins/ folder; the legacy CG\
 		     GeoTag bundle has been removed from this repo. See docs/ARCHITECTURE.md. -->
+		<!-- Third-party attributions: shipped next to the executable (Velopack packs the publish
+		     folder as-is). Component list in THIRD-PARTY-NOTICES.md, texts in licenses/. -->
+		<None Include="..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\licenses\*.txt" Link="licenses\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\libusb-LICENSE.txt;..\LibUsbDotNet-LICENSE.txt" Link="licenses\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="plugins\**" Condition="Exists('plugins')">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<Link>plugins\%(RecursiveDir)%(Filename)%(Extension)</Link>

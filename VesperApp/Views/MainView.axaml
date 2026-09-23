@@ -135,6 +135,7 @@
 				<!-- Device actions -->
 				<Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource AppStrokeBrush}"
 						BorderThickness="0,1,0,0" Padding="12,8">
+				  <StackPanel Spacing="4">
 					<WrapPanel Orientation="Horizontal">
 						<Button Classes="toolbar" Margin="0,2,6,2" Command="{Binding ConnectDisconnectDeviceCommand}" x:Name="DeviceConnectButton">
 							<StackPanel Orientation="Horizontal" Spacing="7">
@@ -147,12 +148,31 @@
 						<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,4"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Sleep" Command="{Binding SleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Arm Sleep" Command="{Binding ArmSleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Format" Command="{Binding FormatDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Format" Command="{Binding FormatDeviceCommand}" IsEnabled="{Binding CanUseDeviceDisk}"
+								ToolTip.Tip="Format the device's storage (unavailable while a KOL is in Live Audio - no disk is exposed in that mode)"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Set Time" Command="{Binding SetDateTimeDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Upload" Command="{Binding UploadDeviceConfig}" IsEnabled="{Binding IsDeviceConnected}"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Download" Command="{Binding DownloadDeviceData}" IsEnabled="{Binding IsDeviceConnected}"/>
 						<Button Classes="toolbar" Margin="0,2,0,2" Content="Upgrade Firmware" Command="{Binding BootloaderDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+
+						<!-- KOL USB operational modes (shown for a selected KOL only). Idle = disk + console;
+						     Live Audio = 4-channel USB microphone, no disk; Sampling = off USB, running its schedule. -->
+						<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,4" IsVisible="{Binding IsKolSelected}"/>
+						<Border Classes="statusPill" Margin="0,2,6,2" IsVisible="{Binding IsKolSelected}"
+								ToolTip.Tip="KOL USB mode. Idle: console + USB disk. Live Audio: the 4 microphones stream as a standard USB microphone (no disk). Sampling: the device leaves USB and runs its schedule.">
+							<TextBlock VerticalAlignment="Center">
+								<Run Text="USB mode: "/><Run Text="{Binding KolUsbModeText}"/>
+							</TextBlock>
+						</Border>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="{Binding KolLiveAudioButtonText}"
+								Command="{Binding KolToggleLiveAudioCommand}" IsVisible="{Binding IsKolSelected}" IsEnabled="{Binding IsDeviceConnected}"
+								ToolTip.Tip="Switch between Idle and Live Audio. The device re-enumerates (about 2 s) and is reconnected automatically."/>
+						<Button Classes="toolbar" Margin="0,2,0,2" Content="Start Sampling"
+								Command="{Binding KolStartSamplingCommand}" IsVisible="{Binding IsKolSelected}" IsEnabled="{Binding IsDeviceConnected}"
+								ToolTip.Tip="Arm the device and start its recording schedule. It disconnects from USB; reconnect it or use the magnet to return to Idle."/>
 					</WrapPanel>
+					<TextBlock Classes="caption" Text="{Binding KolStatusText}" TextWrapping="Wrap" IsVisible="{Binding HasKolStatus}"/>
+				  </StackPanel>
 				</Border>
 
 				<!-- Device list -->

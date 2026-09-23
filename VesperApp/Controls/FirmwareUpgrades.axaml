@@ -32,7 +32,7 @@
 					<ui:CommandBarSeparator />
 					<ui:CommandBarButton Command="{Binding DownloadReleaseCommand}" IconSource="Download" Label="Download" ToolTip.Tip="Download Update"/>
 					<ui:CommandBarSeparator />
-					<ui:CommandBarButton Command="{Binding FlashCommand}" IconSource="Sync" Label="Flash to Device" ToolTip.Tip="Flash the selected firmware to the docked device (STM32 via dock USB-DFU)"/>				
+					<ui:CommandBarButton Command="{Binding FlashCommand}" IconSource="Sync" Label="Flash to Device" ToolTip.Tip="Flash the selected firmware to the device (VT04: STM32 DFU through the dock; KOL: commanded DFU over its own USB cable; Nanotag: USB-HID bootloader)"/>				
 				</ui:CommandBar.PrimaryCommands>
 			
 				<ui:CommandBar.SecondaryCommands>

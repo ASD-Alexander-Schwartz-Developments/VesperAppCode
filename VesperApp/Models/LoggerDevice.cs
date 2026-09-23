@@ -149,6 +149,13 @@ namespace VesperApp.Models
                     }
                     break;
 
+                case MessageTypes.VESPER_GET_USB_MODE:
+                    {
+                        KolUsbModeState? state = KolUsbModeState.Parse(e.MessageData);
+                        if (state != null) this.UsbMode = state.Active;
+                    }
+                    break;
+
                 case MessageTypes.VESPER_GETDISKSIZE:
                     if (e.MessageData != null && e.MessageData.Length >= 4)
                     {
@@ -764,6 +771,110 @@ namespace VesperApp.Models
                 this._comport.MessageEvent -= handler;
             }
         }
+
+        #region KOL USB modes / commanded bootloader (CDC console)
+
+        /// <summary>The device is a KOL reached over its CDC console.</summary>
+        public bool IsKol => _type == DeviceTypes.Kol && IsComportDevice;
+
+        /// <summary>Last USB operational mode reported by a KOL (null until queried).</summary>
+        public KolUsbMode? UsbMode
+        {
+            get => usbMode;
+            set => this.RaiseAndSetIfChanged(ref usbMode, value);
+        }
+        private KolUsbMode? usbMode;
+
+        /// <summary>
+        /// Send a command whose reply is a bare ACK / NACK frame (not a typed reply)
+        /// and await it. True on ACK, false on NACK, timeout, or when this is not a
+        /// running comport device.
+        /// </summary>
+        public async Task<bool> SendAckCommandAsync(MessageTypes type, byte[] payload, int timeoutMs = 3000)
+        {
+            if (this._comport == null || this._comport.IsRunning == false)
+                return false;
+
+            payload ??= new byte[0];
+
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<MessageEventArgs> handler = null!;
+            handler = (s, e) =>
+            {
+                if (e.typeOfMessage == MessageTypes.ACK) tcs.TrySetResult(true);
+                else if (e.typeOfMessage == MessageTypes.NACK) tcs.TrySetResult(false);
+            };
+
+            this._comport.MessageEvent += handler;
+            try
+            {
+                byte[] frame = SerialMessage.PROTO_MsgBuild((byte)type, (byte)payload.Length, payload, 0);
+                this._comport.SendToDevice(frame, 0, frame.Length);
+
+                using (var cts = new System.Threading.CancellationTokenSource(timeoutMs))
+                using (cts.Token.Register(() => tcs.TrySetResult(false)))
+                {
+                    return await tcs.Task.ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                this._comport.MessageEvent -= handler;
+            }
+        }
+
+        /// <summary>Read the KOL's active/pending USB mode (VESPER_GET_USB_MODE).</summary>
+        public async Task<KolUsbModeState?> GetUsbModeAsync(int timeoutMs = 3000)
+        {
+            if (!IsKol) return null;
+            byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_USB_MODE, new byte[0], timeoutMs);
+            KolUsbModeState? state = KolUsbModeState.Parse(resp);
+            if (state != null) this.UsbMode = state.Active;
+            return state;
+        }
+
+        /// <summary>
+        /// Request a KOL USB mode (VESPER_SET_USB_MODE). Returns true when the device
+        /// ACKed; the transition happens AFTER the ACK - expect this CDC link to drop
+        /// (Idle / Live Audio re-enumerate; Sampling detaches for good).
+        /// </summary>
+        public async Task<bool> SetUsbModeAsync(KolUsbMode mode, int timeoutMs = 3000)
+        {
+            if (!IsKol) return false;
+            return await SendAckCommandAsync(MessageTypes.VESPER_SET_USB_MODE, new[] { (byte)mode }, timeoutMs);
+        }
+
+        /// <summary>
+        /// Command the KOL into the ST ROM DFU bootloader (VESPER_ENTER_BOOTLOADER).
+        /// After the ACK the device re-enumerates as 0483:DF11; any reset returns it
+        /// to the application. Use <see cref="Services.Stm32DfuFlasher.FlashDfuDeviceAsync"/>
+        /// to program it.
+        /// </summary>
+        public async Task<bool> EnterBootloaderAsync(int timeoutMs = 3000)
+        {
+            if (!IsKol) return false;
+            return await SendAckCommandAsync(MessageTypes.VESPER_ENTER_BOOTLOADER, new byte[0], timeoutMs);
+        }
+
+        /// <summary>Read the KOL's live microphone parameters and Live Audio status
+        /// (VESPER_GET_MIC_PARAMS). Null when the firmware does not support it.</summary>
+        public async Task<KolMicStatus?> GetMicParamsAsync(int timeoutMs = 3000)
+        {
+            if (!IsKol) return null;
+            byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_MIC_PARAMS, new byte[0], timeoutMs);
+            return KolMicStatus.Parse(resp);
+        }
+
+        /// <summary>Set the KOL's microphone parameters (VESPER_SET_MIC_PARAMS). Applied at
+        /// once to a running Live Audio capture; kept in RAM only (not written to config.json).</summary>
+        public async Task<bool> SetMicParamsAsync(KolMicParams p, int timeoutMs = 3000)
+        {
+            if (!IsKol) return false;
+            return await SendAckCommandAsync(MessageTypes.VESPER_SET_MIC_PARAMS, p.Pack(), timeoutMs);
+        }
+
+        #endregion
 
 
 
