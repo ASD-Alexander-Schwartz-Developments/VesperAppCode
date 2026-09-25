@@ -46,7 +46,9 @@ The Nanotag uses a USB-HID bootloader and needs **no dock**:
 
 1. Connect the Nanotag over USB.
 2. Select the downloaded Nanotag release and press **Flash**.
-3. The app commands the tag into its bootloader, programs the image, verifies it with a CRC check, and restarts the tag into the new firmware.
+3. The app commands the tag into its bootloader, erases the application area (this alone takes several seconds — the progress text says so), programs the image, verifies it with the bootloader's CRC check, and restarts the tag into the new firmware.
+
+If an update is interrupted after the erase (cable pulled, app closed), the tag stays in **bootloader mode** and no longer appears in the device list. That is not a fault: connect it and press **Flash** again — the app detects the bootloader and programs it directly, no selection needed.
 
 Nanotag firmware is distributed as Intel HEX (`.hex`) files.
 

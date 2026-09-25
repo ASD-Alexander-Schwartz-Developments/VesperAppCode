@@ -242,8 +242,14 @@ namespace VesperApp.ViewModels
             {
                 LoggerDevice? ntag = _main?.SelectedLoggerDevice;
                 if (ntag is null || ntag.DeviceType != DeviceTypes.Nanotag || !ntag.IsConnected)
+                    ntag = null;
+                // A tag whose previous update was interrupted after the erase sits in its bootloader
+                // (HID 04D8:003C), invisible to the device list: flash it directly.
+                bool bootloaderOnly = ntag is null && NanotagFlasher.IsBootloaderPresent();
+                if (ntag is null && !bootloaderOnly)
                 {
-                    FlashStatus = "Connect a Nanotag over USB and select it in the device list first.";
+                    FlashStatus = "Connect a Nanotag over USB and select it in the device list first. "
+                                + "(A tag left in bootloader mode by an interrupted update is flashed automatically when connected.)";
                     await ShowInfo("Nanotag firmware update", FlashStatus);
                     return false;
                 }
@@ -265,8 +271,10 @@ namespace VesperApp.ViewModels
                     await feedService.DownloadAssetAsync(selected, ntmp);
 
                     var prog = new Progress<FlashProgress>(p => { FlashPercent = p.Percent; FlashStatus = p.Status; });
+                    if (bootloaderOnly)
+                        FlashStatus = "Nanotag found in bootloader mode — flashing directly…";
                     await NanotagFlasher.FlashAsync(ntag, ntmp, prog);
-                    FlashStatus = "Nanotag firmware updated.";
+                    FlashStatus = "Nanotag firmware updated and verified — the tag is restarting into the new firmware.";
                     return true;
                 }
                 catch (Exception ex)
