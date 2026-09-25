@@ -29,5 +29,10 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="570f", ENV{ID_MM_D
 # STM32 DFU bootloader (firmware flashing through the dock)
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE="0660", GROUP="plugdev", TAG+="uaccess"
 
-# Nanotag (Microchip bootloader)
-SUBSYSTEM=="usb", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fe57", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+# Nanotag running firmware (bulk vendor interface + CDC serial)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fe57", MODE="0660", GROUP="plugdev", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fe57", ENV{ID_MM_DEVICE_IGNORE}="1", TAG+="uaccess"
+# Nanotag USB-HID bootloader (firmware flashing): the app detaches the kernel usbhid
+# driver through libusb, which needs write access to the USB device node.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="003c", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="003c", MODE="0660", GROUP="plugdev", TAG+="uaccess"

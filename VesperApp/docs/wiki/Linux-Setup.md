@@ -54,7 +54,8 @@ Then **unplug and replug** the dock and devices. The rules cover:
 | Docking station (FTDI) | `0403:6001` |
 | KOL / Vesper / Pipistrelle loggers | `0483:a4f4` (legacy: `0483:5710`, `0483:570f`) |
 | STM32 DFU bootloader (firmware flashing) | `0483:df11` |
-| Nanotag bootloader | `04d8:fe57` |
+| Nanotag (running firmware) | `04d8:fe57` |
+| Nanotag bootloader (firmware flashing) | `04d8:003c` |
 
 The rules also tell **ModemManager** (which runs by default on Ubuntu/Fedora desktops)
 to leave the loggers' serial port alone — without that it grabs every newly plugged
