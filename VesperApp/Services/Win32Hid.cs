@@ -107,31 +107,64 @@ namespace VesperApp.Services
             finally { Marshal.FreeHGlobal(detail); }
         }
 
+        // Overlapped I/O keeps writing into the data buffer and the OVERLAPPED block AFTER the
+        // P/Invoke call has returned, so both must stay at a fixed address until the request has
+        // completed or its cancellation has been acknowledged. A plain byte[] marshalled by value is
+        // pinned only for the duration of the call: in the GUI (allocation-heavy UI thread, frequent
+        // compacting GCs) the kernel then completed reads into the buffer's OLD location and the
+        // bootloader replies arrived as zeros ("Bad response to bootloader command 0x03" mid-flash).
+        // The console harness never allocated enough to move the array, which is why it passed.
+        private sealed class PinnedIo : IDisposable
+        {
+            public readonly GCHandle Buffer;
+            public readonly IntPtr Overlapped;
+            public readonly ManualResetEvent Event = new(false);
+
+            public PinnedIo(byte[] buffer)
+            {
+                Buffer = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+                Overlapped = Marshal.AllocHGlobal(Marshal.SizeOf<NativeOverlapped>());
+                var ov = new NativeOverlapped { EventHandle = Event.SafeWaitHandle.DangerousGetHandle() };
+                Marshal.StructureToPtr(ov, Overlapped, false);
+            }
+
+            public IntPtr Data => Buffer.AddrOfPinnedObject();
+
+            public void Dispose()
+            {
+                Marshal.FreeHGlobal(Overlapped);
+                Buffer.Free();
+                Event.Dispose();
+            }
+        }
+
+        /// <summary>Cancel a pending request and wait until the driver has let go of the buffers.</summary>
+        private void CancelAndDrain(PinnedIo io)
+        {
+            CancelIoEx(_handle, io.Overlapped);
+            GetOverlappedResult(_handle, io.Overlapped, out _, true);   // blocks until the IRP is really done
+        }
+
         private void RawWrite(byte[] report)
         {
-            using var ev = new ManualResetEvent(false);
-            var ov = new NativeOverlapped { EventHandle = ev.SafeWaitHandle.DangerousGetHandle() };
-
-            if (!WriteFile(_handle, report, report.Length, out _, ref ov))
-            {
-                if (Marshal.GetLastWin32Error() != ERROR_IO_PENDING)
-                    throw new IOException("HID WriteFile failed (" + Marshal.GetLastWin32Error() + ").");
-                if (!ev.WaitOne(2000)) { CancelIo(_handle); throw new IOException("HID write timed out."); }
-                GetOverlappedResult(_handle, ref ov, out _, false);
-            }
+            using var io = new PinnedIo(report);
+            if (WriteFile(_handle, io.Data, report.Length, out _, io.Overlapped))
+                return;
+            if (Marshal.GetLastWin32Error() != ERROR_IO_PENDING)
+                throw new IOException("HID WriteFile failed (" + Marshal.GetLastWin32Error() + ").");
+            if (!io.Event.WaitOne(2000)) { CancelAndDrain(io); throw new IOException("HID write timed out."); }
+            GetOverlappedResult(_handle, io.Overlapped, out _, false);
         }
 
         private bool RawRead(byte[] buffer, int timeoutMs)
         {
-            using var ev = new ManualResetEvent(false);
-            var ov = new NativeOverlapped { EventHandle = ev.SafeWaitHandle.DangerousGetHandle() };
-
-            if (ReadFile(_handle, buffer, buffer.Length, out _, ref ov))
-                return true;
+            using var io = new PinnedIo(buffer);
+            if (ReadFile(_handle, io.Data, buffer.Length, out int readNow, io.Overlapped))
+                return readNow > 0;
             if (Marshal.GetLastWin32Error() != ERROR_IO_PENDING)
                 return false;
-            if (!ev.WaitOne(timeoutMs)) { CancelIo(_handle); return false; }
-            return GetOverlappedResult(_handle, ref ov, out int read, false) && read > 0;
+            if (!io.Event.WaitOne(timeoutMs)) { CancelAndDrain(io); return false; }
+            return GetOverlappedResult(_handle, io.Overlapped, out int read, false) && read > 0;
         }
 
         public void Dispose() => _handle.Dispose();
@@ -181,12 +214,12 @@ namespace VesperApp.Services
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern SafeFileHandle CreateFile(string fileName, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool ReadFile(SafeFileHandle handle, byte[] buffer, int count, out int read, ref NativeOverlapped overlapped);
+        private static extern bool ReadFile(SafeFileHandle handle, IntPtr buffer, int count, out int read, IntPtr overlapped);
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool WriteFile(SafeFileHandle handle, byte[] buffer, int count, out int written, ref NativeOverlapped overlapped);
+        private static extern bool WriteFile(SafeFileHandle handle, IntPtr buffer, int count, out int written, IntPtr overlapped);
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool GetOverlappedResult(SafeFileHandle handle, ref NativeOverlapped overlapped, out int transferred, bool wait);
+        private static extern bool GetOverlappedResult(SafeFileHandle handle, IntPtr overlapped, out int transferred, bool wait);
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool CancelIo(SafeFileHandle handle);
+        private static extern bool CancelIoEx(SafeFileHandle handle, IntPtr overlapped);
     }
 }
