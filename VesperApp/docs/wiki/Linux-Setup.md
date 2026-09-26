@@ -62,6 +62,21 @@ to leave the loggers' serial port alone — without that it grabs every newly pl
 CDC device for ~30 seconds of modem probing, which blocks device detection.
 If you installed an earlier version of this rules file, re-install it and replug.
 
+## 2b. Audio libraries for Live View
+
+The [Live View](Live-View) tab captures audio through the bundled PortAudio library, which links
+against the system ALSA and JACK client libraries. Install them once (the app itself does not
+need a JACK server running):
+
+```bash
+# Ubuntu / Debian
+sudo apt install libasound2 libjack-jackd2-0
+# Fedora
+sudo dnf install alsa-lib pipewire-jack-audio-connection-kit
+```
+
+Without them Live View shows "Audio backend unavailable"; everything else works.
+
 ## 3. Serial port access (loggers)
 
 The loggers present a USB CDC serial port (`/dev/ttyACM*`), which belongs to the

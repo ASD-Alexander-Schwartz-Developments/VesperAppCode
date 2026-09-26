@@ -170,7 +170,15 @@ namespace VesperApp.Services.Audio
                 }
                 catch (Exception ex)
                 {
-                    _paError = ex.Message;
+                    // A DllNotFoundException here usually means a dependency of the native
+                    // library is missing rather than the library itself: on Windows
+                    // portaudio.dll needs vcruntime140.dll (shipped next to VesperApp.exe),
+                    // on Linux libportaudio.so needs the ALSA and JACK client libraries.
+                    _paError = ex is DllNotFoundException
+                        ? ex.Message + (OperatingSystem.IsWindows()
+                            ? " Check that portaudio.dll and vcruntime140.dll are next to VesperApp.exe."
+                            : " Check that libportaudio.so is next to VesperApp and that libasound2 and libjack are installed.")
+                        : ex.Message;
                 }
             }
         }

@@ -63,6 +63,16 @@
 		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x86\libusb-1.0.dll" Link="libusb-1.0.dll" Condition="'$(RuntimeIdentifier)' == 'win-x86'">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<!-- portaudio.dll (org.k2fsa.portaudio.runtime.win-x64, an MSVC build) imports
+		     VCRUNTIME140.dll, which a clean Windows does not have; everything else we ship
+		     is free of the VC++ redistributable (.NET is self-contained, libusb is a MinGW
+		     build). Ship the runtime DLL app-local, taken from the Visual Studio
+		     redistributable folder (VC\Redist\MSVC\<ver>\x64\Microsoft.VC14x.CRT): the loader
+		     looks next to the executable before the system. x64 only - there is no x86
+		     PortAudio native package, so win-x86 has no Live View audio anyway. -->
+		<Content Include="ThirdParty\vcredist\win-x64\vcruntime140.dll" Link="vcruntime140.dll" Condition="'$(RuntimeIdentifier)' == '' Or '$(RuntimeIdentifier)' == 'win-x64'">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 	<ItemGroup><!--This helps with theme dll-s trimming.
 	If you will publish your application in self-contained mode with p:PublishTrimmed=true and it will use Fluent theme Default theme will be trimmed from the output and vice versa.
