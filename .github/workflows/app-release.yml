@@ -109,7 +109,13 @@ jobs:
 
             # Annotate the tag with the commit list since the previous release —
             # the release job reads the annotation as the release notes.
-            git log ${PREV:+$PREV..}HEAD --no-merges --pretty='- %s' > notes.txt
+            # A curated docs/release-notes/v<ver>.md takes precedence over the commit list.
+            if [ -s "docs/release-notes/v$VER.md" ]; then
+              cp "docs/release-notes/v$VER.md" notes.txt
+              echo "→ release notes from docs/release-notes/v$VER.md"
+            else
+              git log ${PREV:+$PREV..}HEAD --no-merges --pretty='- %s' > notes.txt
+            fi
             git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git tag -a "v$VER" -F notes.txt

@@ -60,6 +60,10 @@ The built-in model is a **demo heuristic**: it distinguishes broad sound classes
 
 ## Tips
 
+- Live View audio capture is available in the 64-bit Windows and Linux builds only; the 32-bit
+  Windows build shows "Audio backend unavailable" (no 32-bit audio library), everything else
+  in the app works there. On Linux install the ALSA and JACK client libraries first, see
+  [Linux Setup](Linux-Setup).
 - On Windows the KOL microphone is opened through the WDM-KS path, which is the only one exposing all four channels; if another application holds the microphone exclusively, Start reports it — close that application and try again.
 - The channel order is the same as in recordings: channel 0 and 1 are the two microphones on the "WE" line, 2 and 3 the two on the "NS" line (files `U0`…`U3`).
 - Use **Read** after connecting to see the device's deployed parameters before changing anything.
