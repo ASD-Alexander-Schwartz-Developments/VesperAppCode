@@ -26,8 +26,8 @@ namespace VesperApp.Services
     /// </summary>
     public static class Stm32DfuFlasher
     {
-        public const int StVid = 0x0483;
-        public const int StDfuPid = 0xDF11;
+        public const int StVid = ASD.Devices.AsdDeviceIds.StVid;
+        public const int StDfuPid = ASD.Devices.AsdDeviceIds.StDfuPid;
         public const ulong FlashBaseAddress = 0x08000000;
 
         public static async Task<bool> FlashAsync(DockAdapter dock, string firmwarePath,

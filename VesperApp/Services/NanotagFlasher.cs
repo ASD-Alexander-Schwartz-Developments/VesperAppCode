@@ -28,8 +28,8 @@ namespace VesperApp.Services
     /// </summary>
     public static class NanotagFlasher
     {
-        public const int Vid = 0x04D8;
-        public const int BootloaderPid = 0x003C;
+        public const int Vid = ASD.Devices.AsdDeviceIds.MicrochipVid;
+        public const int BootloaderPid = ASD.Devices.AsdDeviceIds.NanotagBootloaderPid;
 
         /// <summary>Application region programmed by the bootloader (APP_START_ADDRESS .. FLASH_END_ADDRESS).</summary>
         public const uint AppStart = 0x8000;

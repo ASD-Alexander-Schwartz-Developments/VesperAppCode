@@ -126,6 +126,7 @@ namespace ASD.Devices
             {
                 AsdDeviceId? id = AsdDeviceIds.Find(d.VendorId, d.ProductId);
                 if (id is null) continue; // not one of ours
+                if (id.Bus == AsdBus.SerialCdc) continue; // CDC loggers come from EnumerateSerial
                 // Key by kind+vid:pid (one dock / one nanotag expected). Serial would need
                 // an open, which discovery deliberately avoids.
                 yield return new DiscoveredDevice(
