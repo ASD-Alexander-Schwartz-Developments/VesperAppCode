@@ -18,13 +18,14 @@ namespace VesperApp.ViewModels
     /// GNSS RF / positioning test for VT04-VESPER, driven from the proven pluto-gnss
     /// rig. Two checks:
     ///   1. Tone go/no-go — transmit a CW tone (native pluto-gnss) and issue the
-    ///      in-FW VESPER_GPS_SELFTEST; the device detects it in RAM and replies pass/fail.
+    ///      in-FW VESPER_TEST_GPS (61); the device detects it in RAM and replies pass/fail.
     ///   2. Positioning — transmit a gps-sdr-sim scenario at the calibrated LO
     ///      (L1 + clock pre-comp), capture+download on the device (normal flow), then
     ///      decode the snaps via IGnssDecoder and check the fix against a reference.
     /// Mirrors MicHealthCheckViewModel. Requires the device in a shielded box with the
-    /// Pluto TX coupled in. For positioning set the device snapSize to 256 ms (the
-    /// decode-supported length) and use the per-Pluto calibrated LO.
+    /// Pluto TX coupled in. For positioning use a decode-supported snap length (cg-gnss
+    /// accepts 64/128/256/440/512 ms; 512 ms is decoded whole) and do not truncate snaps;
+    /// use the per-Pluto calibrated LO.
     /// </summary>
     public class GnssRfTestViewModel : ViewModelBase
     {

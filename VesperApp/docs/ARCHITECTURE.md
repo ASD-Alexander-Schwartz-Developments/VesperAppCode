@@ -204,7 +204,11 @@ folder, calls `PlatformServices.Bind(realPlmClient, realGnss, backedEntitlements
 
 ---
 
-## 7. Linux BLE base-station daemon (future)
+## 7. Linux BLE base-station daemon (`ASD.BaseStation`)
+
+**Status:** implemented in this solution and proven end-to-end against the simulator
+(see the status block at the top). Uploads go through the `IPlmClient` stub until the
+real `ASD.PlmClient` lands.
 
 A headless **.NET 8 worker / systemd service** that reuses the exact same
 `ASD.DeviceCore` (modem-download + HMAC) and `ASD.PlmClient` assemblies the desktop
@@ -224,9 +228,9 @@ means a connectivity outage never loses field data.
 
 ## 8. What this leaves for later (separate features)
 
-- Extract `ASD.Contracts` / `ASD.DeviceCore` into real assemblies; private
-  `ASD.PlmClient` + `ASD.Gnss` repos; signed-plugin loader.
+- ~~Extract `ASD.Contracts` / `ASD.DeviceCore` into real assemblies~~ (done); private
+  `ASD.PlmClient` repo; signed-plugin loader. (`ASD.Gnss` exists as a plugin over cg-gnss.)
 - Implement the real backend client against `plm-cdk` `/portal/*` + `/documents/*`.
-- Move GNSS decode behind `IGnssDecoder`; remove `CG\` from the public tree.
-- Build the Linux base-station daemon.
+- ~~Move GNSS decode behind `IGnssDecoder`; remove `CG\` from the public tree~~ (done).
+- ~~Build the Linux base-station daemon~~ (done: `ASD.BaseStation`).
 - Backend additions in [plm-backend-additions.md](plm-backend-additions.md).

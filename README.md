@@ -1,11 +1,11 @@
 # VesperApp
 
 A cross-platform Avalonia desktop application for interacting with Vesper devices and firmware.  
-This repository targets .NET 8 and uses Avalonia UI, Velopack for updates, Octokit for GitHub interaction, and several device/USB helpers.
+This repository targets .NET 8 and uses Avalonia UI, Velopack for updates, and several device/USB helpers.
 
 ## Features
-- Device discovery and DFU firmware updater (LibUsbDfu) - Not implemented yet, but planned for future release. Currently , firmware updates can be applied using STM32CubeProgrammer with manually downloaded firmware files.
-- Firmware release browser (GitHub / Octokit)
+- Device discovery and in-app firmware flashing: STM32 USB DFU (LibUsbDfu, `0483:DF11`) for Vesper / Pipistrelle through the dock and for KOL dockless (console command 64); Nanotag through its HID bootloader (`04D8:003C`)
+- Firmware Upgrades page: reads the firmware release feed (`index.json`) from the CDN that the firmware repos' release CI publishes to, filtered by device target; downloads are SHA-256 verified. No GitHub API or token in the client (see `VesperApp/Services/ReleaseFeedService.cs`, `CdnConfig.cs`)
 - Configuration editor and schedule management
 - Update checking & applying using Velopack
 - Cross-platform UI built with Avalonia
@@ -15,7 +15,7 @@ This repository targets .NET 8 and uses Avalonia UI, Velopack for updates, Octok
 Prerequisites
 - .NET 8 SDK
 - Visual Studio 2022/2026 or VS Code
-- Platform-specific native libraries for libusb if using DFU features
+- Platform-specific native libraries for libusb (DFU flashing, dock, Nanotag)
 
 Build
 
