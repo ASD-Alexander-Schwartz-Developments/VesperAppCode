@@ -97,7 +97,7 @@ namespace VesperApp.Services.Time
             var tasks = new List<Task<NtpSample?>>();
             foreach (string s in servers ?? ConfiguredServers())
                 for (int i = 0; i < perServer; i++)
-                    tasks.Add(QueryAsync(s, 1500, ct));
+                    tasks.Add(QueryAsync(s, 2500, ct));
             NtpSample?[] all = await Task.WhenAll(tasks).ConfigureAwait(false);
             return all.Where(x => x != null).OrderBy(x => x!.DelaySeconds).FirstOrDefault();
         }
@@ -138,6 +138,9 @@ namespace VesperApp.Services.Time
         public static async Task<ReferenceClock> CreateAsync(CancellationToken ct = default)
         {
             NtpSample? s = await NtpClient.BestOfAsync(null, 3, ct).ConfigureAwait(false);
+            /* The first query of a process occasionally gets nothing back (cold DNS / first
+               UDP use, bench 2026-10-21); one more round almost always answers. */
+            s ??= await NtpClient.BestOfAsync(null, 2, ct).ConfigureAwait(false);
             return s == null
                 ? FromPcClock()
                 : new ReferenceClock($"NTP {s.Server}", s.OffsetSeconds, s.DelaySeconds / 2.0, true);

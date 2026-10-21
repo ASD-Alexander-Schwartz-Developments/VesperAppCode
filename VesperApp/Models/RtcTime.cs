@@ -31,6 +31,7 @@ namespace VesperApp.Models
         ShiftPending = 0x08,
         TemperaturePending = 0x10,
         TemperatureValid = 0x20,
+        TemperatureFault = 0x40,    // ADC reference missing: the reading is impossible (VREFINT saturated)
     }
 
     /// <summary>One VESPER_TIME_SYNC exchange: host Stopwatch timestamps around the request (t1, t4)

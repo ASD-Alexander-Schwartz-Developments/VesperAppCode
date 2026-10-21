@@ -37,6 +37,7 @@ namespace VesperApp.Services.Time
     {
         public const double MinCalibrationHours = 1.0;
         public const double RecommendedCalibrationHours = 12.0;
+        public const double MaxPlausibleErrorPpb = 2_000_000;   // 2000 ppm
 
         public static double ZoneHoursAt(DateTime trueUtc, bool deviceUtc) =>
             deviceUtc ? 0.0 : TimeZoneInfo.Local.GetUtcOffset(trueUtc).TotalHours;
@@ -175,6 +176,10 @@ namespace VesperApp.Services.Time
                 double rate = sxy / sxx;                                 // s/s
 
                 double applied = pts.Average(p => p.AppliedPpb);
+                /* A 32 kHz crystal is never 0.2 % off: such a slope means the device clock was
+                   reset or set inside the period (e.g. firmware re-initialising an unset
+                   calendar on boot) - not usable. */
+                if (Math.Abs(rate * 1e9 - applied) > MaxPlausibleErrorPpb) continue;
                 int errorPpb = (int)Math.Round(rate * 1e9 - applied);
                 var temps = pts.Where(p => p.TemperatureC.HasValue).Select(p => p.TemperatureC!.Value).ToList();
                 double? tref = temps.Count > 0 ? temps.Average() : null;

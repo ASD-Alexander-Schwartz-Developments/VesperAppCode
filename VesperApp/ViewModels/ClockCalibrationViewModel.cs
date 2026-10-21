@@ -143,7 +143,9 @@ namespace VesperApp.ViewModels
 
         private void ShowStatus(RtcCalStatus st)
         {
-            TemperatureText = st.TemperatureC.HasValue
+            TemperatureText = (st.Flags & RtcCalFlags.TemperatureFault) != 0
+                ? "unavailable: the unit's ADC has no reference voltage (VREF+ not driven) - temperature compensation cannot work on this unit"
+                : st.TemperatureC.HasValue
                 ? $"{st.TemperatureC:0.0} °C (internal sensor, {(st.TemperatureAgeSeconds >= 0 ? st.TemperatureAgeSeconds + " s ago" : "age unknown")})"
                 : "not measured yet";
             CorrectionText = $"{st.AppliedPpb / 1000.0:+0.000;-0.000} ppm (RTC smooth calibration{(st.TemperatureCompensation ? ", time-averaged" : "")})";
