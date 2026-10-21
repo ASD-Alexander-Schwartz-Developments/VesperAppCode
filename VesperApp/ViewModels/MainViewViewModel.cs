@@ -187,6 +187,7 @@ namespace VesperApp.ViewModels
             Categories.Add(new Category { Name = "Configuration", Page = typeof(ScheduleEditor), DataContext = new ScheduleEditorViewModel(), Icon = Symbol.TargetEdit, ToolTip = "Edit configuration file" });
             Categories.Add(new Category { Name = "Device Tests", Page = typeof(DeviceTests), DataContext = new DeviceTestsViewModel(this), Icon = Symbol.Repair, ToolTip = "Per-sensor test validations (microphones, GNSS/RF, …)" });
             Categories.Add(new Category { Name = "Live View", Page = typeof(LiveView), DataContext = new LiveViewViewModel(this), Icon = Symbol.Audio, ToolTip = "Real-time microphone view: scope, spectrum, spectrogram, PDM and sound recognition (KOL 4-ch USB stream or PC microphone)" });
+            Categories.Add(new Category { Name = "Clock", Page = typeof(ClockCalibration), DataContext = new ClockCalibrationViewModel(this), Icon = Symbol.Clock, ToolTip = "Precise clock sync against NTP and per-unit crystal calibration (KOL, Vesper, Pipistrelle)" });
             Categories.Add(new VesperApp.Models.Separator());
             Categories.Add(new Category { Name = "Software Upgrades", Page = typeof(UpdateChecker), DataContext = new UpdateCheckerViewModel(), Icon = Symbol.New, ToolTip = "Software Upgrades" });
             Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(this), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
@@ -493,11 +494,30 @@ namespace VesperApp.ViewModels
 
             SetDateTimeDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
-                if (SelectedLoggerDevice != null)
+                LoggerDevice? dev = SelectedLoggerDevice;
+                if (dev == null) return;
+
+                /* True time from NTP: the PC clock alone can be seconds off (bench 2026-10-21:
+                   2.5 s fast). Console loggers with the time-sync firmware get the precise
+                   path (millisecond sync, recorded for the per-unit calibration on the Clock
+                   page); everything else gets a plain set with NTP-corrected time. */
+                TextMessageBottom = "Setting the device clock…";
+                var rc = await VesperApp.Services.Time.ReferenceClock.CreateAsync();
+                if (dev.IsConsoleLogger)
                 {
-                    DateTime sdt = (IsClockUTC) ? DateTime.UtcNow : DateTime.Now;
-                    await SelectedLoggerDevice.SetDateTime(sdt);
+                    var r = await VesperApp.Services.Time.RtcSyncService.SyncAsync(
+                        new VesperApp.Services.Time.LoggerRtcDevice(dev), rc, IsClockUTC,
+                        VesperApp.Services.Time.RtcCalibrationStore.Default);
+                    if (r.Before != null)
+                    {
+                        TextMessageBottom = r.Message;
+                        return;
+                    }
                 }
+                DateTime trueUtc = rc.TrueUtcNow();
+                DateTime sdt = IsClockUTC ? trueUtc : trueUtc.ToLocalTime();
+                await dev.SetDateTime(sdt);
+                TextMessageBottom = $"Device clock set to {sdt:yyyy-MM-dd HH:mm:ss} ({(rc.IsNtp ? "NTP" : "PC clock, NTP not reachable")}; whole seconds).";
             });
 
             SleepDeviceCommand = ReactiveCommand.CreateFromTask(async () =>

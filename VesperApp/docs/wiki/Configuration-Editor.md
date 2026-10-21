@@ -15,7 +15,8 @@ The **Configuration** tab edits the JSON configuration that tells a device *what
 | **Allow magnet turn-off** | Whether a magnet may power the device down in the field (after activation) |
 | **Battery capacity** | The fitted battery's capacity in mAh (informational, used for documentation - no real impact on execution) |
 | **Power-on time/delay** | Optional power-on time/delay after magnet activation - when the device becomes active — an absolute date/time or relative delay |
-| **Clock drift** | Fine RTC clock-drift compensation constant for the Vesper/KOL products (consult for details); leave empty to disable compensation |
+| **Clock drift** | Legacy RTC drift constant, the same for every unit (a raw value for the clock's calibration register). Units calibrated on the [Clock Calibration](Clock-Calibration) page use their own measured value instead; leave empty for no correction |
+| **RTC temperature compensation** | KOL / Vesper / Pipistrelle: periodically read the internal temperature sensor and correct the clock crystal's temperature drift. Off unless ticked; the optional curve steepness, turnover temperature and interval default to 34 ppb/°C², 25.0 °C and 600 s — see [Clock Calibration](Clock-Calibration) |
 
 Selecting a device type pre-fills the device name and clock drift (Vesper, Pipistrelle and KOL use `32999`; Nanotag has none) — both can be adjusted before saving.
 

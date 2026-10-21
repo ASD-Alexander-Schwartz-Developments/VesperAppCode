@@ -90,9 +90,11 @@ namespace ASD.DeviceCore.Protocol
                 while (!ct.IsCancellationRequested)
                 {
                     int n = await _link.ReadAsync(buffer.AsMemory(), ct).ConfigureAwait(false);
+                    long rxTs = System.Diagnostics.Stopwatch.GetTimestamp();
                     if (n <= 0) continue;
-                    foreach (AsdMessage msg in _parser.Push(buffer.AsMemory(0, n)))
+                    foreach (AsdMessage parsed in _parser.Push(buffer.AsMemory(0, n)))
                     {
+                        AsdMessage msg = parsed with { RxTimestamp = rxTs };
                         if (_waiters.TryRemove(msg.Type, out var tcs))
                             tcs.TrySetResult(msg);
                         try { MessageReceived?.Invoke(msg); }

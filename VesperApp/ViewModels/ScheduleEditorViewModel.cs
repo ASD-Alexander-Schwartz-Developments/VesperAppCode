@@ -88,6 +88,16 @@ namespace VesperApp.ViewModels
         }
         private decimal? _clockDrift;
 
+        // RTC temperature compensation (config.json "tcomp", "tck", "tct0", "tcper").
+        public bool TempCompEnabled { get => _tempCompEnabled; set => this.RaiseAndSetIfChanged(ref _tempCompEnabled, value); }
+        private bool _tempCompEnabled;
+        public decimal? TempCompCurvature { get => _tempCompCurvature; set => this.RaiseAndSetIfChanged(ref _tempCompCurvature, value); }
+        private decimal? _tempCompCurvature;
+        public decimal? TempCompTurnoverC { get => _tempCompTurnoverC; set => this.RaiseAndSetIfChanged(ref _tempCompTurnoverC, value); }
+        private decimal? _tempCompTurnoverC;
+        public decimal? TempCompPeriod { get => _tempCompPeriod; set => this.RaiseAndSetIfChanged(ref _tempCompPeriod, value); }
+        private decimal? _tempCompPeriod;
+
         public bool IsPowerOnRelative
         {
             get => _isPowerOnRelative;
@@ -121,6 +131,10 @@ namespace VesperApp.ViewModels
             IsMagnetOffEnabled = config.IsMagnetOffEnabled;
             BatteryCapacity = config.BatteryCapacity;
             ClockDrift = config.CDrift;
+            TempCompEnabled = config.TempComp == true;
+            TempCompCurvature = config.TempCompCurvature;
+            TempCompTurnoverC = config.TempCompTurnover.HasValue ? config.TempCompTurnover.Value / 10m : null;
+            TempCompPeriod = config.TempCompPeriod;
 
             // Switch the mask first and let it apply before setting the text,
             // otherwise the MaskedTextBox drops the new value.
@@ -138,6 +152,11 @@ namespace VesperApp.ViewModels
             config.IsMagnetOffEnabled = IsMagnetOffEnabled;
             config.BatteryCapacity = (UInt32)BatteryCapacity;
             config.CDrift = ClockDrift.HasValue ? (UInt32)ClockDrift.Value : null;
+            /* Written only when enabled; empty fields stay out of the file (firmware defaults). */
+            config.TempComp = TempCompEnabled ? true : null;
+            config.TempCompCurvature = TempCompEnabled && TempCompCurvature.HasValue ? (UInt32)TempCompCurvature.Value : null;
+            config.TempCompTurnover = TempCompEnabled && TempCompTurnoverC.HasValue ? (UInt32)Math.Round(TempCompTurnoverC.Value * 10m) : null;
+            config.TempCompPeriod = TempCompEnabled && TempCompPeriod.HasValue ? (UInt32)TempCompPeriod.Value : null;
 
             if (PowerOnText.Length > 0)
             {

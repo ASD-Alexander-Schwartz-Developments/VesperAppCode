@@ -876,6 +876,74 @@ namespace VesperApp.Models
 
         #endregion
 
+        #region RTC time sync + crystal calibration (KOL, Vesper, Pipistrelle; asd-interfaces interfaces/rtc-time-sync.md)
+
+        /// <summary>A console-attached logger (KOL / Vesper / Pipistrelle over its CDC port).</summary>
+        public bool IsConsoleLogger => IsComportDevice && _type != DeviceTypes.Nanotag;
+
+        /// <summary>
+        /// One VESPER_TIME_SYNC exchange. The host send time is taken right before the frame is
+        /// handed to the port, the receive time is the serial read that completed the reply (not
+        /// the later event dispatch). Null on timeout or NACK (firmware without the command).
+        /// </summary>
+        public async Task<RtcExchange?> TimeSyncExchangeAsync(uint seq, int timeoutMs = 1000)
+        {
+            if (!IsConsoleLogger || this._comport == null || !this._comport.IsRunning) return null;
+
+            var tcs = new TaskCompletionSource<(byte[]? data, long rx)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<MessageEventArgs> handler = (s, e) =>
+            {
+                if (e.typeOfMessage == MessageTypes.VESPER_TIME_SYNC) tcs.TrySetResult((e.MessageData, e.RxTimestamp));
+                else if (e.typeOfMessage == MessageTypes.NACK) tcs.TrySetResult((null, 0));
+            };
+
+            this._comport.MessageEvent += handler;
+            try
+            {
+                byte[] payload = BitConverter.GetBytes(seq);
+                byte[] frame = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_TIME_SYNC, (byte)payload.Length, payload, 0);
+                long t1 = Stopwatch.GetTimestamp();
+                this._comport.SendToDevice(frame, 0, frame.Length);
+
+                using var cts = new System.Threading.CancellationTokenSource(timeoutMs);
+                using (cts.Token.Register(() => tcs.TrySetResult((null, 0))))
+                {
+                    var (data, rx) = await tcs.Task.ConfigureAwait(false);
+                    if (data == null) return null;
+                    RtcExchange? ex = RtcExchange.Parse(data, t1, rx != 0 ? rx : Stopwatch.GetTimestamp());
+                    return (ex != null && ex.Seq == seq) ? ex : null;
+                }
+            }
+            finally
+            {
+                this._comport.MessageEvent -= handler;
+            }
+        }
+
+        /// <summary>Set the device RTC (whole seconds; the device restarts its sub-second counter)
+        /// and wait for the ACK.</summary>
+        public async Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000)
+        {
+            if (!IsConsoleLogger) return false;
+            return await SendAckCommandAsync(MessageTypes.VESPER_SET_RTC, SerialMessage.DateTimeToBytes(deviceTime), timeoutMs);
+        }
+
+        /// <summary>Shift the device RTC by less than one second (VESPER_RTC_SHIFT, + advances).</summary>
+        public async Task<bool> RtcShiftAsync(int microseconds, int timeoutMs = 2000)
+        {
+            if (!IsConsoleLogger) return false;
+            return await SendAckCommandAsync(MessageTypes.VESPER_RTC_SHIFT, BitConverter.GetBytes(microseconds), timeoutMs);
+        }
+
+        /// <summary>VESPER_RTC_CAL request (op 0 get, 1 set, 2 clear, 3 measure temperature).</summary>
+        public async Task<RtcCalStatus?> RtcCalAsync(byte[] payload, int timeoutMs = 2000)
+        {
+            if (!IsConsoleLogger) return null;
+            return RtcCalStatus.Parse(await SendCommandAsync(MessageTypes.VESPER_RTC_CAL, payload, timeoutMs));
+        }
+
+        #endregion
+
 
 
         public async Task<bool> UploadConfigFile(string json)

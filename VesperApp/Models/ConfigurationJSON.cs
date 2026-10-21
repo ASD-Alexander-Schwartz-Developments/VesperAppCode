@@ -23,6 +23,8 @@ namespace VesperApp.Models
         private PowerOnTime wake_up_time;                  // time to turn on when no magnet mode
         private ScheduleTypes schedule_type;
         private UInt32? clock_drift;
+        private bool? temp_comp;
+        private UInt32? temp_comp_k, temp_comp_t0, temp_comp_period;
         private List<ConfigScheduleJSONItem> schedule;
         private List<ConfigurationDeviceDriver> drivers;
 
@@ -108,6 +110,24 @@ namespace VesperApp.Models
             get { return this.clock_drift; }
             set { this.clock_drift = value; }
         }
+
+        /// <summary>RTC temperature compensation (firmware rtc_cal.c): the internal temperature sensor is
+        /// read every <see cref="TempCompPeriod"/> seconds and the RTC follows the crystal's parabola.
+        /// Off unless true. asd-interfaces interfaces/rtc-time-sync.md.</summary>
+        [JsonPropertyName("tcomp"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(2)]
+        public bool? TempComp { get => temp_comp; set => temp_comp = value; }
+
+        /// <summary>Parabola curvature magnitude, ppb/°C² (applied negative); firmware default 34.</summary>
+        [JsonPropertyName("tck"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(2)]
+        public UInt32? TempCompCurvature { get => temp_comp_k; set => temp_comp_k = value; }
+
+        /// <summary>Turnover temperature in 0.1 °C; firmware default 250 (25.0 °C).</summary>
+        [JsonPropertyName("tct0"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(2)]
+        public UInt32? TempCompTurnover { get => temp_comp_t0; set => temp_comp_t0 = value; }
+
+        /// <summary>Measurement period in seconds; firmware default 600, minimum 60.</summary>
+        [JsonPropertyName("tcper"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(2)]
+        public UInt32? TempCompPeriod { get => temp_comp_period; set => temp_comp_period = value; }
 
         [JsonPropertyName("scheduleType"), JsonPropertyOrder(3)]
         [CategoryAttribute("General configuration"),

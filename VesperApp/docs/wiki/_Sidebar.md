@@ -14,6 +14,7 @@
 **Device management**
 - [Configuration Editor](Configuration-Editor)
 - [Device Tests](Device-Tests)
+- [Clock Calibration](Clock-Calibration)
 - [Firmware Updates](Firmware-Updates)
 
 **Application**
