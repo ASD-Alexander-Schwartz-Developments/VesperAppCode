@@ -144,13 +144,14 @@ namespace VesperApp.ViewModels
         private void ShowStatus(RtcCalStatus st)
         {
             TemperatureText = (st.Flags & RtcCalFlags.TemperatureFault) != 0
-                ? "unavailable: the unit's ADC has no reference voltage (VREF+ not driven) - temperature compensation cannot work on this unit"
+                ? "unavailable: the unit's ADC has no usable reference voltage, even from the internal buffer - temperature compensation cannot work on this unit"
                 : st.TemperatureC.HasValue
                 ? $"{st.TemperatureC:0.0} °C (internal sensor, {(st.TemperatureAgeSeconds >= 0 ? st.TemperatureAgeSeconds + " s ago" : "age unknown")})"
                 : "not measured yet";
             CorrectionText = $"{st.AppliedPpb / 1000.0:+0.000;-0.000} ppm (RTC smooth calibration{(st.TemperatureCompensation ? ", time-averaged" : "")})";
             CalibrationText = st.HasUnitCalibration
-                ? $"crystal {st.StoredErrorPpb / 1000.0:+0.000;-0.000} ppm at {(st.ReferenceTemperatureC.HasValue ? st.ReferenceTemperatureC.Value.ToString("0.0") + " °C" : "unknown temperature")}"
+                ? $"crystal {st.StoredErrorPpb / 1000.0:+0.000;-0.000} ppm at {(st.ReferenceTemperatureC.HasValue ? st.ReferenceTemperatureC.Value.ToString("0.0") + " °C" : "unknown temperature")}" +
+                  ((st.Flags & RtcCalFlags.FromDisk) != 0 ? $" (loaded from {UnitDisk.CalibrationFile} on the unit's disk)" : "")
                 : (st.Flags & RtcCalFlags.LegacyDrift) != 0
                     ? "none on the unit — the legacy config.json \"cdrift\" value applies"
                     : "none on the unit — no correction";
@@ -174,7 +175,7 @@ namespace VesperApp.ViewModels
             ShowStatus(st);
             StoredCalibration? master = _store.Get(dev.UnitKey).Calibration;
             StatusText = (!st.HasUnitCalibration && master != null)
-                ? $"The unit has lost its calibration (it is kept with the RTC); the stored value {master.ErrorPpb / 1000.0:+0.000;-0.000} ppm is re-applied on the next Sync."
+                ? $"The unit has lost its calibration (no {UnitDisk.CalibrationFile} on its disk and the RTC was reset); the stored value {master.ErrorPpb / 1000.0:+0.000;-0.000} ppm is re-applied on the next Sync."
                 : "";
         }
 
@@ -231,12 +232,14 @@ namespace VesperApp.ViewModels
         {
             IRtcDevice? dev = Device();
             if (dev == null || _estimate == null) { StatusText = DeviceText; return; }
-            RtcCalStatus? st = await RtcSyncService.ApplyAsync(dev, _estimate, _store);
+            CalibrationEstimate est = _estimate;
+            RtcCalStatus? st = await RtcSyncService.ApplyAsync(dev, est, _store);
             if (st == null || !st.HasUnitCalibration) { StatusText = "The device did not accept the calibration."; return; }
+            string disk = await Task.Run(() => RtcSyncService.PersistToDisk(dev.UnitKey, est, st));
             ShowStatus(st);
             _estimate = null;
             HasEstimate = false;
-            StatusText = "Calibration written to the unit and stored. A new measurement period starts now.";
+            StatusText = "Calibration applied on the unit and stored here. " + disk + " A new measurement period starts now.";
         }
 
         private async Task ClearAsync()
@@ -245,7 +248,9 @@ namespace VesperApp.ViewModels
             if (dev == null) { StatusText = DeviceText; return; }
             RtcCalStatus? st = await RtcSyncService.ClearAsync(dev, _store);
             if (st != null) ShowStatus(st);
-            StatusText = st == null ? "The device did not answer." : "Calibration cleared on the unit and here.";
+            StatusText = st == null
+                ? "The device did not answer."
+                : "Calibration cleared on the unit and here. " + await Task.Run(() => RtcSyncService.RemoveFromDisk(dev.UnitKey));
         }
 
         private async Task MeasureTemperatureAsync()

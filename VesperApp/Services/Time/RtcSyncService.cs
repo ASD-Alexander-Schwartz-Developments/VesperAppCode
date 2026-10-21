@@ -213,6 +213,59 @@ namespace VesperApp.Services.Time
             return st;
         }
 
+        /// <summary>
+        /// Make the calibration survive power loss: RTCCAL.TXT on the unit's disk (new firmware) and
+        /// config.json "cdrift" there (older firmware) — <see cref="UnitDisk"/>. The cdrift value is the
+        /// correction at the turnover temperature T0, which is how the firmware reads cdrift with and
+        /// without temperature compensation. Returns a sentence for the user.
+        /// </summary>
+        public static string PersistToDisk(string unitKey, CalibrationEstimate est, RtcCalStatus st)
+        {
+            string? root = UnitDisk.FindRoot(unitKey);
+            if (root == null)
+                return "The unit's disk was not found (connect it in Idle mode so its drive is mounted, then Apply again): " +
+                       "until then the calibration lives in the RTC backup registers and is lost if the battery is removed.";
+            try
+            {
+                UnitDisk.Write(root, unitKey, est);
+            }
+            catch (Exception ex)
+            {
+                return $"Writing {UnitDisk.CalibrationFile} to {root} failed: {ex.Message}.";
+            }
+
+            int e0 = UnitDisk.ErrorAtTurnover(est.ErrorPpb, est.ReferenceC, st.CurvaturePpbPerC2, st.TurnoverC);
+            uint cdrift = UnitDisk.CalrFor(-e0);
+            string cfg;
+            try
+            {
+                uint? old = UnitDisk.PatchConfigCdrift(root, cdrift);
+                cfg = $"config.json \"cdrift\" {(old.HasValue ? old.Value + " → " : "set to ")}{cdrift} for older firmware";
+            }
+            catch (Exception ex)
+            {
+                cfg = $"config.json not updated ({ex.Message})";
+            }
+            return $"Saved on the unit's disk ({root}): {UnitDisk.CalibrationFile}; {cfg}.";
+        }
+
+        /// <summary>Remove RTCCAL.TXT from the unit's disk. config.json "cdrift" is left as it is.</summary>
+        public static string RemoveFromDisk(string unitKey)
+        {
+            string? root = UnitDisk.FindRoot(unitKey);
+            if (root == null) return $"The unit's disk was not found: delete {UnitDisk.CalibrationFile} from it by hand, or it is loaded again at the next boot.";
+            try
+            {
+                return UnitDisk.Delete(root)
+                    ? $"{UnitDisk.CalibrationFile} removed from the unit's disk; config.json \"cdrift\" is unchanged (edit it in the Configuration editor if needed)."
+                    : $"There was no {UnitDisk.CalibrationFile} on the unit's disk.";
+            }
+            catch (Exception ex)
+            {
+                return $"Removing {UnitDisk.CalibrationFile} failed: {ex.Message}.";
+            }
+        }
+
         /// <summary>Write the estimate to the unit and keep it as the master copy.</summary>
         public static async Task<RtcCalStatus?> ApplyAsync(IRtcDevice dev, CalibrationEstimate est, RtcCalibrationStore store)
         {

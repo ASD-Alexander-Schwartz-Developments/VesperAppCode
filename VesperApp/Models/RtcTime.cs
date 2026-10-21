@@ -32,6 +32,7 @@ namespace VesperApp.Models
         TemperaturePending = 0x10,
         TemperatureValid = 0x20,
         TemperatureFault = 0x40,    // ADC reference missing: the reading is impossible (VREFINT saturated)
+        FromDisk = 0x80,            // calibration in use was loaded from RTCCAL.TXT on the unit's disk at boot
     }
 
     /// <summary>One VESPER_TIME_SYNC exchange: host Stopwatch timestamps around the request (t1, t4)
