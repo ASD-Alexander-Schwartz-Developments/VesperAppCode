@@ -3,10 +3,17 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
+using VesperApp.Services;
 
 namespace VesperApp.Models
 {
-    public class ConfigKOLDriver : ConfigurationDeviceDriver
+    /// <summary>
+    /// KOL microphones. The filter chain is chosen from the sample rate (<see cref="MicChainSolver"/>,
+    /// firmware mic_chain.c): the old "Use CIC4" and "Digital filter /4" settings are gone — they were
+    /// confusing and the filter checkbox worked the wrong way round (256 = /4 on, 257 = off). Configs are
+    /// always written with "filter" bit 15; an old config is converted on load to the same output level.
+    /// </summary>
+    public class ConfigKOLDriver : ConfigurationDeviceDriver, IJsonOnDeserialized, IMicChainSolvable
     {
         public const UInt32 BITMASK_MIKE_LED = 0x02;
         public const UInt32 SAMPLING_RATE_MASTERCLOCK = 4800000;
@@ -45,7 +52,54 @@ namespace VesperApp.Models
                 this.Gain = driver.Gain;
                 this.MikesOn = driver.MikesOn;
                 this.HPF = driver.HPF;
+                this.digitalFilter = driver.digitalFilter;
+                this.MigrationNote = driver.MigrationNote;
             }
+        }
+
+        /// <summary>Set when an old config was converted on load; shown by the solver.</summary>
+        [JsonIgnore, Browsable(false)]
+        public string? MigrationNote { get; private set; }
+
+        private uint RefRate => MicChainSolver.RefRate(SampleRate[1], SampleRate[2], 0);
+
+        /// <summary>
+        /// An old config ("filter" without bit 15) used the chain its filter/cic4 bits select. Rebuild it with
+        /// the automatic chain at the same output level at the reference rate, so recordings keep their level
+        /// (and the trigger thresholds their meaning) where the hardware allows it.
+        /// </summary>
+        public void OnDeserialized()
+        {
+            if ((digitalFilter & MicChainSolver.AutoBit) != 0) return;
+            uint refFs = RefRate;
+            ushort oldFilter = digitalFilter;
+            bool oldCic4 = cic4;
+            digitalFilter |= MicChainSolver.AutoBit;
+            cic4 = false;
+            if (refFs == 0) return;
+
+            MicChainSolver.Chain legacy = MicChainSolver.SolveLegacy(refFs, oldFilter, oldCic4, MicChainSolver.GainCode(gain))!;
+            MicChainSolver.Chain auto = MicChainSolver.Solve(refFs, legacy.LevelCdb)!;
+            ushort newGain = MicChainSolver.GainValue(auto.GainCode);
+            string from = $"filter {oldFilter}{(oldCic4 ? ", CIC4" : "")} ({legacy.Describe()})";
+            if (newGain != gain || legacy.Total != auto.Total || legacy.Reshape != auto.Reshape)
+            {
+                MigrationNote = $"Converted from the old setting {from} to {auto.Describe()} at {MicChainSolver.Hz(refFs)}: " +
+                                $"gain {MicChainSolver.CodeCdb(MicChainSolver.GainCode(gain)) / 100.0:+0.0;-0.0} → {MicChainSolver.CodeCdb(auto.GainCode) / 100.0:+0.0;-0.0} dB" +
+                                (auto.GainClamped
+                                    ? $"; the old level cannot be reached with this filter ({(auto.LevelCdb - legacy.LevelCdb) / 100.0:+0.0;-0.0} dB) — check the trigger thresholds."
+                                    : " (same output level).");
+                gain = newGain;
+            }
+        }
+
+        public string MicChainReport() => MicChainSolver.Report(SampleRate[1], SampleRate[2], gain, MigrationNote);
+
+        public void ApplyRecommendedGain()
+        {
+            uint refFs = RefRate;
+            if (refFs == 0) return;
+            Gain = KOLGain.CreateFromValue((byte)MicChainSolver.GainValue(MicChainSolver.Recommended(refFs)));
         }
 
 
@@ -150,7 +204,7 @@ namespace VesperApp.Models
         DescriptionAttribute("Use CIC4 filter by default if enabled. Otherwise, default is CIC5."),
         DisplayName("Use CIC4 Digital Filter")]
         [JsonPropertyName("cic4"), JsonPropertyOrder(23)]
-        [Browsable(true)]
+        [Browsable(false)]   // chosen from the sample rate (MicChainSolver); kept for the JSON field
         public bool UseCic4Filter
         {
             get => cic4;
@@ -171,7 +225,8 @@ namespace VesperApp.Models
         [JsonPropertyName("filter"), JsonPropertyOrder(24)]
         public UInt16 DFilter
         {
-            get { return this.digitalFilter; }
+            /* always written in auto mode, with the reshape bits older firmware needs (MicChainSolver.FilterValue) */
+            get { return MicChainSolver.FilterValue(RefRate); }
             set { this.digitalFilter = value; }
         }
 
@@ -179,7 +234,7 @@ namespace VesperApp.Models
         TypeConverter(typeof(bool)),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
         DescriptionAttribute("Enables Digital LPF with /4 decimation ratio"),
-        Browsable(true)]
+        Browsable(false)]   // replaced by the automatic chain; this checkbox worked the wrong way round
         [JsonIgnore]
         public bool EnableDigitalFilter
         {
@@ -243,9 +298,10 @@ namespace VesperApp.Models
         [DisplayName("Programmable Gain"),
         TypeConverter(typeof(KOLGain)),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Programmable Gain"),
+        DescriptionAttribute("Microphone filter gain at Sample Rate [1] (else [2]); the firmware keeps the same level at the other rate and in Live Audio. Solve shows the resulting level and suggests a value."),
         Browsable(true)]
         [JsonIgnore]
+        [MicSolver]
         public KOLGain Gain
         {
             get
@@ -262,10 +318,34 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
+        DescriptionAttribute("Sample Rate of the microphones in the Config1 schedule; the filter is chosen from it. Solve explains the result."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
+        [MicSolver]
+        public KOLSampleRate Rate1
+        {
+            get => KOLSampleRate.CreateFromValue(SampleRate[1]);
+            set { SampleRate[1] = value.Value; OnPropertyChanged(); }
+        }
+
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Sample Rate of the microphones in the Config2 schedule; the filter is chosen from it. Solve explains the result."),
+        DisplayName("Sample Rate [2]")]
+        [JsonIgnore]
+        [Browsable(true)]
+        [MicSolver]
+        public KOLSampleRate Rate2
+        {
+            get => KOLSampleRate.CreateFromValue(SampleRate[2]);
+            set { SampleRate[2] = value.Value; OnPropertyChanged(); }
+        }
+
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
+        DisplayName("Sample Rate [1]")]
+        [JsonIgnore]
+        [Browsable(false)]   // edited as Rate1 (predefined rates)
         public override UInt32 SampleRate1
         {
             get => SampleRate[1];
@@ -280,7 +360,7 @@ namespace VesperApp.Models
         DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
-        [Browsable(true)]
+        [Browsable(false)]   // edited as Rate2 (predefined rates)
         public override UInt32 SampleRate2
         {
             get => SampleRate[2];

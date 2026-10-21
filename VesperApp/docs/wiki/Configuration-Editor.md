@@ -56,6 +56,10 @@ Each sensor on the device is configured through its **driver** entry — samplin
 
 For the KOL's microphone array, the channel configuration (1, 2 or 4 microphones) is part of the audio driver settings.
 
+**KOL sample rate and gain.** Pick the sample rates from the list (4 kHz – 400 kHz). The unit chooses the best digital filter for each rate itself — there is no filter setting to get wrong. Most rates are exact; the 44.1 kHz family and 250 kHz run at the closest rate the 4.8 MHz microphone clock allows, shown next to the value and stored in the recording header. The **gain** applies to *Sample Rate [1]* (or [2] if [1] is off); the unit keeps the same loudness at the other rate and in Live Audio (KOL firmware 1.8 or later).
+
+Press **Solve** next to a rate or the gain to see what the unit will do: the filter, the exact rate, how loud a full-scale sound will be, where it clips (dB SPL) and whether quiet sounds stay above the 16-bit noise floor — plus suggested better rates where one is approximate, and **Use recommended gain** (a full-scale sound at about +6 dBFS, clipping near 114 dB SPL). Configurations saved by older versions are converted on opening to the same loudness where possible; Solve says if that was not possible.
+
 ## Saving and applying
 
 - **Save** writes the configuration JSON — to a file, or to the connected device.
