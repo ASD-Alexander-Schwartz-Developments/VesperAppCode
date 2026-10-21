@@ -27,7 +27,7 @@ namespace VesperApp.Services
         public const int CodeMin = -16, CodeMax = 24;
         private const int CicMin = 2, CicMax = 512, TotalMax = 4 * CicMax;
         private const int FullScaleCdb = 13847;      // 20 log10(2^23)
-        private const int ReshapeCdb = 0;            // reshape filter DC gain: assumed unity, to be measured
+        private const int ReshapeCdb = 957;          // reshape filter DC gain x3.01, measured 2026-10-21 (firmware MC_RSF_CDB)
         private const int ClampSlackCdb = 150;
 
         // SPH0641LU4H (KOL microphones), datasheet values
@@ -65,8 +65,9 @@ namespace VesperApp.Services
         /// <summary>config.json "gain" (SCALE field as written: 0..24, 0x20..0x2F for negative) → code.</summary>
         public static int GainCode(ushort cfgGain)
         {
-            int r = cfgGain & 0x3F;
-            return Math.Clamp(r >= 0x20 ? r - 48 : r, CodeMin, CodeMax);
+            int b = cfgGain & 0xFF;     // config: SCALE field (0x20..0x2F negative); console: int8 (0xF0..0xFF)
+            int c = b >= 0xF0 ? b - 256 : b >= 0x20 && b <= 0x2F ? b - 48 : b;
+            return Math.Clamp(c, CodeMin, CodeMax);
         }
 
         /// <summary>Signed code → the config.json "gain" value.</summary>
