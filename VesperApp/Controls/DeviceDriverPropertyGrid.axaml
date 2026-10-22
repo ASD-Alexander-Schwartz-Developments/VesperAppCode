@@ -47,27 +47,16 @@
 										<!-- Enums + sensor option wrappers -->
 										<controls:PropertyEditorTemplateSelector.Options>
 											<DataTemplate DataType="vm:DriverPropertyViewModel">
-												<!-- Microphone rate / gain rows add a Solve button: what the firmware
-												     will build for the current settings, and a suggested gain. -->
+												<!-- Microphone rate / gain rows add a Solve button that opens the Solve
+												     window (modal, over the editor) for this driver. -->
 												<Grid ColumnDefinitions="*,Auto">
 													<ComboBox Grid.Column="0" Margin="8,3"
 															  ItemsSource="{Binding Options}"
 															  SelectedItem="{Binding Value, Mode=TwoWay}"
 															  HorizontalAlignment="Stretch" VerticalAlignment="Center" />
 													<Button Grid.Column="1" Margin="0,3,8,3" Padding="10,4"
-														Content="Solve" IsVisible="{Binding HasSolver}"
-														Command="{Binding SolveCommand}"
-														ToolTip.Tip="Show the filter, actual rate, level and noise margin the firmware will use, and a suggested gain">
-														<Button.Flyout>
-															<Flyout Placement="BottomEdgeAlignedRight">
-																<StackPanel Spacing="10" MaxWidth="560">
-																	<SelectableTextBlock Text="{Binding SolverText}" TextWrapping="Wrap" />
-																	<Button Content="Use recommended gain" HorizontalAlignment="Right"
-																		Command="{Binding UseRecommendedCommand}" />
-																</StackPanel>
-															</Flyout>
-														</Button.Flyout>
-													</Button>
+														Content="Solve" Tag="micSolve" IsVisible="{Binding HasSolver}"
+														ToolTip.Tip="Explain what the unit will do with these microphone settings: exact rate, filter, loudest sound, quiet sounds - and suggest a gain" />
 												</Grid>
 											</DataTemplate>
 										</controls:PropertyEditorTemplateSelector.Options>

@@ -6,9 +6,9 @@ using VesperApp.Services;
 namespace VesperApp.Models
 {
     /// <summary>
-    /// KOL microphone sample rate choice. The 4.8 MHz microphone clock divides exactly to most of these;
-    /// the 44.1 kHz family and 250 kHz run at the closest rate it allows (shown in the label, recorded in
-    /// the file header). The MDF cannot go below 4.8 MHz / 2048 ≈ 2.34 kHz.
+    /// Microphone sample rate choice (KOL, Vesper/Pipistrelle SPH0641). The 4.8 MHz microphone clock divides
+    /// exactly to most of these; the 44.1 kHz family and 250 / 256 / 384 kHz run at the closest rate it allows
+    /// (shown in the label, recorded in the file header). The MDF cannot go below 4.8 MHz / 2048 ≈ 2.34 kHz.
     /// </summary>
     public sealed class KOLSampleRate
     {

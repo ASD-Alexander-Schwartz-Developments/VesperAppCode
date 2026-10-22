@@ -157,7 +157,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling ON time in [ms] when running Config1 schedule"),
+        DescriptionAttribute("Duty-cycled recording in Config 1: how long each recording window lasts, in ms (0 = record continuously)."),
         DisplayName("Window Length [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -172,7 +172,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling ON time in [ms] when running Config2 schedule"),
+        DescriptionAttribute("Duty-cycled recording in Config 2: how long each recording window lasts, in ms (0 = record continuously)."),
         DisplayName("Window Length [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -202,7 +202,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling OFF time in [ms] when running Config1 schedule"),
+        DescriptionAttribute("Duty-cycled recording in Config 1: time from the start of one window to the start of the next, in ms; must be longer than the window length (0 = record continuously)."),
         DisplayName("Window Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -217,7 +217,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling OFF time in [ms] when running Config2 schedule"),
+        DescriptionAttribute("Duty-cycled recording in Config 2: time from the start of one window to the start of the next, in ms; must be longer than the window length (0 = record continuously)."),
         DisplayName("Window Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -235,7 +235,7 @@ namespace VesperApp.Models
         [JsonPropertyName("fileSize"), JsonPropertyOrder(30)]
         [Browsable(true)]
         [CategoryAttribute("Advanced configuration"),
-        DescriptionAttribute("Size (in Bytes) of a single file containing sensor samples, once file reaches this side, it's timestamped, closed and new file is opened"),
+        DescriptionAttribute("Size of each recording file in bytes; when it is reached the file is closed and a new one is started."),
         DisplayName("File Size")]
         public virtual UInt32 FileSize
         {
@@ -268,7 +268,7 @@ namespace VesperApp.Models
         [Browsable(true)]
         [JsonIgnore]
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Should LED indicate activity is this driver"),
+        DescriptionAttribute("Blink the LED while this sensor records."),
         DisplayName("LED Activity")]
         public virtual bool IsLEDActive
         {
@@ -285,7 +285,7 @@ namespace VesperApp.Models
         [Browsable(true)]
         [JsonIgnore]
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Should Listen to Accelerometer Trigger source"),
+        DescriptionAttribute("Reserved for accelerometer-triggered recording: the current KOL and Vesper firmware do not use it yet."),
         DisplayName("ACC Trigger Enable")]
         public virtual bool EnAccTrig
         {

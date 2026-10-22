@@ -96,35 +96,15 @@ namespace VesperApp.ViewModels
             _options = FindOptions(_type);
             _editorKind = ResolveEditorKind(_type, _options);
 
-            HasSolver = _target is VesperApp.Models.IMicChainSolvable
-                        && property.GetCustomAttribute<VesperApp.Models.MicSolverAttribute>(true) != null;
-            if (HasSolver)
-            {
-                SolveCommand = ReactiveCommand.Create(() =>
-                {
-                    SolverText = ((VesperApp.Models.IMicChainSolvable)_target).MicChainReport();
-                });
-                UseRecommendedCommand = ReactiveCommand.Create(() =>
-                {
-                    ((VesperApp.Models.IMicChainSolvable)_target).ApplyRecommendedGain();
-                    SolverText = ((VesperApp.Models.IMicChainSolvable)_target).MicChainReport();
-                });
-            }
+            Solvable = property.GetCustomAttribute<VesperApp.Models.MicSolverAttribute>(true) != null
+                       ? _target as VesperApp.Models.IMicChainSolvable : null;
 
             Update();
         }
 
-        /// <summary>Microphone sample rate / gain rows get a "Solve" button explaining the filter chain.</summary>
-        public bool HasSolver { get; }
-        public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit>? SolveCommand { get; }
-        public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit>? UseRecommendedCommand { get; }
-
-        public string SolverText
-        {
-            get => _solverText;
-            private set => this.RaiseAndSetIfChanged(ref _solverText, value);
-        }
-        private string _solverText = "";
+        /// <summary>Microphone sample rate / gain rows get a "Solve" button; the grid opens the Solve window for this driver.</summary>
+        public VesperApp.Models.IMicChainSolvable? Solvable { get; }
+        public bool HasSolver => Solvable != null;
 
         public PropertyInfo Property { get; }
         public override object Key => Property;

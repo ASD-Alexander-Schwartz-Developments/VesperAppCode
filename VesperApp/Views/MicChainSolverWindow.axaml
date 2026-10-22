@@ -1,0 +1,103 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:VesperApp.ViewModels"
+        xmlns:controls="using:VesperApp.Controls"
+        mc:Ignorable="d" d:DesignWidth="680" d:DesignHeight="620"
+        x:Class="VesperApp.Views.MicChainSolverWindow"
+        Title="Microphone settings — what the unit will do"
+        Icon="/Assets/bat.ico"
+        Width="680" MinWidth="520"
+        Height="640" MinHeight="360"
+        CanResize="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+	<Window.Styles>
+		<Style Selector="TextBlock.line">
+			<Setter Property="TextWrapping" Value="Wrap"/>
+			<Setter Property="Margin" Value="0,2,0,2"/>
+		</Style>
+		<Style Selector="TextBlock.line.warn">
+			<Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+		</Style>
+		<Style Selector="TextBlock.line.detail">
+			<Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Margin" Value="0,6,0,0"/>
+		</Style>
+	</Window.Styles>
+
+	<DockPanel Margin="18">
+
+		<!-- Bottom action row -->
+		<Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,14,0,0" ColumnSpacing="8">
+			<Button Grid.Column="1" Content="Use recommended high-pass filter" MinWidth="170"
+					IsVisible="{Binding HasHpfRecommendation}" Command="{Binding UseRecommendedHpfCommand}"/>
+			<Button Grid.Column="2" Classes="accent" Content="Use recommended gain" MinWidth="170"
+					IsVisible="{Binding HasRecommendation}" Command="{Binding UseRecommendedCommand}"/>
+			<Button Grid.Column="3" x:Name="btnClose" Content="Close" MinWidth="90" IsDefault="True" IsCancel="True"/>
+		</Grid>
+
+		<!-- Firmware note -->
+		<TextBlock DockPanel.Dock="Bottom" Classes="caption" TextWrapping="Wrap" Margin="0,12,0,0"
+				   Text="{Binding Report.Footer}"/>
+
+		<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+			<StackPanel Spacing="12">
+				<TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Report.Summary}"/>
+
+				<ItemsControl ItemsSource="{Binding Sections}">
+					<ItemsControl.ItemsPanel>
+						<ItemsPanelTemplate><StackPanel Spacing="10"/></ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<Border Classes="card" Padding="14,10">
+								<StackPanel>
+									<TextBlock FontWeight="SemiBold" Margin="0,0,0,6" Text="{Binding Title}"/>
+									<ItemsControl ItemsSource="{Binding Lines}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate>
+												<TextBlock Classes="line" Classes.warn="{Binding Warning}" Classes.detail="{Binding Detail}"
+														   Text="{Binding Text}"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</StackPanel>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+
+				<!-- Frequency response of the configured chains -->
+				<Border Classes="card" Padding="14,10" IsVisible="{Binding HasResponse}">
+					<StackPanel Spacing="6">
+						<Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
+							<TextBlock Grid.Column="0" FontWeight="SemiBold" Text="Frequency response"/>
+							<TextBlock Grid.Column="2" Foreground="{DynamicResource AppAccentBrush}" Text="{Binding Legend1}"/>
+							<TextBlock Grid.Column="3" Foreground="{DynamicResource SuccessBrush}" Text="{Binding Legend2}" IsVisible="{Binding HasLegend2}"/>
+						</Grid>
+						<TextBlock Classes="caption" Text="Gain"/>
+						<controls:ResponsePlot Height="160" Curves="{Binding Curves}" ShowPhase="False"
+											   GridBrush="{DynamicResource AppStrokeBrush}" TextBrush="{DynamicResource TextFillColorSecondaryBrush}"
+											   Curve1Brush="{DynamicResource AppAccentBrush}" Curve2Brush="{DynamicResource SuccessBrush}"/>
+						<TextBlock Classes="caption" Text="Phase (without the constant filter delay)"/>
+						<controls:ResponsePlot Height="120" Curves="{Binding Curves}" ShowPhase="True"
+											   GridBrush="{DynamicResource AppStrokeBrush}" TextBrush="{DynamicResource TextFillColorSecondaryBrush}"
+											   Curve1Brush="{DynamicResource AppAccentBrush}" Curve2Brush="{DynamicResource SuccessBrush}"/>
+						<TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding ResponseNote}"/>
+					</StackPanel>
+				</Border>
+
+				<Border Classes="card" Padding="14,10" IsVisible="{Binding HasRecommendation}">
+					<TextBlock TextWrapping="Wrap" Text="{Binding Report.Recommendation}"/>
+				</Border>
+				<Border Classes="card" Padding="14,10" IsVisible="{Binding HasHpfRecommendation}">
+					<TextBlock TextWrapping="Wrap" Text="{Binding Report.HpfRecommendation}"/>
+				</Border>
+			</StackPanel>
+		</ScrollViewer>
+	</DockPanel>
+</Window>

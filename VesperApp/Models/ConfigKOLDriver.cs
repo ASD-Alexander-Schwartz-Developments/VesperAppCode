@@ -63,37 +63,21 @@ namespace VesperApp.Models
 
         private uint RefRate => MicChainSolver.RefRate(SampleRate[1], SampleRate[2], 0);
 
-        /// <summary>
-        /// An old config ("filter" without bit 15) used the chain its filter/cic4 bits select. Rebuild it with
-        /// the automatic chain at the same output level at the reference rate, so recordings keep their level
-        /// (and the trigger thresholds their meaning) where the hardware allows it.
-        /// </summary>
+        /// <summary>An old config ("filter" without bit 15) is rebuilt with the automatic chain at the same
+        /// output level at the reference rate, where the hardware allows it (MicChainSolver.MigrateLegacy).</summary>
         public void OnDeserialized()
         {
-            if ((digitalFilter & MicChainSolver.AutoBit) != 0) return;
-            uint refFs = RefRate;
-            ushort oldFilter = digitalFilter;
-            bool oldCic4 = cic4;
+            var m = MicChainSolver.MigrateLegacy(SampleRate[1], SampleRate[2], digitalFilter, cic4, gain);
+            gain = m.Gain;
+            SampleRate[1] = m.Rate1;
+            SampleRate[2] = m.Rate2;
+            MigrationNote = m.Note;
             digitalFilter |= MicChainSolver.AutoBit;
             cic4 = false;
-            if (refFs == 0) return;
-
-            MicChainSolver.Chain legacy = MicChainSolver.SolveLegacy(refFs, oldFilter, oldCic4, MicChainSolver.GainCode(gain))!;
-            MicChainSolver.Chain auto = MicChainSolver.Solve(refFs, legacy.LevelCdb)!;
-            ushort newGain = MicChainSolver.GainValue(auto.GainCode);
-            string from = $"filter {oldFilter}{(oldCic4 ? ", CIC4" : "")} ({legacy.Describe()})";
-            if (newGain != gain || legacy.Total != auto.Total || legacy.Reshape != auto.Reshape)
-            {
-                MigrationNote = $"Converted from the old setting {from} to {auto.Describe()} at {MicChainSolver.Hz(refFs)}: " +
-                                $"gain {MicChainSolver.CodeCdb(MicChainSolver.GainCode(gain)) / 100.0:+0.0;-0.0} → {MicChainSolver.CodeCdb(auto.GainCode) / 100.0:+0.0;-0.0} dB" +
-                                (auto.GainClamped
-                                    ? $"; the old level cannot be reached with this filter ({(auto.LevelCdb - legacy.LevelCdb) / 100.0:+0.0;-0.0} dB) — check the trigger thresholds."
-                                    : " (same output level).");
-                gain = newGain;
-            }
         }
 
-        public string MicChainReport() => MicChainSolver.Report(SampleRate[1], SampleRate[2], gain, MigrationNote);
+        public MicChainSolver.SolverReport MicChainReport() =>
+            MicChainSolver.BuildReport(SampleRate[1], SampleRate[2], gain, MicChainSolver.Product.Kol, MigrationNote, hpf);
 
         public void ApplyRecommendedGain()
         {
@@ -102,10 +86,17 @@ namespace VesperApp.Models
             Gain = KOLGain.CreateFromValue((byte)MicChainSolver.GainValue(MicChainSolver.Recommended(refFs)));
         }
 
+        public void ApplyRecommendedHpf()
+        {
+            uint refFs = RefRate;
+            if (refFs == 0) return;
+            HighPassFilter = KOLHpf.CreateFromValue((ushort)MicChainSolver.RecommendedHpf(refFs));
+        }
+
 
         [DisplayName("Number of Active Microphones"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Set number of micrphones for sampling")]
+        DescriptionAttribute("How many of the KOL's four microphones record: 1, 2 or 4.")]
         [JsonPropertyName("mikeon"), JsonPropertyOrder(20)]
         [Browsable(true)]
         public UInt32 MikesOn
@@ -125,7 +116,7 @@ namespace VesperApp.Models
 
         [DisplayName("Threshold Up"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
+        DescriptionAttribute("Reserved: level-triggered recording is not implemented in the firmware yet and this value is not used. Leave at 0.")]
         [JsonPropertyName("thresup"), JsonPropertyOrder(21)]
         [Browsable(true)]
         public UInt32 ThresholdUp
@@ -143,7 +134,7 @@ namespace VesperApp.Models
 
         [DisplayName("Threshold Down"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Enables recording of audio data upon audio threshold level trigger.")]
+        DescriptionAttribute("Reserved: any value other than 0 only switches on the microphone filter’s sound-activity detector with default settings, it is not a level trigger. Leave at 0.")]
         [JsonPropertyName("thresdn"), JsonPropertyOrder(22)]
         [Browsable(true)]
         public UInt32 ThresholdDown
@@ -270,8 +261,9 @@ namespace VesperApp.Models
         TypeConverter(typeof(KOLHpf)),
         Browsable(true),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Programmable High pass Filter cutoff -3dB frequency")]
+        DescriptionAttribute("Removes rumble and the microphone’s DC offset. The cut-off is a fraction of the sample rate, e.g. 0.0025 × 200 kHz = 500 Hz. Press Solve to see the cut-off of every setting at your rates.")]
         [JsonIgnore]
+        [MicSolver]
         public KOLHpf HighPassFilter
         {
             get
@@ -298,7 +290,7 @@ namespace VesperApp.Models
         [DisplayName("Programmable Gain"),
         TypeConverter(typeof(KOLGain)),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Microphone filter gain at Sample Rate [1] (else [2]); the firmware keeps the same level at the other rate and in Live Audio. Solve shows the resulting level and suggests a value."),
+        DescriptionAttribute("Loudness of the recording at Sample Rate [1] (or [2] if [1] is Off); the unit keeps the same loudness at the other rate and in Live Audio. Press Solve to see where loud sounds clip and whether quiet ones are kept."),
         Browsable(true)]
         [JsonIgnore]
         [MicSolver]
@@ -318,7 +310,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the microphones in the Config1 schedule; the filter is chosen from it. Solve explains the result."),
+        DescriptionAttribute("Microphone sample rate while the schedule runs Config 1 (Off = microphones not used). The unit picks the best filter for it; press Solve for details."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -330,7 +322,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the microphones in the Config2 schedule; the filter is chosen from it. Solve explains the result."),
+        DescriptionAttribute("Microphone sample rate while the schedule runs Config 2 (Off = microphones not used). The unit picks the best filter for it; press Solve for details."),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -375,7 +367,7 @@ namespace VesperApp.Models
         [DisplayName("Mike activity LED indication"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Enables LED to blink on audio recording activity")]
+        DescriptionAttribute("Blink the LED while the microphones record.")]
         [JsonIgnore]
         public bool EnableLEDIndication
         {
