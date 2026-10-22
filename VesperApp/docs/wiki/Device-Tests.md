@@ -8,24 +8,38 @@ The **Device Tests** tab bundles per-sensor hardware checks you can run before a
 
 ## Microphone health check
 
-Verifies that each microphone on the device responds with a healthy signal-to-noise ratio. Available on all products with microphones (Vesper, Pipistrelle, KOL).
+Verifies that each microphone hears a test tone cleanly, and spots the usual faults: a dead or disconnected microphone, a blocked port, an overloaded or offset input. The same check runs on every product with microphones; the analysis runs on the unit itself.
+
+| Product | Microphones | Firmware |
+|---|---|---|
+| KOL | 4 (or the 1 / 2 fitted) | 1.8 or later |
+| Vesper, Pipistrelle | 1 | the feature release (1.21) or later |
+
+Older firmware is not asked: the page says which firmware the check needs.
 
 **How to run it**
 
-1. Connect the device (via the dock) and select it.
-2. For KOL, choose the microphone configuration to test (1, 2 or 4 mics); single-mic products test their one microphone.
-3. Press **Run**.
-4. When prompted, play a **steady tone** near the device — a phone tone-generator app or a speaker works fine. The test listens for in-band test tones at 1 kHz and 4 kHz over a short 200 ms capture.
+1. Connect the device over USB and select it. It must be idle (not recording, not in Live Audio).
+2. For KOL, choose how many microphones are fitted (1, 2 or 4).
+3. Play the **test tones** near the device: 1 kHz and 4 kHz together, steady, from a phone or small speaker about 10 cm away (a phone at full volume). Keep a KOL's source centred so all four microphones hear it alike.
+4. Press **Run Check**. Each microphone is captured for 150 ms at 48 kHz, one after the other.
 
 **Reading the results**
 
-Each microphone gets a row with its status, measured SNR (dB) and noise floor:
+| Result | Meaning |
+|---|---|
+| **Healthy** | Both tones clearly above the noise (≥ 12 dB), level and offset normal. |
+| **Weak** | The microphone works, but the tones are faint — bring the source closer. |
+| **Too quiet** | Hardly any sound at all — check the tones are playing; the port may be blocked. |
+| **Too loud** | The input clipped — move the source further away. |
+| **No signal** | The microphone's data is stuck (constant): the microphone is faulty, unpowered or disconnected. |
+| **Offset** | A large DC offset: the microphone or its supply may be faulty. |
+| **Busy** | Live Audio or a recording is running — return to Idle and repeat. |
+| **No response** | The device did not answer. |
 
-- **OK** — all test tones exceeded the health threshold (12 dB SNR).
-- **Problem** — the mic responded but below threshold; check for blocked ports, membrane damage or debris and re-run.
-- **No response** — the channel returned no usable signal; the microphone or its wiring is likely faulty.
+Each row also shows the measured level (dBFS, and the approximate dB SPL at the microphone). On a KOL the summary warns when the healthy microphones' levels differ by more than 6 dB — usually a blocked port, or a source that is not centred.
 
-A summary line reports *"X of Y microphone(s) healthy"*. The threshold is deliberately lenient — this is a field health check, not a calibrated factory measurement.
+The thresholds come from a shared test specification and are first estimates until they are validated on hardware; this is a health check, not a calibrated factory measurement.
 
 ## GNSS / RF self-test (Vesper / Nanotag)
 

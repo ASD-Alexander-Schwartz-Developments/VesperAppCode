@@ -34,6 +34,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
+		<EmbeddedResource Include="Specs\audio-selftest-spec.json" LogicalName="VesperApp.Specs.audio-selftest-spec.json" />
 		<!-- Offline first-run copy of the Help documentation. The Help tab fetches these
 		     pages live from the GitHub wiki (docs/wiki is the wiki's in-repo source of
 		     truth); the embedded copy is the fallback before any fetch has succeeded.

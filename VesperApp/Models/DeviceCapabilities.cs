@@ -74,6 +74,21 @@ namespace VesperApp.Models
             _ => false,
         };
 
+        /// <summary>First KOL firmware with the audio self-test (console 60, shared engine).</summary>
+        public static readonly Version KolAudioSelftestFirmware = new(1, 8);
+
+        /// <summary>
+        /// Whether this unit runs the audio self-test (console 60) with the shared engine's reply: KOL from
+        /// <see cref="KolAudioSelftestFirmware"/>, Vesper / Pipistrelle from the feature release
+        /// (<see cref="VesperUsbModesFirmware"/>). Unknown firmware = no.
+        /// </summary>
+        public static bool SupportsAudioSelftest(DeviceTypes? product, Version? firmware) => product switch
+        {
+            DeviceTypes.Kol => firmware != null && firmware >= KolAudioSelftestFirmware,
+            DeviceTypes.Vesper or DeviceTypes.Pipistrelle => firmware != null && firmware >= VesperUsbModesFirmware,
+            _ => false,
+        };
+
         /// <summary>Live Audio channels the unit streams as a USB microphone (one per microphone).</summary>
         public static int LiveAudioChannels(DeviceTypes? product) => MicCount(product);
 

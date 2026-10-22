@@ -12,20 +12,15 @@ using VesperApp.Services;
 namespace VesperApp.ViewModels
 {
     /// <summary>
-    /// User-facing microphone health check: capture each mic in turn over the USB
-    /// console (VESPER_TEST_AUDIO) and report a friendly per-mic OK / Problem
-    /// verdict. Aimed at end users assessing device health, not factory go/no-go.
-    /// Mic count, options and applicability follow the detected product via
-    /// <see cref="DeviceCapabilities"/> (KOL has 4, Vesper/Pipistrelle 1, Nanotag none).
+    /// Microphone health check, the same feature on KOL, Vesper and Pipistrelle: one self-test request
+    /// (console 60, VESPER_TEST_AUDIO) per microphone, analysed on the unit by the shared firmware engine,
+    /// judged here with the thresholds of the embedded <see cref="AudioSelftestSpec"/>. Mic count and
+    /// applicability follow the product and firmware (<see cref="DeviceCapabilities"/>): KOL 4 from 1.8,
+    /// Vesper / Pipistrelle 1 from the feature release; older firmware is not sent the request.
     /// </summary>
     public class MicHealthCheckViewModel : ViewModelBase
     {
-        // A health check needs an acoustic stimulus. Two well-separated in-band
-        // tones; a mic is "healthy" if both clear a lenient SNR margin.
-        private const uint   SampleRate  = 16000;
-        private const ushort DurationMs  = 200;
-        private const byte   SnrThreshDb = 12;
-        private static readonly int[] Tones = { 1000, 4000 };
+        private readonly AudioSelftestSpec _spec = AudioSelftestSpec.Default;
 
         private readonly MainViewViewModel _main;
 
@@ -77,12 +72,20 @@ namespace VesperApp.ViewModels
         /// <summary>Align the mic-count options/default and applicability with the product.</summary>
         public void RefreshForDevice(LoggerDevice? dev)
         {
-            if (dev != null && DeviceCapabilities.HasMicrophones(dev.DeviceType))
+            if (dev != null && DeviceCapabilities.HasMicrophones(dev.DeviceType)
+                && DeviceCapabilities.SupportsAudioSelftest(dev.DeviceType, dev.FirmwareVersion))
             {
                 MicCountOptions = DeviceCapabilities.MicCountOptions(dev.DeviceType);
                 MicCount = DeviceCapabilities.MicCount(dev.DeviceType);
                 IsSupported = true;
-                Summary = $"{dev.DeviceType}: {MicCount} microphone(s) expected. Connect over USB, then start the check.";
+                Summary = $"{DeviceCapabilities.DisplayName(dev.DeviceType)}: {MicCount} microphone(s). {_spec.Stimulus.Description} Then start the check.";
+            }
+            else if (dev != null && DeviceCapabilities.HasMicrophones(dev.DeviceType))
+            {
+                MicCountOptions = System.Array.Empty<int>();
+                IsSupported = false;
+                Summary = $"The microphone check needs newer firmware on this {DeviceCapabilities.DisplayName(dev.DeviceType)} " +
+                          $"(KOL {DeviceCapabilities.KolAudioSelftestFirmware}, Vesper / Pipistrelle {DeviceCapabilities.VesperUsbModesFirmware} or later).";
             }
             else
             {
@@ -108,6 +111,11 @@ namespace VesperApp.ViewModels
                 Summary = $"{dev.DeviceType} has no microphones to test.";
                 return;
             }
+            if (!DeviceCapabilities.SupportsAudioSelftest(dev.DeviceType, dev.FirmwareVersion))
+            {
+                RefreshForDevice(dev);
+                return;
+            }
 
             // Clamp to the product's mic count in case the UI default lagged a selection change.
             int micsToTest = System.Math.Min(MicCount, DeviceCapabilities.MicCount(dev.DeviceType));
@@ -117,24 +125,30 @@ namespace VesperApp.ViewModels
             for (int i = 0; i < micsToTest; i++)
                 Results.Add(new MicHealthResult(i) { Status = "Testing…", StatusBrush = Brushes.Gray });
 
-            Summary = "Play a steady tone near the device (e.g. from your phone) while the check runs…";
+            Summary = "Keep the test tones playing near the device while the check runs…";
 
+            var q = _spec.Request;
+            var replies = new System.Collections.Generic.List<AudioBenchResult?>();
             int healthy = 0;
             try
             {
                 for (int i = 0; i < micsToTest; i++)
                 {
                     MicHealthResult row = Results[i];
-                    byte[] req = AudioBenchTest.BuildRequest(SampleRate, DurationMs, SnrThreshDb, Tones, (byte)i);
+                    byte[] req = AudioBenchTest.BuildRequest(q.SampleRateHz, q.DurationMs, q.SnrMarginDb, q.TonesHz, (byte)i);
                     byte[]? resp = await dev.SendCommandAsync(MessageTypes.VESPER_TEST_AUDIO, req, 8000);
                     AudioBenchResult? parsed = AudioBenchTest.ParseResponse(resp);
+                    replies.Add(parsed);
 
-                    await Dispatcher.UIThread.InvokeAsync(() => Apply(row, resp, parsed));
-                    if (parsed != null && parsed.Pass) healthy++;
+                    var (verdict, detail) = AudioSelftestEvaluator.Evaluate(parsed, _spec.Pass);
+                    await Dispatcher.UIThread.InvokeAsync(() => Apply(row, verdict, detail));
+                    if (verdict == MicVerdict.Healthy) healthy++;
                 }
 
+                string? spread = AudioSelftestEvaluator.SpreadWarning(replies, _spec.Pass);
                 await Dispatcher.UIThread.InvokeAsync(() =>
-                    Summary = $"{healthy} of {micsToTest} microphone(s) healthy.");
+                    Summary = $"{healthy} of {micsToTest} microphone(s) healthy." + (spread != null ? " " + spread : "") +
+                              (_spec.Validated ? "" : " (Thresholds not yet validated on hardware.)"));
             }
             finally
             {
@@ -142,32 +156,22 @@ namespace VesperApp.ViewModels
             }
         }
 
-        private static void Apply(MicHealthResult row, byte[]? resp, AudioBenchResult? parsed)
+        private static void Apply(MicHealthResult row, MicVerdict verdict, string detail)
         {
-            if (resp == null || parsed == null)
+            row.Detail = detail;
+            (row.Status, row.StatusBrush) = verdict switch
             {
-                row.Status = "No response";
-                row.Detail = "The device didn't reply. Make sure it's on and not currently recording.";
-                row.StatusBrush = Brushes.OrangeRed;
-            }
-            else if (parsed.Pass)
-            {
-                row.Status = "Healthy";
-                row.Detail = $"SNR {string.Join("/", parsed.SnrDb)} dB · noise floor {parsed.NoiseFloorDb} dB";
-                row.StatusBrush = Brushes.SeaGreen;
-            }
-            else if (parsed.NoSignal)
-            {
-                row.Status = "No signal";
-                row.Detail = "No audio captured — this microphone may be faulty or disconnected.";
-                row.StatusBrush = Brushes.OrangeRed;
-            }
-            else
-            {
-                row.Status = "Weak";
-                row.Detail = $"Low tone SNR {string.Join("/", parsed.SnrDb)} dB — make sure a tone is playing close to the device.";
-                row.StatusBrush = Brushes.Goldenrod;
-            }
+                MicVerdict.Healthy    => ("Healthy", (IBrush)Brushes.SeaGreen),
+                MicVerdict.Weak       => ("Weak", Brushes.Goldenrod),
+                MicVerdict.TooQuiet   => ("Too quiet", Brushes.Goldenrod),
+                MicVerdict.Overloaded => ("Too loud", Brushes.Goldenrod),
+                MicVerdict.Busy       => ("Busy", Brushes.Goldenrod),
+                MicVerdict.NotPresent => ("Not fitted", Brushes.Gray),
+                MicVerdict.NoSignal   => ("No signal", Brushes.OrangeRed),
+                MicVerdict.Offset     => ("Offset", Brushes.OrangeRed),
+                MicVerdict.NoResponse => ("No response", Brushes.OrangeRed),
+                _                     => ("Failed", Brushes.OrangeRed),
+            };
         }
     }
 }
