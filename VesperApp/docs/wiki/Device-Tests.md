@@ -29,12 +29,14 @@ A summary line reports *"X of Y microphone(s) healthy"*. The threshold is delibe
 
 ## GNSS / RF self-test (Vesper / Nanotag)
 
-Exercises the GNSS receive chain in the device's own firmware. This is a **bench test**: it expects a controlled RF environment (a shielded enclosure with a signal generator such as an ADALM-Pluto coupled in), and is primarily used in production and service settings.
+Exercises the GNSS receive chain in the device's own firmware. This is a **bench test**: it expects a controlled RF environment (a shielded enclosure with an RF generator coupled in), and is primarily used in production and service settings.
 
-Two checks are available:
+The RF generator is driven by the **GNSS RF Test** plugin (an ADALM-Pluto transmitter), installed from the [Plugins](Software-Updates-and-Plugins) page. Without it the panel says so; **Validate Fix** still works on captures you already downloaded (it needs the GNSS Decoder plugin).
 
-- **Tone self-test** — the device captures an RF snapshot and must detect a continuous-wave test tone. Reported: pass/fail status, carrier-to-noise density (C/N0), and the measured TCXO frequency offset. Tone offset, generator gain, SNR threshold and snapshot length (64/128/256 ms) are adjustable.
-- **Positioning test** — a recorded GPS scenario is transmitted to the device; the device's snapshot is decoded and the resulting fix is compared against the scenario's reference coordinates within a tolerance (default 500 m). Reported: latitude, longitude, accuracy and satellite count.
+- **Check Radio** — looks for the transmitter and shows its station calibration (the per-generator frequency correction).
+- **Tone self-test** — the generator transmits a continuous-wave tone and the device must detect it in an RF snapshot. Reported: pass/fail, front-end level, and the tone offset the device measured. Tone offset, generator gain, SNR threshold and snapshot length (64/128/256 ms) are adjustable.
+- **Apply Offset** — after a passing tone test on a *reference* unit, adds the measured offset error to the generator's station calibration. Repeat the tone test until the error is small; recalibrate when the generator changes.
+- **Positioning test** — pick a scenario (static, or a moving 1 km circle), **Prepare** it once (the plugin generates it locally, a few hundred MB), **Transmit**, capture on the device, download, then **Validate Fix**: every fix is compared against where the scenario puts it; the test passes when the median error is within the tolerance (default 500 m).
 
 If you only need to confirm end-to-end GNSS on real sky, a normal snapshot recording outdoors followed by [GNSS Decoding](GNSS-Decoding) is the simpler route.
 

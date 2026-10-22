@@ -20,21 +20,24 @@ On **Linux**, applying an update replaces the AppImage file in place, so the App
 
 ## Plugins
 
-Some functionality ships as optional plugins that install into your per-user plugin folder and update independently of the app. Today that is the **GNSS decoder plugin**, which enables [GNSS Decoding](GNSS-Decoding) of VT04-VESPER snapshots.
+Some functionality ships as optional plugins that install into your per-user plugin folder and update independently of the app:
+
+- **GNSS Decoder** — enables [GNSS Decoding](GNSS-Decoding) of VT04-VESPER snapshots.
+- **GNSS RF Test** — drives a bench RF generator for the GNSS tests in [Device Tests](Device-Tests) (shielded test setups only).
 
 ![The Plugins tab](images/tab-plugins.png)
 
-*The Plugins tab, showing the GNSS decoder plugin status and update channel.*
+*The Plugins tab.*
 
-On the **Plugins** tab:
+On the **Plugins** tab each plugin has its own card:
 
-1. The page shows the plugin's installed version, or *not installed*.
+1. The card shows the plugin's installed version, or *not installed*.
 2. Press **Check for updates** to poll the plugin feed.
 3. If a new version is available, download it. Plugins are applied **on the next launch** — the page will indicate a pending restart.
 
 Notes:
 
-- Without the GNSS plugin, everything except GNSS decode works normally; GNSS decode simply reports that the plugin is not installed.
+- Without a plugin, everything else works normally; the feature that needs it reports that the plugin is not installed.
 - Plugin packs are validated before loading (platform, compatibility version, integrity), so an incompatible pack is rejected cleanly rather than breaking the app.
 - App updates never remove installed plugins — the two update paths are deliberately separate.
 

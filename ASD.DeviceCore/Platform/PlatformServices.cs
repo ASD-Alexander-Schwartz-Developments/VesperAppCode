@@ -21,6 +21,9 @@ namespace ASD.Platform
         /// <summary>Optional real-time sound classifier plugin (Live View). Null = none bound;
         /// the shell falls back to its built-in demo heuristic.</summary>
         public static ISoundClassifier? SoundClassifier { get; private set; }
+        /// <summary>Optional GNSS RF generator plugin (Device Tests). Null = none bound; the tests
+        /// that need a transmitter point the user at the Plugins page.</summary>
+        public static IGnssSignalSource? GnssSignalSource { get; private set; }
 
         /// <summary>The bound services as a context object, for handing to modules.</summary>
         public static IPlatformContext Context { get; private set; } =
@@ -37,9 +40,11 @@ namespace ASD.Platform
             IPlmClient? plm = null,
             IGnssDecoder? gnss = null,
             IEntitlementProvider? entitlements = null,
-            ISoundClassifier? soundClassifier = null)
+            ISoundClassifier? soundClassifier = null,
+            IGnssSignalSource? gnssSignalSource = null)
         {
             if (soundClassifier != null) SoundClassifier = soundClassifier;
+            if (gnssSignalSource != null) GnssSignalSource = gnssSignalSource;
             if (plm != null) Plm = plm;
             if (gnss != null) Gnss = gnss;
             if (entitlements != null) Entitlements = entitlements;

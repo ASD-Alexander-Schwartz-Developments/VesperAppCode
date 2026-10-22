@@ -1,7 +1,8 @@
 # CDN hardening — limiting abuse of the release/plugin distribution
 
 The VesperApp client reads everything it downloads — the Velopack self-update, the firmware and
-GNSS-plugin release feeds, and on-demand GNSS scenario assets — from **one CloudFront origin**.
+plugin release feeds (GNSS decoder, GNSS RF test) — from **one CloudFront origin**. (GNSS test
+scenarios are no longer downloaded: the GNSS RF test plugin generates them locally.)
 This note records how we keep that origin from being casually scraped, and (more importantly) how
 we limit abuse of it at the edge.
 
@@ -60,8 +61,8 @@ Implemented. The origin is no longer a literal anywhere in the repo:
   1. `VESPERAPP_CDN_BASE` env var (whole origin) — for local dev / CI test rigs;
   2. the build-time `[AssemblyMetadata("CdnBaseUrl")]` value;
   3. empty → update/download features degrade gracefully ("no update source configured").
-  Per-asset env overrides (`VESPERAPP_GNSS_FEED`, `VESPERAPP_FIRMWARE_FEED`,
-  `VESPERAPP_GNSS_SCENARIO_URL`) still win at their call sites.
+  Per-asset env overrides (`VESPERAPP_GNSS_FEED`, `VESPERAPP_GNSS_RF_FEED`, `VESPERAPP_FIRMWARE_FEED`)
+  still win at their call sites.
 * `VesperApp.csproj` surfaces `$(CdnBaseUrl)` as the assembly-metadata attribute.
 * `.github/workflows/app-release.yml` passes `-p:CdnBaseUrl=${{ secrets.CDN_BASE_URL }}` on publish.
 

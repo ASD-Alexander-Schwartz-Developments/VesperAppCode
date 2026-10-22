@@ -8,8 +8,9 @@ namespace ASD.Contracts
     /// missing/changed member.
     /// <para>
     /// Bump <see cref="Version"/> ONLY on a breaking change to the contract surface
-    /// (<see cref="IGnssDecoder"/>, <c>IPlmClient</c>, <c>IEntitlementProvider</c>, or their
-    /// DTOs). Additive, backward-compatible changes keep the same number — that is what lets
+    /// (<see cref="IGnssDecoder"/>, <see cref="IGnssSignalSource"/>, <see cref="ISoundClassifier"/>,
+    /// <c>IPlmClient</c>, <c>IEntitlementProvider</c>, or their DTOs). Additive, backward-compatible
+    /// changes (a new contract such as <see cref="IGnssSignalSource"/>) keep the same number — that is what lets
     /// cg-gnss (and other plugins) ship on their own cadence without a shell release. A shell
     /// release is required only when this number changes. See docs/ARCHITECTURE.md.
     /// </para>
