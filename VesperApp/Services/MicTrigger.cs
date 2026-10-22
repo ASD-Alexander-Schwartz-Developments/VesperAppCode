@@ -11,24 +11,30 @@ namespace VesperApp.Services
     /// a config is sound-triggered when <c>thresup</c> or <c>thresdn</c> is non-zero (and "filter" bit 15 marks it
     /// as written by this VesperApp - legacy raw thresholds never trigger); <c>thresup</c> = start level,
     /// <c>thresdn</c> = stop level (centi-dB; 0 = 3 dB below start); <c>bitmask</c> bits 16-18 = hardware detector /
-    /// absolute dB SPL / ultrasound only;
-    /// per config <c>wLen[n]</c> = hold after the sound, <c>wRate[n]</c> = pre-trigger (ms) — the duty-cycle window
-    /// fields change their meaning when the trigger bit is set.
-    /// Older firmware ignores the bits and the levels and only treats wLen/wRate as a window when rate &gt; length,
-    /// which these settings never produce (pre-trigger &lt; hold), so it records continuously instead.
+    /// absolute dB SPL / ultrasound only; bits 19-21 / 22-24 = pre-trigger code of config 1 / 2 (0, 10, 25, 50,
+    /// 100 ms); per config <c>wLen[n]</c> = <c>wRate[n]</c> = hold after the sound — the duty-cycle window fields
+    /// change their meaning when the config is triggered.
+    /// Older firmware (KOL &lt;= 1.7, Vesper &lt;= 1.20) ignores the bits and the levels, and records continuously
+    /// only when wRate == wLen (its sleep time wRate - wLen is unsigned): writing the hold into both keeps it
+    /// continuous instead of duty-cycling erratically.
     /// </summary>
     public static class MicTrigger
     {
         public const uint BitHardware = 0x10000, BitAbsolute = 0x20000, BitUltrasound = 0x40000;
-        public const uint AllBits = BitHardware | BitAbsolute | BitUltrasound;
+        public const int PreShift1 = 19, PreShift2 = 22;        // 3-bit pre-trigger code per config
+        public const uint PreBits = (7u << PreShift1) | (7u << PreShift2);
+        public const uint AllBits = BitHardware | BitAbsolute | BitUltrasound | PreBits;
         public const int DefaultHysteresisCdb = 300;            // stop level 3 dB below start when thresdn = 0
-        public const uint MinHoldMs = 500, MaxPreTriggerMs = 100; // keeps pre-trigger < hold: old firmware never sees a window
+        public const uint MinHoldMs = 500, MaxPreTriggerMs = 100;
 
         public static readonly int[] RelativeLevelsDb = { 3, 6, 9, 12, 15, 18, 21, 24, 30 };
         public static readonly int[] AbsoluteLevelsDb = { 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100 };
         public static readonly int[] HysteresisDb = { 0, 1, 3, 6, 10 };      // 0 = the default (3 dB, stored as 0)
         public static readonly uint[] HoldMs = { 500, 1000, 2000, 3000, 5000, 10000, 30000 };
-        public static readonly uint[] PreTriggerMs = { 0, 10, 25, 50, 100 };
+        public static readonly uint[] PreTriggerMs = { 0, 10, 25, 50, 100 };   // index = the bitmask code (firmware MicTrigger_PreMs)
+
+        private static uint PreCode(uint ms) => (uint)Math.Max(0, Array.IndexOf(PreTriggerMs, PreTriggerMs.Where(o => o <= ms).DefaultIfEmpty(0u).Max()));
+        private static uint PreFromBits(uint bitmask, int shift) { uint c = (bitmask >> shift) & 7u; return c < PreTriggerMs.Length ? PreTriggerMs[c] : 0; }
 
         /// <summary>DMA ring per microphone (bytes): the software detector's pre-trigger comes from its older half.</summary>
         public static int RingBytes(MicChainSolver.Product p) => p == MicChainSolver.Product.Kol ? 63 * 1024 : 64 * 1024;
@@ -67,7 +73,7 @@ namespace VesperApp.Services
             int start = (int)Math.Round(thresUp / 100.0);
             int hyst = thresDn == 0 ? 0 : Math.Max(0, (int)Math.Round((thresUp - (double)thresDn) / 100.0));
             return new Settings(true, (bitmask & BitHardware) != 0, (bitmask & BitAbsolute) != 0, (bitmask & BitUltrasound) != 0,
-                                start, hyst, wLen[1], wRate[1], wLen[2], wRate[2]);
+                                start, hyst, wLen[1], PreFromBits(bitmask, PreShift1), wLen[2], PreFromBits(bitmask, PreShift2));
         }
 
         /// <summary>Write <paramref name="s"/> into the driver fields (arrays are modified in place).</summary>
@@ -75,11 +81,12 @@ namespace VesperApp.Services
         {
             bitmask &= ~AllBits;
             if (!s.On) return (bitmask, 0, 0);
-            bitmask |= (s.Hardware ? BitHardware : 0) | (s.Absolute ? BitAbsolute : 0) | (s.Ultrasound && !s.Hardware ? BitUltrasound : 0);
+            bitmask |= (s.Hardware ? BitHardware : 0) | (s.Absolute ? BitAbsolute : 0) | (s.Ultrasound && !s.Hardware ? BitUltrasound : 0)
+                     | (PreCode(Math.Min(MaxPreTriggerMs, s.Pre1)) << PreShift1) | (PreCode(Math.Min(MaxPreTriggerMs, s.Pre2)) << PreShift2);
             uint up = (uint)(Math.Max(1, s.StartDb) * 100);   /* non-zero: this is what makes the config triggered */
             uint dn = s.HysteresisDb == 0 ? 0 : (uint)Math.Max(0, up - s.HysteresisDb * 100);
-            wLen[1] = Math.Max(MinHoldMs, s.Hold1); wRate[1] = Math.Min(MaxPreTriggerMs, s.Pre1);
-            wLen[2] = Math.Max(MinHoldMs, s.Hold2); wRate[2] = Math.Min(MaxPreTriggerMs, s.Pre2);
+            wLen[1] = wRate[1] = Math.Max(MinHoldMs, s.Hold1);   /* rate == length: older firmware stays continuous */
+            wLen[2] = wRate[2] = Math.Max(MinHoldMs, s.Hold2);
             return (bitmask, up, dn);
         }
 
