@@ -1,6 +1,6 @@
 # Live View
 
-The **Live View** tab shows what a device's microphones hear, right now: a multi-channel oscilloscope, a spectrum analyser and a scrolling spectrogram, fed either by a **unit streaming its microphones over USB** — a KOL (four microphones), or a Vesper or Pipistrelle with firmware 1.21 or later (one microphone) — or by any microphone of your computer. It is meant for demonstrations, sanity checks in the field (is every channel alive? is the gain right?) and quick listening sessions before a deployment — not for calibrated measurements.
+The **Live View** tab shows what a device's microphones hear, right now: a multi-channel oscilloscope, a spectrum analyser and a scrolling spectrogram, fed either by a **unit streaming its microphones over USB** — a KOL (four microphones), or a Vesper or Pipistrelle with firmware 1.22 or later (one microphone) — or by any microphone of your computer. It is meant for demonstrations, sanity checks in the field (is every channel alive? is the gain right?) and quick listening sessions before a deployment — not for calibrated measurements.
 
 ![The Live View tab streaming four KOL microphones](images/tab-live-view.png)
 
@@ -10,7 +10,7 @@ The **Live View** tab shows what a device's microphones hear, right now: a multi
 
 | Source | What happens on Start |
 |---|---|
-| **KOL — 4 microphones over USB** / **Vesper — microphone over USB** (follows the selected unit) | The app sends your microphone parameters to the device, switches it to **Live Audio** mode if needed (it briefly re-enumerates as a USB microphone — 4 channels on a KOL, 1 on a Vesper or Pipistrelle, see [Supported Devices](Supported-Devices)), waits for the microphone to appear and opens it at the selected sample rate. Requires the unit connected on its USB console (Idle or Live Audio); a Vesper or Pipistrelle needs firmware 1.21 or later. |
+| **KOL — 4 microphones over USB** / **Vesper — microphone over USB** (follows the selected unit) | The app sends your microphone parameters to the device, switches it to **Live Audio** mode if needed (it briefly re-enumerates as a USB microphone — 4 channels on a KOL, 1 on a Vesper or Pipistrelle, see [Supported Devices](Supported-Devices)), waits for the microphone to appear and opens it at the selected sample rate. Requires the unit connected on its USB console (Idle or Live Audio); a Vesper or Pipistrelle needs firmware 1.22 or later. |
 | **This computer's microphone** | Opens the selected input at its native rate; choose 1 or 2 channels. Useful to try the instruments without a device. |
 
 Press **Stop** to freeze the display on the last samples; **KOL → Idle** (or **Vesper → Idle**) returns the device to console + disk mode.

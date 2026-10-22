@@ -4,8 +4,8 @@ VesperApp works with the ASD logger and tag product family:
 
 | Product | Shown in app as | Microphones | GNSS | Connection |
 |---|---|---|---|---|
-| **Vesper** | VT04-VESPER | 1 | Yes (snapshot GNSS) | Docking station (direct USB from firmware 1.21) |
-| **Pipistrelle** | VT04-PP | 1 | No | Docking station (direct USB from firmware 1.21) |
+| **Vesper** | VT04-VESPER | 1 | Yes (snapshot GNSS) | Docking station (direct USB from firmware 1.22) |
+| **Pipistrelle** | VT04-PP | 1 | No | Docking station (direct USB from firmware 1.22) |
 | **KOL** | KOL | up to 4 (1/2/4-mic configurations) | No | Direct USB (dock optional) |
 | **Nanotag** | Nanotag | none | Yes (snapshot GNSS) | Direct USB |
 
@@ -39,9 +39,9 @@ An audio-focused logger sharing the VT04 platform, with a single MEMS microphone
 
 A multi-microphone logger with a **4-microphone array** that can be configured to record 1, 2 or 4 channels. Recordings are stored per-channel and decode to multi-file WAV output. The [mic health check](Device-Tests) tests each microphone in the array individually.
 
-### USB modes (KOL; Vesper and Pipistrelle with firmware 1.21 or later)
+### USB modes (KOL; Vesper and Pipistrelle with firmware 1.22 or later)
 
-The KOL is driven over its own USB cable and has three **USB modes**, shown and switched from the device console when the unit is selected. A Vesper or Pipistrelle running firmware 1.21 or later has the same three modes:
+The KOL is driven over its own USB cable and has three **USB modes**, shown and switched from the device console when the unit is selected. A Vesper or Pipistrelle running firmware 1.22 or later has the same three modes:
 
 | Mode | What the computer sees | Use it for |
 |---|---|---|
@@ -53,7 +53,7 @@ Switching between Idle and Live Audio makes the device briefly disappear and re-
 
 The microphone parameters (gain, high-pass, decimation filters) can be changed live from [Live View](Live-View); they are the same fields as in the device's `config.json`.
 
-Firmware updates need no dock on the KOL, nor on a Vesper or Pipistrelle that already runs firmware 1.21 or later — see [Firmware Updates](Firmware-Updates).
+Firmware updates need no dock on the KOL, nor on a Vesper or Pipistrelle that already runs firmware 1.22 or later — see [Firmware Updates](Firmware-Updates).
 
 ## Nanotag
 

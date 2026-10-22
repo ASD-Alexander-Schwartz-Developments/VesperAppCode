@@ -169,7 +169,7 @@ namespace VesperApp.ViewModels
             RtcCalStatus? st = await dev.CalAsync(new byte[] { 0 });
             if (st == null)
             {
-                StatusText = "The device does not support RTC calibration (needs KOL firmware 1.8 / Vesper firmware 1.21 or later).";
+                StatusText = "The device does not support RTC calibration (needs KOL firmware 1.8 / Vesper firmware 1.22 or later).";
                 return;
             }
             ShowStatus(st);

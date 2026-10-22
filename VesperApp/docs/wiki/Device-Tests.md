@@ -13,7 +13,7 @@ Verifies that each microphone hears a test tone cleanly, and spots the usual fau
 | Product | Microphones | Firmware |
 |---|---|---|
 | KOL | 4 (or the 1 / 2 fitted) | 1.8 or later |
-| Vesper, Pipistrelle | 1 | the feature release (1.21) or later |
+| Vesper, Pipistrelle | 1 | the feature release (1.22) or later |
 
 Older firmware is not asked: the page says which firmware the check needs.
 

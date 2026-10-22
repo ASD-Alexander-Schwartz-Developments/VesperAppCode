@@ -40,7 +40,7 @@ namespace VesperApp.ViewModels
         /// <summary>The selected device is a KOL on its CDC console.</summary>
         public bool IsKolSelected => SelectedLoggerDevice?.IsKol == true;
 
-        /// <summary>The selected unit has USB modes (KOL, or Vesper / Pipistrelle firmware 1.21+).</summary>
+        /// <summary>The selected unit has USB modes (KOL, or Vesper / Pipistrelle firmware 1.22+).</summary>
         public bool IsUsbModesSelected => SelectedLoggerDevice?.SupportsUsbModes == true;
 
         public string UsbModeToolTip

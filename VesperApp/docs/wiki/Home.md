@@ -11,7 +11,7 @@ From one application you can:
 - **Configure devices** — recording schedules, sensor drivers and power behaviour — through a guided configuration editor.
 - **Import, parse and decode recordings** from a device's storage into WAV audio, CSV sensor data, thermal-camera images and GNSS position fixes.
 - **Test hardware** with built-in per-sensor checks (microphone health, GNSS/RF self-test).
-- **Listen live** to a KOL's four microphones, a Vesper's or Pipistrelle's microphone (firmware 1.21+) or your PC microphone with a scope, spectrum analyser and spectrogram, adjust the device's microphone parameters on the fly and try sound recognition — see [Live View](Live-View).
+- **Listen live** to a KOL's four microphones, a Vesper's or Pipistrelle's microphone (firmware 1.22+) or your PC microphone with a scope, spectrum analyser and spectrogram, adjust the device's microphone parameters on the fly and try sound recognition — see [Live View](Live-View).
 - **Update firmware** on devices through the docking station, and keep the app itself and its plugins up to date.
 
 ![A tour of the main tabs of VesperApp](images/app-tour.gif)

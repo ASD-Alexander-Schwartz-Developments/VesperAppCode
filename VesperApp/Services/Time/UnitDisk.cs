@@ -11,7 +11,7 @@ namespace VesperApp.Services.Time
     /// The per-unit RTC calibration on the unit's own disk (asd-interfaces interfaces/rtc-time-sync.md).
     /// The RTC backup registers lose it with power, so it is also kept in two files there:
     /// <list type="bullet">
-    /// <item><c>RTCCAL.TXT</c> — <c>{"uid","cerr","ctref",...}</c>, read at boot by KOL 1.8 / Vesper 1.21 and
+    /// <item><c>RTCCAL.TXT</c> — <c>{"uid","cerr","ctref",...}</c>, read at boot by KOL 1.8 / Vesper 1.22 and
     /// later; ignored by a unit whose UID differs (disk content copied from another unit).</item>
     /// <item><c>config.json</c> <c>"cdrift"</c> — the same correction as the raw CALR value older firmware
     /// applies at boot. A deployment config.json copied onto the unit later overwrites it; RTCCAL.TXT stays.</item>

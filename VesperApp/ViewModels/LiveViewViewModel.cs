@@ -27,7 +27,7 @@ namespace VesperApp.ViewModels
     /// <summary>
     /// Live View: real-time microphone visualisation (scope, spectrum, spectrogram) from
     /// either the selected unit streaming as a USB microphone - KOL 4 channels, Vesper / Pipistrelle
-    /// (firmware 1.21+) 1 channel - (Live Audio mode,
+    /// (firmware 1.22+) 1 channel - (Live Audio mode,
     /// microphone parameters set live over the console) or a PC input, with optional local
     /// processing (filters, post gain) and a pluggable <see cref="ISoundClassifier"/>.
     /// </summary>
@@ -311,7 +311,7 @@ namespace VesperApp.ViewModels
                 Dispatcher.UIThread.Post(UpdateKolAvailability);
         }
 
-        /// <summary>The selected unit when it can stream Live Audio (KOL; Vesper / Pipistrelle 1.21+) and is connected.</summary>
+        /// <summary>The selected unit when it can stream Live Audio (KOL; Vesper / Pipistrelle 1.22+) and is connected.</summary>
         private LoggerDevice? Kol
         {
             get { LoggerDevice? d = _main?.SelectedLoggerDevice; return d?.SupportsUsbModes == true && d.IsConnected ? d : null; }

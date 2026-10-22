@@ -155,7 +155,7 @@
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Download" Command="{Binding DownloadDeviceData}" IsEnabled="{Binding IsDeviceConnected}"/>
 						<Button Classes="toolbar" Margin="0,2,0,2" Content="Upgrade Firmware" Command="{Binding BootloaderDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
 
-						<!-- USB operational modes (KOL; Vesper / Pipistrelle firmware 1.21+). Idle = disk + console;
+						<!-- USB operational modes (KOL; Vesper / Pipistrelle firmware 1.22+). Idle = disk + console;
 						     Live Audio = USB microphone (4 channels on KOL, 1 on Vesper), no disk; Sampling = off USB, running its schedule. -->
 						<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,4" IsVisible="{Binding IsUsbModesSelected}"/>
 						<Border Classes="statusPill" Margin="0,2,6,2" IsVisible="{Binding IsUsbModesSelected}"

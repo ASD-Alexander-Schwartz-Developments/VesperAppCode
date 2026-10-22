@@ -2,7 +2,7 @@
 
 KOL, Vesper and Pipistrelle loggers keep time with a 32.768 kHz crystal. Every crystal is a little fast or slow (typically ±20–30 ppm, about ±2–3 seconds a day, but on some boards much more: KOL units measured about −200 ppm, 17 seconds a day slow), and outdoors it also runs slow when it is colder or warmer than about 25 °C. The **Clock** page sets a unit's clock to internet time with millisecond accuracy, measures how fast or slow that particular unit's crystal is, and stores a correction on the unit.
 
-This needs firmware with the time-sync commands (KOL 1.8 / Vesper 1.21 or later). Older firmware still gets a plain whole-second **Set Time**.
+This needs firmware with the time-sync commands (KOL 1.8 / Vesper 1.22 or later). Older firmware still gets a plain whole-second **Set Time**.
 
 ## Where the time comes from
 
@@ -19,7 +19,7 @@ The app asks internet time servers (NTP) for the true time; the PC's own clock i
 3. Connect it again and press **Sync clock** (or **Measure**, which does not change the clock).
 4. Press **Compute calibration**. The page shows the crystal error in ppm and in seconds per day, its uncertainty, the measurement span and the temperature, plus a note if something was not ideal (short span, changing temperature, PC clock used as reference).
 5. Connect the unit in **Idle** mode (so its disk appears on the PC) and press **Apply**. The correction takes effect on the unit at once, is kept on this PC as the master copy, and is saved on the unit's own disk so it survives switching the unit off:
-   - `RTCCAL.TXT` next to `UID.TXT` — read by the unit at every start (KOL 1.8 / Vesper 1.21 or later). It names the unit's serial, so it is ignored if the disk's files are copied onto another unit.
+   - `RTCCAL.TXT` next to `UID.TXT` — read by the unit at every start (KOL 1.8 / Vesper 1.22 or later). It names the unit's serial, so it is ignored if the disk's files are copied onto another unit.
    - the *Clock Drift* (`cdrift`) value in the unit's `config.json` — the same correction for units with older firmware.
 
    If the disk is not found, the page says so; the correction then only lasts until the unit loses power — connect it in Idle mode and press **Apply** again.

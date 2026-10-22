@@ -48,11 +48,12 @@ namespace VesperApp.Models
 
         /// <summary>
         /// First Vesper / Pipistrelle firmware whose console ids 62-66 are the USB mode / DFU entry / mic
-        /// parameter commands (as on KOL). Older VesperU5 firmware uses 62-67 for dock bench tests, so these
-        /// commands must never reach it. This MUST follow the Vesper version decision: if the v1.20
-        /// disk-corruption hotfix ships as 1.21, the audio-platform firmware becomes 1.22 and so must this.
+        /// parameter commands (as on KOL): the feature release, 1.22 (Live Audio, sound trigger, the shared
+        /// self-test, bench tests moved to 70-75). 1.22 is the v1.20 disk-corruption hotfix (decided
+        /// 2026-10-22) and has none of this; older VesperU5 builds use 62-67 for dock bench tests, so these
+        /// commands must never reach them.
         /// </summary>
-        public static readonly Version VesperUsbModesFirmware = new(1, 21);
+        public static readonly Version VesperUsbModesFirmware = new(1, 22);
 
         /// <summary>
         /// Whether the product family can expose host-commanded USB operational modes

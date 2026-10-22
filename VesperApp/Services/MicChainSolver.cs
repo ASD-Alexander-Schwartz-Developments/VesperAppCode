@@ -172,7 +172,7 @@ namespace VesperApp.Services
         public sealed record Product(string Name, string FirmwareVersion, bool HasLiveAudio, bool HasHardwareDetector = false)
         {
             public static readonly Product Kol = new("KOL", "1.8", true);
-            public static readonly Product VesperPipistrelle = new("Vesper/Pipistrelle", "1.21", false);
+            public static readonly Product VesperPipistrelle = new("Vesper/Pipistrelle", "1.22", false);
         }
 
         /// <summary>MDF high-pass cut-off as a fraction of the output rate, per config.json "hpf" value (0 = off).</summary>
