@@ -10,6 +10,7 @@ using ASD.Contracts;
 using Avalonia.Threading;
 using ReactiveUI;
 using VesperApp.Models;
+using VesperApp.Services;
 using VesperApp.Services.Audio;
 
 namespace VesperApp.ViewModels
@@ -56,6 +57,7 @@ namespace VesperApp.ViewModels
             ClearDetectionsCommand = ReactiveCommand.Create(() => DetectionLog.Clear());
 
             _classifyTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(600), DispatcherPriority.Background, (_, _) => ClassifyTick());
+            _levelsTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, async (_, _) => await LevelsTickAsync());
 
             if (main != null) main.PropertyChanged += OnMainPropertyChanged;
             RefreshDevices();
@@ -426,6 +428,68 @@ namespace VesperApp.ViewModels
             else StatusText = "Could not open the input: " + (_capture.LastError ?? "unknown error");
         }
 
+        // ------------------------------------------------------------------ sound-trigger meter (console 79)
+        private readonly DispatcherTimer _levelsTimer;
+        private int _levelsBusy, _levelsMisses;
+        private const int LevelsMissesToHide = 3;   // firmware without console 79: hide quietly
+
+        private MicLevels? _triggerLevels;
+        /// <summary>Last console-79 reply from the streaming unit; null hides the meter.</summary>
+        public MicLevels? TriggerLevels
+        {
+            get => _triggerLevels;
+            private set
+            {
+                this.RaiseAndSetIfChanged(ref _triggerLevels, value);
+                this.RaisePropertyChanged(nameof(HasTriggerLevels));
+                this.RaisePropertyChanged(nameof(TriggerLevelsText));
+            }
+        }
+        public bool HasTriggerLevels => _triggerLevels != null;
+
+        public string TriggerLevelsText
+        {
+            get
+            {
+                MicLevels? m = _triggerLevels;
+                if (m == null) return string.Empty;
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                string config = !m.TriggerConfigured ? "No trigger configured: levels and background only."
+                    : m.Absolute ? string.Create(ci, $"Start {m.StartDb:0.#} dB SPL{(m.SplValid ? "" : " (chain level unknown: line not drawn)")}.")
+                    : string.Create(ci, $"Start {m.StartDb:0.#} dB above the background.");
+                string hw = m.HardwareRequested ? " Hardware detector requested: running the software detector." : "";
+                return string.Create(ci, $"{char.ToUpper(m.StateText[0])}{m.StateText[1..]} · events {m.Events} · missed halves {m.MissedHalves}. ") + config + hw;
+            }
+        }
+
+        private void StartLevels()
+        {
+            _levelsMisses = 0;
+            if (IsKolSource && Kol != null) _levelsTimer.Start();
+        }
+
+        private void StopLevels()
+        {
+            _levelsTimer.Stop();
+            TriggerLevels = null;
+        }
+
+        private async Task LevelsTickAsync()
+        {
+            if (Interlocked.Exchange(ref _levelsBusy, 1) == 1) return;
+            try
+            {
+                LoggerDevice? dev = Kol;
+                if (dev == null || !IsRunning) { StopLevels(); return; }
+                byte[]? resp = await dev.SendCommandAsync(MessageTypes.VESPER_MIC_LEVELS, Array.Empty<byte>(), 400);
+                MicLevels? m = MicLevels.Parse(resp);
+                if (m != null) { _levelsMisses = 0; TriggerLevels = m; }
+                else if (++_levelsMisses >= LevelsMissesToHide) StopLevels();
+            }
+            catch { StopLevels(); }
+            finally { Volatile.Write(ref _levelsBusy, 0); }
+        }
+
         private void Started(string info)
         {
             RebuildProcessing();
@@ -434,11 +498,13 @@ namespace VesperApp.ViewModels
             StreamInfoText = info;
             StatusText = "Streaming.";
             _classifyTimer.Start();
+            StartLevels();
         }
 
         private void Stop()
         {
             _classifyTimer.Stop();
+            StopLevels();
             _capture.Stop();
             IsRunning = false;
             StatusText = "Stopped (display frozen on the last samples).";

@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:VesperApp.ViewModels"
              xmlns:la="using:VesperApp.Controls.LiveAudio"
+             xmlns:c="using:VesperApp.Controls"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="760"
              x:DataType="vm:LiveViewViewModel"
@@ -144,6 +145,17 @@
 								<Button Command="{Binding KolToIdleCommand}" IsEnabled="{Binding IsKolAvailable}" Content="{Binding UnitIdleText}" Margin="0,0,0,6" ToolTip.Tip="{Binding UnitIdleToolTip}"/>
 							</WrapPanel>
 						</Grid>
+					</StackPanel>
+				</Border>
+
+				<!-- Sound trigger meter (console 79): shown only while the streaming unit answers it -->
+				<Border Classes="panel" IsVisible="{Binding HasTriggerLevels}">
+					<StackPanel Spacing="6">
+						<TextBlock Classes="h" Text="Sound trigger (on the device)"/>
+						<TextBlock Classes="lbl" TextWrapping="Wrap"
+								   Text="Bars: level per channel (dBFS). Dark mark: background, white tick: peak, red line: start level, dashed: stop level."/>
+						<c:MicLevelMeter Levels="{Binding TriggerLevels}"/>
+						<TextBlock Classes="lbl" Text="{Binding TriggerLevelsText}" TextWrapping="Wrap"/>
 					</StackPanel>
 				</Border>
 

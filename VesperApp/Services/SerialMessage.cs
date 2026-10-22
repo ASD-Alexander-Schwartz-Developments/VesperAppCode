@@ -97,6 +97,10 @@ namespace VesperApp.Services
         VESPER_RTC_SHIFT = 77,          // payload: int32 microseconds (+ advances), |us| < 1 s; ACK/NACK
         VESPER_RTC_CAL = 78,            // payload: [0] op (0 get, 1 set, 2 clear, 3 measure temp) [+ i32 ppb, i16 tref]; reply 23 B
 
+        // Sound trigger live state + per-channel levels (Models/MicLevels.cs; Kol docs/sound-trigger.md).
+        // No payload, 50 B reply. Answered in Live Audio and while recording with the console up.
+        VESPER_MIC_LEVELS = 79,
+
         UDSP_GET_VER = 200,
         UDSP_SLEEP,
         UDSP_GET_CONFIG,
