@@ -292,9 +292,15 @@ namespace VesperApp.ViewModels
             }
 
             if (target == DeviceTypes.Kol)
-                return await RunKolFlash(selected);   // commanded DFU entry over CDC, no dock
+                return await RunDirectFlash(selected, target);   // commanded DFU entry over CDC, no dock
 
             DockAdapter? dock = _main?.GlobalDock;
+            // A Vesper / Pipistrelle on USB whose firmware has commanded DFU entry flashes without the dock;
+            // with a dock connected (or older firmware) the dock's BOOT0/reset path below is used as before.
+            if ((dock is null || !dock.IsConnected)
+                && _main?.SelectedLoggerDevice is { IsConnected: true, SupportsUsbModes: true } usbDev
+                && usbDev.DeviceType == target)
+                return await RunDirectFlash(selected, target);
             if (dock is null || !dock.IsConnected)
             {
                 FlashStatus = "Connect the docking station first — STM32 flashing drives BOOT0/reset through the dock.";

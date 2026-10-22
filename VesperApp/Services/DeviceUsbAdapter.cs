@@ -292,7 +292,7 @@ namespace VesperApp.Services
                                 uint serial = (uint)((uint)resp[i + 6] + ((uint)resp[i + 7] << 8) + ((uint)resp[i + 8] << 16) + ((uint)resp[i + 9] << 24));
                                 DeviceTypes type = (DeviceTypes)resp[i + 10];
 
-                                var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial);
+                                var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial, new System.Version(major, minor));
 
                                 if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
                                     this._loggerDevices.Add(dev);

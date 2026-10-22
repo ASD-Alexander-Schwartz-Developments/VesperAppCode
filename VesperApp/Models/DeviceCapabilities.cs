@@ -47,18 +47,61 @@ namespace VesperApp.Models
         };
 
         /// <summary>
-        /// Whether the product exposes host-commanded USB operational modes
-        /// (<see cref="KolUsbMode"/>: Idle / Sampling / Live Audio). KOL only today;
-        /// VesperU5 is slated to adopt the same contract.
+        /// First Vesper / Pipistrelle firmware whose console ids 62-66 are the USB mode / DFU entry / mic
+        /// parameter commands (as on KOL). Older VesperU5 firmware uses 62-67 for dock bench tests, so these
+        /// commands must never reach it. This MUST follow the Vesper version decision: if the v1.20
+        /// disk-corruption hotfix ships as 1.21, the audio-platform firmware becomes 1.22 and so must this.
         /// </summary>
-        public static bool HasUsbModes(DeviceTypes? product) => product == DeviceTypes.Kol;
+        public static readonly Version VesperUsbModesFirmware = new(1, 21);
+
+        /// <summary>
+        /// Whether the product family can expose host-commanded USB operational modes
+        /// (<see cref="KolUsbMode"/>: Idle / Sampling / Live Audio): KOL, and Vesper / Pipistrelle
+        /// from <see cref="VesperUsbModesFirmware"/>. Use <see cref="SupportsUsbModes"/> for a unit.
+        /// </summary>
+        public static bool HasUsbModes(DeviceTypes? product) =>
+            product is DeviceTypes.Kol or DeviceTypes.Vesper or DeviceTypes.Pipistrelle;
+
+        /// <summary>
+        /// Whether this unit answers the USB mode commands (62-66: SET/GET_USB_MODE, ENTER_BOOTLOADER,
+        /// SET/GET_MIC_PARAMS): any KOL (unchanged), a Vesper / Pipistrelle only with firmware
+        /// <see cref="VesperUsbModesFirmware"/> or later (unknown firmware = no).
+        /// </summary>
+        public static bool SupportsUsbModes(DeviceTypes? product, Version? firmware) => product switch
+        {
+            DeviceTypes.Kol => true,
+            DeviceTypes.Vesper or DeviceTypes.Pipistrelle => firmware != null && firmware >= VesperUsbModesFirmware,
+            _ => false,
+        };
+
+        /// <summary>Live Audio channels the unit streams as a USB microphone (one per microphone).</summary>
+        public static int LiveAudioChannels(DeviceTypes? product) => MicCount(product);
+
+        /// <summary>Name the unit's Live Audio microphone has on the host (USB product string).</summary>
+        public static string LiveAudioDeviceName(DeviceTypes? product) => product switch
+        {
+            DeviceTypes.Kol => "KOL",
+            DeviceTypes.Vesper or DeviceTypes.Pipistrelle => "Vesper Wildlife Logger",
+            _ => string.Empty,
+        };
+
+        /// <summary>Product name for user-facing texts.</summary>
+        public static string DisplayName(DeviceTypes? product) => product switch
+        {
+            DeviceTypes.Kol => "KOL",
+            DeviceTypes.Vesper => "Vesper",
+            DeviceTypes.Pipistrelle => "Pipistrelle",
+            DeviceTypes.Nanotag => "Nanotag",
+            _ => "device",
+        };
 
         /// <summary>
         /// Whether firmware is flashed straight over the device's own USB connection
         /// (no docking station): Nanotag (HID bootloader) and KOL (commanded ST DFU
-        /// entry). VT04-VESPER / VT04-PP need the dock's BOOT0/reset lines.
+        /// entry). VT04-VESPER / VT04-PP need the dock's BOOT0/reset lines unless the
+        /// unit already runs firmware with commanded DFU entry (<see cref="SupportsUsbModes"/>).
         /// </summary>
-        public static bool FlashesWithoutDock(DeviceTypes? product) =>
-            product == DeviceTypes.Nanotag || product == DeviceTypes.Kol;
+        public static bool FlashesWithoutDock(DeviceTypes? product, Version? firmware = null) =>
+            product == DeviceTypes.Nanotag || SupportsUsbModes(product, firmware);
     }
 }

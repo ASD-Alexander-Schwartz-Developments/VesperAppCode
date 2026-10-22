@@ -15,6 +15,7 @@ using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
 using MsBox.Avalonia.Models;
 using System.Text;
+using Version = System.Version;   // not ASDLibUSBWrapper.Version
 
 namespace VesperApp.Models
 {
@@ -91,10 +92,11 @@ namespace VesperApp.Models
 
 
 
-        public LoggerDevice(string port, int baudrate, DeviceTypes type, uint serial)
+        public LoggerDevice(string port, int baudrate, DeviceTypes type, uint serial, Version? firmware = null)
         {
             this._comport = new ConsoleTransport(port, baudrate);
             _serialnumber = serial.ToString("X");
+            _firmwareVersion = firmware;
             this._usbDevice = null;
             _type = type;
             HwId = "4.0.0";
@@ -139,6 +141,7 @@ namespace VesperApp.Models
 
                         this.FwId = h.ToString() + l.ToString();
                         this._serialnumber = serial_num.ToString("X");
+                        this.FirmwareVersion = new Version(l, h);   /* GET_VER: [0] major, [1] minor */
                     }
                     break;
 
@@ -232,6 +235,7 @@ namespace VesperApp.Models
                         string fwid = major.ToString() + "." + minor.ToString();
 
                         if (this.FwId != fwid) { this.FwId = fwid; }
+                        this.FirmwareVersion = new Version((int)major, (int)minor);
 
 //                        vd.isarmed = (data[24] == 0) ? "Armed" : "Not Armed";
                         byte[] dtarray = { data[25], data[26], data[27], data[28], data[29], data[30], data[31] };
@@ -777,6 +781,24 @@ namespace VesperApp.Models
         /// <summary>The device is a KOL reached over its CDC console.</summary>
         public bool IsKol => _type == DeviceTypes.Kol && IsComportDevice;
 
+        /// <summary>Application firmware MAJOR.MINOR (GET_VER / GET_RTC); null until known.</summary>
+        public Version? FirmwareVersion
+        {
+            get => _firmwareVersion;
+            private set
+            {
+                if (value == _firmwareVersion) return;
+                this.RaiseAndSetIfChanged(ref _firmwareVersion, value);
+                this.RaisePropertyChanged(nameof(SupportsUsbModes));
+            }
+        }
+        private Version? _firmwareVersion;
+
+        /// <summary>The unit answers the USB mode / DFU / mic parameter commands (62-66) on its CDC
+        /// console: any KOL, a Vesper / Pipistrelle with new enough firmware
+        /// (<see cref="DeviceCapabilities.SupportsUsbModes"/>).</summary>
+        public bool SupportsUsbModes => IsComportDevice && DeviceCapabilities.SupportsUsbModes(_type, _firmwareVersion);
+
         /// <summary>Last USB operational mode reported by a KOL (null until queried).</summary>
         public KolUsbMode? UsbMode
         {
@@ -824,10 +846,10 @@ namespace VesperApp.Models
             }
         }
 
-        /// <summary>Read the KOL's active/pending USB mode (VESPER_GET_USB_MODE).</summary>
+        /// <summary>Read the unit's active/pending USB mode (VESPER_GET_USB_MODE).</summary>
         public async Task<KolUsbModeState?> GetUsbModeAsync(int timeoutMs = 3000)
         {
-            if (!IsKol) return null;
+            if (!SupportsUsbModes) return null;
             byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_USB_MODE, new byte[0], timeoutMs);
             KolUsbModeState? state = KolUsbModeState.Parse(resp);
             if (state != null) this.UsbMode = state.Active;
@@ -841,7 +863,7 @@ namespace VesperApp.Models
         /// </summary>
         public async Task<bool> SetUsbModeAsync(KolUsbMode mode, int timeoutMs = 3000)
         {
-            if (!IsKol) return false;
+            if (!SupportsUsbModes) return false;
             return await SendAckCommandAsync(MessageTypes.VESPER_SET_USB_MODE, new[] { (byte)mode }, timeoutMs);
         }
 
@@ -853,7 +875,7 @@ namespace VesperApp.Models
         /// </summary>
         public async Task<bool> EnterBootloaderAsync(int timeoutMs = 3000)
         {
-            if (!IsKol) return false;
+            if (!SupportsUsbModes) return false;
             return await SendAckCommandAsync(MessageTypes.VESPER_ENTER_BOOTLOADER, new byte[0], timeoutMs);
         }
 
@@ -861,7 +883,7 @@ namespace VesperApp.Models
         /// (VESPER_GET_MIC_PARAMS). Null when the firmware does not support it.</summary>
         public async Task<KolMicStatus?> GetMicParamsAsync(int timeoutMs = 3000)
         {
-            if (!IsKol) return null;
+            if (!SupportsUsbModes) return null;
             byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_MIC_PARAMS, new byte[0], timeoutMs);
             return KolMicStatus.Parse(resp);
         }
@@ -870,7 +892,7 @@ namespace VesperApp.Models
         /// once to a running Live Audio capture; kept in RAM only (not written to config.json).</summary>
         public async Task<bool> SetMicParamsAsync(KolMicParams p, int timeoutMs = 3000)
         {
-            if (!IsKol) return false;
+            if (!SupportsUsbModes) return false;
             return await SendAckCommandAsync(MessageTypes.VESPER_SET_MIC_PARAMS, p.Pack(), timeoutMs);
         }
 

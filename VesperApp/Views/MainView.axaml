@@ -155,20 +155,20 @@
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Download" Command="{Binding DownloadDeviceData}" IsEnabled="{Binding IsDeviceConnected}"/>
 						<Button Classes="toolbar" Margin="0,2,0,2" Content="Upgrade Firmware" Command="{Binding BootloaderDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
 
-						<!-- KOL USB operational modes (shown for a selected KOL only). Idle = disk + console;
-						     Live Audio = 4-channel USB microphone, no disk; Sampling = off USB, running its schedule. -->
-						<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,4" IsVisible="{Binding IsKolSelected}"/>
-						<Border Classes="statusPill" Margin="0,2,6,2" IsVisible="{Binding IsKolSelected}"
-								ToolTip.Tip="KOL USB mode. Idle: console + USB disk. Live Audio: the 4 microphones stream as a standard USB microphone (no disk). Sampling: the device leaves USB and runs its schedule.">
+						<!-- USB operational modes (KOL; Vesper / Pipistrelle firmware 1.21+). Idle = disk + console;
+						     Live Audio = USB microphone (4 channels on KOL, 1 on Vesper), no disk; Sampling = off USB, running its schedule. -->
+						<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,4" IsVisible="{Binding IsUsbModesSelected}"/>
+						<Border Classes="statusPill" Margin="0,2,6,2" IsVisible="{Binding IsUsbModesSelected}"
+								ToolTip.Tip="{Binding UsbModeToolTip}">
 							<TextBlock VerticalAlignment="Center">
 								<Run Text="USB mode: "/><Run Text="{Binding KolUsbModeText}"/>
 							</TextBlock>
 						</Border>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="{Binding KolLiveAudioButtonText}"
-								Command="{Binding KolToggleLiveAudioCommand}" IsVisible="{Binding IsKolSelected}" IsEnabled="{Binding IsDeviceConnected}"
+								Command="{Binding KolToggleLiveAudioCommand}" IsVisible="{Binding IsUsbModesSelected}" IsEnabled="{Binding IsDeviceConnected}"
 								ToolTip.Tip="Switch between Idle and Live Audio. The device re-enumerates (about 2 s) and is reconnected automatically."/>
 						<Button Classes="toolbar" Margin="0,2,0,2" Content="Start Sampling"
-								Command="{Binding KolStartSamplingCommand}" IsVisible="{Binding IsKolSelected}" IsEnabled="{Binding IsDeviceConnected}"
+								Command="{Binding KolStartSamplingCommand}" IsVisible="{Binding IsUsbModesSelected}" IsEnabled="{Binding IsDeviceConnected}"
 								ToolTip.Tip="Arm the device and start its recording schedule. It disconnects from USB; reconnect it or use the magnet to return to Idle."/>
 					</WrapPanel>
 					<TextBlock Classes="caption" Text="{Binding KolStatusText}" TextWrapping="Wrap" IsVisible="{Binding HasKolStatus}"/>

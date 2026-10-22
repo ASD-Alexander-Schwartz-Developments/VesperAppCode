@@ -12,7 +12,8 @@ using VesperApp.Models;
 namespace VesperApp.ViewModels
 {
     /// <summary>
-    /// KOL USB operational modes on the device console (Idle ↔ Live Audio ↔ Sampling)
+    /// USB operational modes on the device console (Idle ↔ Live Audio ↔ Sampling) - KOL, and Vesper /
+    /// Pipistrelle with new enough firmware (<see cref="LoggerDevice.SupportsUsbModes"/>) -
     /// and the shared "device goes away and comes back" choreography that the mode
     /// switch and the dockless firmware flash both need. Every firmware command is
     /// ACKed <em>before</em> the transition, so after the ACK the CDC port is expected
@@ -39,6 +40,30 @@ namespace VesperApp.ViewModels
         /// <summary>The selected device is a KOL on its CDC console.</summary>
         public bool IsKolSelected => SelectedLoggerDevice?.IsKol == true;
 
+        /// <summary>The selected unit has USB modes (KOL, or Vesper / Pipistrelle firmware 1.21+).</summary>
+        public bool IsUsbModesSelected => SelectedLoggerDevice?.SupportsUsbModes == true;
+
+        public string UsbModeToolTip
+        {
+            get
+            {
+                DeviceTypes? t = SelectedLoggerDevice?.DeviceType;
+                return $"{DeviceCapabilities.DisplayName(t)} USB mode. Idle: console + USB disk. Live Audio: {MicsPhrase(t)} as a standard USB microphone (no disk). Sampling: the device leaves USB and runs its schedule.";
+            }
+        }
+
+        /// <summary>"the 4 microphones stream" / "the microphone streams".</summary>
+        private static string MicsPhrase(DeviceTypes? t) =>
+            DeviceCapabilities.MicCount(t) > 1 ? $"the {DeviceCapabilities.MicCount(t)} microphones stream" : "the microphone streams";
+
+        /// <summary>Narration while a unit is in Live Audio.</summary>
+        private static string LiveAudioText(LoggerDevice dev, bool recorderHint)
+        {
+            int ch = DeviceCapabilities.LiveAudioChannels(dev.DeviceType);
+            string what = ch > 1 ? $"the microphones are streaming as a {ch}-channel USB microphone" : "the microphone is streaming as a USB microphone";
+            return $"Live Audio: {what} on this computer{(recorderHint ? " (use any recorder / sound settings)" : "")}. No disk is exposed in this mode.";
+        }
+
         public string KolUsbModeText => KolUsbModeInfo.Label(_kolUsbMode);
 
         public bool IsKolLiveAudio => _kolUsbMode == Models.KolUsbMode.LiveAudio;
@@ -47,7 +72,7 @@ namespace VesperApp.ViewModels
 
         /// <summary>Disk-dependent actions (Format) are meaningless while a KOL is in
         /// Live Audio — the medium belongs to the firmware and no MSC is exposed.</summary>
-        public bool CanUseDeviceDisk => IsDeviceConnected && !(IsKolSelected && !KolUsbModeInfo.HasDisk(_kolUsbMode));
+        public bool CanUseDeviceDisk => IsDeviceConnected && !(IsUsbModesSelected && !KolUsbModeInfo.HasDisk(_kolUsbMode));
 
         /// <summary>One-line narration under the device actions ("switching…", "device
         /// is now sampling…"). Empty hides the line.</summary>
@@ -93,6 +118,8 @@ namespace VesperApp.ViewModels
         private void RaiseKolProperties()
         {
             this.RaisePropertyChanged(nameof(IsKolSelected));
+            this.RaisePropertyChanged(nameof(IsUsbModesSelected));
+            this.RaisePropertyChanged(nameof(UsbModeToolTip));
             this.RaisePropertyChanged(nameof(KolUsbMode));
             this.RaisePropertyChanged(nameof(KolUsbModeText));
             this.RaisePropertyChanged(nameof(IsKolLiveAudio));
@@ -110,11 +137,11 @@ namespace VesperApp.ViewModels
         internal async Task OnDeviceConnectedAsync()
         {
             LoggerDevice? dev = SelectedLoggerDevice;
-            if (dev?.IsKol == true && dev.IsConnected)
+            if (dev?.SupportsUsbModes == true && dev.IsConnected)
             {
                 await RefreshKolUsbModeAsync();
                 if (KolUsbMode == Models.KolUsbMode.LiveAudio)
-                    KolStatusText = "Live Audio: the microphones are streaming as a 4-channel USB microphone on this computer. No disk is exposed in this mode.";
+                    KolStatusText = LiveAudioText(dev, recorderHint: false);
                 else
                     KolStatusText = string.Empty;
             }
@@ -128,7 +155,7 @@ namespace VesperApp.ViewModels
         internal async Task RefreshKolUsbModeAsync()
         {
             LoggerDevice? dev = SelectedLoggerDevice;
-            if (dev?.IsKol != true || !dev.IsConnected) return;
+            if (dev?.SupportsUsbModes != true || !dev.IsConnected) return;
             KolUsbModeState? state = await dev.GetUsbModeAsync();
             KolUsbMode = state?.Active;
         }
@@ -141,7 +168,7 @@ namespace VesperApp.ViewModels
         internal async Task SwitchKolUsbModeAsync(KolUsbMode target)
         {
             LoggerDevice? dev = SelectedLoggerDevice;
-            if (dev?.IsKol != true || !dev.IsConnected) return;
+            if (dev?.SupportsUsbModes != true || !dev.IsConnected) return;
             string serial = dev.SerialNumber ?? string.Empty;
 
             KolStatusText = target == Models.KolUsbMode.Sampling
@@ -186,7 +213,7 @@ namespace VesperApp.ViewModels
                 if (KolUsbMode == target)
                 {
                     KolStatusText = target == Models.KolUsbMode.LiveAudio
-                        ? "Live Audio: the microphones are streaming as a 4-channel USB microphone on this computer (use any recorder / sound settings). No disk is exposed in this mode."
+                        ? LiveAudioText(back, recorderHint: true)
                         : "Idle: console and USB disk available.";
                 }
                 else
