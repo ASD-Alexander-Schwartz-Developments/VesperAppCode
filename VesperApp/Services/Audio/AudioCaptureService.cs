@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using PortAudioSharp;
+using VesperApp.Models;
 
 namespace VesperApp.Services.Audio
 {
@@ -218,17 +219,33 @@ namespace VesperApp.Services.Audio
             return list;
         }
 
-        /// <summary>The KOL's USB microphone entries (4-channel UAC2), best candidate first:
-        /// the entry whose default rate matches, then the highest host API index (on
-        /// Windows that is WDM-KS, the only path that exposes all 4 channels reliably).</summary>
-        public static IReadOnlyList<AudioInputDevice> FindKolCandidates(int wantRate)
+        /// <summary>The KOL's USB microphone entries (4-channel UAC2), best candidate first.</summary>
+        public static IReadOnlyList<AudioInputDevice> FindKolCandidates(int wantRate) =>
+            FindLiveAudioCandidates(ListInputs(), DeviceTypes.Kol, wantRate);
+
+        /// <summary>A unit's Live Audio microphone entries (UAC2) among <paramref name="inputs"/>, best
+        /// candidate first: matched by the product's USB name (KOL; "Vesper Wildlife Logger" for Vesper and
+        /// Pipistrelle) with at least its channel count (4 / 1), then the entry whose default rate matches,
+        /// then the highest host API index (on Windows that is WDM-KS, the only path that exposes all 4 KOL
+        /// channels reliably).</summary>
+        public static IReadOnlyList<AudioInputDevice> FindLiveAudioCandidates(IEnumerable<AudioInputDevice> inputs,
+                                                                              DeviceTypes? product, int wantRate)
         {
-            return ListInputs()
-                .Where(d => d.Name.Contains("KOL", StringComparison.OrdinalIgnoreCase) && d.MaxChannels >= 4)
+            string name = DeviceCapabilities.LiveAudioDeviceName(product);
+            int channels = DeviceCapabilities.LiveAudioChannels(product);
+            if (name.Length == 0 || channels == 0) return Array.Empty<AudioInputDevice>();
+            return inputs
+                .Where(d => d.Name.Contains(name, StringComparison.OrdinalIgnoreCase) && d.MaxChannels >= channels)
                 .OrderByDescending(d => Math.Abs(d.DefaultSampleRate - wantRate) < 1 ? 1 : 0)
                 .ThenByDescending(d => d.HostApi)
                 .ToList();
         }
+
+        /// <summary>True for an input that is one of our units' Live Audio microphones (kept out of the
+        /// "this computer's microphone" list).</summary>
+        public static bool IsUnitMicrophone(AudioInputDevice d) =>
+            new[] { DeviceTypes.Kol, DeviceTypes.Vesper }
+                .Any(p => d.Name.Contains(DeviceCapabilities.LiveAudioDeviceName(p), StringComparison.OrdinalIgnoreCase));
 
         /// <summary>Open and start a capture. Returns false (with <see cref="LastError"/>) on failure.</summary>
         public bool Start(AudioInputDevice device, int channels, int sampleRate, double historySeconds = 12, uint framesPerBuffer = 480)

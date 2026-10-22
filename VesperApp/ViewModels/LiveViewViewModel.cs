@@ -25,7 +25,8 @@ namespace VesperApp.ViewModels
 
     /// <summary>
     /// Live View: real-time microphone visualisation (scope, spectrum, spectrogram) from
-    /// either the selected KOL streaming as a 4-channel USB microphone (Live Audio mode,
+    /// either the selected unit streaming as a USB microphone - KOL 4 channels, Vesper / Pipistrelle
+    /// (firmware 1.21+) 1 channel - (Live Audio mode,
     /// microphone parameters set live over the console) or a PC input, with optional local
     /// processing (filters, post gain) and a pluggable <see cref="ISoundClassifier"/>.
     /// </summary>
@@ -83,8 +84,12 @@ namespace VesperApp.ViewModels
 
         public string? AudioBackendProblem => AudioCaptureService.UnavailableReason;
 
-        // ------------------------------------------------------------------ KOL microphone parameters
-        public int[] SampleRates { get; } = { 8000, 16000, 32000, 48000, 96000 };
+        // ------------------------------------------------------------------ unit microphone parameters
+        private static readonly int[] KolRates = { 8000, 16000, 32000, 48000, 96000 };
+        private static readonly int[] VesperRates = { 8000, 16000, 32000, 48000, 96000, 192000 };
+
+        /// <summary>Live Audio rates of the selected unit's product (Vesper / Pipistrelle add 192 kHz).</summary>
+        public int[] SampleRates => UnitType is DeviceTypes.Vesper or DeviceTypes.Pipistrelle ? VesperRates : KolRates;
         private int _selectedSampleRate = 48000;
         public int SelectedSampleRate { get => _selectedSampleRate; set { this.RaiseAndSetIfChanged(ref _selectedSampleRate, value); this.RaisePropertyChanged(nameof(RateNoteText)); } }
 
@@ -94,6 +99,8 @@ namespace VesperApp.ViewModels
         {
             get
             {
+                /* Vesper / Pipistrelle Live Audio solves every offered rate exactly (mic_chain). */
+                if (UnitType is DeviceTypes.Vesper or DeviceTypes.Pipistrelle) return $"exact ({_selectedSampleRate / 1000.0:0.#} kHz)";
                 double pdm = 4_800_000.0; int ratio = (int)(pdm / _selectedSampleRate);
                 bool rs4 = ReshapeEnabled && !ReshapeRatioOne;
                 if (rs4) ratio /= 4;
@@ -174,7 +181,27 @@ namespace VesperApp.ViewModels
         public bool Ch3On { get => _ch3; set { this.RaiseAndSetIfChanged(ref _ch3, value); this.RaisePropertyChanged(nameof(ChannelMask)); } }
         public int ChannelMask => (_ch0 ? 1 : 0) | (_ch1 ? 2 : 0) | (_ch2 ? 4 : 0) | (_ch3 ? 8 : 0);
 
-        public string[] ChannelOptions { get; } = { "Mix of all channels", "Channel 0 (WE, rising edge)", "Channel 1 (WE, falling edge)", "Channel 2 (NS, rising edge)", "Channel 3 (NS, falling edge)" };
+        private static readonly string[] KolChannelOptions = { "Mix of all channels", "Channel 0 (WE, rising edge)", "Channel 1 (WE, falling edge)", "Channel 2 (NS, rising edge)", "Channel 3 (NS, falling edge)" };
+        private static readonly string[] MonoChannelOptions = { "Mix of all channels", "Channel 0" };
+
+        /// <summary>Channels of the running (or next) stream: 4 for KOL, 1 for a Vesper.</summary>
+        private int _streamChannels = 4;
+        public int StreamChannels
+        {
+            get => _streamChannels;
+            private set
+            {
+                if (_streamChannels == value) return;
+                this.RaiseAndSetIfChanged(ref _streamChannels, value);
+                this.RaisePropertyChanged(nameof(MultiChannel));
+                this.RaisePropertyChanged(nameof(ChannelOptions));
+                if (_channelOptionIndex > value) ChannelOptionIndex = 1;
+            }
+        }
+        public bool MultiChannel => _streamChannels > 1;
+
+        public string[] ChannelOptions => _streamChannels >= 4 ? KolChannelOptions
+            : MonoChannelOptions.Concat(Enumerable.Range(1, Math.Max(0, _streamChannels - 1)).Select(c => $"Channel {c}")).ToArray();
         private int _channelOptionIndex = 1;
         public int ChannelOptionIndex { get => _channelOptionIndex; set { this.RaiseAndSetIfChanged(ref _channelOptionIndex, value); this.RaisePropertyChanged(nameof(SelectedChannel)); } }
         public int SelectedChannel => _channelOptionIndex - 1;   // -1 = mix
@@ -282,18 +309,45 @@ namespace VesperApp.ViewModels
                 Dispatcher.UIThread.Post(UpdateKolAvailability);
         }
 
+        /// <summary>The selected unit when it can stream Live Audio (KOL; Vesper / Pipistrelle 1.21+) and is connected.</summary>
         private LoggerDevice? Kol
         {
-            get { LoggerDevice? d = _main?.SelectedLoggerDevice; return d?.IsKol == true && d.IsConnected ? d : null; }
+            get { LoggerDevice? d = _main?.SelectedLoggerDevice; return d?.SupportsUsbModes == true && d.IsConnected ? d : null; }
         }
+
+        /// <summary>Product the unit source refers to: the selected unit's family, else KOL.</summary>
+        private DeviceTypes UnitType =>
+            _main?.SelectedLoggerDevice?.DeviceType is DeviceTypes t && DeviceCapabilities.HasUsbModes(t) ? t : DeviceTypes.Kol;
+
+        public string UnitName => DeviceCapabilities.DisplayName(UnitType);
+
+        public string UnitSourceLabel => UnitType == DeviceTypes.Kol
+            ? "KOL — 4 microphones over USB"
+            : $"{UnitName} — microphone over USB";
+
+        public string MicParamsTitle => $"{UnitName} microphone parameters (on the device)";
+        public string UnitIdleText => $"{UnitName} → Idle";
+        public string UnitIdleToolTip => $"Stop streaming and return the {UnitName} to Idle (console + disk)";
 
         private void UpdateKolAvailability()
         {
             LoggerDevice? k = Kol;
             IsKolAvailable = k != null;
+            string name = UnitName;
+            string mics = UnitType == DeviceTypes.Kol ? "its 4 microphones" : "its microphone";
+            string fw = UnitType == DeviceTypes.Kol ? "" : $" (firmware {DeviceCapabilities.VesperUsbModesFirmware} or later)";
             KolAvailabilityText = k == null
-                ? "No KOL connected — connect a KOL on its USB console (Idle or Live Audio) to stream its 4 microphones."
-                : $"KOL {k.SerialNumber} — {KolUsbModeInfo.Label(_main.KolUsbMode)}";
+                ? $"No {name} connected — connect a {name}{fw} on its USB console (Idle or Live Audio) to stream {mics}."
+                : $"{name} {k.SerialNumber} — {KolUsbModeInfo.Label(_main.KolUsbMode)}";
+            if (!IsRunning) StreamChannels = DeviceCapabilities.LiveAudioChannels(UnitType);
+            this.RaisePropertyChanged(nameof(UnitName));
+            this.RaisePropertyChanged(nameof(UnitSourceLabel));
+            this.RaisePropertyChanged(nameof(MicParamsTitle));
+            this.RaisePropertyChanged(nameof(UnitIdleText));
+            this.RaisePropertyChanged(nameof(UnitIdleToolTip));
+            this.RaisePropertyChanged(nameof(SampleRates));
+            this.RaisePropertyChanged(nameof(RateNoteText));
+            if (!SampleRates.Contains(_selectedSampleRate)) SelectedSampleRate = 48000;
         }
 
         private void RefreshDevices()
@@ -303,7 +357,7 @@ namespace VesperApp.ViewModels
             var inputs = AudioCaptureService.ListInputs();
             var keep = SelectedPcDevice?.Name;
             PcDevices.Clear();
-            foreach (var d in inputs.Where(d => !d.Name.Contains("KOL", StringComparison.OrdinalIgnoreCase))
+            foreach (var d in inputs.Where(d => !AudioCaptureService.IsUnitMicrophone(d))
                                      .GroupBy(d => d.Name).Select(g => g.OrderByDescending(x => x.HostApi).First()))
                 PcDevices.Add(d);
             SelectedPcDevice = PcDevices.FirstOrDefault(d => d.Name == keep) ?? PcDevices.FirstOrDefault();
@@ -325,7 +379,10 @@ namespace VesperApp.ViewModels
         private async Task StartKolAsync()
         {
             LoggerDevice? dev = Kol;
-            if (dev == null) { StatusText = "Connect a KOL first (Device console → Connect Device)."; return; }
+            string name = UnitName;
+            if (dev == null) { StatusText = $"Connect a {name} first (Device console → Connect Device)."; return; }
+            DeviceTypes product = dev.DeviceType ?? DeviceTypes.Kol;
+            int channels = DeviceCapabilities.LiveAudioChannels(product);
             int rate = SelectedSampleRate;
 
             StatusText = "Sending microphone parameters…";
@@ -334,24 +391,29 @@ namespace VesperApp.ViewModels
 
             if (_main.KolUsbMode != Models.KolUsbMode.LiveAudio)
             {
-                StatusText = "Switching the KOL to Live Audio (it re-enumerates as a USB microphone)…";
+                StatusText = $"Switching the {name} to Live Audio (it re-enumerates as a USB microphone)…";
                 await _main.SwitchKolUsbModeAsync(Models.KolUsbMode.LiveAudio);
-                if (_main.KolUsbMode != Models.KolUsbMode.LiveAudio) { StatusText = "The KOL did not enter Live Audio. " + _main.KolStatusText; return; }
+                if (_main.KolUsbMode != Models.KolUsbMode.LiveAudio) { StatusText = $"The {name} did not enter Live Audio. " + _main.KolStatusText; return; }
             }
 
-            StatusText = "Waiting for the KOL microphone to appear…";
+            StatusText = $"Waiting for the {name} microphone to appear…";
             IReadOnlyList<AudioInputDevice> cands = Array.Empty<AudioInputDevice>();
             for (int i = 0; i < 16 && cands.Count == 0; i++)
             {
                 AudioCaptureService.Rescan();
-                cands = AudioCaptureService.FindKolCandidates(rate);
+                cands = AudioCaptureService.FindLiveAudioCandidates(AudioCaptureService.ListInputs(), product, rate);
                 if (cands.Count == 0) await Task.Delay(500);
             }
-            if (cands.Count == 0) { StatusText = "The KOL USB microphone did not appear on this computer."; return; }
+            if (cands.Count == 0) { StatusText = $"The {name} USB microphone did not appear on this computer."; return; }
 
             foreach (AudioInputDevice c in cands)
-                if (_capture.Start(c, 4, rate)) { Started($"KOL {dev.SerialNumber} · 4 ch · {rate / 1000.0:0.#} kHz nominal · {c.Name}"); return; }
-            StatusText = "Could not open the KOL microphone: " + (_capture.LastError ?? "unknown error") + ". On Windows make sure no other app holds it exclusively.";
+                if (_capture.Start(c, channels, rate))
+                {
+                    StreamChannels = channels;
+                    Started($"{name} {dev.SerialNumber} · {channels} ch · {rate / 1000.0:0.#} kHz nominal · {c.Name}");
+                    return;
+                }
+            StatusText = $"Could not open the {name} microphone: " + (_capture.LastError ?? "unknown error") + ". On Windows make sure no other app holds it exclusively.";
         }
 
         private void StartPc()
@@ -360,7 +422,7 @@ namespace VesperApp.ViewModels
             if (d == null) { StatusText = "No PC input device selected."; return; }
             int rate = (int)Math.Round(d.DefaultSampleRate > 0 ? d.DefaultSampleRate : 48000);
             int ch = Math.Min(PcChannels, d.MaxChannels);
-            if (_capture.Start(d, ch, rate)) Started($"{d.Name} · {ch} ch · {rate / 1000.0:0.#} kHz");
+            if (_capture.Start(d, ch, rate)) { StreamChannels = ch; Started($"{d.Name} · {ch} ch · {rate / 1000.0:0.#} kHz"); }
             else StatusText = "Could not open the input: " + (_capture.LastError ?? "unknown error");
         }
 
@@ -385,7 +447,7 @@ namespace VesperApp.ViewModels
         private async Task ApplyKolParamsAsync()
         {
             LoggerDevice? dev = Kol;
-            if (dev == null) { StatusText = "No KOL connected."; return; }
+            if (dev == null) { StatusText = $"No {UnitName} connected."; return; }
             bool ack = await dev.SetMicParamsAsync(CurrentKolParams);
             StatusText = ack ? $"Microphone parameters applied: {GainText}, HPF {HpfOptions[HpfIndex]}, reshape {(ReshapeEnabled ? (ReshapeRatioOne ? "/1" : "/4") : "off")}, {(Cic4 ? "SINC4" : "SINC5")}."
                              : "The device did not acknowledge the parameters (firmware without VESPER_SET_MIC_PARAMS?).";
@@ -394,7 +456,7 @@ namespace VesperApp.ViewModels
         private async Task ReadKolParamsAsync()
         {
             LoggerDevice? dev = Kol;
-            if (dev == null) { StatusText = "No KOL connected."; return; }
+            if (dev == null) { StatusText = $"No {UnitName} connected."; return; }
             KolMicStatus? st = await dev.GetMicParamsAsync();
             if (st == null) { StatusText = "No reply to GET_MIC_PARAMS (older firmware?)."; return; }
             LoadKolParams(st.Params);
