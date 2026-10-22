@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using VesperApp.ViewModels;
@@ -30,10 +30,14 @@ namespace VesperApp.Controls
 
         private async void OnButtonClick(object? sender, RoutedEventArgs e)
         {
-            if (e.Source is not Button { Tag: "micSolve" } b || b.DataContext is not DriverPropertyViewModel { Solvable: { } driver })
+            Window window;
+            if (e.Source is Button { Tag: "micSolve" } b && b.DataContext is DriverPropertyViewModel { Solvable: { } driver })
+                window = new MicChainSolverWindow { DataContext = new MicChainSolverViewModel(driver) };
+            else if (e.Source is Button { Tag: "micHelper" } h && h.DataContext is DriverPropertyViewModel { HelperTarget: { } target })
+                window = new MicHelperWindow { DataContext = new MicHelperViewModel(target) };
+            else
                 return;
             e.Handled = true;
-            var window = new MicChainSolverWindow { DataContext = new MicChainSolverViewModel(driver) };
             if (TopLevel.GetTopLevel(this) is Window owner)
                 await window.ShowDialog(owner);
             else

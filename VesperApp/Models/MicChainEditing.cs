@@ -7,6 +7,10 @@ namespace VesperApp.Models
     [AttributeUsage(AttributeTargets.Property)]
     public sealed class MicSolverAttribute : Attribute { }
 
+    /// <summary>Marks a driver property whose editor gets the "Helper" button (Recording helper).</summary>
+    [AttributeUsage(AttributeTargets.Property)]
+    public sealed class MicHelperAttribute : Attribute { }
+
     /// <summary>A driver whose sample rate and gain the microphone-chain solver can explain (KOL, Vesper/Pipistrelle).</summary>
     public interface IMicChainSolvable
     {
@@ -18,5 +22,14 @@ namespace VesperApp.Models
 
         /// <summary>Set the high-pass filter the adviser recommends for the reference rate.</summary>
         void ApplyRecommendedHpf();
+    }
+
+    /// <summary>A driver whose grid rows depend on its own settings (e.g. trigger rows only in sound-triggered mode).</summary>
+    public interface IDynamicBrowsable
+    {
+        bool IsPropertyVisible(string propertyName);
+
+        /// <summary>Raised when the set of visible rows changes; the grid rebuilds its rows.</summary>
+        event EventHandler? LayoutChanged;
     }
 }

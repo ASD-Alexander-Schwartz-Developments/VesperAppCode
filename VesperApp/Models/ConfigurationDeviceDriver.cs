@@ -235,22 +235,28 @@ namespace VesperApp.Models
         [JsonPropertyName("fileSize"), JsonPropertyOrder(30)]
         [Browsable(true)]
         [CategoryAttribute("Advanced configuration"),
-        DescriptionAttribute("Size of each recording file in bytes; when it is reached the file is closed and a new one is started."),
+        DescriptionAttribute("Size of each recording file in bytes; when it is reached the file is closed and a new one is started. "
+            + "Always a multiple of 64 KB (65,536 bytes) - the largest RAM buffer the firmware writes and a whole number of "
+            + "allocation clusters - so every file ends on a full buffer; other values are rounded. 0 = the firmware's minimum for the sensor."),
         DisplayName("File Size")]
         public virtual UInt32 FileSize
         {
-            get 
+            get => this.file_size;
+            set
             {
-                Debug.WriteLine("Get FileSize="+this.file_size.ToString());
-                return this.file_size; 
-            }
-            set 
-            {
-                UInt32 fixed_size = value / 4;
-                this.file_size = fixed_size * 4;
-                Debug.WriteLine("Set FileSize=" + this.file_size.ToString());
+                this.file_size = RoundFileSize(value);
                 OnPropertyChanged();
             }
+        }
+
+        public const UInt32 FileSizeUnit = 64 * 1024;
+
+        /// <summary>Nearest multiple of <see cref="FileSizeUnit"/>; 0 stays 0 (firmware minimum), anything else is at least one unit.</summary>
+        public static UInt32 RoundFileSize(UInt32 value)
+        {
+            if (value == 0) return 0;
+            ulong units = Math.Max(1UL, ((ulong)value + FileSizeUnit / 2) / FileSizeUnit);
+            return (UInt32)Math.Min(units * FileSizeUnit, UInt32.MaxValue / FileSizeUnit * FileSizeUnit);
         }
 
         [Browsable(false)]
@@ -284,7 +290,7 @@ namespace VesperApp.Models
 
         [Browsable(true)]
         [JsonIgnore]
-        [CategoryAttribute("Standard configuration"),
+        [CategoryAttribute("Advanced configuration"),
         DescriptionAttribute("Reserved for accelerometer-triggered recording: the current KOL and Vesper firmware do not use it yet."),
         DisplayName("ACC Trigger Enable")]
         public virtual bool EnAccTrig

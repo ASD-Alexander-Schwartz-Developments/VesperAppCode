@@ -48,20 +48,26 @@ namespace VesperApp.ViewModels
                 {
                     inpc.PropertyChanged -= ControlPropertyChanged;
                 }
+                if (_devicedriver is IDynamicBrowsable dyn && !ReferenceEquals(_devicedriver, devicedriver))
+                {
+                    dyn.LayoutChanged -= DriverLayoutChanged;
+                }
             }
 
+            bool newDriver = !ReferenceEquals(_devicedriver, devicedriver);
             _devicedriver = devicedriver;
 
             if (devicedriver != null)
             {
                 Type to = devicedriver.GetType();
 
+                var dynamic = devicedriver as IDynamicBrowsable;
                 var properties = to.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                     .Where(x => x.GetCustomAttribute<BrowsableAttribute>(true)?.Browsable == true)
+                    .Where(x => dynamic?.IsPropertyVisible(x.Name) ?? true)
                     .Select(x => new DriverPropertyViewModel(devicedriver, x))
-                    .OrderBy(x => x, PropertyComparer.Instance)
-                    .ThenBy(x => x.Name)
                     .ToList();
+                properties = Order(to, properties);
 
                 IDictionary<object, List<DriverPropertyViewModel>> _propertyI = properties.GroupBy(x => x.Key).ToDictionary(x => x.Key, x => x.ToList());
 
@@ -76,6 +82,10 @@ namespace VesperApp.ViewModels
                 if (devicedriver is INotifyPropertyChanged inpc)
                 {
                     inpc.PropertyChanged += ControlPropertyChanged;
+                }
+                if (newDriver && dynamic != null)
+                {
+                    dynamic.LayoutChanged += DriverLayoutChanged;
                 }
             }
             else
@@ -99,11 +109,27 @@ namespace VesperApp.ViewModels
             set => this.RaiseAndSetIfChanged(ref _selectedProperty, value);
         }
 
+        /* Rows depend on the driver's settings (sound-triggered mode relabels the window rows): rebuild after the
+           current edit has finished - not inside the ComboBox binding that caused it. */
+        private void DriverLayoutChanged(object? sender, EventArgs e)
+        {
+            object? driver = _devicedriver;
+            Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+            {
+                if (ReferenceEquals(driver, _devicedriver))
+                    await UpdateDeviceDriverPropertyGrid(driver);
+            });
+        }
+
         public void Dispose()
         {
             if (_devicedriver is INotifyPropertyChanged inpc)
             {
                 inpc.PropertyChanged -= ControlPropertyChanged;
+            }
+            if (_devicedriver is IDynamicBrowsable dyn)
+            {
+                dyn.LayoutChanged -= DriverLayoutChanged;
             }
         }
 
@@ -131,37 +157,34 @@ namespace VesperApp.ViewModels
                 }
             }
         }
-        private class PropertyComparer : IComparer<PropertyViewModel>
+        public const string StandardGroup = "Standard configuration";
+        public const string AdvancedGroup = "Advanced configuration";
+
+        /* Every driver pane has the same shape: the standard rows, then the sensor's own groups, then the advanced
+           rows (file size ...). Inside a group the config [1] rows come first, then [2], then the rest - each block
+           sample rate first, then in the order the driver declares them; the sensor's groups follow that order too.
+           Declaration order walks the most derived class first, so a sensor's own settings come before the rows
+           its base adds (the microphones' gain before the sound trigger). The DataGrid groups by first appearance. */
+        public static List<DriverPropertyViewModel> Order(Type driver, IReadOnlyCollection<DriverPropertyViewModel> rows)
         {
-            public static PropertyComparer Instance { get; } = new PropertyComparer();
+            var rank = new Dictionary<string, int>();
+            for (Type? t = driver; t != null; t = t.BaseType)
+                foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                             .OrderBy(p => p.MetadataToken))
+                    rank.TryAdd(p.Name, rank.Count);
 
-            public int Compare(PropertyViewModel? x, PropertyViewModel? y)
-            {
-                if(x == null && y == null) return 0;
-                if(y == null) return -1;
-                if(x == null) return 1;
+            int Rank(DriverPropertyViewModel r) => rank.TryGetValue(r.Property.Name, out int i) ? i : int.MaxValue;
+            var groupRank = rows.GroupBy(r => r.Group).ToDictionary(g => g.Key, g => g.Min(Rank));
 
-                var groupX = GroupIndex(x.Group);
-                var groupY = GroupIndex(y.Group);
+            static int Section(string group) => group == StandardGroup ? 0 : group == AdvancedGroup ? 2 : 1;
+            static int Slot(string name) => name.EndsWith("[1]", StringComparison.Ordinal) ? 1 : name.EndsWith("[2]", StringComparison.Ordinal) ? 2 : 3;
 
-                if (groupX != groupY)
-                {
-                    return groupX - groupY;
-                }
-                else
-                {
-                    return string.CompareOrdinal(x.Name, y.Name);
-                }
-            }
-
-            private int GroupIndex(string group)
-            {
-                switch (group)
-                {
-                    case "Properties": return 0;
-                    default: return 3;
-                }
-            }
+            return rows.OrderBy(r => Section(r.Group))
+                       .ThenBy(r => groupRank[r.Group])
+                       .ThenBy(r => Slot(r.Name))
+                       .ThenBy(r => r.Name.StartsWith("Sample Rate", StringComparison.Ordinal) ? 0 : 1)
+                       .ThenBy(Rank)
+                       .ToList();
         }
     }
 }

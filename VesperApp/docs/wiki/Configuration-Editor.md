@@ -54,11 +54,17 @@ Same can be achieved with manually editing the JSON schedule array, for example:
 
 Each sensor on the device is configured through its **driver** entry — sampling rate, gain, channel selection and other per-sensor options. The property editor renders every driver's options directly from the device's own metadata, so new sensor types appear automatically with the correct choices. Typical drivers include the audio front-end, IMU, EXG (48-channel or 2-channel 1292 variants), environmental sensors, ambient light and proximity.
 
+Every driver pane has the same layout: **Standard configuration** first (sample rate, window length and rate per config, LED), then the sensor's own groups, then **Advanced configuration** (file size, reserved options).
+
+**File Size** is always a multiple of 64 KB (65,536 bytes): the largest buffer the firmware writes at once and a whole number of allocation clusters, so every file ends on a full buffer. Other values are rounded to the nearest multiple; 0 leaves the firmware's minimum for the sensor (8 MB for the microphones).
+
 For the KOL's microphone array, the channel configuration (1, 2 or 4 microphones) is part of the audio driver settings.
 
 **Microphone sample rate, gain and high-pass filter (KOL, Vesper, Pipistrelle).** Pick the sample rates from the list (4 kHz – 400 kHz). The unit chooses the best digital filter for each rate itself — there is no filter setting to get wrong. Most rates are exact; the 44.1 kHz family and 250 / 256 / 384 kHz run at the closest rate the 4.8 MHz microphone clock allows, shown next to the value and stored in the recording header. The **gain** applies to *Sample Rate [1]* (or [2] if [1] is off); the unit keeps the same loudness at the other rate (and, on the KOL, in Live Audio) with KOL firmware 1.8 / Vesper and Pipistrelle firmware 1.21 or later.
 
 Press **Solve** next to a rate, the gain or the high-pass filter. A window explains, for each sample rate: the exact rate, the filter, the loudest sound before clipping (dB SPL) and whether quiet sounds stay above the recording's noise floor — with better nearby rates where one is approximate. It also lists the **cut-off frequency of every high-pass setting** at your rates (the settings are fractions of the sample rate, so the same setting means 1.9 kHz at 200 kHz but 456 Hz at 48 kHz), marking the current and the recommended one: the highest cut-off up to 2 kHz for ultrasonic rates (keeps every bat call, removes wind and handling rumble) and up to 50 Hz for audio rates. **Use recommended gain** sets a full-scale sound to about +6 dBFS (clipping near 114 dB SPL); **Use recommended high-pass filter** applies the advice.
+
+**Sound-triggered recording.** The *Start level* row in the **Sound trigger** group is the switch: *Off* records continuously; any level records only when a sound is that much louder than the background (or louder than a fixed dB SPL). The window rows then become *Hold after sound* and *Pre-trigger* per config. Press **Helper** next to Start level to set rate, gain, high-pass filter and trigger for bats, birds, insects or soundscapes in one step. Needs KOL firmware 1.8 / Vesper and Pipistrelle firmware with sound triggering; older firmware keeps recording continuously.
 
 Configurations saved by older versions are converted on opening to the same loudness where possible; a rate no longer offered moves to the nearest listed one. Solve shows what was converted.
 

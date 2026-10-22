@@ -49,7 +49,7 @@
 											<DataTemplate DataType="vm:DriverPropertyViewModel">
 												<!-- Microphone rate / gain rows add a Solve button that opens the Solve
 												     window (modal, over the editor) for this driver. -->
-												<Grid ColumnDefinitions="*,Auto">
+												<Grid ColumnDefinitions="*,Auto,Auto">
 													<ComboBox Grid.Column="0" Margin="8,3"
 															  ItemsSource="{Binding Options}"
 															  SelectedItem="{Binding Value, Mode=TwoWay}"
@@ -57,6 +57,9 @@
 													<Button Grid.Column="1" Margin="0,3,8,3" Padding="10,4"
 														Content="Solve" Tag="micSolve" IsVisible="{Binding HasSolver}"
 														ToolTip.Tip="Explain what the unit will do with these microphone settings: exact rate, filter, loudest sound, quiet sounds - and suggest a gain" />
+													<Button Grid.Column="2" Margin="0,3,8,3" Padding="10,4"
+														Content="Helper…" Tag="micHelper" IsVisible="{Binding HasHelper}"
+														ToolTip.Tip="Set up rate, filter, gain and sound-triggered recording for what you are recording, in one place" />
 												</Grid>
 											</DataTemplate>
 										</controls:PropertyEditorTemplateSelector.Options>

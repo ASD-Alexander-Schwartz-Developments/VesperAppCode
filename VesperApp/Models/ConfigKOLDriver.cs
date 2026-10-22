@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text.Json;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using VesperApp.Services;
@@ -8,91 +6,31 @@ using VesperApp.Services;
 namespace VesperApp.Models
 {
     /// <summary>
-    /// KOL microphones. The filter chain is chosen from the sample rate (<see cref="MicChainSolver"/>,
-    /// firmware mic_chain.c): the old "Use CIC4" and "Digital filter /4" settings are gone — they were
-    /// confusing and the filter checkbox worked the wrong way round (256 = /4 on, 257 = off). Configs are
-    /// always written with "filter" bit 15; an old config is converted on load to the same output level.
+    /// KOL microphones (4-microphone array). The filter chain, rates, Solve window, migration and
+    /// sound-triggered recording are shared with Vesper / Pipistrelle in <see cref="MicDriverBase"/>.
     /// </summary>
-    public class ConfigKOLDriver : ConfigurationDeviceDriver, IJsonOnDeserialized, IMicChainSolvable
+    public class ConfigKOLDriver : MicDriverBase
     {
         public const UInt32 BITMASK_MIKE_LED = 0x02;
-        public const UInt32 SAMPLING_RATE_MASTERCLOCK = 4800000;
 
-        public const UInt32 MAX_SAMPLING_RATE = 100000;
-        public const UInt32 MIN_SAMPLING_RATE = 4800;
-        public const UInt32 DEF_SAMPLING_RATE = 48000;
-
-        public const Int16 MAX_GAIN_DB = 72;
-        public const Int16 MIN_GAIN_DB = -48;
-
-
-        private UInt16 thresholdup;
-        private UInt16 thresholddown;
-        private bool cic4;
-        private UInt16 gain;
-        private UInt16 hpf;
         private UInt16 num_mikes;
 
-        public ConfigKOLDriver() : base("KOL", "KOL - Scientific Audio Configuration")
-        {
-            this.FileSize = 8 * 1024 * 1024;
-        }
+        public ConfigKOLDriver() : base("KOL", "KOL - Scientific Audio Configuration") { }
 
+        [JsonIgnore, Browsable(false)]
+        public override MicChainSolver.Product Product => MicChainSolver.Product.Kol;
+
+        [JsonIgnore, Browsable(false)]
+        public override int MicCount => num_mikes == 0 ? 4 : num_mikes;
 
         public override void Load(ConfigurationDeviceDriver ldrv)
         {
             if (ldrv is not null)
             {
-                ConfigKOLDriver driver = (ldrv as ConfigKOLDriver)!;
-
                 base.Load(ldrv);
-                this.ThresholdUp = driver.ThresholdUp;
-                this.ThresholdDown = driver.ThresholdDown;
-                this.UseCic4Filter = driver.UseCic4Filter;
-                this.Gain = driver.Gain;
-                this.MikesOn = driver.MikesOn;
-                this.HPF = driver.HPF;
-                this.digitalFilter = driver.digitalFilter;
-                this.MigrationNote = driver.MigrationNote;
+                this.MikesOn = (ldrv as ConfigKOLDriver)!.MikesOn;
             }
         }
-
-        /// <summary>Set when an old config was converted on load; shown by the solver.</summary>
-        [JsonIgnore, Browsable(false)]
-        public string? MigrationNote { get; private set; }
-
-        private uint RefRate => MicChainSolver.RefRate(SampleRate[1], SampleRate[2], 0);
-
-        /// <summary>An old config ("filter" without bit 15) is rebuilt with the automatic chain at the same
-        /// output level at the reference rate, where the hardware allows it (MicChainSolver.MigrateLegacy).</summary>
-        public void OnDeserialized()
-        {
-            var m = MicChainSolver.MigrateLegacy(SampleRate[1], SampleRate[2], digitalFilter, cic4, gain);
-            gain = m.Gain;
-            SampleRate[1] = m.Rate1;
-            SampleRate[2] = m.Rate2;
-            MigrationNote = m.Note;
-            digitalFilter |= MicChainSolver.AutoBit;
-            cic4 = false;
-        }
-
-        public MicChainSolver.SolverReport MicChainReport() =>
-            MicChainSolver.BuildReport(SampleRate[1], SampleRate[2], gain, MicChainSolver.Product.Kol, MigrationNote, hpf);
-
-        public void ApplyRecommendedGain()
-        {
-            uint refFs = RefRate;
-            if (refFs == 0) return;
-            Gain = KOLGain.CreateFromValue((byte)MicChainSolver.GainValue(MicChainSolver.Recommended(refFs)));
-        }
-
-        public void ApplyRecommendedHpf()
-        {
-            uint refFs = RefRate;
-            if (refFs == 0) return;
-            HighPassFilter = KOLHpf.CreateFromValue((ushort)MicChainSolver.RecommendedHpf(refFs));
-        }
-
 
         [DisplayName("Number of Active Microphones"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
@@ -113,150 +51,6 @@ namespace VesperApp.Models
             }
         }
 
-
-        [DisplayName("Threshold Up"),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Reserved: level-triggered recording is not implemented in the firmware yet and this value is not used. Leave at 0.")]
-        [JsonPropertyName("thresup"), JsonPropertyOrder(21)]
-        [Browsable(true)]
-        public UInt32 ThresholdUp
-        {
-            get { return (UInt32)this.thresholdup; }
-            set
-            {
-                if (value > 2047)
-                    throw new ArgumentException("Maximum threshold level is 2047");
-                else
-                    this.thresholdup = (UInt16)value;
-                OnPropertyChanged();
-            }
-        }
-
-        [DisplayName("Threshold Down"),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Reserved: any value other than 0 only switches on the microphone filter’s sound-activity detector with default settings, it is not a level trigger. Leave at 0.")]
-        [JsonPropertyName("thresdn"), JsonPropertyOrder(22)]
-        [Browsable(true)]
-        public UInt32 ThresholdDown
-        {
-            get { return (UInt32)this.thresholddown; }
-            set
-            {
-                if (value > 2047)
-                    throw new ArgumentException("Maximum threshold level is 2047");
-                else
-                    this.thresholddown = (UInt16)value;
-                OnPropertyChanged();
-            }
-        }
-
-        
-
-        private UInt32 CheckSamplingRate(UInt32 ovalue, UInt32 nvalue)
-        {
-            UInt32 rval = nvalue;
-           /* if(nvalue == 0)
-            {
-                rval = 0;
-            }
-            else if(nvalue <= MAX_SAMPLING_RATE && nvalue > MIN_SAMPLING_RATE)
-            {
-                UInt32 decimation_factor = SAMPLING_RATE_MASTERCLOCK / nvalue;
-
-                rval = SAMPLING_RATE_MASTERCLOCK / decimation_factor;
-            }
-            else
-            {
-                rval = DEF_SAMPLING_RATE;
-            }
-            */
-            return rval;
-        }
-
-
-        private Int16 CalcGainFromDB(Int16 ovalue, Int16 nvalue)
-        {
-            Int16 rval = ovalue;
-            /*
-            if (nvalue <= MAX_GAIN_DB && nvalue > MIN_GAIN_DB)
-            {
-                UInt16 decimation_factor = (UInt16)(SAMPLING_RATE_MASTERCLOCK / (Int16)nvalue);
-
-                rval = (UInt16)(SAMPLING_RATE_MASTERCLOCK / (UInt16)decimation_factor);
-            }
-            */
-            return rval;
-        }
-
-
-
-
-        [CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Use CIC4 filter by default if enabled. Otherwise, default is CIC5."),
-        DisplayName("Use CIC4 Digital Filter")]
-        [JsonPropertyName("cic4"), JsonPropertyOrder(23)]
-        [Browsable(false)]   // chosen from the sample rate (MicChainSolver); kept for the JSON field
-        public bool UseCic4Filter
-        {
-            get => cic4;
-            set
-            {
-                cic4 = value;
-                OnPropertyChanged();
-            }
-        }
-
-
-        private UInt16 digitalFilter;
-
-
-        [DisplayName("Digital Filter"),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
-        Browsable(false)]
-        [JsonPropertyName("filter"), JsonPropertyOrder(24)]
-        public UInt16 DFilter
-        {
-            /* always written in auto mode, with the reshape bits older firmware needs (MicChainSolver.FilterValue) */
-            get { return MicChainSolver.FilterValue(RefRate); }
-            set { this.digitalFilter = value; }
-        }
-
-        [DisplayName("Enable Digital Filter"),
-        TypeConverter(typeof(bool)),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Enables Digital LPF with /4 decimation ratio"),
-        Browsable(false)]   // replaced by the automatic chain; this checkbox worked the wrong way round
-        [JsonIgnore]
-        public bool EnableDigitalFilter
-        {
-            get
-            {
-                if (this.digitalFilter == 257)
-                    return true;
-                else
-                    return false;
-            }
-            set
-            {
-                if (value == true)
-                    this.digitalFilter = 257;
-                else
-                    this.digitalFilter = 256;
-
-                OnPropertyChanged();
-            }
-        }
-
-        [DisplayName("HPF"),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
-        Browsable(false)]
-        [JsonPropertyName("hpf"), JsonPropertyOrder(25)]
-        public UInt16 HPF
-        {
-            get { return this.hpf; }
-            set { this.hpf = value; }
-        }
-
         [DisplayName("High Pass Filter"),
         TypeConverter(typeof(KOLHpf)),
         Browsable(true),
@@ -266,25 +60,8 @@ namespace VesperApp.Models
         [MicSolver]
         public KOLHpf HighPassFilter
         {
-            get
-            {
-                return KOLHpf.CreateFromValue(this.HPF);
-            }
-            set
-            {
-                this.HPF = value.Value;
-                OnPropertyChanged();
-            }
-        }
-
-        [DisplayName("Gain"),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
-        Browsable(false)]
-        [JsonPropertyName("gain"), JsonPropertyOrder(26)]
-        public UInt16 GAIN
-        {
-            get { return this.gain; }
-            set { this.gain = value; }
+            get => KOLHpf.CreateFromValue(this.hpf);
+            set { this.hpf = value.Value; OnPropertyChanged(); }
         }
 
         [DisplayName("Programmable Gain"),
@@ -296,73 +73,9 @@ namespace VesperApp.Models
         [MicSolver]
         public KOLGain Gain
         {
-            get
-            {
-                return KOLGain.CreateFromValue((byte)this.GAIN);
-            }
-            set
-            {
-                this.gain = (UInt16)value.Value;
-                OnPropertyChanged();
-            }
+            get => KOLGain.CreateFromValue((byte)this.gain);
+            set { this.gain = (UInt16)value.Value; OnPropertyChanged(); }
         }
-
-
-
-        [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Microphone sample rate while the schedule runs Config 1 (Off = microphones not used). The unit picks the best filter for it; press Solve for details."),
-        DisplayName("Sample Rate [1]")]
-        [JsonIgnore]
-        [Browsable(true)]
-        [MicSolver]
-        public KOLSampleRate Rate1
-        {
-            get => KOLSampleRate.CreateFromValue(SampleRate[1]);
-            set { SampleRate[1] = value.Value; OnPropertyChanged(); }
-        }
-
-        [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Microphone sample rate while the schedule runs Config 2 (Off = microphones not used). The unit picks the best filter for it; press Solve for details."),
-        DisplayName("Sample Rate [2]")]
-        [JsonIgnore]
-        [Browsable(true)]
-        [MicSolver]
-        public KOLSampleRate Rate2
-        {
-            get => KOLSampleRate.CreateFromValue(SampleRate[2]);
-            set { SampleRate[2] = value.Value; OnPropertyChanged(); }
-        }
-
-        [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
-        DisplayName("Sample Rate [1]")]
-        [JsonIgnore]
-        [Browsable(false)]   // edited as Rate1 (predefined rates)
-        public override UInt32 SampleRate1
-        {
-            get => SampleRate[1];
-            set
-            {
-                SampleRate[1] = CheckSamplingRate(SampleRate[1], value);
-                OnPropertyChanged();
-            }
-        }
-
-        [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
-        DisplayName("Sample Rate [2]")]
-        [JsonIgnore]
-        [Browsable(false)]   // edited as Rate2 (predefined rates)
-        public override UInt32 SampleRate2
-        {
-            get => SampleRate[2];
-            set
-            {
-                SampleRate[2] = CheckSamplingRate(SampleRate[2], value);
-                OnPropertyChanged();
-            }
-        }
-
 
         [DisplayName("Mike activity LED indication"),
         TypeConverter(typeof(bool)),
@@ -371,19 +84,11 @@ namespace VesperApp.Models
         [JsonIgnore]
         public bool EnableLEDIndication
         {
-            get
-            {
-                if ((this.bitmask & BITMASK_MIKE_LED) == BITMASK_MIKE_LED)
-                    return true;
-                else
-                    return false;
-            }
+            get => (this.bitmask & BITMASK_MIKE_LED) == BITMASK_MIKE_LED;
             set
             {
-                if (value == true)
-                    this.bitmask |= BITMASK_MIKE_LED;
-                else
-                    this.bitmask &= ~(BITMASK_MIKE_LED);
+                if (value) this.bitmask |= BITMASK_MIKE_LED;
+                else this.bitmask &= ~(BITMASK_MIKE_LED);
             }
         }
     }
