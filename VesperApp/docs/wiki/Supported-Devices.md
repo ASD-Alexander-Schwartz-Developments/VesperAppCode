@@ -4,8 +4,8 @@ VesperApp works with the ASD logger and tag product family:
 
 | Product | Shown in app as | Microphones | GNSS | Connection |
 |---|---|---|---|---|
-| **Vesper** | VT04-VESPER | 1 | Yes (snapshot GNSS) | Docking station |
-| **Pipistrelle** | VT04-PP | 1 | No | Docking station |
+| **Vesper** | VT04-VESPER | 1 | Yes (snapshot GNSS) | Docking station (direct USB from firmware 1.21) |
+| **Pipistrelle** | VT04-PP | 1 | No | Docking station (direct USB from firmware 1.21) |
 | **KOL** | KOL | up to 4 (1/2/4-mic configurations) | No | Direct USB (dock optional) |
 | **Nanotag** | Nanotag | none | Yes (snapshot GNSS) | Direct USB |
 
@@ -39,21 +39,21 @@ An audio-focused logger sharing the VT04 platform, with a single MEMS microphone
 
 A multi-microphone logger with a **4-microphone array** that can be configured to record 1, 2 or 4 channels. Recordings are stored per-channel and decode to multi-file WAV output. The [mic health check](Device-Tests) tests each microphone in the array individually.
 
-### KOL USB modes
+### USB modes (KOL; Vesper and Pipistrelle with firmware 1.21 or later)
 
-The KOL is driven over its own USB cable and has three **USB modes**, shown and switched from the device console when a KOL is selected:
+The KOL is driven over its own USB cable and has three **USB modes**, shown and switched from the device console when the unit is selected. A Vesper or Pipistrelle running firmware 1.21 or later has the same three modes:
 
 | Mode | What the computer sees | Use it for |
 |---|---|---|
 | **Idle** | Console + USB disk | Configuration, downloading recordings, firmware updates. The default when the device is not armed. |
-| **Live Audio** | Console + a standard **4-channel USB microphone** (16-bit; 8, 16, 32, 48 or 96 kHz selectable in the OS) | Listening to or recording the microphones live with any audio application, and the app's own [Live View](Live-View) tab (scope, spectrum, spectrogram, live microphone parameters). No disk is exposed in this mode. |
+| **Live Audio** | Console + a standard USB microphone: **4 channels on a KOL** (16-bit; 8, 16, 32, 48 or 96 kHz selectable in the OS), **1 channel on a Vesper or Pipistrelle** (16-bit; 8, 16, 32, 48, 96 or 192 kHz; appears as "Vesper Wildlife Logger") | Listening to or recording the microphones live with any audio application, and the app's own [Live View](Live-View) tab (scope, spectrum, spectrogram, live microphone parameters). No disk is exposed in this mode. |
 | **Sampling** | Nothing — the device leaves USB | Running the recording schedule. **Start Sampling** arms the device and it disconnects; reconnect it later (or use the magnet) to return to Idle. |
 
 Switching between Idle and Live Audio makes the device briefly disappear and re-appear on USB; the app reconnects it automatically. On Windows the first switch may take a few extra seconds while the microphone driver is installed.
 
 The microphone parameters (gain, high-pass, decimation filters) can be changed live from [Live View](Live-View); they are the same fields as in the device's `config.json`.
 
-Firmware updates need no dock on the KOL — see [Firmware Updates](Firmware-Updates).
+Firmware updates need no dock on the KOL, nor on a Vesper or Pipistrelle that already runs firmware 1.21 or later — see [Firmware Updates](Firmware-Updates).
 
 ## Nanotag
 

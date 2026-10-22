@@ -1,6 +1,6 @@
 # Firmware Updates
 
-The **Firmware Upgrades** tab downloads released device firmware and flashes it — through the docking station for the VT04 family, or directly over USB for the KOL and the Nanotag.
+The **Firmware Upgrades** tab downloads released device firmware and flashes it — through the docking station for the VT04 family, or directly over USB for the KOL and the Nanotag. A Vesper or Pipistrelle that already runs firmware 1.21 or later can also be flashed directly over its USB cable: with no docking station connected, select the unit, press Connect Device, then Flash — the app commands it into its bootloader the same way as a KOL.
 
 ![The Firmware Upgrades tab](images/tab-firmware-upgrades.png)
 
