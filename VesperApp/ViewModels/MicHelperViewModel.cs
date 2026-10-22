@@ -64,7 +64,7 @@ namespace VesperApp.ViewModels
             _site = Sites[1];
             _target = Targets[0];
             _rate = Rates.FirstOrDefault(r => r.Rate == driver.SampleRate[1]) ?? Rates.First(r => r.Rate == 48000);
-            _hardware = t.Hardware;
+            _hardware = t.Hardware && driver.Product.HasHardwareDetector;
             _absolute = t.Absolute;
             _ultrasound = t.Ultrasound;
             _relative = RelativeLevelChoice.From(!t.On ? 0 : t.Absolute ? 12 : t.StartDb);
@@ -118,8 +118,15 @@ namespace VesperApp.ViewModels
         /// <summary>Sound-triggered when a start level is chosen ("Off" = continuous) - there is no separate mode.</summary>
         public bool Triggered => Absolute ? (SelectedAbsolute?.Value ?? 0) != 0 : (SelectedRelative?.Value ?? 0) != 0;
 
+        /// <summary>False on the current KOL / Vesper boards (the sound-activity detector is not wired to the mics).</summary>
+        public bool HardwareAvailable => _driver.Product.HasHardwareDetector;
+
         private bool _hardware;
-        public bool Hardware { get => _hardware; set { this.RaiseAndSetIfChanged(ref _hardware, value); this.RaisePropertyChanged(nameof(Software)); Changed(); } }
+        public bool Hardware
+        {
+            get => _hardware;
+            set { this.RaiseAndSetIfChanged(ref _hardware, value && HardwareAvailable); this.RaisePropertyChanged(nameof(Software)); Changed(); }
+        }
         public bool Software { get => !_hardware; set => Hardware = !value; }
 
         private bool _absolute;

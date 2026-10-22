@@ -96,10 +96,12 @@
 								<TextBlock Classes="caption" TextWrapping="Wrap" Text="Keeps the moments before the trigger and can ignore everything below 15 kHz. Uses more power: the processor checks every audio buffer."/>
 							</StackPanel>
 						</RadioButton>
-						<RadioButton GroupName="det" IsChecked="{Binding Hardware}">
+						<RadioButton GroupName="det" IsChecked="{Binding Hardware}" IsEnabled="{Binding HardwareAvailable}">
 							<StackPanel>
 								<TextBlock Text="Hardware"/>
 								<TextBlock Classes="caption" TextWrapping="Wrap" Text="The unit sleeps until a sound arrives — the longest battery life. No pre-trigger, no ultrasound-only option."/>
+								<TextBlock Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HardwareAvailable}"
+										   Text="Not available on the current boards: the microphones are not wired to the converter that has the sound detector. Planned for a hardware revision."/>
 							</StackPanel>
 						</RadioButton>
 

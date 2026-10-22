@@ -131,7 +131,7 @@ namespace VesperApp.Models
         public KOLSampleRate Rate1
         {
             get => KOLSampleRate.CreateFromValue(SampleRate[1]);
-            set { bool layout = (SampleRate[1] == 0) != (value.Value == 0); SampleRate[1] = value.Value; OnPropertyChanged(); if (layout) LayoutChanged?.Invoke(this, EventArgs.Empty); }
+            set { bool layout = (SampleRate[1] == 0) != (value.Value == 0); SampleRate[1] = value.Value; RecapTrigger(); OnPropertyChanged(); if (layout) LayoutChanged?.Invoke(this, EventArgs.Empty); }
         }
 
         [CategoryAttribute("Standard configuration"),
@@ -141,7 +141,7 @@ namespace VesperApp.Models
         public KOLSampleRate Rate2
         {
             get => KOLSampleRate.CreateFromValue(SampleRate[2]);
-            set { bool layout = (SampleRate[2] == 0) != (value.Value == 0); SampleRate[2] = value.Value; OnPropertyChanged(); if (layout) LayoutChanged?.Invoke(this, EventArgs.Empty); }
+            set { bool layout = (SampleRate[2] == 0) != (value.Value == 0); SampleRate[2] = value.Value; RecapTrigger(); OnPropertyChanged(); if (layout) LayoutChanged?.Invoke(this, EventArgs.Empty); }
         }
 
         [DisplayName("Sample Rate [1]"), JsonIgnore, Browsable(false)]   // edited as Rate1 (predefined rates)
@@ -158,6 +158,7 @@ namespace VesperApp.Models
             get => MicTrigger.Read(bitmask, thresholdup, thresholddown, WindowLength, WindowRate);
             set
             {
+                value = Fit(value);
                 bool layout = value.On != Trigger.On || value.Hardware != Trigger.Hardware || value.Absolute != Trigger.Absolute;
                 if (!value.On && Trigger.On)
                 {
@@ -167,6 +168,26 @@ namespace VesperApp.Models
                 (bitmask, thresholdup, thresholddown) = MicTrigger.Write(value, bitmask, WindowLength, WindowRate);
                 OnPropertyChanged(nameof(Trigger));
                 if (layout) LayoutChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        /// <summary>What this product can do: no hardware detector where the board lacks it, and a pre-trigger the
+        /// DMA ring holds at each config's rate.</summary>
+        private MicTrigger.Settings Fit(MicTrigger.Settings s) => !s.On ? s : s with
+        {
+            Hardware = s.Hardware && Product.HasHardwareDetector,
+            Pre1 = MicTrigger.CapPreTrigger(Product, SampleRate[1], s.Pre1),
+            Pre2 = MicTrigger.CapPreTrigger(Product, SampleRate[2], s.Pre2),
+        };
+
+        /// <summary>A rate change can shorten the pre-trigger the ring holds.</summary>
+        private void RecapTrigger()
+        {
+            if (Trigger is { On: true } t && Fit(t) != t)
+            {
+                Trigger = t;
+                OnPropertyChanged(nameof(PreTrigger1));
+                OnPropertyChanged(nameof(PreTrigger2));
             }
         }
 
@@ -283,7 +304,8 @@ namespace VesperApp.Models
             return name switch
             {
                 nameof(WindowLength1) or nameof(WindowLength2) or nameof(WindowRate1) or nameof(WindowRate2) => !t.On,
-                nameof(Detector) or nameof(LevelType) or nameof(StopLevel) => t.On,
+                nameof(Detector) => t.On && Product.HasHardwareDetector,
+                nameof(LevelType) or nameof(StopLevel) => t.On,
                 nameof(HoldAfterSound1) => t.On && SampleRate[1] != 0,
                 nameof(HoldAfterSound2) => t.On && SampleRate[2] != 0,
                 nameof(StartLevelRelative) => !t.On || !t.Absolute,

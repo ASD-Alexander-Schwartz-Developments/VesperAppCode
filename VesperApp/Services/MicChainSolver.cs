@@ -166,7 +166,10 @@ namespace VesperApp.Services
         }
 
         /// <summary>Which product a report is for: the firmware that adds level matching, and whether it streams Live Audio.</summary>
-        public sealed record Product(string Name, string FirmwareVersion, bool HasLiveAudio)
+        /// <param name="HasHardwareDetector">The MDF sound-activity detector (bitmask bit 16) can run: on the
+        /// STM32U5 it exists only in ADF1, and the KOL / Vesper microphones are wired to MDF1 - so neither
+        /// current board has it; the firmware records with the software detector instead (and flags it).</param>
+        public sealed record Product(string Name, string FirmwareVersion, bool HasLiveAudio, bool HasHardwareDetector = false)
         {
             public static readonly Product Kol = new("KOL", "1.8", true);
             public static readonly Product VesperPipistrelle = new("Vesper/Pipistrelle", "1.21", false);

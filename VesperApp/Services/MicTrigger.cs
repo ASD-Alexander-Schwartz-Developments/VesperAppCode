@@ -33,9 +33,25 @@ namespace VesperApp.Services
         /// <summary>DMA ring per microphone (bytes): the software detector's pre-trigger comes from its older half.</summary>
         public static int RingBytes(MicChainSolver.Product p) => p == MicChainSolver.Product.Kol ? 63 * 1024 : 64 * 1024;
 
-        /// <summary>The longest pre-trigger the ring holds at <paramref name="fs"/> (half the ring, 16-bit samples).</summary>
-        public static uint PreTriggerMaxMs(MicChainSolver.Product p, uint fs) =>
-            fs == 0 ? MaxPreTriggerMs : (uint)Math.Min(MaxPreTriggerMs, RingBytes(p) / 2 / 2 * 1000L / fs);
+        /// <summary>Margin the firmware keeps ahead of the DMA when it copies the pre-trigger out of the ring.</summary>
+        public const uint PreTriggerGuardMs = 20;
+
+        /// <summary>The longest pre-trigger the firmware can deliver at <paramref name="fs"/>: half the ring (16-bit
+        /// samples) minus the guard - about 60 ms at 200 kHz, 22 ms at 384 kHz. Longer requests are shortened (and
+        /// flagged) by the firmware.</summary>
+        public static uint PreTriggerMaxMs(MicChainSolver.Product p, uint fs)
+        {
+            if (fs == 0) return MaxPreTriggerMs;
+            long halfMs = RingBytes(p) / 2 / 2 * 1000L / fs;
+            return (uint)Math.Clamp(halfMs - PreTriggerGuardMs, 0, MaxPreTriggerMs);
+        }
+
+        /// <summary>The largest offered pre-trigger option not longer than <paramref name="ms"/> or the ring limit.</summary>
+        public static uint CapPreTrigger(MicChainSolver.Product p, uint fs, uint ms)
+        {
+            uint max = Math.Min(ms, PreTriggerMaxMs(p, fs));
+            return PreTriggerMs.Where(o => o <= max).DefaultIfEmpty(0u).Max();
+        }
 
         public sealed record Settings(bool On, bool Hardware, bool Absolute, bool Ultrasound, int StartDb, int HysteresisDb,
                                       uint Hold1, uint Pre1, uint Hold2, uint Pre2)
@@ -117,7 +133,9 @@ namespace VesperApp.Services
             int hyst = s.HysteresisDb == 0 ? DefaultHysteresisCdb / 100 : s.HysteresisDb;
             string detector = s.Hardware
                 ? "Hardware detector: the unit sleeps until a sound arrives — the longest battery life; no pre-trigger and no ultrasound-only option."
-                : "Software detector: pre-trigger and the ultrasound-only option; uses more power than the hardware detector (the processor checks every buffer).";
+                : product.HasHardwareDetector
+                    ? "Software detector: pre-trigger and the ultrasound-only option; uses more power than the hardware detector (the processor checks every buffer)."
+                    : "The processor checks every audio buffer for the trigger (software detector).";
             uint maxPre = PreTriggerMaxMs(product, refFs);
             string pre = s.Hardware || s.Pre1 == 0 ? "" : string.Create(ci, $", including the {Math.Min(s.Pre1, maxPre)} ms before it");
             string rate = MicChainSolver.Solve(refFs, 0) is { Inexact: true } c ? string.Create(ci, $"{MicChainSolver.Hz(refFs)} (runs at {c.ExactHz:0.#} Hz)") : MicChainSolver.Hz(refFs);
