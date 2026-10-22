@@ -237,7 +237,12 @@ namespace VesperApp.ViewModels
 
             await RunOnUiAsync(() =>
             {
-                LoggerDevice? existing = LoggerDevices.FirstOrDefault(d => d.Equals(found));
+                // Devices are equal only on serial AND port, but a re-enumerated KOL may come back
+                // on another COM port (Live Audio is a different composite). The serial is the unit:
+                // replace its old row, and drop any further stale ones - the periodic scan that would
+                // remove them does not run while a device is connected.
+                LoggerDevice? existing = LoggerDevices.FirstOrDefault(d => d.Equals(found))
+                    ?? LoggerDevices.FirstOrDefault(d => d.IsComportDevice && SameSerial(d, found));
                 if (existing is null)
                 {
                     LoggerDevices.Add(found);
@@ -246,6 +251,10 @@ namespace VesperApp.ViewModels
                 {
                     LoggerDevices[LoggerDevices.IndexOf(existing)] = found;
                 }
+                foreach (LoggerDevice stale in LoggerDevices
+                             .Where(d => !ReferenceEquals(d, found) && d.IsComportDevice && SameSerial(d, found))
+                             .ToList())
+                    LoggerDevices.Remove(stale);
                 int index = LoggerDevices.IndexOf(found);
                 if (SelectedLoggerDeviceModel != null && index >= 0)
                     SelectedLoggerDeviceModel.SelectedIndex = index;
@@ -261,6 +270,10 @@ namespace VesperApp.ViewModels
             await Task.Delay(300);
             return found;
         }
+
+        private static bool SameSerial(LoggerDevice a, LoggerDevice b) =>
+            !string.IsNullOrEmpty(a.SerialNumber)
+            && string.Equals(a.SerialNumber, b.SerialNumber, StringComparison.OrdinalIgnoreCase);
 
         private static async Task<bool> ConfirmAsync(string title, string header, string message)
         {
