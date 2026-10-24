@@ -72,7 +72,7 @@ namespace VesperApp.Services
             }
         }
 
-        public async void WriteFile()
+        public void WriteFile()      // synchronous: callers (Auto Decode) count the CSV as written when this returns
         {
             if(csv_lines == null) { return; }
             if(csv_lines.Count < 2) { return; }
@@ -85,7 +85,7 @@ namespace VesperApp.Services
                     File.Delete(fname);
                 }
 
-                await File.AppendAllLinesAsync(fname, csv_lines.ToArray());
+                File.AppendAllLines(fname, csv_lines);
                 IsOpened = true;
             }
             catch (Exception ex)
