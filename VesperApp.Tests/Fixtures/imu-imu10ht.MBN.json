@@ -1,0 +1,73 @@
+{
+  "contract": "IMU10 record: 0x55, flags, min, s, subsec u16; gyro/acc/mag float[3]; baro int16 temp 0.01C + uint16 hPa (+2 reserved on IMU10HT)",
+  "sensor": "IMU10HT",
+  "baro_bytes": 6,
+  "records": [
+    {
+      "flags": 15,
+      "gyro_mdps": [
+        1000.0,
+        -2000.0,
+        3000.0
+      ],
+      "acc_mg": [
+        10.0,
+        20.0,
+        980.0
+      ],
+      "mag_mgauss": [
+        300.0,
+        -150.0,
+        420.0
+      ],
+      "temp_c": -5.12,
+      "hpa": 1013
+    },
+    {
+      "flags": 15,
+      "gyro_mdps": [
+        1.5,
+        2.5,
+        -3.5
+      ],
+      "acc_mg": [
+        -15.0,
+        5.0,
+        1001.0
+      ],
+      "mag_mgauss": [
+        12.0,
+        34.0,
+        -56.0
+      ],
+      "temp_c": 23.45,
+      "hpa": 1012
+    },
+    {
+      "flags": 6,
+      "gyro_mdps": [
+        4.0,
+        5.0,
+        6.0
+      ],
+      "acc_mg": null,
+      "mag_mgauss": [
+        7.0,
+        8.0,
+        9.0
+      ],
+      "temp_c": null,
+      "hpa": null
+    },
+    {
+      "flags": 8,
+      "gyro_mdps": null,
+      "acc_mg": null,
+      "mag_mgauss": null,
+      "temp_c": -1.0,
+      "hpa": 1009
+    }
+  ],
+  "use_as_file_name": "M2026_10_25_10_00_00_000-M2026_10_25_10_00_01_000.MBN",
+  "why": "VesperApp classifies raw files by the letters in the name - copy the fixture to this name before decoding"
+}

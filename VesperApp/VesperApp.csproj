@@ -31,6 +31,8 @@
 		<!-- Surfaces $(CdnBaseUrl) as [assembly: AssemblyMetadata("CdnBaseUrl", "...")]
 		     (GenerateAssemblyInfo is on by default), which CdnConfig reads via reflection. -->
 		<AssemblyMetadata Include="CdnBaseUrl" Value="$(CdnBaseUrl)" />
+		<!-- Unit tests reach internal test hooks (e.g. ReferenceClock.ForTest). -->
+		<InternalsVisibleTo Include="VesperApp.Tests" />
 	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
