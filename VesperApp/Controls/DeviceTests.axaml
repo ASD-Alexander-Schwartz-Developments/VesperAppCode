@@ -13,6 +13,9 @@
 			<TabItem Header="Microphones">
 				<controls:MicHealthCheck DataContext="{Binding Mic}"/>
 			</TabItem>
+			<TabItem Header="Sensors">
+				<controls:SensorTest DataContext="{Binding Sensors}"/>
+			</TabItem>
 			<TabItem Header="GNSS / RF">
 				<controls:GnssRfTest DataContext="{Binding Gnss}"/>
 			</TabItem>

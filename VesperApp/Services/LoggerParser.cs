@@ -83,7 +83,7 @@ namespace VesperApp.Services
                 else
                 {
                     int level = type - RecLog;
-                    events.Add(time + sep + LevelName(level) + sep + $"0x{info:X4}" + sep + CodeName(info));
+                    events.Add(time + sep + LevelName(level) + sep + $"0x{info:X4}" + sep + CodeName(info, deviceType));
                 }
                 index += size;
             }
@@ -130,15 +130,25 @@ namespace VesperApp.Services
             [0x0604] = "Sound trigger event",
             [0x0701] = "Sensor started",
             [0x0702] = "Sensor stopped",
-            [0x0703] = "Configured sensor not found",
+            [0x0703] = "Configured sensor not found",          // superseded by 0x08xx
             [0x0704] = "Sensor reading failed",
         };
 
-        public static string CodeName(ushort code) => Codes.TryGetValue(code, out string? s) ? s : "unknown";
+        /// <summary>Readable event name; 0x08xx = configured sensor not found, low byte = driver type.</summary>
+        public static string CodeName(ushort code, byte deviceType = 0)
+        {
+            if ((code & 0xFF00) == 0x0800)
+            {
+                string[] names = deviceType == 3 ? KolSensors : VesperSensors;
+                int t = code & 0xFF;
+                return "Configured sensor not found: " + (t < names.Length ? names[t] : $"type {t}");
+            }
+            return Codes.TryGetValue(code, out string? s) ? s : "unknown";
+        }
 
         // Bit = firmware driver type (SENSOR_Typedef), which differs per firmware family.
         private static readonly string[] KolSensors =
-            { "DMIKE", "KOL", "EADC", "IMU", "EEG", "THCAMERA", "ALS", "AUX4", "TPRH", "LED", "LOGGER" };
+            { "DMIKE", "KOL", "EADC", "IMU", "EEG", "THCAMERA", "ALS", "AUX4", "TPRH31", "LED", "LOGGER" };
         private static readonly string[] VesperSensors =
             { "GPS", "DMIKE", "MIC", "EADC", "IMU", "EEG", "THCAMERA", "ALS3001D", "AUX4", "TPRH31", "LED", "RADIO", "PROXTIT", "LOGGER" };
 

@@ -91,6 +91,14 @@ namespace VesperApp.Services
         VESPER_SET_MIC_PARAMS = 65,     // payload: KolMicParams.Pack() (gain i8, hpf, dfilter u16 LE, cic4); ACK; applied live
         VESPER_GET_MIC_PARAMS = 66,     // reply: KolMicParams (5 B) + status: streaming, capturing, saturated, fs u32 LE
 
+        // Live add-on sensor test (Models/SensorBenchTest.cs; asd-interfaces interfaces/sensor-test.md).
+        // Payload: op, arg0 = variant (0 probe each), arg1, reserved; reply 20 B. Idle only (NACK while recording).
+        // KOL answers 71 and 73; Vesper / Pipistrelle all four.
+        VESPER_TEST_IMU = 71,
+        VESPER_TEST_EEG = 72,
+        VESPER_TEST_TPRH = 73,
+        VESPER_TEST_ALS = 74,
+
         // RTC time sync + crystal calibration - KOL and VesperU5 (Vesper, Pipistrelle), same ids.
         // Contract: asd-interfaces interfaces/rtc-time-sync.md. Older firmware NACKs them.
         VESPER_TIME_SYNC = 76,          // payload: u32 seq; reply 26 B (seq, t2, t3, temp, age, correction, flags)

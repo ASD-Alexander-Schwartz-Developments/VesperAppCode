@@ -90,6 +90,22 @@ namespace VesperApp.Models
             _ => false,
         };
 
+        /// <summary>Products with the stackable add-on connector (IMU, temperature / humidity, light, EXG boards).</summary>
+        public static bool HasAddonSensors(DeviceTypes? product) =>
+            product is DeviceTypes.Kol or DeviceTypes.Vesper or DeviceTypes.Pipistrelle;
+
+        /// <summary>
+        /// Whether the unit answers the live add-on sensor test (console 71-74) with probing of every variant:
+        /// KOL from <see cref="KolAudioSelftestFirmware"/> (IMU and temperature / humidity), Vesper / Pipistrelle
+        /// from <see cref="VesperUsbModesFirmware"/>. Unknown firmware = no.
+        /// </summary>
+        public static bool SupportsSensorTest(DeviceTypes? product, Version? firmware) => product switch
+        {
+            DeviceTypes.Kol => firmware != null && firmware >= KolAudioSelftestFirmware,
+            DeviceTypes.Vesper or DeviceTypes.Pipistrelle => firmware != null && firmware >= VesperUsbModesFirmware,
+            _ => false,
+        };
+
         /// <summary>Live Audio channels the unit streams as a USB microphone (one per microphone).</summary>
         public static int LiveAudioChannels(DeviceTypes? product) => MicCount(product);
 

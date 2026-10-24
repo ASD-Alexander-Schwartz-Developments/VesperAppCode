@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:m="using:VesperApp.Models"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="450"
+             x:DataType="vm:SensorTestViewModel"
+             x:Class="VesperApp.Controls.SensorTest">
+
+	<HeaderedContentControl Header="Add-on Sensor Test" UseLayoutRounding="True">
+		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" HorizontalAlignment="Stretch" ColumnDefinitions="*" RowDefinitions="60,Auto,*">
+
+			<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
+				<ui:CommandBar.PrimaryCommands>
+					<ui:CommandBarButton Command="{Binding RunCommand}" IconSource="Play" Label="Run Test"
+										 ToolTip.Tip="Probe each add-on sensor and take one live reading"/>
+					<ui:CommandBarElementContainer>
+						<ui:ProgressRing IsVisible="{Binding IsRunning}" IsActive="{Binding IsRunning}"
+										 Width="22" Height="22" Margin="10,0"/>
+					</ui:CommandBarElementContainer>
+				</ui:CommandBar.PrimaryCommands>
+			</ui:CommandBar>
+
+			<StackPanel Grid.Row="1" Margin="20,6,20,0" Spacing="2">
+				<TextBlock Text="{Binding Summary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+				<TextBlock Text="The unit finds each add-on by itself - no configuration needed. Run it before every deployment."
+						   Opacity="0.7" TextWrapping="Wrap"/>
+			</StackPanel>
+
+			<ScrollViewer Grid.Row="2" Margin="20,10,20,20">
+				<ItemsControl ItemsSource="{Binding Rows}">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate x:DataType="m:SensorTestRow">
+							<Border Margin="0,0,0,8" Padding="14,10" CornerRadius="6"
+									Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+								<Grid ColumnDefinitions="260,120,*" VerticalAlignment="Center">
+									<StackPanel Grid.Column="0" VerticalAlignment="Center">
+										<TextBlock Text="{Binding Label}" FontWeight="SemiBold"/>
+										<TextBlock Text="{Binding Hint}" Opacity="0.6" FontSize="12" IsVisible="{Binding Hint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+									</StackPanel>
+									<TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{Binding StatusBrush}"
+											   FontWeight="Bold" VerticalAlignment="Center"/>
+									<TextBlock Grid.Column="2" Text="{Binding Detail}" Opacity="0.8"
+											   TextWrapping="Wrap" VerticalAlignment="Center"/>
+								</Grid>
+							</Border>
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</ScrollViewer>
+		</Grid>
+	</HeaderedContentControl>
+
+</UserControl>
