@@ -4,6 +4,10 @@ KOL, Vesper and Pipistrelle loggers keep time with a 32.768 kHz crystal. Every c
 
 This needs firmware with the time-sync commands (KOL 1.8 / Vesper 1.22 or later). Older firmware still gets a plain whole-second **Set Time**.
 
+![The Clock tab](images/tab-clock.png)
+
+*The Clock tab: sync, measure and apply on the toolbar; the unit's clock against internet time, its calibration and temperature, and the history of measurements for this unit.*
+
 ## Where the time comes from
 
 The app asks internet time servers (NTP) for the true time; the PC's own clock is often off by a second or more. If no server answers (the network blocks UDP port 123), the page says so and falls back to the PC clock — fine for setting the time roughly, not for calibration. To use your own time servers set the environment variable `VESPERAPP_NTP_SERVERS` (comma separated).

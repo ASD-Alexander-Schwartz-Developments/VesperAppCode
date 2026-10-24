@@ -43,6 +43,11 @@ A multi-microphone logger with a **4-microphone array** that can be configured t
 
 The KOL is not activated with a magnet. Its USB cable decides what it does:
 
+![The device console with a KOL connected](images/device-console-kol.png)
+
+*A KOL in the device console: its USB mode, **Live Audio**, **Start Recording**, whether it is ready to record (hover for card, config.json and clock) and **Check**.*
+
+
 | State | When | LED | What the computer sees |
 |---|---|---|---|
 | **Sleep** | Unplugged and not recording | Off (one 2 s flash when it goes to sleep) | Nothing |

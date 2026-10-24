@@ -4,7 +4,7 @@ The **Configuration** tab edits the JSON configuration that tells a device *what
 
 ![The Configuration tab](images/tab-configuration.png)
 
-*The Configuration tab: device type selection, schedule editor and per-sensor driver settings.*
+*The Configuration tab: device type selection, general settings, the schedule editor (here a daily schedule for a KOL: 48 kHz in the evening, 250 kHz at night) and per-sensor driver settings.*
 
 ## General device settings
 
@@ -59,6 +59,10 @@ Every driver pane has the same layout: **Standard configuration** first (sample 
 **File Size** is always a multiple of 64 KB (65,536 bytes): the largest buffer the firmware writes at once and a whole number of allocation clusters, so every file ends on a full buffer. Other values are rounded to the nearest multiple; 0 leaves the firmware's minimum for the sensor (8 MB for the microphones).
 
 For the KOL's microphone array, the channel configuration (1, 2 or 4 microphones) is part of the audio driver settings.
+
+![The KOL sensor settings](images/config-kol-sensor.png)
+
+*The KOL sensor's settings: sample rate and duty cycle per configuration, number of microphones, high-pass filter and gain (each with **Solve**), the sound trigger with its **Helper**, and the file size.*
 
 **Microphone sample rate, gain and high-pass filter (KOL, Vesper, Pipistrelle).** Pick the sample rates from the list (4 kHz – 400 kHz). The unit chooses the best digital filter for each rate itself — there is no filter setting to get wrong. Most rates are exact; the 44.1 kHz family and 250 / 256 / 384 kHz run at the closest rate the 4.8 MHz microphone clock allows, shown next to the value and stored in the recording header. The **gain** applies to *Sample Rate [1]* (or [2] if [1] is off); the unit keeps the same loudness at the other rate (and, on the KOL, in Live Audio) with KOL firmware 1.8 / Vesper and Pipistrelle firmware 1.22 or later.
 
