@@ -146,8 +146,9 @@
 							</StackPanel>
 						</Button>
 						<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,4"/>
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Sleep" Command="{Binding SleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Arm Sleep" Command="{Binding ArmSleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<!-- Hidden for a KOL with the operating states: it sleeps by itself when unplugged and records through Start Recording. -->
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Sleep" Command="{Binding SleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}" IsVisible="{Binding ShowSleepCommands}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Arm Sleep" Command="{Binding ArmSleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}" IsVisible="{Binding ShowSleepCommands}"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Format" Command="{Binding FormatDeviceCommand}" IsEnabled="{Binding CanUseDeviceDisk}"
 								ToolTip.Tip="Format the device's storage (unavailable while a KOL is in Live Audio - no disk is exposed in that mode)"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Set Time" Command="{Binding SetDateTimeDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
@@ -167,9 +168,18 @@
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="{Binding KolLiveAudioButtonText}"
 								Command="{Binding KolToggleLiveAudioCommand}" IsVisible="{Binding IsUsbModesSelected}" IsEnabled="{Binding IsDeviceConnected}"
 								ToolTip.Tip="Switch between Idle and Live Audio. The device re-enumerates (about 2 s) and is reconnected automatically."/>
-						<Button Classes="toolbar" Margin="0,2,0,2" Content="Start Sampling"
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="{Binding StartRecordingButtonText}"
 								Command="{Binding KolStartSamplingCommand}" IsVisible="{Binding IsUsbModesSelected}" IsEnabled="{Binding IsDeviceConnected}"
-								ToolTip.Tip="Arm the device and start its recording schedule. It disconnects from USB; reconnect it or use the magnet to return to Idle."/>
+								ToolTip.Tip="{Binding StartRecordingToolTip}"/>
+
+						<!-- KOL with the operating states: can it record (card, config.json, sensor, clock, space)? -->
+						<Border Classes="statusPill" Margin="0,2,6,2" IsVisible="{Binding IsKolStatesSelected}"
+								ToolTip.Tip="{Binding KolReadinessToolTip}">
+							<TextBlock VerticalAlignment="Center" Text="{Binding KolReadinessText}"/>
+						</Border>
+						<Button Classes="toolbar" Margin="0,2,0,2" Content="Check"
+								Command="{Binding KolCheckCommand}" IsVisible="{Binding IsKolStatesSelected}" IsEnabled="{Binding IsDeviceConnected}"
+								ToolTip.Tip="Have the KOL read config.json from its card again and report whether it can record (after copying a new config.json onto its USB disk)."/>
 					</WrapPanel>
 					<TextBlock Classes="caption" Text="{Binding KolStatusText}" TextWrapping="Wrap" IsVisible="{Binding HasKolStatus}"/>
 				  </StackPanel>

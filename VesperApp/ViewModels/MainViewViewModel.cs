@@ -496,28 +496,12 @@ namespace VesperApp.ViewModels
             {
                 LoggerDevice? dev = SelectedLoggerDevice;
                 if (dev == null) return;
-
-                /* True time from NTP: the PC clock alone can be seconds off (bench 2026-10-21:
-                   2.5 s fast). Console loggers with the time-sync firmware get the precise
-                   path (millisecond sync, recorded for the per-unit calibration on the Clock
-                   page); everything else gets a plain set with NTP-corrected time. */
-                TextMessageBottom = "Setting the device clock…";
-                var rc = await VesperApp.Services.Time.ReferenceClock.CreateAsync();
-                if (dev.IsConsoleLogger)
+                await SetDeviceClockAsync(dev);
+                if (dev.IsKol)
                 {
-                    var r = await VesperApp.Services.Time.RtcSyncService.SyncAsync(
-                        new VesperApp.Services.Time.LoggerRtcDevice(dev), rc, IsClockUTC,
-                        VesperApp.Services.Time.RtcCalibrationStore.Default);
-                    if (r.Before != null)
-                    {
-                        TextMessageBottom = r.Message;
-                        return;
-                    }
+                    await RefreshKolUsbModeAsync();      // "clock not set" may be all that kept it from recording
+                    KolStatusText = string.Empty;
                 }
-                DateTime trueUtc = rc.TrueUtcNow();
-                DateTime sdt = IsClockUTC ? trueUtc : trueUtc.ToLocalTime();
-                await dev.SetDateTime(sdt);
-                TextMessageBottom = $"Device clock set to {sdt:yyyy-MM-dd HH:mm:ss} ({(rc.IsNtp ? "NTP" : "PC clock, NTP not reachable")}; whole seconds).";
             });
 
             SleepDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -554,6 +538,32 @@ namespace VesperApp.ViewModels
             TextMessageBottom = string.Empty;
 		}
 
+
+        /// <summary>Set the device clock (Set Time, and before a KOL starts recording).</summary>
+        private async Task SetDeviceClockAsync(LoggerDevice dev)
+        {
+            /* True time from NTP: the PC clock alone can be seconds off (bench 2026-10-21:
+               2.5 s fast). Console loggers with the time-sync firmware get the precise
+               path (millisecond sync, recorded for the per-unit calibration on the Clock
+               page); everything else gets a plain set with NTP-corrected time. */
+            TextMessageBottom = "Setting the device clock…";
+            var rc = await VesperApp.Services.Time.ReferenceClock.CreateAsync();
+            if (dev.IsConsoleLogger)
+            {
+                var r = await VesperApp.Services.Time.RtcSyncService.SyncAsync(
+                    new VesperApp.Services.Time.LoggerRtcDevice(dev), rc, IsClockUTC,
+                    VesperApp.Services.Time.RtcCalibrationStore.Default);
+                if (r.Before != null)
+                {
+                    TextMessageBottom = r.Message;
+                    return;
+                }
+            }
+            DateTime trueUtc = rc.TrueUtcNow();
+            DateTime sdt = IsClockUTC ? trueUtc : trueUtc.ToLocalTime();
+            await dev.SetDateTime(sdt);
+            TextMessageBottom = $"Device clock set to {sdt:yyyy-MM-dd HH:mm:ss} ({(rc.IsNtp ? "NTP" : "PC clock, NTP not reachable")}; whole seconds).";
+        }
 
         private void _globalDockAdapter_ConnectionEvent(object? sender, DockConnectionEventArgs e)
         {

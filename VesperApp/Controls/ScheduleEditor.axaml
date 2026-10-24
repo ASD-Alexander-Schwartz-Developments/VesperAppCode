@@ -69,7 +69,7 @@
 
 						<CheckBox Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="2" VerticalAlignment="Center"
 								  IsChecked="{Binding IsMagnetOffEnabled}"
-								  ToolTip.Tip="Whether a magnet swipe may power the device down in the field">
+								  ToolTip.Tip="Whether a magnet swipe may power the device down in the field (Vesper / Pipistrelle; a KOL has no magnet and ignores it)">
 							Allow Magnet Turn-Off
 						</CheckBox>
 
@@ -78,7 +78,7 @@
 							<MaskedTextBox x:Name="maskPoweron" MinWidth="160" Focusable="True"
 										   Text="{Binding PowerOnText, Mode=TwoWay}" Mask="{Binding PowerOnEditMask}"/>
 							<CheckBox x:Name="cbIsPoweronRelative" IsThreeState="False" IsChecked="{Binding IsPowerOnRelative}"
-									  ToolTip.Tip="When checked, power-on is a relative delay (dd hh:mm:ss, magnet activation is time 0); otherwise an absolute date/time">
+									  ToolTip.Tip="When checked, power-on is a relative delay (dd hh:mm:ss; activation is time 0 - the magnet on Vesper / Pipistrelle, Start Recording on a KOL); otherwise an absolute date/time">
 								Relative
 							</CheckBox>
 						</StackPanel>

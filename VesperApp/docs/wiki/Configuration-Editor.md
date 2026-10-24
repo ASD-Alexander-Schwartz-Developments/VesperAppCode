@@ -12,9 +12,9 @@ The **Configuration** tab edits the JSON configuration that tells a device *what
 |---|---|
 | **Device name** | Device name - used by the device to validate the configuration matches target device; this is autopopulted by Device pick |
 | **Minimum hardware** | The hardware revision this configuration requires (e.g. `4.0`) |
-| **Allow magnet turn-off** | Whether a magnet may power the device down in the field (after activation) |
+| **Allow magnet turn-off** | Whether a magnet may power the device down in the field (after activation). Vesper / Pipistrelle; a KOL has no magnet and ignores it. |
 | **Battery capacity** | The fitted battery's capacity in mAh (informational, used for documentation - no real impact on execution) |
-| **Power-on time/delay** | Optional power-on time/delay after magnet activation - when the device becomes active — an absolute date/time or relative delay |
+| **Power-on time/delay** | Optional power-on time/delay after activation (magnet on Vesper / Pipistrelle, **Start Recording** on a KOL) - when the device becomes active — an absolute date/time or relative delay |
 | **Clock drift** | Legacy RTC drift constant, the same for every unit (a raw value for the clock's calibration register). Units calibrated on the [Clock Calibration](Clock-Calibration) page use their own measured value instead; leave empty for no correction |
 | **RTC temperature compensation** | KOL / Vesper / Pipistrelle: periodically read the internal temperature sensor and correct the clock crystal's temperature drift. Off unless ticked; the optional curve steepness, turnover temperature and interval default to 34 ppb/°C², 25.0 °C and 600 s — see [Clock Calibration](Clock-Calibration) |
 
@@ -26,10 +26,10 @@ There are 4 types of schedules supported:
 
 | Type | Behaviour |
 |---|---|
-| **Continuous** | Record continuously after activation while powered. Can be stopped manually via magnet if enabled on the General section. |
+| **Continuous** | Record continuously after activation while powered. Can be stopped manually via magnet if enabled on the General section (Vesper / Pipistrelle); a KOL stops when it is unplugged and connected to a computer. |
 | **Daily** | Repeat the same time windows every 24HR; schdule runs 00:00 to 23:59 if entry should run over midnight, split it till 23:59 and after 00:00 |
 | **Dated** | Run in specific calendar windows based on absolute dates |
-| **Relative** | Windows relative to date of magnet activation with dates relative to date of activation (1,2,3...) |
+| **Relative** | Windows relative to the date of activation (magnet, or **Start Recording** on a KOL) with dates relative to date of activation (1,2,3...) |
 
 A configuration contains one or more **schedule blocks** marked as **config0 (Off)**, **config1 (On)**, **config2 (On)**.
 Blocks define when each sensor records, so you can, for example, record audio only at night while sampling environment sensors around the clock.  

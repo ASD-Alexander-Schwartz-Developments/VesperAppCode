@@ -558,10 +558,11 @@ namespace VesperApp.Services
                         this.State = STATE_WAIT_FOR_CHAR;
                     }
                     else if (this.MsgType == (byte)MessageTypes.NACK)
-                    {
+                    {   // reported as NACK (it was reported as ACK, so no refusal ever reached a
+                        // caller) with its payload: a KOL record request carries the reason
                         MessageEventArgs args = new MessageEventArgs();
-                        args.typeOfMessage = MessageTypes.ACK;
-                        args.MessageData = new byte[0];
+                        args.typeOfMessage = MessageTypes.NACK;
+                        args.MessageData = (byte[])this.Data_Buff.Clone();
 
                         Monitor.Enter(this.MessagesBuffer);
                         this.MessagesBuffer.Enqueue(args);

@@ -155,7 +155,7 @@ namespace VesperApp.Models
                 case MessageTypes.VESPER_GET_USB_MODE:
                     {
                         KolUsbModeState? state = KolUsbModeState.Parse(e.MessageData);
-                        if (state != null) this.UsbMode = state.Active;
+                        if (state != null) { this.UsbMode = state.Active; this.UsbState = state; }
                     }
                     break;
 
@@ -807,6 +807,15 @@ namespace VesperApp.Models
         }
         private KolUsbMode? usbMode;
 
+        /// <summary>Last full VESPER_GET_USB_MODE reply (KOL: with status flags and record
+        /// readiness on firmware with the operating states); null until queried.</summary>
+        public KolUsbModeState? UsbState
+        {
+            get => usbState;
+            private set => this.RaiseAndSetIfChanged(ref usbState, value);
+        }
+        private KolUsbModeState? usbState;
+
         /// <summary>
         /// Send a command whose reply is a bare ACK / NACK frame (not a typed reply)
         /// and await it. True on ACK, false on NACK, timeout, or when this is not a
@@ -814,18 +823,28 @@ namespace VesperApp.Models
         /// </summary>
         public async Task<bool> SendAckCommandAsync(MessageTypes type, byte[] payload, int timeoutMs = 3000)
         {
+            var (ack, _, _) = await SendAckCommandWithReplyAsync(type, payload, timeoutMs);
+            return ack;
+        }
+
+        /// <summary>
+        /// As <see cref="SendAckCommandAsync"/>, also returning whether the device answered at
+        /// all and the payload of a NACK (a KOL record request carries the refusal reason).
+        /// </summary>
+        public async Task<(bool Ack, bool Answered, byte[]? NackData)> SendAckCommandWithReplyAsync(MessageTypes type, byte[] payload, int timeoutMs = 3000)
+        {
             if (this._comport == null || this._comport.IsRunning == false)
-                return false;
+                return (false, false, null);
 
             payload ??= new byte[0];
 
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<(bool, bool, byte[]?)>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             EventHandler<MessageEventArgs> handler = null!;
             handler = (s, e) =>
             {
-                if (e.typeOfMessage == MessageTypes.ACK) tcs.TrySetResult(true);
-                else if (e.typeOfMessage == MessageTypes.NACK) tcs.TrySetResult(false);
+                if (e.typeOfMessage == MessageTypes.ACK) tcs.TrySetResult((true, true, null));
+                else if (e.typeOfMessage == MessageTypes.NACK) tcs.TrySetResult((false, true, e.MessageData));
             };
 
             this._comport.MessageEvent += handler;
@@ -835,7 +854,7 @@ namespace VesperApp.Models
                 this._comport.SendToDevice(frame, 0, frame.Length);
 
                 using (var cts = new System.Threading.CancellationTokenSource(timeoutMs))
-                using (cts.Token.Register(() => tcs.TrySetResult(false)))
+                using (cts.Token.Register(() => tcs.TrySetResult((false, false, null))))
                 {
                     return await tcs.Task.ConfigureAwait(false);
                 }
@@ -846,14 +865,34 @@ namespace VesperApp.Models
             }
         }
 
-        /// <summary>Read the unit's active/pending USB mode (VESPER_GET_USB_MODE).</summary>
-        public async Task<KolUsbModeState?> GetUsbModeAsync(int timeoutMs = 3000)
+        /// <summary>Read the unit's active/pending USB mode (VESPER_GET_USB_MODE). On a KOL,
+        /// <paramref name="rereadConfig"/> has firmware with the operating states read
+        /// config.json from the card again first (it is otherwise the one loaded at boot -
+        /// the user may have just copied a new one onto the USB disk); others ignore it.</summary>
+        public async Task<KolUsbModeState?> GetUsbModeAsync(int timeoutMs = 3000, bool rereadConfig = false)
         {
             if (!SupportsUsbModes) return null;
-            byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_USB_MODE, new byte[0], timeoutMs);
+            byte[] payload = (rereadConfig && IsKol) ? new byte[] { 0x01 } : new byte[0];
+            byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_USB_MODE, payload,
+                                                  rereadConfig ? Math.Max(timeoutMs, 5000) : timeoutMs);
             KolUsbModeState? state = KolUsbModeState.Parse(resp);
-            if (state != null) this.UsbMode = state.Active;
+            if (state != null) { this.UsbMode = state.Active; this.UsbState = state; }
             return state;
+        }
+
+        /// <summary>
+        /// Ask a KOL to start standalone recording (VESPER_SET_USB_MODE(1)). The firmware
+        /// re-reads config.json and checks card, configuration, sensors, clock and free space:
+        /// ACK = it leaves USB and records; NACK carries the <see cref="KolRecordReason"/>
+        /// (firmware without the operating states NACKs without one).
+        /// </summary>
+        public async Task<KolRecordResult> StartRecordingAsync(int timeoutMs = 6000)
+        {
+            if (!SupportsUsbModes) return new KolRecordResult(false, null, false);
+            var (ack, answered, nack) = await SendAckCommandWithReplyAsync(
+                MessageTypes.VESPER_SET_USB_MODE, new[] { (byte)KolUsbMode.Sampling }, timeoutMs);
+            KolRecordReason? reason = (!ack && nack is { Length: >= 1 }) ? KolRecordReasonInfo.From(nack[0]) : null;
+            return new KolRecordResult(ack, reason, answered);
         }
 
         /// <summary>
