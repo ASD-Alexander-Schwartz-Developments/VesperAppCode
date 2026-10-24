@@ -24,6 +24,7 @@ namespace VesperApp.Models
         public static readonly List<ConfigurationDeviceDriver> SupportedDeviceDrivers = new List<ConfigurationDeviceDriver>
 		{
             { new ConfigKOLDriver() },
+            { new ConfigLoggerDriver() },
 		};
 
 		public static UInt32 ToTimestamp(DateTime dt)

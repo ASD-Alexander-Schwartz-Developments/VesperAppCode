@@ -175,6 +175,10 @@ namespace VesperApp.Services
             {
                 first_letter = 'C';
             }
+            else if (check.Contains('H'))           /// health logger (LOGGER pseudo-sensor)
+            {
+                first_letter = 'H';
+            }
             else
             {
                 return Task.FromResult(-1);

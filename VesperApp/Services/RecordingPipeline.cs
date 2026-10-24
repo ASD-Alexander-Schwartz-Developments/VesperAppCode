@@ -44,7 +44,7 @@ namespace VesperApp.Services
     public static class RecordingPipeline
     {
         // Intermediate extensions we know how to decode (others, e.g. .SBN/.OBN/.XBN, are left as parsed bins).
-        private static readonly string[] DecodableExts = { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN" };
+        private static readonly string[] DecodableExts = { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN", ".HBN" };
 
         public static async Task<DecodeSummary> AutoDecodeAsync(IReadOnlyList<string> rawFiles, IProgress<int>? progress = null)
         {
@@ -199,6 +199,7 @@ namespace VesperApp.Services
             else if (name.Contains("X.BIN")) await BinaryParser.StripSplit(rawPath, Sub("PRX"), 0);
             else if (name.Contains("O.BIN")) await BinaryParser.StripSplit(rawPath, Sub("LOG"), 0);
             else if (name.Contains("S.BIN")) await BinaryParser.StripSplit(rawPath, Sub("SNS"), 0);
+            else if (name.Contains("H.BIN")) await BinaryParser.StripSplit(rawPath, Sub("HEALTH"), 0);
 
             return touched;
         }
@@ -250,6 +251,12 @@ namespace VesperApp.Services
 
                     case ".EBN":
                         DecodeExg(path, data, name, sum);
+                        break;
+
+                    case ".HBN":
+                        using (var lp = new LoggerParser(path, data, MetaHex(path, "Config1")))
+                            lp.WriteFile();
+                        sum.Csv++;
                         break;
 
                     case ".CBN":
@@ -329,6 +336,9 @@ namespace VesperApp.Services
 
         private static uint MetaUint(string intermediatePath, string key)
             => uint.TryParse(MetaText(intermediatePath, key), out uint v) ? v : 0u;
+
+        private static uint MetaHex(string intermediatePath, string key)
+            => uint.TryParse(MetaText(intermediatePath, key), System.Globalization.NumberStyles.HexNumber, null, out uint v) ? v : 0u;
 
         private static uint RateMsPerSample(string intermediatePath)
         {

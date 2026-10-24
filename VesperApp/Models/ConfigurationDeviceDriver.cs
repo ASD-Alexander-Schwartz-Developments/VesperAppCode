@@ -505,6 +505,9 @@ namespace VesperApp.Models
                     case "KOL":
                         baseClass = (ConfigKOLDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigKOLDriver));
                         break;
+                    case "LOGGER":
+                        baseClass = (ConfigLoggerDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLoggerDriver));
+                        break;
                 }
 
 
@@ -571,6 +574,10 @@ namespace VesperApp.Models
                 else if (value is ConfigKOLDriver kolDriver)
                 {
                     JsonSerializer.Serialize(writer, kolDriver);
+                }
+                else if (value is ConfigLoggerDriver loggerDriver)
+                {
+                    JsonSerializer.Serialize(writer, loggerDriver);
                 }
                 else if (value is ConfigEXG48Driver exg48Driver)
                 {

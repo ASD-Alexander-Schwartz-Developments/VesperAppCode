@@ -60,6 +60,8 @@ Every driver pane has the same layout: **Standard configuration** first (sample 
 
 For the KOL's microphone array, the channel configuration (1, 2 or 4 microphones) is part of the audio driver settings.
 
+**Health logger (LOGGER).** An optional driver on KOL, Vesper and Pipistrelle that records the unit's own health next to the sensor data. *Sample Period [1]/[2]* is the time between samples in ms for each configuration (minimum 1 s; 0 = no samples). Tick what each sample holds — **Battery**, **MCU temperature**, **RTC correction**, **Sampling sensors** — and choose the **Log level**: *Off*, *Errors*, *Warnings* (and errors) or *Debug* (everything, including every recording window). Events are short codes (start-up and reset cause, recording start and stop, schedule changes, storage and reading failures, clock corrections), named when the file is decoded. The logger writes about one 512-byte block per 20 samples, so a one-minute period costs almost nothing in battery or storage. It does not count as a sensor: a configuration still needs a real sensor to record.
+
 ![The KOL sensor settings](images/config-kol-sensor.png)
 
 *The KOL sensor's settings: sample rate and duty cycle per configuration, number of microphones, high-pass filter and gain (each with **Solve**), the sound trigger with its **Helper**, and the file size.*

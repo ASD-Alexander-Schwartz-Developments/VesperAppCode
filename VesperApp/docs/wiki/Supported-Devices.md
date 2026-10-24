@@ -99,4 +99,5 @@ Devices store each sensor stream as a separate raw file on internal storage. Dur
 | `L.BIN` | Ambient light | CSV |
 | `C.BIN` | Thermal camera (Lepton) | JPG images |
 | `G.BIN` | GNSS snapshots (VT04-VESPER) | Position fixes via the GNSS plugin |
+| `H.BIN` | Health logger (LOGGER): battery, MCU temperature, clock correction, sampling sensors, event codes | Two CSVs: samples and events |
 | `X.BIN`, `O.BIN`, `S.BIN` | Proximity / log / auxiliary streams | Parsed and kept for analysis tools |

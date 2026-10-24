@@ -35,7 +35,8 @@ namespace VesperApp.Models
             { new ConfigEXG48Driver() },
             { new ConfigEXG2Driver() },
             { new ConfigProxtitDriver() },
-            { new ConfigLeptonDriver() }
+            { new ConfigLeptonDriver() },
+            { new ConfigLoggerDriver() }
         };
 
 		public static UInt32 ToTimestamp(DateTime dt)
