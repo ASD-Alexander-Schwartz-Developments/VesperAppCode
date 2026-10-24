@@ -34,7 +34,7 @@ namespace VesperApp.Services
 
             while(index < data.Length)
             {
-                if (data[index] == Header && index + 18 < data.Length)
+                if (data[index] == Header && index + 18 <= data.Length)     // 18-byte record; the last one may end the data
                 {
                     TPHRecordLine line = new TPHRecordLine();
                     ts = ts.Add(TimeSpan.FromMilliseconds(ms_sample));

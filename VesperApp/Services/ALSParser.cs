@@ -27,14 +27,14 @@ namespace VesperApp.Services
             Filename = filename;
 
             csv_lines = new List<string>();
-            csv_lines.Add(TPHRecordLine.HeaderText());
+            csv_lines.Add(ALSRecordLine.HeaderText());
 
             int index = 0;
             DateTime ts = dtStart;
 
             while(index < data.Length)
             {
-                if (data[index] == Header && index + 18 < data.Length)
+                if (data[index] == Header && index + 14 <= data.Length)     // 14-byte als_sample_t; the last one may end the data
                 {
                     ALSRecordLine line = new ALSRecordLine();
                     ts = ts.Add(TimeSpan.FromMilliseconds(ms_sample));

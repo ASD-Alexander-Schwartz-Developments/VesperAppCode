@@ -17,7 +17,7 @@ namespace VesperApp.Models
         private UInt32 channels;
 
         [Browsable(false)]
-        [JsonPropertyName("channels")]
+        [JsonPropertyName("channels"), JsonPropertyOrder(20)]   // after "name": the converter reads "name" first
         public UInt32 Channels
         {
             get { return this.channels; }
