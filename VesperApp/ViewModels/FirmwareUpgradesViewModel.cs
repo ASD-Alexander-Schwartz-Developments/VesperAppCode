@@ -53,6 +53,10 @@ namespace VesperApp.ViewModels
         public ICommand? RefreshReleasesCommand { get; }
         public ICommand? DownloadReleaseCommand { get; }
         public ICommand? FlashCommand { get; }
+        public ICommand? FlashFromFileCommand { get; }
+
+        // Set while "Flash from File" runs: the flash paths copy this file instead of downloading the feed asset.
+        private string? _localFirmwarePath;
 
         private readonly MainViewViewModel? _main;
 
@@ -105,6 +109,7 @@ namespace VesperApp.ViewModels
             RefreshReleasesCommand = ReactiveCommand.CreateFromTask(RunReleasesRefresh);
             DownloadReleaseCommand = ReactiveCommand.CreateFromTask(RunReleaseDownload);
             FlashCommand = ReactiveCommand.CreateFromTask(RunFlash);
+            FlashFromFileCommand = ReactiveCommand.CreateFromTask(RunFlashFromFile);
 
             Uri? feedUrl = FirmwareFeedUrl();
             feedService = feedUrl is null ? null : new ReleaseFeedService(feedUrl);
@@ -236,6 +241,58 @@ namespace VesperApp.ViewModels
                 return false;
             }
 
+            return await RunFlashCore(selected);
+        }
+
+        /// <summary>
+        /// Flash a firmware file from disk - pre-release testing: the CI build of main (Actions
+        /// artifact "firmware-<ver>-<sha>-<target>.hex") or a bench build. Same device paths and
+        /// confirmation as a feed release; the device type selected on this page decides the path.
+        /// </summary>
+        private async Task<bool> RunFlashFromFile()
+        {
+            var top = App.MainWindow?.StorageProvider;
+            if (top is null) return false;
+            var files = await top.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = $"Select {SelectedDeviceType} firmware to flash",
+                AllowMultiple = false,
+                FileTypeFilter = new List<FilePickerFileType>
+                {
+                    new("Firmware (.hex, .bin)") { Patterns = new[] { "*.hex", "*.HEX", "*.bin", "*.BIN" } },
+                },
+            });
+            if (files.Count == 0) return false;
+
+            string path = files[0].Path.LocalPath;
+            _localFirmwarePath = path;
+            try
+            {
+                var local = new ReleaseEntry { Version = "local", Name = Path.GetFileName(path), Asset = Path.GetFileName(path), Target = SelectedDeviceType.ToString().ToLowerInvariant() };
+                FlashStatus = $"Flashing {Path.GetFileName(path)} (from file, not a release) to the {SelectedDeviceType}…";
+                return await RunFlashCore(local);
+            }
+            finally
+            {
+                _localFirmwarePath = null;
+            }
+        }
+
+        /// <summary>The selected feed asset, or the local file of Flash from File, into <paramref name="dest"/>.</summary>
+        private async Task FetchFirmwareAsync(ReleaseEntry selected, string dest)
+        {
+            if (_localFirmwarePath != null)
+            {
+                FlashStatus = "Reading firmware file…";
+                File.Copy(_localFirmwarePath, dest, overwrite: true);
+                return;
+            }
+            FlashStatus = "Downloading firmware…";
+            await feedService!.DownloadAssetAsync(selected, dest);
+        }
+
+        private async Task<bool> RunFlashCore(ReleaseEntry selected)
+        {
             DeviceTypes target = SelectedDeviceType;
 
             if (target == DeviceTypes.Nanotag)
@@ -267,8 +324,7 @@ namespace VesperApp.ViewModels
                 FlashPercent = 0;
                 try
                 {
-                    FlashStatus = "Downloading firmware…";
-                    await feedService.DownloadAssetAsync(selected, ntmp);
+                    await FetchFirmwareAsync(selected, ntmp);
 
                     var prog = new Progress<FlashProgress>(p => { FlashPercent = p.Percent; FlashStatus = p.Status; });
                     if (bootloaderOnly)
@@ -317,8 +373,7 @@ namespace VesperApp.ViewModels
             FlashPercent = 0;
             try
             {
-                FlashStatus = "Downloading firmware…";
-                await feedService.DownloadAssetAsync(selected, tmp);
+                await FetchFirmwareAsync(selected, tmp);
 
                 var progress = new Progress<FlashProgress>(p =>
                 {

@@ -32,7 +32,7 @@ namespace VesperApp.ViewModels
                 await ShowInfo(title, FlashStatus);
                 return false;
             }
-            if (feedService is null)
+            if (feedService is null && _localFirmwarePath is null)
             {
                 FlashStatus = "No update source is configured in this build.";
                 return false;
@@ -49,8 +49,7 @@ namespace VesperApp.ViewModels
             FlashPercent = 0;
             try
             {
-                FlashStatus = "Downloading firmware…";
-                await feedService.DownloadAssetAsync(selected, tmp);
+                await FetchFirmwareAsync(selected, tmp);
 
                 FlashStatus = $"Commanding the {name} into its bootloader…";
                 bool ack = await dev.EnterBootloaderAsync();

@@ -5,9 +5,12 @@
 #   • the app embeds those pages as its offline Help fallback (AvaloniaResource),
 #   • the Help tab fetches the same pages live from the published wiki,
 #   • the wiki is therefore a *publish target*, never an editing surface.
-# Edit docs under docs/wiki/ in a normal PR; on merge to master this workflow
-# mirrors the folder into the wiki. Direct wiki edits will be overwritten on the
-# next publish (mirror push) — by design.
+# Edit docs under docs/wiki/ in a normal PR. The wiki goes live WITH A RELEASE:
+# this workflow mirrors the folder when a v* release tag is pushed (the same tag
+# that starts app-release.yml), or on a manual run - merging into master does not
+# publish, so pre-release pages never describe features users do not have yet
+# (the pre-release builds carry the new pages as their embedded Help). Direct wiki
+# edits will be overwritten on the next publish (mirror push) — by design.
 #
 # Uses the built-in GITHUB_TOKEN (contents: write covers the wiki repo of the
 # same repository) — no extra secrets. NOTE: GitHub cannot create the wiki repo
@@ -18,9 +21,7 @@ name: Publish wiki
 
 on:
   push:
-    branches: [master]
-    paths:
-      - "VesperApp/docs/wiki/**"
+    tags: [ 'v*' ]
   workflow_dispatch: {}
 
 permissions:
