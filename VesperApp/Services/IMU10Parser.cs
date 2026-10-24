@@ -17,6 +17,26 @@ namespace VesperApp.Services
         const byte FlagsBar = 0x08;
         const int bytes_in_sensor = 4 * 3;          // 4bytes for float x 3 axis
 
+        /// <summary>
+        /// Barometer field size: IMU10 writes 4 bytes (int16 temperature in 0.01 degC, uint16 hPa);
+        /// IMU10HT reserves 6 (the same 4 + 2 reserved bytes, by design). Told apart by the
+        /// "Sensor:" line of the intermediate's .txt sidecar.
+        /// </summary>
+        public static int BaroBytesFor(string intermediatePath)
+        {
+            try
+            {
+                string meta = intermediatePath + ".txt";
+                if (File.Exists(meta))
+                    foreach (string line in File.ReadAllLines(meta))
+                        if (line.StartsWith("Sensor:", StringComparison.OrdinalIgnoreCase)
+                            && line.Substring(7).Trim().Equals("IMU10HT", StringComparison.OrdinalIgnoreCase))
+                            return 6;
+            }
+            catch (IOException) { }
+            return 4;
+        }
+
         private string Filename;
         private bool IsOpened;
 
@@ -35,10 +55,11 @@ namespace VesperApp.Services
 
             int index = 0;
             DateTime ts = dtStart;
+            int baro_bytes = BaroBytesFor(filename);
 
             while(index < data.Length)
             {
-                if (data[index] == Header && index + 6 < data.Length)
+                if (data[index] == Header && index + 6 <= data.Length)
                 {
                     IMU10RecordLine line = new IMU10RecordLine();
                     ts = ts.Add(TimeSpan.FromMilliseconds(ms_sample));
@@ -64,9 +85,10 @@ namespace VesperApp.Services
                         line.Second--;
                     }
                     line.Timestamp = ts;
+                    line.Milisecond = (uint)ms;
                     index += 2;
 
-                    if (((line.Flags & FlagsGyro) == FlagsGyro) && (index < data.Length - bytes_in_sensor))
+                    if (((line.Flags & FlagsGyro) == FlagsGyro) && (index + bytes_in_sensor <= data.Length))
                     {
                         line.GY_X = (double)Utils.FFromBytes(data, index);
                         index += 4;
@@ -75,7 +97,7 @@ namespace VesperApp.Services
                         line.GY_Z = (double)Utils.FFromBytes(data, index);
                         index += 4;
                     }
-                    if ((line.Flags & FlagsAcc) == FlagsAcc && (index < data.Length - bytes_in_sensor))
+                    if ((line.Flags & FlagsAcc) == FlagsAcc && (index + bytes_in_sensor <= data.Length))
                     {
                         line.XL_X = (double)Utils.FFromBytes(data, index);
                         index += 4;
@@ -84,7 +106,7 @@ namespace VesperApp.Services
                         line.XL_Z = (double)Utils.FFromBytes(data, index);
                         index += 4;
                     }
-                    if (((line.Flags & FlagsMag) == FlagsMag) && (index < data.Length - bytes_in_sensor))
+                    if (((line.Flags & FlagsMag) == FlagsMag) && (index + bytes_in_sensor <= data.Length))
                     {
                         line.Mag_X = (double)Utils.FFromBytes(data, index);
                         index += 4;
@@ -93,12 +115,12 @@ namespace VesperApp.Services
                         line.Mag_Z = (double)Utils.FFromBytes(data, index);
                         index += 4;
                     }
-                    if (((line.Flags & FlagsBar) == FlagsBar) && (index < data.Length-4))
+                    if (((line.Flags & FlagsBar) == FlagsBar) && (index + baro_bytes <= data.Length))
                     {
-                        line.Temperature = (double)((UInt16)((UInt16)data[index] + (UInt16)((UInt16)data[index + 1] << 8)) / 100.0);
-                        index += 2;
-                        line.Pressure = (double)((UInt16)((UInt16)data[index] + (UInt16)((UInt16)data[index + 1] << 8)));
-                        index += 2;
+                        // LPS22HB TEMP_OUT is signed (0.01 degC): below 0 degC it read as ~655 degC before.
+                        line.Temperature = BitConverter.ToInt16(data, index) / 100.0;
+                        line.Pressure = BitConverter.ToUInt16(data, index + 2);
+                        index += baro_bytes;
                     }
                     csv_lines.Add(line.ToString());
                 }
@@ -173,8 +195,8 @@ namespace VesperApp.Services
         {
             string mysep = Utils.GetSeparator();
 
-            return $"Time{mysep}Minute{mysep}Second{mysep}Milisecond{mysep}Acc X [mg]{mysep}Acc Y [mg]{mysep}Acc Z [mg]{mysep}Gyro X [dps]{mysep}Gyro Y [dps]" +
-                $"{mysep}Gyro Z [dps]{mysep}Mag X [mGauss]{mysep}Mag Y [mGauss]{mysep}Mag Z [mGauss]{mysep}" +
+            return $"Time{mysep}Minute{mysep}Second{mysep}Milisecond{mysep}Acc X [mg]{mysep}Acc Y [mg]{mysep}Acc Z [mg]{mysep}Gyro X [mdps]{mysep}Gyro Y [mdps]" +
+                $"{mysep}Gyro Z [mdps]{mysep}Mag X [mGauss]{mysep}Mag Y [mGauss]{mysep}Mag Z [mGauss]{mysep}" +
                 $"Temperature [C]{mysep}Bar Pressure [hPa]";
         }
 
