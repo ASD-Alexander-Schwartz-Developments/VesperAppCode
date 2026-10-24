@@ -1,7 +1,7 @@
 {
   "contract": "interfaces/logger-file.md",
   "device_type": 3,
-  "logmask": 47,
+  "logmask": 63,
   "period_ms": 60000,
   "record_bytes": 120,
   "samples": [
