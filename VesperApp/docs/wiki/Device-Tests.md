@@ -41,6 +41,29 @@ Each row also shows the measured level (dBFS, and the approximate dB SPL at the 
 
 The thresholds come from a shared test specification and are first estimates until they are validated on hardware; this is a health check, not a calibrated factory measurement.
 
+## Add-on sensor test
+
+Checks the add-on boards on the connector before a deployment: the unit looks for each board by itself (no configuration needed), reads its device id and takes one live reading.
+
+| Sensor | Boards / parts | KOL | Vesper, Pipistrelle |
+|---|---|---|---|
+| Motion | IMU10 (LSM6DSM, LSM6DS3 or LSM6DSO), IMU10HT (ICM-20680) | ✓ | ✓ |
+| Temperature / humidity | TPRH31 (SHT31) | ✓ | ✓ |
+| Light | ALS3001D (OPT3001) | – | ✓ |
+| Biopotential | EXG2, EAG2, EXG48 (ADS1292, ADS1192, ADS1298) | – | ✓ |
+
+Firmware: KOL 1.8 or later; Vesper and Pipistrelle 1.22 or later.
+
+**How to run it:** fit the board(s), connect the device over USB and select it (idle — not recording, not in Live Audio), keep it still and press **Run Test**.
+
+| Result | Meaning |
+|---|---|
+| **Pass** | The board answered with the right id and a sensible reading (shown: the part found and the value — about 1 g at rest for motion, °C and %RH, lux). |
+| **Check** | The board answered, but the reading is out of the expected range (e.g. the unit was moving, or a checksum error). |
+| **Partial** | The motion board answered but its magnetometer or barometer did not. |
+| **Not found** | No board of that type answered — not fitted, badly seated, or another board on the same address (light and temperature boards cannot be stacked together). |
+| **No answer** | The unit did not reply — it is recording, or its firmware has no sensor test. |
+
 ## GNSS / RF self-test (Vesper / Nanotag)
 
 Exercises the GNSS receive chain in the device's own firmware. This is a **bench test**: it expects a controlled RF environment (a shielded enclosure with an RF generator coupled in), and is primarily used in production and service settings.
