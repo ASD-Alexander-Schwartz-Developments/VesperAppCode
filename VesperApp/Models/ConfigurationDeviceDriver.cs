@@ -157,7 +157,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling ON time in [ms] when running Config1 schedule"),
+        DescriptionAttribute("Duty-cycled recording in Config 1: how long each recording window lasts, in ms (0 = record continuously)."),
         DisplayName("Window Length [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -172,7 +172,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling ON time in [ms] when running Config2 schedule"),
+        DescriptionAttribute("Duty-cycled recording in Config 2: how long each recording window lasts, in ms (0 = record continuously)."),
         DisplayName("Window Length [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -202,7 +202,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling OFF time in [ms] when running Config1 schedule"),
+        DescriptionAttribute("Duty-cycled recording in Config 1: time from the start of one window to the start of the next, in ms; must be longer than the window length (0 = record continuously)."),
         DisplayName("Window Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -217,7 +217,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty cycled sampling OFF time in [ms] when running Config2 schedule"),
+        DescriptionAttribute("Duty-cycled recording in Config 2: time from the start of one window to the start of the next, in ms; must be longer than the window length (0 = record continuously)."),
         DisplayName("Window Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -235,22 +235,28 @@ namespace VesperApp.Models
         [JsonPropertyName("fileSize"), JsonPropertyOrder(30)]
         [Browsable(true)]
         [CategoryAttribute("Advanced configuration"),
-        DescriptionAttribute("Size (in Bytes) of a single file containing sensor samples, once file reaches this side, it's timestamped, closed and new file is opened"),
+        DescriptionAttribute("Size of each recording file in bytes; when it is reached the file is closed and a new one is started. "
+            + "Always a multiple of 64 KB (65,536 bytes) - the largest RAM buffer the firmware writes and a whole number of "
+            + "allocation clusters - so every file ends on a full buffer; other values are rounded. 0 = the firmware's minimum for the sensor."),
         DisplayName("File Size")]
         public virtual UInt32 FileSize
         {
-            get 
+            get => this.file_size;
+            set
             {
-                Debug.WriteLine("Get FileSize="+this.file_size.ToString());
-                return this.file_size; 
-            }
-            set 
-            {
-                UInt32 fixed_size = value / 4;
-                this.file_size = fixed_size * 4;
-                Debug.WriteLine("Set FileSize=" + this.file_size.ToString());
+                this.file_size = RoundFileSize(value);
                 OnPropertyChanged();
             }
+        }
+
+        public const UInt32 FileSizeUnit = 64 * 1024;
+
+        /// <summary>Nearest multiple of <see cref="FileSizeUnit"/>; 0 stays 0 (firmware minimum), anything else is at least one unit.</summary>
+        public static UInt32 RoundFileSize(UInt32 value)
+        {
+            if (value == 0) return 0;
+            ulong units = Math.Max(1UL, ((ulong)value + FileSizeUnit / 2) / FileSizeUnit);
+            return (UInt32)Math.Min(units * FileSizeUnit, UInt32.MaxValue / FileSizeUnit * FileSizeUnit);
         }
 
         [Browsable(false)]
@@ -268,7 +274,7 @@ namespace VesperApp.Models
         [Browsable(true)]
         [JsonIgnore]
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Should LED indicate activity is this driver"),
+        DescriptionAttribute("Blink the LED while this sensor records."),
         DisplayName("LED Activity")]
         public virtual bool IsLEDActive
         {
@@ -284,8 +290,8 @@ namespace VesperApp.Models
 
         [Browsable(true)]
         [JsonIgnore]
-        [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Should Listen to Accelerometer Trigger source"),
+        [CategoryAttribute("Advanced configuration"),
+        DescriptionAttribute("Reserved for accelerometer-triggered recording: the current KOL and Vesper firmware do not use it yet."),
         DisplayName("ACC Trigger Enable")]
         public virtual bool EnAccTrig
         {
@@ -476,7 +482,7 @@ namespace VesperApp.Models
                         baseClass = (ConfigEXG2Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigEXG2Driver));
                         break;
                     case "ATLAS":
-                        baseClass = (ConfigACLYSDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigATLASDriver));
+                        baseClass = (ConfigATLASDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigATLASDriver));
                         break;
                     case "IMU10":
                         baseClass = (ConfigIMU10Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigIMU10Driver));
@@ -498,6 +504,9 @@ namespace VesperApp.Models
                         break;
                     case "KOL":
                         baseClass = (ConfigKOLDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigKOLDriver));
+                        break;
+                    case "LOGGER":
+                        baseClass = (ConfigLoggerDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLoggerDriver));
                         break;
                 }
 
@@ -565,6 +574,10 @@ namespace VesperApp.Models
                 else if (value is ConfigKOLDriver kolDriver)
                 {
                     JsonSerializer.Serialize(writer, kolDriver);
+                }
+                else if (value is ConfigLoggerDriver loggerDriver)
+                {
+                    JsonSerializer.Serialize(writer, loggerDriver);
                 }
                 else if (value is ConfigEXG48Driver exg48Driver)
                 {

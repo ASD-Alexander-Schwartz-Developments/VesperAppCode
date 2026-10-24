@@ -1,6 +1,6 @@
 # Live View
 
-The **Live View** tab shows what a device's microphones hear, right now: a multi-channel oscilloscope, a spectrum analyser and a scrolling spectrogram, fed either by a **KOL streaming its four microphones over USB** or by any microphone of your computer. It is meant for demonstrations, sanity checks in the field (is every channel alive? is the gain right?) and quick listening sessions before a deployment — not for calibrated measurements.
+The **Live View** tab shows what a device's microphones hear, right now: a multi-channel oscilloscope, a spectrum analyser and a scrolling spectrogram, fed either by a **unit streaming its microphones over USB** — a KOL (four microphones), or a Vesper or Pipistrelle with firmware 1.22 or later (one microphone) — or by any microphone of your computer. It is meant for demonstrations, sanity checks in the field (is every channel alive? is the gain right?) and quick listening sessions before a deployment — not for calibrated measurements.
 
 ![The Live View tab streaming four KOL microphones](images/tab-live-view.png)
 
@@ -10,21 +10,25 @@ The **Live View** tab shows what a device's microphones hear, right now: a multi
 
 | Source | What happens on Start |
 |---|---|
-| **KOL — 4 microphones over USB** | The app sends your microphone parameters to the device, switches it to **Live Audio** mode if needed (it briefly re-enumerates as a 4-channel USB microphone, see [Supported Devices](Supported-Devices)), waits for the microphone to appear and opens it at the selected sample rate. Requires a KOL connected on its USB console (Idle or Live Audio). |
+| **KOL — 4 microphones over USB** / **Vesper — microphone over USB** (follows the selected unit) | The app sends your microphone parameters to the device, switches it to **Live Audio** mode if needed (it briefly re-enumerates as a USB microphone — 4 channels on a KOL, 1 on a Vesper or Pipistrelle, see [Supported Devices](Supported-Devices)), waits for the microphone to appear and opens it at the selected sample rate. Requires the unit connected on its USB console (Idle or Live Audio); a Vesper or Pipistrelle needs firmware 1.22 or later. |
 | **This computer's microphone** | Opens the selected input at its native rate; choose 1 or 2 channels. Useful to try the instruments without a device. |
 
-Press **Stop** to freeze the display on the last samples; **KOL → Idle** returns the device to console + disk mode.
+Press **Stop** to freeze the display on the last samples; **KOL → Idle** (or **Vesper → Idle**) returns the device to console + disk mode.
 
-## KOL microphone parameters
+## Device microphone parameters
 
 These settings live **on the device** (they are the same fields as `gain`, `hpf`, `filter`, `cic4` in `config.json`, so what you see live is what a recording with those values would capture):
 
-- **Sample rate** — 8, 16, 32, 48 or 96 kHz nominal. The device's decimator is integer-ratio, so some rates are approximate; the note next to the selector tells you the exact rate the hardware delivers (e.g. 96 kHz runs at 100 kHz).
+- **Sample rate** — 8, 16, 32, 48 or 96 kHz nominal on a KOL; a Vesper or Pipistrelle adds 192 kHz. On a KOL some rates are approximate (the decimator is integer-ratio); the note next to the selector tells you the exact rate the hardware delivers (e.g. 96 kHz runs at 100 kHz). On a Vesper or Pipistrelle every offered rate is exact.
 - **Gain** — in 3 dB steps from −48 to +72 dB. The deployed default is +36 dB. Too much gain shows as a flat-topped time series and a "SATURATING" flag when you press **Read**.
 - **High-pass** — off, or one of four cutoffs relative to the sample rate; removes the microphones' DC offset and rumble.
 - **Reshape filter** and **CIC filter** — the decimator's shaping stages; leave at the defaults unless you know why.
 
 **Apply** pushes changes into a running stream immediately (the device reprograms its filters in place, no interruption); **Read** loads the device's current values. Changes are kept in the device's RAM only — a reset restores `config.json`.
+
+## Sound trigger meter
+
+When the streaming unit's firmware reports its sound trigger (KOL firmware 1.8 and later; Vesper and Pipistrelle with sound triggering), a **Sound trigger** panel appears under the microphone parameters. For each channel it shows the current level as a bar (dBFS), the background the trigger has learned (dark mark) and the peak since the last update (white tick). If the device's configuration is sound-triggered, the start level (red line) and the stop level (dashed) are drawn where they sit for that channel, with the trigger state (learning the background, listening, recording an event, hold), the number of events and the number of missed buffers. Use it to check a trigger setting on site before a deployment: talk, clap or play a call and watch the red line. The panel stays hidden with firmware that does not report the trigger.
 
 ## Instruments
 

@@ -91,6 +91,24 @@ namespace VesperApp.Services
         VESPER_SET_MIC_PARAMS = 65,     // payload: KolMicParams.Pack() (gain i8, hpf, dfilter u16 LE, cic4); ACK; applied live
         VESPER_GET_MIC_PARAMS = 66,     // reply: KolMicParams (5 B) + status: streaming, capturing, saturated, fs u32 LE
 
+        // Live add-on sensor test (Models/SensorBenchTest.cs; asd-interfaces interfaces/sensor-test.md).
+        // Payload: op, arg0 = variant (0 probe each), arg1, reserved; reply 20 B. Idle only (NACK while recording).
+        // KOL answers 71 and 73; Vesper / Pipistrelle all four.
+        VESPER_TEST_IMU = 71,
+        VESPER_TEST_EEG = 72,
+        VESPER_TEST_TPRH = 73,
+        VESPER_TEST_ALS = 74,
+
+        // RTC time sync + crystal calibration - KOL and VesperU5 (Vesper, Pipistrelle), same ids.
+        // Contract: asd-interfaces interfaces/rtc-time-sync.md. Older firmware NACKs them.
+        VESPER_TIME_SYNC = 76,          // payload: u32 seq; reply 26 B (seq, t2, t3, temp, age, correction, flags)
+        VESPER_RTC_SHIFT = 77,          // payload: int32 microseconds (+ advances), |us| < 1 s; ACK/NACK
+        VESPER_RTC_CAL = 78,            // payload: [0] op (0 get, 1 set, 2 clear, 3 measure temp) [+ i32 ppb, i16 tref]; reply 23 B
+
+        // Sound trigger live state + per-channel levels (Models/MicLevels.cs; Kol docs/sound-trigger.md).
+        // No payload, 50 B reply. Answered in Live Audio and while recording with the console up.
+        VESPER_MIC_LEVELS = 79,
+
         UDSP_GET_VER = 200,
         UDSP_SLEEP,
         UDSP_GET_CONFIG,
@@ -548,10 +566,11 @@ namespace VesperApp.Services
                         this.State = STATE_WAIT_FOR_CHAR;
                     }
                     else if (this.MsgType == (byte)MessageTypes.NACK)
-                    {
+                    {   // reported as NACK (it was reported as ACK, so no refusal ever reached a
+                        // caller) with its payload: a KOL record request carries the reason
                         MessageEventArgs args = new MessageEventArgs();
-                        args.typeOfMessage = MessageTypes.ACK;
-                        args.MessageData = new byte[0];
+                        args.typeOfMessage = MessageTypes.NACK;
+                        args.MessageData = (byte[])this.Data_Buff.Clone();
 
                         Monitor.Enter(this.MessagesBuffer);
                         this.MessagesBuffer.Enqueue(args);
@@ -766,6 +785,8 @@ namespace VesperApp.Services
 
     public class MessageEventArgs : EventArgs
     {
+        /// <summary>Stopwatch timestamp of the serial read that completed this frame (0 = unknown).</summary>
+        public long RxTimestamp { get; set; }
         public String? DebugMessage { get; set; }
         public byte[]? MessageData { get; set; }
         public MessageTypes? typeOfMessage { get; set; }

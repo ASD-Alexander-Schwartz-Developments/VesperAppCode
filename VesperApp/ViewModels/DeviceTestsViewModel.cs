@@ -10,11 +10,13 @@ namespace VesperApp.ViewModels
     {
         public MicHealthCheckViewModel Mic { get; }
         public GnssRfTestViewModel Gnss { get; }
+        public SensorTestViewModel Sensors { get; }
 
         public DeviceTestsViewModel(MainViewViewModel main)
         {
             Mic = new MicHealthCheckViewModel(main);
             Gnss = new GnssRfTestViewModel(main);
+            Sensors = new SensorTestViewModel(main);
         }
 
         // Parameterless ctor for the XAML designer / ViewLocator fallback.

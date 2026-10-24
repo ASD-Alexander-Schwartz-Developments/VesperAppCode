@@ -1460,7 +1460,7 @@ namespace VesperApp.Models
         DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
-        [Browsable(true)]
+        [Browsable(false)]
         public override UInt32 SampleRate2
         {
             get => SampleRate[2];

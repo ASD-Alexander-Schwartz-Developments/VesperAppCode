@@ -16,7 +16,7 @@ namespace VesperApp.Models
         }
 
 
-        [Browsable(false), JsonPropertyOrder(22)]
+        [Browsable(false), JsonPropertyName("fileSize"), JsonPropertyOrder(22)]
         public override UInt32 FileSize
         {
             get { return this.file_size; }

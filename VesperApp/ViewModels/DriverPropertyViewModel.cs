@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -96,8 +96,20 @@ namespace VesperApp.ViewModels
             _options = FindOptions(_type);
             _editorKind = ResolveEditorKind(_type, _options);
 
+            Solvable = property.GetCustomAttribute<VesperApp.Models.MicSolverAttribute>(true) != null
+                       ? _target as VesperApp.Models.IMicChainSolvable : null;
+
             Update();
         }
+
+        /// <summary>Microphone sample rate / gain rows get a "Solve" button; the grid opens the Solve window for this driver.</summary>
+        public VesperApp.Models.IMicChainSolvable? Solvable { get; }
+        public bool HasSolver => Solvable != null;
+
+        /// <summary>The Recording mode row gets a "Helper" button that opens the Recording helper for this driver.</summary>
+        public VesperApp.Models.MicDriverBase? HelperTarget =>
+            Property.GetCustomAttribute<VesperApp.Models.MicHelperAttribute>(true) != null ? _target as VesperApp.Models.MicDriverBase : null;
+        public bool HasHelper => HelperTarget != null;
 
         public PropertyInfo Property { get; }
         public override object Key => Property;

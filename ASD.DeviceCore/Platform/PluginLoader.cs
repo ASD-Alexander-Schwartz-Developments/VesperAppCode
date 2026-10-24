@@ -46,7 +46,8 @@ namespace ASD.Platform
         /// <summary>
         /// Load plugins and bind any platform service implementations they expose (a public
         /// type with a parameterless constructor implementing <see cref="IGnssDecoder"/>,
-        /// <see cref="IPlmClient"/>, or <see cref="IEntitlementProvider"/>). With no argument,
+        /// <see cref="IGnssSignalSource"/>, <see cref="ISoundClassifier"/>, <see cref="IPlmClient"/>,
+        /// or <see cref="IEntitlementProvider"/>). With no argument,
         /// scans <see cref="DataPluginsDir"/> then <see cref="BundledPluginsDir"/> (data folder
         /// wins for a given DLL name). Must be called before
         /// <see cref="PlatformServices.Initialize"/>. Returns the number of services bound.
@@ -167,6 +168,12 @@ namespace ASD.Platform
                 {
                     PlatformServices.Bind(soundClassifier: (ISoundClassifier)Activator.CreateInstance(t)!);
                     log.LogInformation("Bound ISoundClassifier from {Type} ({Dll}).", t.FullName, Path.GetFileName(dllPath));
+                    bound++;
+                }
+                else if (typeof(IGnssSignalSource).IsAssignableFrom(t))
+                {
+                    PlatformServices.Bind(gnssSignalSource: (IGnssSignalSource)Activator.CreateInstance(t)!);
+                    log.LogInformation("Bound IGnssSignalSource from {Type} ({Dll}).", t.FullName, Path.GetFileName(dllPath));
                     bound++;
                 }
                 else if (typeof(IEntitlementProvider).IsAssignableFrom(t))

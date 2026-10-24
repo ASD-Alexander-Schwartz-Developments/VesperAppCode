@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using ASD.Contracts;
@@ -9,34 +11,63 @@ using VesperApp.Services;
 
 namespace VesperApp.ViewModels
 {
+    /// <summary>One plugin pack the Plugins page offers: its folder under plugins/, its feed on the CDN
+    /// and how the page describes it.</summary>
+    public sealed record PluginPack(string PackName, string Title, string Description, string FeedPath, string FeedOverrideVariable);
+
     /// <summary>
-    /// Drives the GNSS plugin-pack update page. Reads the pack feed from the CDN, downloads + stages
-    /// the matching pack via <see cref="PluginUpdateService"/> (registration-gated, applied next
-    /// launch), and offers a restart. No credentials — see docs/ARCHITECTURE.md.
+    /// The Plugins page: one card per plugin pack. Each pack updates on its own channel; add a pack by
+    /// adding it to <see cref="Catalog"/> (and, for a new kind of service, a contract in ASD.Contracts
+    /// the plugin loader binds).
     /// </summary>
     public class PluginUpdatesViewModel : ViewModelBase
     {
-        // The GNSS pack feed lives on the client-read CDN origin (CdnConfig), path "plugins/gnss/index.json".
-        // The origin is injected at build time — not a literal here — and is overridable per-asset via
-        // VESPERAPP_GNSS_FEED (full URL) or wholesale via VESPERAPP_CDN_BASE. See docs/CDN-HARDENING.md.
-        private const string GnssFeedPath = "plugins/gnss/index.json";
-
-        private readonly PluginUpdateService? _service;
-        private ReleaseEntry? _latest;
+        // Feeds live on the client-read CDN origin (CdnConfig) at plugins/<pack>/index.json. The origin is
+        // injected at build time — not a literal here — and is overridable per pack (full URL) or wholesale
+        // via VESPERAPP_CDN_BASE. See docs/CDN-HARDENING.md.
+        public static IReadOnlyList<PluginPack> Catalog { get; } = new[]
+        {
+            new PluginPack("gnss", "GNSS Decoder",
+                "Decodes VT04-VESPER GNSS snapshots into positions (GNSS Decoding, Validate Fix).",
+                "plugins/gnss/index.json", "VESPERAPP_GNSS_FEED"),
+            new PluginPack("pluto-gnss", "GNSS RF Test",
+                "Drives a PlutoSDR bench transmitter for Device Tests ▸ GNSS / RF: tone self-test, simulated scenarios and station calibration. Shielded test setups only.",
+                "plugins/pluto-gnss/index.json", "VESPERAPP_GNSS_RF_FEED"),
+        };
 
         public PluginUpdatesViewModel()
         {
-            string? overrideUrl = Environment.GetEnvironmentVariable("VESPERAPP_GNSS_FEED");
+            Packs = Catalog.Select(p => new PluginPackViewModel(p)).ToList();
+        }
+
+        public IReadOnlyList<PluginPackViewModel> Packs { get; }
+    }
+
+    /// <summary>
+    /// One plugin pack on the Plugins page. Reads the pack feed from the CDN, downloads + stages the
+    /// matching pack via <see cref="PluginUpdateService"/> (registration-gated, applied next launch), and
+    /// offers a restart. No credentials — see docs/ARCHITECTURE.md.
+    /// </summary>
+    public class PluginPackViewModel : ViewModelBase
+    {
+        private readonly PluginUpdateService? _service;
+        private ReleaseEntry? _latest;
+
+        public PluginPackViewModel(PluginPack pack)
+        {
+            Title = pack.Title;
+            Description = pack.Description;
+            string? overrideUrl = Environment.GetEnvironmentVariable(pack.FeedOverrideVariable);
             Uri? feed = !string.IsNullOrWhiteSpace(overrideUrl)
                 ? new Uri(overrideUrl)
-                : CdnConfig.FeedUri(GnssFeedPath);
-            // The GNSS pack is download-gated to REGISTERED users (free OR paid), not to a paid
+                : CdnConfig.FeedUri(pack.FeedPath);
+            // Packs are download-gated to REGISTERED users (free OR paid), not to a paid
             // entitlement — so the service is left ungated here and the page gates on the session.
             // Real per-download enforcement is the backend signed-URL path (downloadUrlResolver),
             // which activates with sign-in; the feed is public-read until then. See docs/ci-templates/README.md.
             _service = feed is null
                 ? null
-                : new PluginUpdateService(feed, packName: "gnss", requiredEntitlement: null);
+                : new PluginUpdateService(feed, packName: pack.PackName, requiredEntitlement: null);
 
             // TODO(login): RE-ENABLE the registered-account gate once login/session functionality
             // is implemented. Temporarily bypassed so plugin downloads can be tested without a
@@ -56,9 +87,12 @@ namespace VesperApp.ViewModels
             Status = _service is null
                 ? "Plugin updates are unavailable: no update source is configured in this build."
                 : IsEntitled
-                    ? "Check for a GNSS decoder plugin update."
-                    : "Sign in with a registered account (free or paid) to download the GNSS decoder plugin.";
+                    ? "Check for an update."
+                    : "Sign in with a registered account (free or paid) to download this plugin.";
         }
+
+        public string Title { get; }
+        public string Description { get; }
 
         public ICommand CheckCommand { get; }
         public ICommand DownloadCommand { get; }
@@ -105,13 +139,13 @@ namespace VesperApp.ViewModels
                 IsChecking = true;
                 IsUpdateAvailable = false;
                 IsReinstallAvailable = false;
-                Status = "Checking for GNSS plugin updates…";
+                Status = "Checking for updates…";
 
                 CurrentVersion = _service.InstalledVersion() ?? NotInstalled;   // refresh in case it changed
                 _latest = await _service.CheckLatestAsync();
                 if (_latest is null)
                 {
-                    Status = "No compatible GNSS plugin found for this platform.";
+                    Status = "No compatible version found for this platform.";
                 }
                 else
                 {
@@ -148,7 +182,7 @@ namespace VesperApp.ViewModels
                 IsDownloading = true;
                 Progress = 0;
                 bool reinstall = IsReinstallAvailable;
-                Status = $"{(reinstall ? "Reinstalling" : "Downloading")} GNSS plugin {LatestVersion}…";
+                Status = $"{(reinstall ? "Reinstalling" : "Downloading")} {Title} {LatestVersion}…";
                 var progress = new Progress<double>(p =>
                     Dispatcher.UIThread.Post(() => Progress = (int)Math.Round(p * 100)));
 

@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:VesperApp.ViewModels"
              xmlns:la="using:VesperApp.Controls.LiveAudio"
+             xmlns:c="using:VesperApp.Controls"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="760"
              x:DataType="vm:LiveViewViewModel"
@@ -96,7 +97,7 @@
 				<Border Classes="panel">
 					<StackPanel Spacing="8">
 						<TextBlock Classes="h" Text="Source"/>
-						<RadioButton GroupName="src" IsChecked="{Binding IsKolSource}" Content="KOL — 4 microphones over USB"/>
+						<RadioButton GroupName="src" IsChecked="{Binding IsKolSource}" Content="{Binding UnitSourceLabel}"/>
 						<TextBlock Text="{Binding KolAvailabilityText}" Classes="lbl" Margin="28,0,0,4"/>
 						<RadioButton GroupName="src" IsChecked="{Binding IsPcSource}" Content="This computer's microphone"/>
 						<Grid ColumnDefinitions="*,Auto,Auto" Margin="28,0,0,0" IsEnabled="{Binding IsPcSource}">
@@ -113,7 +114,7 @@
 
 				<Border Classes="panel" IsEnabled="{Binding IsKolSource}">
 					<StackPanel Spacing="6">
-						<TextBlock Classes="h" Text="KOL microphone parameters (on the device)"/>
+						<TextBlock Classes="h" Text="{Binding MicParamsTitle}"/>
 						<TextBlock Classes="lbl" Text="Sent on Start; Apply pushes changes into a running stream (the MDF filters are reprogrammed in place, no interruption)."/>
 						<Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6" Margin="0,4,0,0">
 							<TextBlock Grid.Row="0" Classes="lbl" Text="Sample rate"/>
@@ -141,9 +142,20 @@
 							<WrapPanel Grid.Row="5" Grid.Column="1" Margin="0,4,0,0">
 								<Button Command="{Binding ApplyKolParamsCommand}" IsEnabled="{Binding IsKolAvailable}" Content="Apply" Margin="0,0,8,6"/>
 								<Button Command="{Binding ReadKolParamsCommand}" IsEnabled="{Binding IsKolAvailable}" Content="Read" Margin="0,0,8,6"/>
-								<Button Command="{Binding KolToIdleCommand}" IsEnabled="{Binding IsKolAvailable}" Content="KOL → Idle" Margin="0,0,0,6" ToolTip.Tip="Stop streaming and return the KOL to Idle (console + disk)"/>
+								<Button Command="{Binding KolToIdleCommand}" IsEnabled="{Binding IsKolAvailable}" Content="{Binding UnitIdleText}" Margin="0,0,0,6" ToolTip.Tip="{Binding UnitIdleToolTip}"/>
 							</WrapPanel>
 						</Grid>
+					</StackPanel>
+				</Border>
+
+				<!-- Sound trigger meter (console 79): shown only while the streaming unit answers it -->
+				<Border Classes="panel" IsVisible="{Binding HasTriggerLevels}">
+					<StackPanel Spacing="6">
+						<TextBlock Classes="h" Text="Sound trigger (on the device)"/>
+						<TextBlock Classes="lbl" TextWrapping="Wrap"
+								   Text="Bars: level per channel (dBFS). Dark mark: background, white tick: peak, red line: start level, dashed: stop level."/>
+						<c:MicLevelMeter Levels="{Binding TriggerLevels}"/>
+						<TextBlock Classes="lbl" Text="{Binding TriggerLevelsText}" TextWrapping="Wrap"/>
 					</StackPanel>
 				</Border>
 
@@ -189,9 +201,9 @@
 						<TextBlock Classes="lbl" Text="Channels in scope / spectrum"/>
 						<StackPanel Orientation="Horizontal" Spacing="10">
 							<CheckBox IsChecked="{Binding Ch0On}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#22D3EE"/><TextBlock Text="0"/></StackPanel></CheckBox>
-							<CheckBox IsChecked="{Binding Ch1On}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#A3E635"/><TextBlock Text="1"/></StackPanel></CheckBox>
-							<CheckBox IsChecked="{Binding Ch2On}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#FBBF24"/><TextBlock Text="2"/></StackPanel></CheckBox>
-							<CheckBox IsChecked="{Binding Ch3On}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#F472B6"/><TextBlock Text="3"/></StackPanel></CheckBox>
+							<CheckBox IsChecked="{Binding Ch1On}" IsVisible="{Binding MultiChannel}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#A3E635"/><TextBlock Text="1"/></StackPanel></CheckBox>
+							<CheckBox IsChecked="{Binding Ch2On}" IsVisible="{Binding MultiChannel}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#FBBF24"/><TextBlock Text="2"/></StackPanel></CheckBox>
+							<CheckBox IsChecked="{Binding Ch3On}" IsVisible="{Binding MultiChannel}"><StackPanel Orientation="Horizontal"><Ellipse Classes="chdot" Fill="#F472B6"/><TextBlock Text="3"/></StackPanel></CheckBox>
 						</StackPanel>
 						<Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="6">
 							<TextBlock Grid.Row="0" Classes="lbl" Text="Spectrogram and recognizer input"/>

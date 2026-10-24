@@ -98,6 +98,7 @@ Devices write raw files as `XXXC.bin`, where `XXX` is a sequential number and `C
 | `O` | Log |
 | `S` | Analog DAQ |
 | `C` | Cameras |
+| `H` | Health logger (LOGGER) |
 
 ### Standard binary layout
 
@@ -120,6 +121,17 @@ The file header is identified by the signature `0xDEAFDAC0`; all fields are **li
 | Window length | 32-bit |
 | Bitmask | 32-bit |
 | Configuration data 0–3 | 4 × 32-bit |
+
+### Health logger files (`H`)
+
+The optional **LOGGER** sensor (KOL firmware 1.8, Vesper and Pipistrelle firmware with the logger) writes `/log/<n>H.BIN` in the standard layout: the file header names the sensor `LOGGER`; *Sampling rate* is the sample period in ms, *Configuration data 0* the field mask, *Configuration data 1* the format version and device type. The data is a series of 4-byte-aligned records, each starting with an 8-byte header — type, size, info and the time in seconds since 1 January 2000:
+
+| Type | Info | Payload |
+|---|---|---|
+| `0x01` sample | fields present (bit 0 battery, 1 temperature, 2 clock correction, 3 sensors) | one 32-bit value per field: battery mV, temperature in 0.01 °C, correction in ppb, bitmap of sampling sensors |
+| `0x11` / `0x12` / `0x13` event | event code | none (error / warning / debug) |
+
+**Auto Decode** writes `<file>.csv` (one row per sample) and `<file>.log.csv` (time, level, code and a readable name per event) into the `HEALTH` folder.
 
 ### GPS snapshot files
 

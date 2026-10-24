@@ -94,7 +94,7 @@ namespace VesperApp.Models
             int i = offset;
             DateTime dateTime= DateTime.MinValue;
 
-            if(i+12 < buffer.Length)
+            if(i+12 <= buffer.Length)                // 12 bytes from offset (a block may end the buffer)
             {
                 int hh = BCD2BIN(buffer[i++]);
                 int mm = BCD2BIN(buffer[i++]);

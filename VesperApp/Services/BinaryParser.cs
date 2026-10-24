@@ -175,6 +175,10 @@ namespace VesperApp.Services
             {
                 first_letter = 'C';
             }
+            else if (check.Contains('H'))           /// health logger (LOGGER pseudo-sensor)
+            {
+                first_letter = 'H';
+            }
             else
             {
                 return Task.FromResult(-1);
@@ -204,9 +208,9 @@ namespace VesperApp.Services
                         reader.BaseStream.Position = offset;
                     }
 
-                    byte[] databuffer = new byte[reader.BaseStream.Length];
-
-                    reader.Read(databuffer, 0, databuffer.Length);
+                    // Exactly the bytes after the file header (a buffer of the whole file length left
+                    // 128 zero bytes at the end, which a file without footer copied into its intermediate).
+                    byte[] databuffer = reader.ReadBytes((int)(reader.BaseStream.Length - reader.BaseStream.Position));
 
                     isStarted = false;
                     isFinished = false;

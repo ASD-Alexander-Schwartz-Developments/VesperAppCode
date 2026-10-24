@@ -8,33 +8,72 @@ The **Device Tests** tab bundles per-sensor hardware checks you can run before a
 
 ## Microphone health check
 
-Verifies that each microphone on the device responds with a healthy signal-to-noise ratio. Available on all products with microphones (Vesper, Pipistrelle, KOL).
+Verifies that each microphone hears a test tone cleanly, and spots the usual faults: a dead or disconnected microphone, a blocked port, an overloaded or offset input. The same check runs on every product with microphones; the analysis runs on the unit itself.
+
+| Product | Microphones | Firmware |
+|---|---|---|
+| KOL | 4 (or the 1 / 2 fitted) | 1.8 or later |
+| Vesper, Pipistrelle | 1 | the feature release (1.22) or later |
+
+Older firmware is not asked: the page says which firmware the check needs.
 
 **How to run it**
 
-1. Connect the device (via the dock) and select it.
-2. For KOL, choose the microphone configuration to test (1, 2 or 4 mics); single-mic products test their one microphone.
-3. Press **Run**.
-4. When prompted, play a **steady tone** near the device — a phone tone-generator app or a speaker works fine. The test listens for in-band test tones at 1 kHz and 4 kHz over a short 200 ms capture.
+1. Connect the device over USB and select it. It must be idle (not recording, not in Live Audio).
+2. For KOL, choose how many microphones are fitted (1, 2 or 4).
+3. Play the **test tones** near the device: 1 kHz and 4 kHz together, steady, from a phone or small speaker about 10 cm away (a phone at full volume). Keep a KOL's source centred so all four microphones hear it alike.
+4. Press **Run Check**. Each microphone is captured for 150 ms at 48 kHz, one after the other.
 
 **Reading the results**
 
-Each microphone gets a row with its status, measured SNR (dB) and noise floor:
+| Result | Meaning |
+|---|---|
+| **Healthy** | Both tones clearly above the noise (≥ 12 dB), level and offset normal. |
+| **Weak** | The microphone works, but the tones are faint — bring the source closer. |
+| **Too quiet** | Hardly any sound at all — check the tones are playing; the port may be blocked. |
+| **Too loud** | The input clipped — move the source further away. |
+| **No signal** | The microphone's data is stuck (constant): the microphone is faulty, unpowered or disconnected. |
+| **Offset** | A large DC offset: the microphone or its supply may be faulty. |
+| **Busy** | Live Audio or a recording is running — return to Idle and repeat. |
+| **No response** | The device did not answer. |
 
-- **OK** — all test tones exceeded the health threshold (12 dB SNR).
-- **Problem** — the mic responded but below threshold; check for blocked ports, membrane damage or debris and re-run.
-- **No response** — the channel returned no usable signal; the microphone or its wiring is likely faulty.
+Each row also shows the measured level (dBFS, and the approximate dB SPL at the microphone). On a KOL the summary warns when the healthy microphones' levels differ by more than 6 dB — usually a blocked port, or a source that is not centred.
 
-A summary line reports *"X of Y microphone(s) healthy"*. The threshold is deliberately lenient — this is a field health check, not a calibrated factory measurement.
+The thresholds come from a shared test specification and are first estimates until they are validated on hardware; this is a health check, not a calibrated factory measurement.
+
+## Add-on sensor test
+
+Checks the add-on boards on the connector before a deployment: the unit looks for each board by itself (no configuration needed), reads its device id and takes one live reading.
+
+| Sensor | Boards / parts | KOL | Vesper, Pipistrelle |
+|---|---|---|---|
+| Motion | IMU10 (LSM6DSM, LSM6DS3 or LSM6DSO), IMU10HT (ICM-20680) | ✓ | ✓ |
+| Temperature / humidity | TPRH31 (SHT31) | ✓ | ✓ |
+| Light | ALS3001D (OPT3001) | – | ✓ |
+| Biopotential | EXG2, EAG2, EXG48 (ADS1292, ADS1192, ADS1298) | – | ✓ |
+
+Firmware: KOL 1.8 or later; Vesper and Pipistrelle 1.22 or later.
+
+**How to run it:** fit the board(s), connect the device over USB and select it (idle — not recording, not in Live Audio), keep it still and press **Run Test**.
+
+| Result | Meaning |
+|---|---|
+| **Pass** | The board answered with the right id and a sensible reading (shown: the part found and the value — about 1 g at rest for motion, °C and %RH, lux). |
+| **Check** | The board answered, but the reading is out of the expected range (e.g. the unit was moving, or a checksum error). |
+| **Partial** | The motion board answered but its magnetometer or barometer did not. |
+| **Not found** | No board of that type answered — not fitted, badly seated, or another board on the same address (light and temperature boards cannot be stacked together). |
+| **No answer** | The unit did not reply — it is recording, or its firmware has no sensor test. |
 
 ## GNSS / RF self-test (Vesper / Nanotag)
 
-Exercises the GNSS receive chain in the device's own firmware. This is a **bench test**: it expects a controlled RF environment (a shielded enclosure with a signal generator such as an ADALM-Pluto coupled in), and is primarily used in production and service settings.
+Exercises the GNSS receive chain in the device's own firmware. This is a **bench test**: it expects a controlled RF environment (a shielded enclosure with an RF generator coupled in), and is primarily used in production and service settings.
 
-Two checks are available:
+The RF generator is driven by the **GNSS RF Test** plugin (an ADALM-Pluto transmitter), installed from the [Plugins](Software-Updates-and-Plugins) page. Without it the panel says so; **Validate Fix** still works on captures you already downloaded (it needs the GNSS Decoder plugin).
 
-- **Tone self-test** — the device captures an RF snapshot and must detect a continuous-wave test tone. Reported: pass/fail status, carrier-to-noise density (C/N0), and the measured TCXO frequency offset. Tone offset, generator gain, SNR threshold and snapshot length (64/128/256 ms) are adjustable.
-- **Positioning test** — a recorded GPS scenario is transmitted to the device; the device's snapshot is decoded and the resulting fix is compared against the scenario's reference coordinates within a tolerance (default 500 m). Reported: latitude, longitude, accuracy and satellite count.
+- **Check Radio** — looks for the transmitter and shows its station calibration (the per-generator frequency correction).
+- **Tone self-test** — the generator transmits a continuous-wave tone and the device must detect it in an RF snapshot. Reported: pass/fail, front-end level, and the tone offset the device measured. Tone offset, generator gain, SNR threshold and snapshot length (64/128/256 ms) are adjustable.
+- **Apply Offset** — after a passing tone test on a *reference* unit, adds the measured offset error to the generator's station calibration. Repeat the tone test until the error is small; recalibrate when the generator changes.
+- **Positioning test** — pick a scenario (static, or a moving 1 km circle), **Prepare** it once (the plugin generates it locally, a few hundred MB), **Transmit**, capture on the device, download, then **Validate Fix**: every fix is compared against where the scenario puts it; the test passes when the median error is within the tolerance (default 500 m).
 
 If you only need to confirm end-to-end GNSS on real sky, a normal snapshot recording outdoors followed by [GNSS Decoding](GNSS-Decoding) is the simpler route.
 

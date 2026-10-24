@@ -1,0 +1,3 @@
+# Golden binary fixtures (asd-interfaces fixtures/): never touch line endings
+*.BIN binary
+*.MBN binary

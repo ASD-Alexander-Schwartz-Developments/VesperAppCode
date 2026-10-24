@@ -47,18 +47,29 @@
 										<!-- Enums + sensor option wrappers -->
 										<controls:PropertyEditorTemplateSelector.Options>
 											<DataTemplate DataType="vm:DriverPropertyViewModel">
-												<ComboBox Margin="8,3"
-														  ItemsSource="{Binding Options}"
-														  SelectedItem="{Binding Value, Mode=TwoWay}"
-														  HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+												<!-- Microphone rate / gain rows add a Solve button that opens the Solve
+												     window (modal, over the editor) for this driver. -->
+												<Grid ColumnDefinitions="*,Auto,Auto">
+													<ComboBox Grid.Column="0" Margin="8,3"
+															  ItemsSource="{Binding Options}"
+															  SelectedItem="{Binding Value, Mode=TwoWay}"
+															  HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+													<Button Grid.Column="1" Margin="0,3,8,3" Padding="10,4"
+														Content="Solve" Tag="micSolve" IsVisible="{Binding HasSolver}"
+														ToolTip.Tip="Explain what the unit will do with these microphone settings: exact rate, filter, loudest sound, quiet sounds - and suggest a gain" />
+													<Button Grid.Column="2" Margin="0,3,8,3" Padding="10,4"
+														Content="Helper…" Tag="micHelper" IsVisible="{Binding HasHelper}"
+														ToolTip.Tip="Set up rate, filter, gain and sound-triggered recording for what you are recording, in one place" />
+												</Grid>
 											</DataTemplate>
 										</controls:PropertyEditorTemplateSelector.Options>
-										<!-- UInt32 -->
+										<!-- UInt32. The bound is the type's own: a 10 000 000 cap clamped every larger value
+										     (a 64 MB File Size showed - and, two-way, could be saved - as 10000000). -->
 										<controls:PropertyEditorTemplateSelector.Integer>
 											<DataTemplate DataType="vm:DriverPropertyViewModel">
 												<ui:NumberBox Margin="8,3"
 															  Value="{Binding Value, Mode=TwoWay, Converter={x:Static serv:UpDownUintConverter.Instance}}"
-															  Minimum="0" Maximum="10000000"
+															  Minimum="0" Maximum="4294967295"
 															  SmallChange="1" LargeChange="1000"
 															  SpinButtonPlacementMode="Compact"
 															  HorizontalAlignment="Stretch" VerticalAlignment="Center" />

@@ -1,0 +1,65 @@
+{
+  "contract": "interfaces/logger-file.md",
+  "device_type": 3,
+  "logmask": 63,
+  "period_ms": 60000,
+  "record_bytes": 120,
+  "samples": [
+    {
+      "t": 846235860,
+      "battery_mv": 2950,
+      "temp_centi_c": 2431,
+      "rtc_ppb": -205000,
+      "sensors": 2
+    },
+    {
+      "t": 846235920,
+      "battery_mv": 2948,
+      "temp_centi_c": -2147483648,
+      "rtc_ppb": -205000,
+      "sensors": 0
+    },
+    {
+      "t": 846235980,
+      "battery_mv": 2947,
+      "temp_centi_c": -512,
+      "rtc_ppb": -204000,
+      "sensors": 258
+    }
+  ],
+  "events": [
+    {
+      "t": 846235800,
+      "level": 3,
+      "code": 257
+    },
+    {
+      "t": 846235800,
+      "level": 3,
+      "code": 260
+    },
+    {
+      "t": 846235800,
+      "level": 1,
+      "code": 263
+    },
+    {
+      "t": 846235800,
+      "level": 3,
+      "code": 1281
+    },
+    {
+      "t": 846235875,
+      "level": 2,
+      "code": 1539
+    },
+    {
+      "t": 846235921,
+      "level": 1,
+      "code": 2056
+    }
+  ],
+  "notes": "temp_centi_c -2147483648 = no reading; seconds since 2000-01-01",
+  "use_as_file_name": "0H.BIN",
+  "why": "VesperApp classifies raw files by the letters in the name - copy the fixture to this name before decoding"
+}

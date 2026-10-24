@@ -1,0 +1,89 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI: unit tests, and the PRE-RELEASE app for testing merged code before a release.
+#
+# Runs on pull requests to master, on pushes to master (= every merge) and by hand.
+# Feature-branch pushes do NOT run it. Nothing is published: the self-contained
+# builds are workflow artifacts (Actions → this run → Artifacts) - unzip and run,
+# no installer, no update channel. Releases stay in app-release.yml (v* tags /
+# dispatch with a ring); the wiki goes live with the release (wiki-publish.yml).
+#
+# Pre-release version: <next>-pre.<run> where <next> = latest v* tag with the minor
+# bumped (or the repo variable APP_NEXT_VERSION, e.g. 1.2.0).
+# ─────────────────────────────────────────────────────────────────────────────
+name: CI
+
+on:
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Unit tests
+        run: dotnet test VesperApp.Tests/VesperApp.Tests.csproj -c Release --logger "trx;LogFileName=tests.trx"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
+          retention-days: 14
+
+  prerelease:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [ win-x64, linux-x64 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Pre-release version
+        id: meta
+        env:
+          NEXT: ${{ vars.APP_NEXT_VERSION }}
+        run: |
+          if [ -z "$NEXT" ]; then
+            LAST=$(git tag -l 'v*' --sort=-v:refname | head -1); LAST="${LAST#v}"
+            IFS=. read -r MA MI PA <<< "$LAST"
+            if [ -n "$MA" ] && [ -n "$MI" ]; then NEXT="$MA.$((MI + 1)).0"; else NEXT="0.0.0"; fi
+          fi
+          SHA=$(git rev-parse --short HEAD)
+          echo "ver=$NEXT-pre.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Pre-release VesperApp $NEXT-pre.${{ github.run_number }} ($SHA)"
+
+      - name: Publish self-contained (${{ matrix.rid }})
+        # CDN_BASE_URL: the feed origin baked into the binary (firmware list, plugins), as in app-release.yml.
+        run: >
+          dotnet publish VesperApp/VesperApp.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+          -p:Version=${{ steps.meta.outputs.ver }}
+          -p:CdnBaseUrl=${{ secrets.CDN_BASE_URL }}
+          -o publish/${{ matrix.rid }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VesperApp-${{ steps.meta.outputs.ver }}-${{ steps.meta.outputs.sha }}-${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}
+          retention-days: 30

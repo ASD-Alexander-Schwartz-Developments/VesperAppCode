@@ -24,6 +24,10 @@ namespace VesperApp.Models
         public static readonly List<ConfigurationDeviceDriver> SupportedDeviceDrivers = new List<ConfigurationDeviceDriver>
 		{
             { new ConfigKOLDriver() },
+            { new ConfigTPRH31Driver() },           // P2 add-ons (KOL firmware 1.8): I2C3 / SPI1
+            { new ConfigIMU10Driver() },
+            { new ConfigIMU10HTDriver() },
+            { new ConfigLoggerDriver() },
 		};
 
 		public static UInt32 ToTimestamp(DateTime dt)

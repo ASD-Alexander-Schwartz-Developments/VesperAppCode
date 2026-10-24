@@ -78,6 +78,8 @@ namespace VesperApp.Models
 
                     this.uid = ((UInt32)data[i++]) + ((UInt32)data[i++] << 8) + ((UInt32)data[i++] << 16) + ((UInt32)data[i++] << 24);
                     this.name = Encoding.ASCII.GetString(data, i, MAX_DEVICENAME_LEN);
+                    int nul = this.name.IndexOf('\0');        // firmware strncpy into a zeroed field: NUL padded
+                    if (nul >= 0) this.name = this.name.Substring(0, nul);
                     i += MAX_DEVICENAME_LEN;
 
                     this.fwid = (UInt16)((UInt16)((UInt16)data[i++]) + ((UInt16)data[i++] << 8));

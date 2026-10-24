@@ -4,7 +4,13 @@ using System.Collections.Generic;
 namespace ASD.DeviceCore.Protocol
 {
     /// <summary>One decoded console message.</summary>
-    public readonly record struct AsdMessage(byte Id, byte Type, byte[] Payload);
+    public readonly record struct AsdMessage(byte Id, byte Type, byte[] Payload)
+    {
+        /// <summary><see cref="System.Diagnostics.Stopwatch"/> timestamp taken right after the
+        /// serial read that completed this frame returned (0 = unknown). Used by the RTC
+        /// time-sync exchange to know when a reply arrived, independent of dispatch latency.</summary>
+        public long RxTimestamp { get; init; }
+    }
 
     /// <summary>
     /// The ASD device console framing, byte-identical to the firmware / the legacy

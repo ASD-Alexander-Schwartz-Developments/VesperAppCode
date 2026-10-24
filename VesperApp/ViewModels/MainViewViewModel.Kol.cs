@@ -12,7 +12,8 @@ using VesperApp.Models;
 namespace VesperApp.ViewModels
 {
     /// <summary>
-    /// KOL USB operational modes on the device console (Idle ↔ Live Audio ↔ Sampling)
+    /// USB operational modes on the device console (Idle ↔ Live Audio ↔ Sampling) - KOL, and Vesper /
+    /// Pipistrelle with new enough firmware (<see cref="LoggerDevice.SupportsUsbModes"/>) -
     /// and the shared "device goes away and comes back" choreography that the mode
     /// switch and the dockless firmware flash both need. Every firmware command is
     /// ACKed <em>before</em> the transition, so after the ACK the CDC port is expected
@@ -22,6 +23,7 @@ namespace VesperApp.ViewModels
     public partial class MainViewViewModel
     {
         private KolUsbMode? _kolUsbMode;
+        private KolUsbModeState? _kolState;
         private string _kolStatusText = string.Empty;
 
         /// <summary>Last mode read from the selected KOL (null until queried).</summary>
@@ -39,6 +41,73 @@ namespace VesperApp.ViewModels
         /// <summary>The selected device is a KOL on its CDC console.</summary>
         public bool IsKolSelected => SelectedLoggerDevice?.IsKol == true;
 
+        /// <summary>The selected unit has USB modes (KOL, or Vesper / Pipistrelle firmware 1.22+).</summary>
+        public bool IsUsbModesSelected => SelectedLoggerDevice?.SupportsUsbModes == true;
+
+        public string UsbModeToolTip
+        {
+            get
+            {
+                DeviceTypes? t = SelectedLoggerDevice?.DeviceType;
+                if (IsKolStatesSelected)
+                    return $"KOL operating state. Idle: console + USB disk (while connected to a computer). Live Audio: {MicsPhrase(t)} as a standard USB microphone (no disk). Recording: the KOL leaves USB and records according to config.json. Unplugged and not recording it sleeps; plugging it into a computer wakes it into Idle.";
+                return $"{DeviceCapabilities.DisplayName(t)} USB mode. Idle: console + USB disk. Live Audio: {MicsPhrase(t)} as a standard USB microphone (no disk). Sampling: the device leaves USB and runs its schedule.";
+            }
+        }
+
+        /// <summary>The selected unit is a KOL running the operating states (Sleep / Idle /
+        /// Live Audio / Recording, no magnet): its GET_USB_MODE reply carries status flags.</summary>
+        public bool IsKolStatesSelected => IsKolSelected && _kolState?.HasStatus == true;
+
+        /// <summary>Sleep / Arm Sleep apply to units that sleep and arm on command; a KOL with the
+        /// operating states sleeps by itself when unplugged and records through Start Recording.</summary>
+        public bool ShowSleepCommands => !IsKolStatesSelected;
+
+        public string StartRecordingButtonText => IsKolSelected ? "Start Recording" : "Start Sampling";
+
+        public string StartRecordingToolTip => IsKolStatesSelected
+            ? "Check the card, config.json, sensors, clock and free space, then let the KOL leave USB and record according to config.json. To stop recording, unplug it and connect it to a computer."
+            : IsKolSelected
+                ? "Arm the KOL and start its recording schedule. It disconnects from USB."
+                : "Arm the device and start its recording schedule. It disconnects from USB; reconnect it or use the magnet to return to Idle.";
+
+        private KolStatusFlags KolFlags => _kolState?.Flags ?? KolStatusFlags.None;
+
+        public bool IsKolReady => _kolState?.Reason == KolRecordReason.Ok;
+
+        /// <summary>Readiness pill: "Ready to record" or why not.</summary>
+        public string KolReadinessText => _kolState?.Reason is { } r ? KolRecordReasonInfo.Short(r) : string.Empty;
+
+        public string KolReadinessToolTip
+        {
+            get
+            {
+                if (_kolState?.Flags is not { } f) return string.Empty;
+                static string Yn(bool b, string yes, string no) => b ? yes : no;
+                string card = !f.HasFlag(KolStatusFlags.CardInserted) ? "no card"
+                            : f.HasFlag(KolStatusFlags.CardMounted) ? "inserted, mounted" : "inserted, not readable";
+                string lines =
+                    $"SD card: {card}\n" +
+                    $"config.json: {Yn(f.HasFlag(KolStatusFlags.ConfigOk), "loaded", "missing or not valid")}\n" +
+                    $"Clock: {Yn(f.HasFlag(KolStatusFlags.RtcSet), "set", "not set")}\n" +
+                    $"Sleeps when unplugged: {Yn(f.HasFlag(KolStatusFlags.VbusSense), "yes", "not yet (needs one USB plug-in; boards without the VBUS divider fix never do)")}";
+                string advice = _kolState.Reason is { } r ? KolRecordReasonInfo.Advice(r) : string.Empty;
+                return string.IsNullOrEmpty(advice) ? lines : lines + "\n\n" + advice;
+            }
+        }
+
+        /// <summary>"the 4 microphones stream" / "the microphone streams".</summary>
+        private static string MicsPhrase(DeviceTypes? t) =>
+            DeviceCapabilities.MicCount(t) > 1 ? $"the {DeviceCapabilities.MicCount(t)} microphones stream" : "the microphone streams";
+
+        /// <summary>Narration while a unit is in Live Audio.</summary>
+        private static string LiveAudioText(LoggerDevice dev, bool recorderHint)
+        {
+            int ch = DeviceCapabilities.LiveAudioChannels(dev.DeviceType);
+            string what = ch > 1 ? $"the microphones are streaming as a {ch}-channel USB microphone" : "the microphone is streaming as a USB microphone";
+            return $"Live Audio: {what} on this computer{(recorderHint ? " (use any recorder / sound settings)" : "")}. No disk is exposed in this mode.";
+        }
+
         public string KolUsbModeText => KolUsbModeInfo.Label(_kolUsbMode);
 
         public bool IsKolLiveAudio => _kolUsbMode == Models.KolUsbMode.LiveAudio;
@@ -46,8 +115,11 @@ namespace VesperApp.ViewModels
         public string KolLiveAudioButtonText => IsKolLiveAudio ? "Stop Live Audio" : "Live Audio";
 
         /// <summary>Disk-dependent actions (Format) are meaningless while a KOL is in
-        /// Live Audio — the medium belongs to the firmware and no MSC is exposed.</summary>
-        public bool CanUseDeviceDisk => IsDeviceConnected && !(IsKolSelected && !KolUsbModeInfo.HasDisk(_kolUsbMode));
+        /// Live Audio — the medium belongs to the firmware and no MSC is exposed — or when
+        /// a KOL reports no readable card.</summary>
+        public bool CanUseDeviceDisk => IsDeviceConnected
+            && !(IsUsbModesSelected && !KolUsbModeInfo.HasDisk(_kolUsbMode))
+            && !(IsKolStatesSelected && !KolFlags.HasFlag(KolStatusFlags.CardMounted));
 
         /// <summary>One-line narration under the device actions ("switching…", "device
         /// is now sampling…"). Empty hides the line.</summary>
@@ -70,6 +142,7 @@ namespace VesperApp.ViewModels
 
         public ICommand? KolToggleLiveAudioCommand { get; private set; }
         public ICommand? KolStartSamplingCommand { get; private set; }
+        public ICommand? KolCheckCommand { get; private set; }
 
         private void InitKolCommands()
         {
@@ -81,6 +154,11 @@ namespace VesperApp.ViewModels
 
             KolStartSamplingCommand = ReactiveCommand.CreateFromTask(async () =>
             {
+                if (IsKolStatesSelected)
+                {
+                    await StartKolRecordingAsync();
+                    return;
+                }
                 if (!await ConfirmAsync("Start sampling",
                         "Put the device into Sampling mode?",
                         "The device will disconnect from USB and run its recording schedule. "
@@ -88,21 +166,121 @@ namespace VesperApp.ViewModels
                     return;
                 await SwitchKolUsbModeAsync(Models.KolUsbMode.Sampling);
             });
+
+            KolCheckCommand = ReactiveCommand.CreateFromTask(async () =>
+            {
+                await RefreshKolUsbModeAsync(rereadConfig: true);
+                KolStatusText = KolProblemText();
+            });
+        }
+
+        /// <summary>One line for the status caption when a KOL cannot record (empty when it can,
+        /// or when the unit does not report its status).</summary>
+        private string KolProblemText()
+        {
+            if (!IsKolStatesSelected || _kolState?.Reason is not { } r || r == KolRecordReason.Ok) return string.Empty;
+            return $"{KolRecordReasonInfo.Short(r)}: {KolRecordReasonInfo.Advice(r)}";
+        }
+
+        /// <summary>
+        /// Start standalone recording on a KOL with the operating states: re-read config.json
+        /// and check (offering to set the clock when that is all that is missing), confirm, then
+        /// SET_USB_MODE(1). The firmware repeats the check and NACKs with the reason, so a
+        /// refusal is always explained.
+        /// </summary>
+        private async Task StartKolRecordingAsync()
+        {
+            LoggerDevice? dev = SelectedLoggerDevice;
+            if (dev?.SupportsUsbModes != true || !dev.IsConnected) return;
+
+            KolStatusText = "Checking the card, config.json and clock…";
+            await RefreshKolUsbModeAsync(rereadConfig: true);
+            KolRecordReason? reason = _kolState?.Reason;
+
+            if (reason == KolRecordReason.NoClock)
+            {
+                if (!await ConfirmAsync("Start recording", "The KOL's clock is not set.",
+                        "Recordings need the right time. Set the clock now (network time) and continue?"))
+                {
+                    KolStatusText = KolProblemText();
+                    return;
+                }
+                await SetDeviceClockAsync(dev);
+                await RefreshKolUsbModeAsync();
+                reason = _kolState?.Reason;
+            }
+
+            if (reason is { } r && r != KolRecordReason.Ok)
+            {
+                KolStatusText = KolProblemText();
+                await ShowInfoAsync("Start recording", $"{KolRecordReasonInfo.Short(r)}.\n\n{KolRecordReasonInfo.Advice(r)}");
+                return;
+            }
+
+            if (!await ConfirmAsync("Start recording", "Start recording now?",
+                    "The KOL will disconnect from USB and record according to config.json on its card, "
+                    + "sleeping between recording periods.\n\n"
+                    + "It keeps recording on its battery. To stop recording, unplug it and connect it to a "
+                    + "computer: it returns to Idle within about 5 s. A charger or power bank does not stop it."))
+            {
+                KolStatusText = string.Empty;
+                return;
+            }
+
+            KolStatusText = "Starting the recording…";
+            KolRecordResult res = await dev.StartRecordingAsync();
+            if (!res.Started)
+            {
+                KolStatusText = res.Reason is { } why
+                    ? $"{KolRecordReasonInfo.Short(why)}: {KolRecordReasonInfo.Advice(why)}"
+                    : res.Answered ? "The KOL refused to start recording." : "The KOL did not answer. Check the connection and try again.";
+                await RefreshKolUsbModeAsync();
+                await ShowInfoAsync("Start recording", KolStatusText);
+                return;
+            }
+
+            await PrepareForKolDetachAsync();
+            try
+            {
+                KolUsbMode = Models.KolUsbMode.Sampling;
+                KolStatusText = "Recording. The KOL has left USB (LED: 3 blinks, then off) and records according to config.json. "
+                              + "To stop, unplug it and connect it to a computer.";
+                await RunOnUiAsync(() =>
+                {
+                    LoggerDevices.Remove(dev);
+                    SelectedLoggerDevice = null;
+                });
+                await ShowInfoAsync("Recording", KolStatusText);
+            }
+            finally
+            {
+                ResumeScanning();
+            }
         }
 
         private void RaiseKolProperties()
         {
             this.RaisePropertyChanged(nameof(IsKolSelected));
+            this.RaisePropertyChanged(nameof(IsUsbModesSelected));
+            this.RaisePropertyChanged(nameof(UsbModeToolTip));
             this.RaisePropertyChanged(nameof(KolUsbMode));
             this.RaisePropertyChanged(nameof(KolUsbModeText));
             this.RaisePropertyChanged(nameof(IsKolLiveAudio));
             this.RaisePropertyChanged(nameof(KolLiveAudioButtonText));
             this.RaisePropertyChanged(nameof(CanUseDeviceDisk));
+            this.RaisePropertyChanged(nameof(IsKolStatesSelected));
+            this.RaisePropertyChanged(nameof(ShowSleepCommands));
+            this.RaisePropertyChanged(nameof(StartRecordingButtonText));
+            this.RaisePropertyChanged(nameof(StartRecordingToolTip));
+            this.RaisePropertyChanged(nameof(IsKolReady));
+            this.RaisePropertyChanged(nameof(KolReadinessText));
+            this.RaisePropertyChanged(nameof(KolReadinessToolTip));
         }
 
         private void OnSelectedLoggerDeviceChanged()
         {
             _kolUsbMode = SelectedLoggerDevice?.UsbMode;
+            _kolState = SelectedLoggerDevice?.UsbState;
             RaiseKolProperties();
         }
 
@@ -110,13 +288,13 @@ namespace VesperApp.ViewModels
         internal async Task OnDeviceConnectedAsync()
         {
             LoggerDevice? dev = SelectedLoggerDevice;
-            if (dev?.IsKol == true && dev.IsConnected)
+            if (dev?.SupportsUsbModes == true && dev.IsConnected)
             {
-                await RefreshKolUsbModeAsync();
+                await RefreshKolUsbModeAsync(rereadConfig: true);
                 if (KolUsbMode == Models.KolUsbMode.LiveAudio)
-                    KolStatusText = "Live Audio: the microphones are streaming as a 4-channel USB microphone on this computer. No disk is exposed in this mode.";
+                    KolStatusText = LiveAudioText(dev, recorderHint: false);
                 else
-                    KolStatusText = string.Empty;
+                    KolStatusText = KolProblemText();
             }
             else
             {
@@ -125,12 +303,16 @@ namespace VesperApp.ViewModels
             RaiseKolProperties();
         }
 
-        internal async Task RefreshKolUsbModeAsync()
+        /// <param name="rereadConfig">KOL: have the firmware read config.json from the card again
+        /// first (the user may have just copied one onto the USB disk).</param>
+        internal async Task RefreshKolUsbModeAsync(bool rereadConfig = false)
         {
             LoggerDevice? dev = SelectedLoggerDevice;
-            if (dev?.IsKol != true || !dev.IsConnected) return;
-            KolUsbModeState? state = await dev.GetUsbModeAsync();
+            if (dev?.SupportsUsbModes != true || !dev.IsConnected) return;
+            KolUsbModeState? state = await dev.GetUsbModeAsync(rereadConfig: rereadConfig);
+            _kolState = state;
             KolUsbMode = state?.Active;
+            RunOnUi(RaiseKolProperties);
         }
 
         /// <summary>
@@ -141,7 +323,7 @@ namespace VesperApp.ViewModels
         internal async Task SwitchKolUsbModeAsync(KolUsbMode target)
         {
             LoggerDevice? dev = SelectedLoggerDevice;
-            if (dev?.IsKol != true || !dev.IsConnected) return;
+            if (dev?.SupportsUsbModes != true || !dev.IsConnected) return;
             string serial = dev.SerialNumber ?? string.Empty;
 
             KolStatusText = target == Models.KolUsbMode.Sampling
@@ -151,7 +333,7 @@ namespace VesperApp.ViewModels
             bool ack = await dev.SetUsbModeAsync(target);
             if (!ack)
             {
-                KolStatusText = "The device did not acknowledge the mode change. It may be running older firmware without USB modes.";
+                KolStatusText = "The device refused or did not acknowledge the mode change. It may be running older firmware without USB modes.";
                 await ShowInfoAsync("USB mode", KolStatusText);
                 return;
             }
@@ -186,7 +368,7 @@ namespace VesperApp.ViewModels
                 if (KolUsbMode == target)
                 {
                     KolStatusText = target == Models.KolUsbMode.LiveAudio
-                        ? "Live Audio: the microphones are streaming as a 4-channel USB microphone on this computer (use any recorder / sound settings). No disk is exposed in this mode."
+                        ? LiveAudioText(back, recorderHint: true)
                         : "Idle: console and USB disk available.";
                 }
                 else
@@ -237,7 +419,12 @@ namespace VesperApp.ViewModels
 
             await RunOnUiAsync(() =>
             {
-                LoggerDevice? existing = LoggerDevices.FirstOrDefault(d => d.Equals(found));
+                // Devices are equal only on serial AND port, but a re-enumerated KOL may come back
+                // on another COM port (Live Audio is a different composite). The serial is the unit:
+                // replace its old row, and drop any further stale ones - the periodic scan that would
+                // remove them does not run while a device is connected.
+                LoggerDevice? existing = LoggerDevices.FirstOrDefault(d => d.Equals(found))
+                    ?? LoggerDevices.FirstOrDefault(d => d.IsComportDevice && SameSerial(d, found));
                 if (existing is null)
                 {
                     LoggerDevices.Add(found);
@@ -246,6 +433,10 @@ namespace VesperApp.ViewModels
                 {
                     LoggerDevices[LoggerDevices.IndexOf(existing)] = found;
                 }
+                foreach (LoggerDevice stale in LoggerDevices
+                             .Where(d => !ReferenceEquals(d, found) && d.IsComportDevice && SameSerial(d, found))
+                             .ToList())
+                    LoggerDevices.Remove(stale);
                 int index = LoggerDevices.IndexOf(found);
                 if (SelectedLoggerDeviceModel != null && index >= 0)
                     SelectedLoggerDeviceModel.SelectedIndex = index;
@@ -261,6 +452,10 @@ namespace VesperApp.ViewModels
             await Task.Delay(300);
             return found;
         }
+
+        private static bool SameSerial(LoggerDevice a, LoggerDevice b) =>
+            !string.IsNullOrEmpty(a.SerialNumber)
+            && string.Equals(a.SerialNumber, b.SerialNumber, StringComparison.OrdinalIgnoreCase);
 
         private static async Task<bool> ConfirmAsync(string title, string header, string message)
         {

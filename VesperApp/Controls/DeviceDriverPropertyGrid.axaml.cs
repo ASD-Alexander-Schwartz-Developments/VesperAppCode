@@ -1,5 +1,8 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using VesperApp.ViewModels;
+using VesperApp.Views;
 
 namespace VesperApp.Controls
 {
@@ -15,11 +18,30 @@ namespace VesperApp.Controls
         public DeviceDriverPropertyGrid()
         {
             InitializeComponent();
+            /* The microphone "Solve" buttons live in cell templates; one routed handler opens the
+               Solve window as a modal over the editor (a flyout was clipped by the grid). */
+            AddHandler(Button.ClickEvent, OnButtonClick);
         }
 
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        private async void OnButtonClick(object? sender, RoutedEventArgs e)
+        {
+            Window window;
+            if (e.Source is Button { Tag: "micSolve" } b && b.DataContext is DriverPropertyViewModel { Solvable: { } driver })
+                window = new MicChainSolverWindow { DataContext = new MicChainSolverViewModel(driver) };
+            else if (e.Source is Button { Tag: "micHelper" } h && h.DataContext is DriverPropertyViewModel { HelperTarget: { } target })
+                window = new MicHelperWindow { DataContext = new MicHelperViewModel(target) };
+            else
+                return;
+            e.Handled = true;
+            if (TopLevel.GetTopLevel(this) is Window owner)
+                await window.ShowDialog(owner);
+            else
+                window.Show();
         }
     }
 }

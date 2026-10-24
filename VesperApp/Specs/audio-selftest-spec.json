@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "comment": "Single source of pass/fail for the microphone self-test (console 60 VESPER_TEST_AUDIO) on KOL, Vesper and Pipistrelle. Read by VesperApp (embedded); factory-sw should read the same file. Firmware reports measurements only (audio_selftest.h). Every threshold below is a first estimate: validated = false until the bench procedure (docs/audio-selftest.md in Kol / VesperU5) has run on real units.",
+  "validated": false,
+  "request": {
+    "sample_rate_hz": 48000,
+    "duration_ms": 150,
+    "tones_hz": [1000, 4000],
+    "snr_margin_db": 12
+  },
+  "stimulus": {
+    "kind": "two-tone",
+    "description": "1 kHz and 4 kHz together, steady, from a phone or small speaker about 10 cm from the microphone(s); about 70-80 dB SPL at the microphone (a phone at full volume at 10 cm).",
+    "level_db_spl_at_mic": 75,
+    "to_validate": "the level a typical phone gives at 10 cm; whether a tap test is a usable fallback when no tone source is at hand"
+  },
+  "pass": {
+    "tone_snr_min_db": 12,
+    "level_min_dbfs": -70,
+    "level_max_dbfs": -1,
+    "dc_max_counts": 3000,
+    "clipping_allowed": false,
+    "max_channel_spread_db": 6,
+    "to_validate": "level_min_dbfs against a quiet room with the stimulus off (should fail the tones but stay above the stuck/dead floor); dc_max_counts on several units (high-pass is off during the test); max_channel_spread_db on KOL with the stimulus centred"
+  },
+  "products": {
+    "kol": { "channels": 4, "min_firmware": "1.8" },
+    "vesper": { "channels": 1, "min_firmware": "1.22" },
+    "pipistrelle": { "channels": 1, "min_firmware": "1.22" }
+  }
+}

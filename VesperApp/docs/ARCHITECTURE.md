@@ -74,7 +74,9 @@ PUBLIC repo (VesperApp — open source)
 PRIVATE repos (binary plugins, loaded at runtime by entitlement)
 ├── ASD.PlmClient      implements IPlmClient: Cognito SRP, JWT refresh, REST to
 │                       /portal/* and /documents/*  (knows API URL + pool IDs)
-└── ASD.Gnss           implements IGnssDecoder: drives the cg-gnss geotag-cli process
+├── ASD.Gnss           implements IGnssDecoder: drives the cg-gnss geotag-cli process
+└── ASD.PlutoGnss      implements IGnssSignalSource: drives the pluto-gnss RF test
+                        transmitter, generates the test scenarios, station calibration
 ```
 
 `ASD.Contracts` and `ASD.DeviceCore` are now **real assemblies** in the solution; the
@@ -186,6 +188,7 @@ modules simply do not appear. Well-known keys: `ASD.Contracts.Entitlements`.
 |------------------------|---------------------------------------------------------------|-----------------------------|
 | `IPlmClient`           | Backend auth + portal devices/telemetry + presigned upload    | `StubPlmClient` (inert)     |
 | `IGnssDecoder`         | Cross-platform snapshot-GNSS decode                           | `StubGnssDecoder` (inert)   |
+| `IGnssSignalSource`    | Bench RF generator for the GNSS tests (tone, scenarios, cal)  | none (tests need the plugin)|
 | `IEntitlementProvider` | "Is this account allowed feature X?"                          | `OfflineEntitlementProvider`|
 | `IModule`              | A loadable, entitlement-gated feature contributing nav        | none registered             |
 | `IPlatformContext`     | Services handed to a module at init                          | bound to the above          |
@@ -229,7 +232,9 @@ means a connectivity outage never loses field data.
 ## 8. What this leaves for later (separate features)
 
 - ~~Extract `ASD.Contracts` / `ASD.DeviceCore` into real assemblies~~ (done); private
-  `ASD.PlmClient` repo; signed-plugin loader. (`ASD.Gnss` exists as a plugin over cg-gnss.)
+  `ASD.PlmClient` repo; signed-plugin loader. (`ASD.Gnss` exists as a plugin over cg-gnss;
+  `ASD.PlutoGnss` over pluto-gnss. The Plugins page lists every pack from
+  `PluginUpdatesViewModel.Catalog`.)
 - Implement the real backend client against `plm-cdk` `/portal/*` + `/documents/*`.
 - ~~Move GNSS decode behind `IGnssDecoder`; remove `CG\` from the public tree~~ (done).
 - ~~Build the Linux base-station daemon~~ (done: `ASD.BaseStation`).

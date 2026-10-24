@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -8,29 +9,32 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using ReactiveUI;
+using ASD.Contracts;
 using ASD.DeviceCore.Protocol;
+using ASD.Platform;
 using VesperApp.Models;
 using VesperApp.Services;
 
 namespace VesperApp.ViewModels
 {
     /// <summary>
-    /// GNSS RF / positioning test for VT04-VESPER, driven from the proven pluto-gnss
-    /// rig. Two checks:
-    ///   1. Tone go/no-go — transmit a CW tone (native pluto-gnss) and issue the
-    ///      in-FW VESPER_TEST_GPS (61); the device detects it in RAM and replies pass/fail.
-    ///   2. Positioning — transmit a gps-sdr-sim scenario at the calibrated LO
-    ///      (L1 + clock pre-comp), capture+download on the device (normal flow), then
-    ///      decode the snaps via IGnssDecoder and check the fix against a reference.
-    /// Mirrors MicHealthCheckViewModel. Requires the device in a shielded box with the
-    /// Pluto TX coupled in. For positioning use a decode-supported snap length (cg-gnss
-    /// accepts 64/128/256/440/512 ms; 512 ms is decoded whole) and do not truncate snaps;
-    /// use the per-Pluto calibrated LO.
+    /// GNSS RF / positioning test for VT04-VESPER. The RF generator is a plugin
+    /// (<see cref="IGnssSignalSource"/>, installed from the Plugins page); this panel only asks it to
+    /// transmit. Two checks:
+    ///   1. Tone go/no-go — the generator transmits a CW tone and the host issues the in-FW
+    ///      VESPER_TEST_GPS (61); the device detects it in RAM and replies pass/fail plus the offset it
+    ///      measured, which can be fed back into the generator's station calibration.
+    ///   2. Positioning — the generator transmits a simulated scenario, the device captures and is
+    ///      downloaded the normal way, then the snaps are decoded via <see cref="IGnssDecoder"/> and
+    ///      every fix is checked against the scenario's reference (a point, or a circle around it).
+    /// Mirrors MicHealthCheckViewModel. Requires the device in a shielded box with the generator
+    /// coupled in. For positioning use a decode-supported snap length (cg-gnss accepts
+    /// 64/128/256/440/512 ms; 512 ms is decoded whole) and do not truncate snaps.
     /// </summary>
     public class GnssRfTestViewModel : ViewModelBase
     {
         private readonly MainViewViewModel? _main;
-        private readonly PlutoGnssTx _tx = new();
+        private readonly IGnssSignalSource? _source = PlatformServices.GnssSignalSource;
 
         public ObservableCollection<GnssTestRow> Results { get; } = new();
 
@@ -41,65 +45,99 @@ namespace VesperApp.ViewModels
         public byte SnapLenCode { get; set; } = 1;            // 0=64,1=128,2=256 ms
 
         // --- positioning params ---
-        private readonly GnssScenarioService _scenario = new();
-        public long CalibratedLoHz { get; set; } = PlutoGnssTx.L1Hz + 22_600;   // per-Pluto clock pre-comp
-        public double GpsGainDb { get; set; } = -34;
-        public double ReferenceLat { get; set; }
-        public double ReferenceLon { get; set; }
+        public double ScenarioGainDb { get; set; } = -34;
         public double ToleranceMeters { get; set; } = 500;
+
+        /// <summary>True when an RF generator plugin is installed.</summary>
+        public bool HasSource => _source is { IsAvailable: true };
+        public string SourceName => _source?.Name ?? "No RF generator";
+
+        private string _sourceStatus = string.Empty;
+        public string SourceStatus { get => _sourceStatus; private set => this.RaiseAndSetIfChanged(ref _sourceStatus, value); }
+
+        private IReadOnlyList<GnssScenarioInfo> _scenarios = Array.Empty<GnssScenarioInfo>();
+        public IReadOnlyList<GnssScenarioInfo> Scenarios { get => _scenarios; private set => this.RaiseAndSetIfChanged(ref _scenarios, value); }
+
+        private GnssScenarioInfo? _selectedScenario;
+        public GnssScenarioInfo? SelectedScenario
+        {
+            get => _selectedScenario;
+            set { this.RaiseAndSetIfChanged(ref _selectedScenario, value); UpdateScenarioStatus(); }
+        }
 
         // Captures folder is chosen via a picker (no typed paths); shown read-only.
         private string _capturesFolder = string.Empty;
         public string CapturesFolder { get => _capturesFolder; set => this.RaiseAndSetIfChanged(ref _capturesFolder, value); }
 
-        // The gps-sdr-sim scenario is an on-demand CDN asset cached locally.
         private bool _scenarioReady;
         public bool ScenarioReady { get => _scenarioReady; private set => this.RaiseAndSetIfChanged(ref _scenarioReady, value); }
 
         private string _scenarioStatus = string.Empty;
         public string ScenarioStatus { get => _scenarioStatus; private set => this.RaiseAndSetIfChanged(ref _scenarioStatus, value); }
 
-        private bool _isDownloading;
-        public bool IsDownloading { get => _isDownloading; private set => this.RaiseAndSetIfChanged(ref _isDownloading, value); }
+        private bool _isPreparing;
+        public bool IsPreparing { get => _isPreparing; private set => this.RaiseAndSetIfChanged(ref _isPreparing, value); }
 
-        private double _downloadProgress;
-        public double DownloadProgress { get => _downloadProgress; private set => this.RaiseAndSetIfChanged(ref _downloadProgress, value); }
+        private double _prepareProgress;
+        public double PrepareProgress { get => _prepareProgress; private set => this.RaiseAndSetIfChanged(ref _prepareProgress, value); }
 
         private bool _isRunning;
         public bool IsRunning { get => _isRunning; set => this.RaiseAndSetIfChanged(ref _isRunning, value); }
 
         // False when the selected product has no GNSS receiver (the device-side tone
-        // self-test is then not applicable; the Pluto/offline actions stay available).
+        // self-test is then not applicable; transmit and offline validation stay available).
         private bool _isSupported;
         public bool IsSupported { get => _isSupported; private set => this.RaiseAndSetIfChanged(ref _isSupported, value); }
 
-        private string _summary = "Connect the device (shielded box, Pluto TX coupled in), then run a test.";
+        /// <summary>Device-measured minus transmitted tone offset from the last tone test, Hz.</summary>
+        private double? _residualHz;
+        public double? ResidualHz { get => _residualHz; private set => this.RaiseAndSetIfChanged(ref _residualHz, value); }
+
+        private string _summary = "Connect the device (shielded box, RF generator coupled in), then run a test.";
         public string Summary { get => _summary; set => this.RaiseAndSetIfChanged(ref _summary, value); }
 
+        public ICommand ProbeCommand { get; }
         public ICommand ToneSelfTestCommand { get; }
+        public ICommand ApplyCalibrationCommand { get; }
         public ICommand TransmitScenarioCommand { get; }
         public ICommand StopTransmitCommand { get; }
         public ICommand ValidatePositioningCommand { get; }
-        public ICommand DownloadScenarioCommand { get; }
+        public ICommand PrepareScenarioCommand { get; }
         public ICommand BrowseCapturesCommand { get; }
 
         public GnssRfTestViewModel(MainViewViewModel main)
         {
             _main = main;
             var canRun = this.WhenAnyValue(x => x.IsRunning, r => !r);
+            var canSource = this.WhenAnyValue(x => x.IsRunning, r => !r && HasSource);
             // The tone self-test interrogates the device firmware, so it only applies
-            // to GNSS-capable products; the Pluto-TX and offline-decode actions don't.
-            var canDeviceTest = this.WhenAnyValue(x => x.IsRunning, x => x.IsSupported, (r, s) => !r && s);
-            // Transmit needs the scenario asset present locally; download needs it absent.
+            // to GNSS-capable products; transmit and offline decode don't.
+            var canDeviceTest = this.WhenAnyValue(x => x.IsRunning, x => x.IsSupported, (r, s) => !r && s && HasSource);
             var canTransmit = this.WhenAnyValue(x => x.IsRunning, x => x.ScenarioReady, (r, ready) => !r && ready);
-            var canDownload = this.WhenAnyValue(x => x.IsDownloading, x => x.ScenarioReady, (d, ready) => !d && !ready);
+            var canPrepare = this.WhenAnyValue(x => x.IsPreparing, x => x.ScenarioReady, x => x.SelectedScenario,
+                (p, ready, s) => !p && !ready && s != null);
+            var canCalibrate = this.WhenAnyValue(x => x.IsRunning, x => x.ResidualHz, (r, res) => !r && res.HasValue);
+
+            ProbeCommand = ReactiveCommand.CreateFromTask(ProbeAsync, canSource);
             ToneSelfTestCommand = ReactiveCommand.CreateFromTask(RunToneSelfTestAsync, canDeviceTest);
-            TransmitScenarioCommand = ReactiveCommand.Create(StartTransmit, canTransmit);
-            StopTransmitCommand = ReactiveCommand.Create(() => _tx.Stop());
+            ApplyCalibrationCommand = ReactiveCommand.CreateFromTask(ApplyCalibrationAsync, canCalibrate);
+            TransmitScenarioCommand = ReactiveCommand.CreateFromTask(StartTransmitAsync, canTransmit);
+            StopTransmitCommand = ReactiveCommand.Create(() => _source?.Stop());
             ValidatePositioningCommand = ReactiveCommand.CreateFromTask(RunValidateAsync, canRun);
-            DownloadScenarioCommand = ReactiveCommand.CreateFromTask(DownloadScenarioAsync, canDownload);
+            PrepareScenarioCommand = ReactiveCommand.CreateFromTask(PrepareScenarioAsync, canPrepare);
             BrowseCapturesCommand = ReactiveCommand.CreateFromTask(BrowseCapturesAsync);
-            UpdateScenarioStatus();
+
+            if (HasSource)
+            {
+                SourceStatus = "Press Check radio to look for the transmitter and its calibration.";
+                RefreshScenarios();
+            }
+            else
+            {
+                SourceStatus = "No RF generator plugin is installed. Install the GNSS RF test plugin from the Plugins page "
+                             + "to run the tone self-test and transmit scenarios; Validate Fix works on downloaded captures without it.";
+                UpdateScenarioStatus();
+            }
 
             if (_main?.SelectedLoggerDeviceModel != null)
                 _main.SelectedLoggerDeviceModel.SelectionChanged += OnDeviceSelectionChanged;
@@ -120,7 +158,7 @@ namespace VesperApp.ViewModels
         {
             IsSupported = dev != null && DeviceCapabilities.HasGnss(dev.DeviceType);
             if (dev != null && !IsSupported)
-                Summary = $"{dev.DeviceType} has no GNSS receiver — tone self-test disabled (Pluto TX / Validate still available).";
+                Summary = $"{dev.DeviceType} has no GNSS receiver — tone self-test disabled (transmit / Validate still available).";
         }
 
         private LoggerDevice? Device()
@@ -139,35 +177,60 @@ namespace VesperApp.ViewModels
             return dev;
         }
 
+        private async Task ProbeAsync()
+        {
+            if (_source == null) return;
+            IsRunning = true;
+            try { SourceStatus = Describe(await _source.ProbeAsync()); }
+            catch (Exception ex) { SourceStatus = "Check failed: " + ex.Message; }
+            finally { IsRunning = false; }
+        }
+
+        private static string Describe(GnssSourceStatus s)
+        {
+            string cal = s.CalibrationHz is double hz
+                ? $"station calibration {hz:+0;-0} Hz" + (s.CalibratedOn is DateTimeOffset on ? $" ({on:yyyy-MM-dd})" : "")
+                : "no station calibration — run the tone self-test with a reference unit and apply the offset";
+            return (s.RadioFound ? "Radio found" : "Radio not found") + $" · {cal}. {s.Message}".TrimEnd();
+        }
+
         // ---- 1. Tone go/no-go (RF chain) ----
         private async Task RunToneSelfTestAsync()
         {
             LoggerDevice? dev = Device();
-            if (dev == null) return;
+            if (dev == null || _source == null) return;
 
             IsRunning = true;
+            ResidualHz = null;
             Results.Clear();
             var row = new GnssTestRow("RF chain (tone)") { Status = "Testing…" };
             Results.Add(row);
             try
             {
                 Summary = $"Transmitting tone at L1 + {ToneOffsetKHz:0} kHz…";
-                _tx.StartTone(ToneOffsetKHz * 1000.0, ToneGainDb);     // LO = L1; the FW finds the in-band tone
+                double sentHz = await _source.StartToneAsync(ToneOffsetKHz * 1000.0, ToneGainDb);
                 await Task.Delay(400);                                  // let the tone settle
 
                 uint snapMs = (SnapLenCode == 0) ? 64u : (SnapLenCode >= 2) ? 256u : 128u;
                 byte[] req = GpsBenchTest.BuildRequest(snapMs, SnrThreshDb);
                 byte[]? resp = await dev.SendCommandAsync(MessageTypes.VESPER_TEST_GPS, req, 8000);
-                _tx.Stop();
+                _source.Stop();
 
                 GpsTestResult? r = GpsBenchTest.ParseResponse(resp);
-                await Dispatcher.UIThread.InvokeAsync(() => ApplyTone(row, resp, r));
+                if (r is { Pass: true }) ResidualHz = r.TcxoOffsetHz - sentHz;
+                await Dispatcher.UIThread.InvokeAsync(() => ApplyTone(row, resp, r, ResidualHz));
                 Summary = (r != null && r.Pass) ? "RF chain OK." : "RF chain check did not pass.";
             }
-            finally { _tx.Stop(); IsRunning = false; }
+            catch (Exception ex)
+            {
+                row.Status = "Error"; row.StatusBrush = Brushes.OrangeRed;
+                row.Detail = ex.Message;
+                Summary = "Tone test could not run: " + ex.Message;
+            }
+            finally { _source.Stop(); IsRunning = false; }
         }
 
-        private static void ApplyTone(GnssTestRow row, byte[]? resp, GpsTestResult? r)
+        private static void ApplyTone(GnssTestRow row, byte[]? resp, GpsTestResult? r, double? residualHz)
         {
             if (resp == null || r == null)
             {
@@ -177,7 +240,8 @@ namespace VesperApp.ViewModels
             else if (r.Pass)
             {
                 row.Status = "GO"; row.StatusBrush = Brushes.SeaGreen;
-                row.Detail = $"front end {r.PeakCN0} dB · tone at {r.TcxoOffsetHz / 1000:+0;-0} kHz";
+                row.Detail = $"front end {r.PeakCN0} dB · tone at {r.TcxoOffsetHz / 1000.0:+0.0;-0.0} kHz"
+                           + (residualHz is double res ? $" · {res:+0;-0} Hz from the transmitted offset" : "");
             }
             else if (!r.Ok)
             {
@@ -191,48 +255,78 @@ namespace VesperApp.ViewModels
             }
         }
 
-        // ---- 2. Positioning: transmit scenario, then validate downloaded snaps ----
-        private void StartTransmit()
+        /// <summary>Fold the last measured residual into the generator's station calibration. Use a
+        /// reference unit for this, not the unit under test.</summary>
+        private async Task ApplyCalibrationAsync()
         {
-            if (!_scenario.Exists)
-            { Summary = "Download the scenario first."; UpdateScenarioStatus(); return; }
-            _tx.StartFile(_scenario.LocalPath, CalibratedLoHz, GpsGainDb);
-            Summary = $"Transmitting {_scenario.FileName} at L1 {((CalibratedLoHz - PlutoGnssTx.L1Hz) / 1e3):+0.0} kHz. " +
-                      "Capture a burst on the device, return it to disk mode, then Validate.";
+            if (_source == null || ResidualHz is not double res) return;
+            IsRunning = true;
+            try
+            {
+                SourceStatus = Describe(await _source.AdjustCalibrationAsync(res));
+                Summary = $"Station calibration adjusted by {res:+0;-0} Hz. Repeat the tone test until the residual is small.";
+                ResidualHz = null;
+            }
+            catch (Exception ex) { Summary = "Calibration failed: " + ex.Message; }
+            finally { IsRunning = false; }
+        }
+
+        // ---- 2. Positioning: transmit scenario, then validate downloaded snaps ----
+        private async Task StartTransmitAsync()
+        {
+            if (_source == null || SelectedScenario is not { } s) return;
+            IsRunning = true;
+            try
+            {
+                Summary = $"Starting {s.Name}…";
+                await _source.StartScenarioAsync(s.Id, ScenarioGainDb);
+                Summary = $"Transmitting {s.Name}. Capture a burst on the device, return it to disk mode, then Validate.";
+            }
+            catch (Exception ex) { Summary = "Transmit failed: " + ex.Message; }
+            finally { IsRunning = false; }
+        }
+
+        private void RefreshScenarios()
+        {
+            string? id = SelectedScenario?.Id;
+            Scenarios = _source?.GetScenarios() ?? Array.Empty<GnssScenarioInfo>();
+            SelectedScenario = Scenarios.FirstOrDefault(x => x.Id == id) ?? Scenarios.FirstOrDefault();
         }
 
         private void UpdateScenarioStatus()
         {
-            ScenarioReady = _scenario.Exists;
-            ScenarioStatus = ScenarioReady
-                ? $"Ready · {_scenario.FileName}"
-                : $"Not downloaded · {_scenario.FileName}";
+            ScenarioReady = HasSource && SelectedScenario is { IsReady: true };
+            ScenarioStatus = !HasSource ? "—"
+                : SelectedScenario is not { } s ? "The generator offers no scenarios."
+                : s.IsReady ? $"Ready · {s.Description}"
+                : $"Not prepared · {s.Description}";
         }
 
-        /// <summary>Fetch the scenario asset from the CDN into the local cache, with progress.</summary>
-        private async Task DownloadScenarioAsync()
+        /// <summary>Have the generator prepare the selected scenario into its local cache, with progress.</summary>
+        private async Task PrepareScenarioAsync()
         {
-            IsDownloading = true;
-            DownloadProgress = 0;
-            ScenarioStatus = "Downloading…";
+            if (_source == null || SelectedScenario is not { } s) return;
+            IsPreparing = true;
+            PrepareProgress = 0;
+            ScenarioStatus = "Preparing…";
             try
             {
                 var progress = new Progress<double>(p =>
                 {
-                    DownloadProgress = p;
-                    ScenarioStatus = $"Downloading… {p * 100:0}%";
+                    PrepareProgress = p;
+                    ScenarioStatus = $"Preparing… {p * 100:0}%";
                 });
-                await _scenario.DownloadAsync(progress);
-                Summary = $"Scenario ready: {_scenario.LocalPath}";
+                bool ok = await _source.PrepareScenarioAsync(s.Id, progress);
+                Summary = ok ? $"Scenario ready: {s.Name}" : $"Could not prepare {s.Name}.";
             }
             catch (Exception ex)
             {
-                Summary = "Scenario download failed: " + ex.Message;
+                Summary = "Scenario preparation failed: " + ex.Message;
             }
             finally
             {
-                IsDownloading = false;
-                UpdateScenarioStatus();
+                IsPreparing = false;
+                RefreshScenarios();
             }
         }
 
@@ -252,7 +346,7 @@ namespace VesperApp.ViewModels
 
         private async Task RunValidateAsync()
         {
-            var dec = ASD.Platform.PlatformServices.Gnss;
+            var dec = PlatformServices.Gnss;
             if (dec == null || !dec.IsAvailable)
             { Summary = "GNSS decoder plugin (ASD.Gnss) not installed."; return; }
             if (string.IsNullOrWhiteSpace(CapturesFolder) || !Directory.Exists(CapturesFolder))
@@ -270,36 +364,46 @@ namespace VesperApp.ViewModels
                 foreach (string bin in bins)
                     await BinaryParser.ExtractVesperSnap(bin, snapDir, TimeSpan.Zero);
 
-                var req = new ASD.Contracts.GnssDecodeRequest(snapDir, Path.Combine(snapDir, "decode"));
-                ASD.Contracts.GnssDecodeResult res = await dec.DecodeAsync(req);
+                var req = new GnssDecodeRequest(snapDir, Path.Combine(snapDir, "decode"));
+                GnssDecodeResult res = await dec.DecodeAsync(req);
 
                 var fixes = res.Fixes;
-                await Dispatcher.UIThread.InvokeAsync(() => ApplyFix(row, res.Succeeded, fixes));
+                await Dispatcher.UIThread.InvokeAsync(() => ApplyFix(row, res.Succeeded, fixes, SelectedScenario));
             }
             finally { IsRunning = false; }
         }
 
-        private void ApplyFix(GnssTestRow row, bool ok, System.Collections.Generic.IReadOnlyList<ASD.Contracts.GnssFix> fixes)
+        /// <summary>Each fix's distance from where the scenario puts it: the reference point, or the
+        /// circle of <see cref="GnssScenarioInfo.PathRadiusMeters"/> around it. Passes on the median.</summary>
+        private void ApplyFix(GnssTestRow row, bool ok, IReadOnlyList<GnssFix> fixes, GnssScenarioInfo? scenario)
         {
             if (!ok || fixes.Count == 0)
             {
                 row.Status = "No fix"; row.StatusBrush = Brushes.OrangeRed;
-                row.Detail = "No valid fixes — check the LO pre-comp, gain, and that snaps are 256 ms.";
+                row.Detail = "No valid fixes — check the station calibration, gain, and that snaps are 256 ms.";
                 Summary = "Positioning: no fix.";
                 return;
             }
             double mlat = fixes.Average(f => f.Latitude);
             double mlon = fixes.Average(f => f.Longitude);
-            bool haveRef = ReferenceLat != 0 || ReferenceLon != 0;
-            double err = haveRef ? GeoUtil.HaversineMeters(mlat, mlon, ReferenceLat, ReferenceLon) : 0;
-            bool pass = haveRef && err <= ToleranceMeters;
+            if (scenario == null)
+            {
+                row.Status = "Fixed"; row.StatusBrush = Brushes.SeaGreen;
+                row.Detail = $"{fixes.Count} fixes · mean {mlat:0.00000},{mlon:0.00000} (no scenario reference to compare with)";
+                Summary = "Positioning: fix obtained.";
+                return;
+            }
+            double[] err = fixes
+                .Select(f => Math.Abs(GeoUtil.HaversineMeters(f.Latitude, f.Longitude,
+                    scenario.ReferenceLatitude, scenario.ReferenceLongitude) - scenario.PathRadiusMeters))
+                .OrderBy(e => e).ToArray();
+            double median = err[err.Length / 2];
+            bool pass = median <= ToleranceMeters;
 
-            row.Status = !haveRef ? "Fixed" : pass ? "GO" : "NO-GO";
-            row.StatusBrush = !haveRef ? Brushes.SeaGreen : pass ? Brushes.SeaGreen : Brushes.Goldenrod;
-            row.Detail = haveRef
-                ? $"{fixes.Count} fixes · mean {mlat:0.00000},{mlon:0.00000} · {err:0} m from reference"
-                : $"{fixes.Count} fixes · mean {mlat:0.00000},{mlon:0.00000}";
-            Summary = haveRef ? $"Positioning {(pass ? "GO" : "NO-GO")} — {err:0} m from reference." : "Positioning: fix obtained.";
+            row.Status = pass ? "GO" : "NO-GO";
+            row.StatusBrush = pass ? Brushes.SeaGreen : Brushes.Goldenrod;
+            row.Detail = $"{fixes.Count} fixes · median {median:0} m off the {scenario.Name} path (max {err[^1]:0} m)";
+            Summary = $"Positioning {(pass ? "GO" : "NO-GO")} — median {median:0} m from the scenario.";
         }
     }
 }

@@ -4,7 +4,7 @@ The **Configuration** tab edits the JSON configuration that tells a device *what
 
 ![The Configuration tab](images/tab-configuration.png)
 
-*The Configuration tab: device type selection, schedule editor and per-sensor driver settings.*
+*The Configuration tab: device type selection, general settings, the schedule editor (here a daily schedule for a KOL: 48 kHz in the evening, 250 kHz at night) and per-sensor driver settings.*
 
 ## General device settings
 
@@ -12,10 +12,11 @@ The **Configuration** tab edits the JSON configuration that tells a device *what
 |---|---|
 | **Device name** | Device name - used by the device to validate the configuration matches target device; this is autopopulted by Device pick |
 | **Minimum hardware** | The hardware revision this configuration requires (e.g. `4.0`) |
-| **Allow magnet turn-off** | Whether a magnet may power the device down in the field (after activation) |
+| **Allow magnet turn-off** | Whether a magnet may power the device down in the field (after activation). Vesper / Pipistrelle; a KOL has no magnet and ignores it. |
 | **Battery capacity** | The fitted battery's capacity in mAh (informational, used for documentation - no real impact on execution) |
-| **Power-on time/delay** | Optional power-on time/delay after magnet activation - when the device becomes active — an absolute date/time or relative delay |
-| **Clock drift** | Fine RTC clock-drift compensation constant for the Vesper/KOL products (consult for details); leave empty to disable compensation |
+| **Power-on time/delay** | Optional power-on time/delay after activation (magnet on Vesper / Pipistrelle, **Start Recording** on a KOL) - when the device becomes active — an absolute date/time or relative delay |
+| **Clock drift** | Legacy RTC drift constant, the same for every unit (a raw value for the clock's calibration register). Units calibrated on the [Clock Calibration](Clock-Calibration) page use their own measured value instead; leave empty for no correction |
+| **RTC temperature compensation** | KOL / Vesper / Pipistrelle: periodically read the internal temperature sensor and correct the clock crystal's temperature drift. Off unless ticked; the optional curve steepness, turnover temperature and interval default to 34 ppb/°C², 25.0 °C and 600 s — see [Clock Calibration](Clock-Calibration) |
 
 Selecting a device type pre-fills the device name and clock drift (Vesper, Pipistrelle and KOL use `32999`; Nanotag has none) — both can be adjusted before saving.
 
@@ -25,10 +26,10 @@ There are 4 types of schedules supported:
 
 | Type | Behaviour |
 |---|---|
-| **Continuous** | Record continuously after activation while powered. Can be stopped manually via magnet if enabled on the General section. |
+| **Continuous** | Record continuously after activation while powered. Can be stopped manually via magnet if enabled on the General section (Vesper / Pipistrelle); a KOL stops when it is unplugged and connected to a computer. |
 | **Daily** | Repeat the same time windows every 24HR; schdule runs 00:00 to 23:59 if entry should run over midnight, split it till 23:59 and after 00:00 |
 | **Dated** | Run in specific calendar windows based on absolute dates |
-| **Relative** | Windows relative to date of magnet activation with dates relative to date of activation (1,2,3...) |
+| **Relative** | Windows relative to the date of activation (magnet, or **Start Recording** on a KOL) with dates relative to date of activation (1,2,3...) |
 
 A configuration contains one or more **schedule blocks** marked as **config0 (Off)**, **config1 (On)**, **config2 (On)**.
 Blocks define when each sensor records, so you can, for example, record audio only at night while sampling environment sensors around the clock.  
@@ -53,7 +54,25 @@ Same can be achieved with manually editing the JSON schedule array, for example:
 
 Each sensor on the device is configured through its **driver** entry — sampling rate, gain, channel selection and other per-sensor options. The property editor renders every driver's options directly from the device's own metadata, so new sensor types appear automatically with the correct choices. Typical drivers include the audio front-end, IMU, EXG (48-channel or 2-channel 1292 variants), environmental sensors, ambient light and proximity.
 
+Every driver pane has the same layout: **Standard configuration** first (sample rate, window length and rate per config, LED), then the sensor's own groups, then **Advanced configuration** (file size, reserved options).
+
+**File Size** is always a multiple of 64 KB (65,536 bytes): the largest buffer the firmware writes at once and a whole number of allocation clusters, so every file ends on a full buffer. Other values are rounded to the nearest multiple; 0 leaves the firmware's minimum for the sensor (8 MB for the microphones).
+
 For the KOL's microphone array, the channel configuration (1, 2 or 4 microphones) is part of the audio driver settings.
+
+**Health logger (LOGGER).** An optional driver on KOL, Vesper and Pipistrelle that records the unit's own health next to the sensor data. *Sample Period [1]/[2]* is the time between samples in ms for each configuration (minimum 1 s; 0 = no samples). Tick what each sample holds — **Battery**, **MCU temperature**, **RTC correction**, **Sampling sensors** — and choose the **Log level**: *Off*, *Errors*, *Warnings* (and errors) or *Debug* (everything, including every recording window). Events are short codes (start-up and reset cause, recording start and stop, schedule changes, storage and reading failures, clock corrections), named when the file is decoded. The logger writes about one 512-byte block per 20 samples, so a one-minute period costs almost nothing in battery or storage. It does not count as a sensor: a configuration still needs a real sensor to record.
+
+![The KOL sensor settings](images/config-kol-sensor.png)
+
+*The KOL sensor's settings: sample rate and duty cycle per configuration, number of microphones, high-pass filter and gain (each with **Solve**), the sound trigger with its **Helper**, and the file size.*
+
+**Microphone sample rate, gain and high-pass filter (KOL, Vesper, Pipistrelle).** Pick the sample rates from the list (4 kHz – 400 kHz). The unit chooses the best digital filter for each rate itself — there is no filter setting to get wrong. Most rates are exact; the 44.1 kHz family and 250 / 256 / 384 kHz run at the closest rate the 4.8 MHz microphone clock allows, shown next to the value and stored in the recording header. The **gain** applies to *Sample Rate [1]* (or [2] if [1] is off); the unit keeps the same loudness at the other rate (and, on the KOL, in Live Audio) with KOL firmware 1.8 / Vesper and Pipistrelle firmware 1.22 or later.
+
+Press **Solve** next to a rate, the gain or the high-pass filter. A window explains, for each sample rate: the exact rate, the filter, the loudest sound before clipping (dB SPL) and whether quiet sounds stay above the recording's noise floor — with better nearby rates where one is approximate. It also lists the **cut-off frequency of every high-pass setting** at your rates (the settings are fractions of the sample rate, so the same setting means 1.9 kHz at 200 kHz but 456 Hz at 48 kHz), marking the current and the recommended one: the highest cut-off up to 2 kHz for ultrasonic rates (keeps every bat call, removes wind and handling rumble) and up to 50 Hz for audio rates. **Use recommended gain** sets a full-scale sound to about +6 dBFS (clipping near 114 dB SPL); **Use recommended high-pass filter** applies the advice.
+
+**Sound-triggered recording.** The *Start level* row in the **Sound trigger** group is the switch: *Off* records continuously; any level records only when a sound is that much louder than the background (or louder than a fixed dB SPL). The window rows then become *Hold after sound* and *Pre-trigger* per config. Press **Helper** next to Start level to set rate, gain, high-pass filter and trigger for bats, birds, insects or soundscapes in one step. Needs KOL firmware 1.8 / Vesper and Pipistrelle firmware with sound triggering; older firmware keeps recording continuously.
+
+Configurations saved by older versions are converted on opening to the same loudness where possible; a rate no longer offered moves to the nearest listed one. Solve shows what was converted.
 
 ## Saving and applying
 

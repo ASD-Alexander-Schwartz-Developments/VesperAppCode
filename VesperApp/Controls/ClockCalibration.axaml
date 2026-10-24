@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:dg="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.DataGrid"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="VesperApp.Controls.ClockCalibration">
+
+	<HeaderedContentControl Header="Clock" UseLayoutRounding="True">
+		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+			<ui:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
+				<ui:CommandBar.PrimaryCommands>
+					<ui:CommandBarButton Command="{Binding SyncCommand}" IconSource="Clock" Label="Sync clock"
+										 ToolTip.Tip="Set the device clock to NTP time with millisecond accuracy (coarse set + sub-second shift) and record the result"/>
+					<ui:CommandBarButton Command="{Binding MeasureCommand}" IconSource="Find" Label="Measure"
+										 ToolTip.Tip="Measure how far the device clock is from NTP time without changing it, and record the result"/>
+					<ui:CommandBarSeparator/>
+					<ui:CommandBarButton Command="{Binding ComputeCommand}" IconSource="Calculator" Label="Compute calibration"
+										 ToolTip.Tip="Derive this unit's crystal error from the measurements since the last sync (at least 1 h apart; 12 h or more recommended)"/>
+					<ui:CommandBarButton Command="{Binding ApplyCommand}" IconSource="Save" Label="Apply"
+										 ToolTip.Tip="Write the computed crystal error to the unit (and keep it here as the master copy)"/>
+					<ui:CommandBarSeparator/>
+					<ui:CommandBarButton Command="{Binding RefreshCommand}" IconSource="Refresh" Label="Read device"
+										 ToolTip.Tip="Read the unit's calibration, temperature and applied correction"/>
+				</ui:CommandBar.PrimaryCommands>
+				<ui:CommandBar.SecondaryCommands>
+					<ui:CommandBarButton Command="{Binding MeasureTemperatureCommand}" Label="Measure temperature now"/>
+					<ui:CommandBarButton Command="{Binding RefreshReferenceCommand}" IconSource="Globe" Label="Refresh NTP reference"/>
+					<ui:CommandBarButton Command="{Binding ClearCommand}" IconSource="Delete" Label="Clear unit calibration"/>
+				</ui:CommandBar.SecondaryCommands>
+			</ui:CommandBar>
+
+			<StackPanel Grid.Row="1" Margin="20,8,20,0" Spacing="4">
+				<TextBlock Text="{Binding DeviceText}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+				<TextBlock Text="{Binding ReferenceText}" TextWrapping="Wrap" Opacity="0.8"/>
+			</StackPanel>
+
+			<Border Grid.Row="2" Margin="20,12,20,0" Padding="16,12" CornerRadius="6"
+					Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+					BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+				<Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="6">
+					<TextBlock Grid.Row="0" Grid.Column="0" Text="Clock vs NTP" Opacity="0.7"/>
+					<TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding OffsetText}" TextWrapping="Wrap"/>
+					<TextBlock Grid.Row="1" Grid.Column="0" Text="Unit calibration" Opacity="0.7"/>
+					<TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CalibrationText}" TextWrapping="Wrap"/>
+					<TextBlock Grid.Row="2" Grid.Column="0" Text="Applied correction" Opacity="0.7"/>
+					<TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CorrectionText}" TextWrapping="Wrap"/>
+					<TextBlock Grid.Row="3" Grid.Column="0" Text="Temperature" Opacity="0.7"/>
+					<TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding TemperatureText}" TextWrapping="Wrap"/>
+					<TextBlock Grid.Row="4" Grid.Column="0" Text="Temperature compensation" Opacity="0.7"/>
+					<TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding TempCompText}" TextWrapping="Wrap"/>
+					<TextBlock Grid.Row="5" Grid.Column="0" Text="Calibration estimate" Opacity="0.7"/>
+					<TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding EstimateText}" TextWrapping="Wrap"/>
+				</Grid>
+			</Border>
+
+			<Grid Grid.Row="3" Margin="20,12,20,0" RowDefinitions="Auto,*">
+				<TextBlock Grid.Row="0" Text="History for this unit (newest first)" FontWeight="SemiBold" Margin="0,0,0,6"/>
+				<dg:DataGrid Grid.Row="1" ItemsSource="{Binding History}" AutoGenerateColumns="False" IsReadOnly="True"
+							 HeadersVisibility="Column" GridLinesVisibility="None" CanUserResizeColumns="True">
+					<dg:DataGrid.Columns>
+						<dg:DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="160"/>
+						<dg:DataGridTextColumn Header="Offset (ms)" Binding="{Binding Offset}" Width="115"/>
+						<dg:DataGridTextColumn Header="Uncertainty (ms)" Binding="{Binding Uncertainty}" Width="135"/>
+						<dg:DataGridTextColumn Header="Temp (°C)" Binding="{Binding Temperature}" Width="100"/>
+						<dg:DataGridTextColumn Header="Correction (ppm)" Binding="{Binding Correction}" Width="145"/>
+						<dg:DataGridTextColumn Header="Period" Binding="{Binding Segment}" Width="80"/>
+						<dg:DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="100"/>
+						<dg:DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="*"/>
+					</dg:DataGrid.Columns>
+				</dg:DataGrid>
+			</Grid>
+
+			<Border Grid.Row="4" Margin="20,8,20,12" Padding="12,8" CornerRadius="4"
+					Background="{DynamicResource LayerFillColorDefaultBrush}">
+				<StackPanel Orientation="Horizontal" Spacing="10">
+					<ui:ProgressRing IsActive="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Width="18" Height="18"/>
+					<TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+				</StackPanel>
+			</Border>
+		</Grid>
+	</HeaderedContentControl>
+</UserControl>

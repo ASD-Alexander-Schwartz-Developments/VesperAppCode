@@ -15,6 +15,7 @@ using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
 using MsBox.Avalonia.Models;
 using System.Text;
+using Version = System.Version;   // not ASDLibUSBWrapper.Version
 
 namespace VesperApp.Models
 {
@@ -91,10 +92,11 @@ namespace VesperApp.Models
 
 
 
-        public LoggerDevice(string port, int baudrate, DeviceTypes type, uint serial)
+        public LoggerDevice(string port, int baudrate, DeviceTypes type, uint serial, Version? firmware = null)
         {
             this._comport = new ConsoleTransport(port, baudrate);
             _serialnumber = serial.ToString("X");
+            _firmwareVersion = firmware;
             this._usbDevice = null;
             _type = type;
             HwId = "4.0.0";
@@ -139,6 +141,7 @@ namespace VesperApp.Models
 
                         this.FwId = h.ToString() + l.ToString();
                         this._serialnumber = serial_num.ToString("X");
+                        this.FirmwareVersion = new Version(l, h);   /* GET_VER: [0] major, [1] minor */
                     }
                     break;
 
@@ -152,7 +155,7 @@ namespace VesperApp.Models
                 case MessageTypes.VESPER_GET_USB_MODE:
                     {
                         KolUsbModeState? state = KolUsbModeState.Parse(e.MessageData);
-                        if (state != null) this.UsbMode = state.Active;
+                        if (state != null) { this.UsbMode = state.Active; this.UsbState = state; }
                     }
                     break;
 
@@ -232,6 +235,7 @@ namespace VesperApp.Models
                         string fwid = major.ToString() + "." + minor.ToString();
 
                         if (this.FwId != fwid) { this.FwId = fwid; }
+                        this.FirmwareVersion = new Version((int)major, (int)minor);
 
 //                        vd.isarmed = (data[24] == 0) ? "Armed" : "Not Armed";
                         byte[] dtarray = { data[25], data[26], data[27], data[28], data[29], data[30], data[31] };
@@ -777,6 +781,24 @@ namespace VesperApp.Models
         /// <summary>The device is a KOL reached over its CDC console.</summary>
         public bool IsKol => _type == DeviceTypes.Kol && IsComportDevice;
 
+        /// <summary>Application firmware MAJOR.MINOR (GET_VER / GET_RTC); null until known.</summary>
+        public Version? FirmwareVersion
+        {
+            get => _firmwareVersion;
+            private set
+            {
+                if (value == _firmwareVersion) return;
+                this.RaiseAndSetIfChanged(ref _firmwareVersion, value);
+                this.RaisePropertyChanged(nameof(SupportsUsbModes));
+            }
+        }
+        private Version? _firmwareVersion;
+
+        /// <summary>The unit answers the USB mode / DFU / mic parameter commands (62-66) on its CDC
+        /// console: any KOL, a Vesper / Pipistrelle with new enough firmware
+        /// (<see cref="DeviceCapabilities.SupportsUsbModes"/>).</summary>
+        public bool SupportsUsbModes => IsComportDevice && DeviceCapabilities.SupportsUsbModes(_type, _firmwareVersion);
+
         /// <summary>Last USB operational mode reported by a KOL (null until queried).</summary>
         public KolUsbMode? UsbMode
         {
@@ -785,6 +807,15 @@ namespace VesperApp.Models
         }
         private KolUsbMode? usbMode;
 
+        /// <summary>Last full VESPER_GET_USB_MODE reply (KOL: with status flags and record
+        /// readiness on firmware with the operating states); null until queried.</summary>
+        public KolUsbModeState? UsbState
+        {
+            get => usbState;
+            private set => this.RaiseAndSetIfChanged(ref usbState, value);
+        }
+        private KolUsbModeState? usbState;
+
         /// <summary>
         /// Send a command whose reply is a bare ACK / NACK frame (not a typed reply)
         /// and await it. True on ACK, false on NACK, timeout, or when this is not a
@@ -792,18 +823,28 @@ namespace VesperApp.Models
         /// </summary>
         public async Task<bool> SendAckCommandAsync(MessageTypes type, byte[] payload, int timeoutMs = 3000)
         {
+            var (ack, _, _) = await SendAckCommandWithReplyAsync(type, payload, timeoutMs);
+            return ack;
+        }
+
+        /// <summary>
+        /// As <see cref="SendAckCommandAsync"/>, also returning whether the device answered at
+        /// all and the payload of a NACK (a KOL record request carries the refusal reason).
+        /// </summary>
+        public async Task<(bool Ack, bool Answered, byte[]? NackData)> SendAckCommandWithReplyAsync(MessageTypes type, byte[] payload, int timeoutMs = 3000)
+        {
             if (this._comport == null || this._comport.IsRunning == false)
-                return false;
+                return (false, false, null);
 
             payload ??= new byte[0];
 
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<(bool, bool, byte[]?)>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             EventHandler<MessageEventArgs> handler = null!;
             handler = (s, e) =>
             {
-                if (e.typeOfMessage == MessageTypes.ACK) tcs.TrySetResult(true);
-                else if (e.typeOfMessage == MessageTypes.NACK) tcs.TrySetResult(false);
+                if (e.typeOfMessage == MessageTypes.ACK) tcs.TrySetResult((true, true, null));
+                else if (e.typeOfMessage == MessageTypes.NACK) tcs.TrySetResult((false, true, e.MessageData));
             };
 
             this._comport.MessageEvent += handler;
@@ -813,7 +854,7 @@ namespace VesperApp.Models
                 this._comport.SendToDevice(frame, 0, frame.Length);
 
                 using (var cts = new System.Threading.CancellationTokenSource(timeoutMs))
-                using (cts.Token.Register(() => tcs.TrySetResult(false)))
+                using (cts.Token.Register(() => tcs.TrySetResult((false, false, null))))
                 {
                     return await tcs.Task.ConfigureAwait(false);
                 }
@@ -824,14 +865,34 @@ namespace VesperApp.Models
             }
         }
 
-        /// <summary>Read the KOL's active/pending USB mode (VESPER_GET_USB_MODE).</summary>
-        public async Task<KolUsbModeState?> GetUsbModeAsync(int timeoutMs = 3000)
+        /// <summary>Read the unit's active/pending USB mode (VESPER_GET_USB_MODE). On a KOL,
+        /// <paramref name="rereadConfig"/> has firmware with the operating states read
+        /// config.json from the card again first (it is otherwise the one loaded at boot -
+        /// the user may have just copied a new one onto the USB disk); others ignore it.</summary>
+        public async Task<KolUsbModeState?> GetUsbModeAsync(int timeoutMs = 3000, bool rereadConfig = false)
         {
-            if (!IsKol) return null;
-            byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_USB_MODE, new byte[0], timeoutMs);
+            if (!SupportsUsbModes) return null;
+            byte[] payload = (rereadConfig && IsKol) ? new byte[] { 0x01 } : new byte[0];
+            byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_USB_MODE, payload,
+                                                  rereadConfig ? Math.Max(timeoutMs, 5000) : timeoutMs);
             KolUsbModeState? state = KolUsbModeState.Parse(resp);
-            if (state != null) this.UsbMode = state.Active;
+            if (state != null) { this.UsbMode = state.Active; this.UsbState = state; }
             return state;
+        }
+
+        /// <summary>
+        /// Ask a KOL to start standalone recording (VESPER_SET_USB_MODE(1)). The firmware
+        /// re-reads config.json and checks card, configuration, sensors, clock and free space:
+        /// ACK = it leaves USB and records; NACK carries the <see cref="KolRecordReason"/>
+        /// (firmware without the operating states NACKs without one).
+        /// </summary>
+        public async Task<KolRecordResult> StartRecordingAsync(int timeoutMs = 6000)
+        {
+            if (!SupportsUsbModes) return new KolRecordResult(false, null, false);
+            var (ack, answered, nack) = await SendAckCommandWithReplyAsync(
+                MessageTypes.VESPER_SET_USB_MODE, new[] { (byte)KolUsbMode.Sampling }, timeoutMs);
+            KolRecordReason? reason = (!ack && nack is { Length: >= 1 }) ? KolRecordReasonInfo.From(nack[0]) : null;
+            return new KolRecordResult(ack, reason, answered);
         }
 
         /// <summary>
@@ -841,7 +902,7 @@ namespace VesperApp.Models
         /// </summary>
         public async Task<bool> SetUsbModeAsync(KolUsbMode mode, int timeoutMs = 3000)
         {
-            if (!IsKol) return false;
+            if (!SupportsUsbModes) return false;
             return await SendAckCommandAsync(MessageTypes.VESPER_SET_USB_MODE, new[] { (byte)mode }, timeoutMs);
         }
 
@@ -853,7 +914,7 @@ namespace VesperApp.Models
         /// </summary>
         public async Task<bool> EnterBootloaderAsync(int timeoutMs = 3000)
         {
-            if (!IsKol) return false;
+            if (!SupportsUsbModes) return false;
             return await SendAckCommandAsync(MessageTypes.VESPER_ENTER_BOOTLOADER, new byte[0], timeoutMs);
         }
 
@@ -861,7 +922,7 @@ namespace VesperApp.Models
         /// (VESPER_GET_MIC_PARAMS). Null when the firmware does not support it.</summary>
         public async Task<KolMicStatus?> GetMicParamsAsync(int timeoutMs = 3000)
         {
-            if (!IsKol) return null;
+            if (!SupportsUsbModes) return null;
             byte[]? resp = await SendCommandAsync(MessageTypes.VESPER_GET_MIC_PARAMS, new byte[0], timeoutMs);
             return KolMicStatus.Parse(resp);
         }
@@ -870,8 +931,76 @@ namespace VesperApp.Models
         /// once to a running Live Audio capture; kept in RAM only (not written to config.json).</summary>
         public async Task<bool> SetMicParamsAsync(KolMicParams p, int timeoutMs = 3000)
         {
-            if (!IsKol) return false;
+            if (!SupportsUsbModes) return false;
             return await SendAckCommandAsync(MessageTypes.VESPER_SET_MIC_PARAMS, p.Pack(), timeoutMs);
+        }
+
+        #endregion
+
+        #region RTC time sync + crystal calibration (KOL, Vesper, Pipistrelle; asd-interfaces interfaces/rtc-time-sync.md)
+
+        /// <summary>A console-attached logger (KOL / Vesper / Pipistrelle over its CDC port).</summary>
+        public bool IsConsoleLogger => IsComportDevice && _type != DeviceTypes.Nanotag;
+
+        /// <summary>
+        /// One VESPER_TIME_SYNC exchange. The host send time is taken right before the frame is
+        /// handed to the port, the receive time is the serial read that completed the reply (not
+        /// the later event dispatch). Null on timeout or NACK (firmware without the command).
+        /// </summary>
+        public async Task<RtcExchange?> TimeSyncExchangeAsync(uint seq, int timeoutMs = 1000)
+        {
+            if (!IsConsoleLogger || this._comport == null || !this._comport.IsRunning) return null;
+
+            var tcs = new TaskCompletionSource<(byte[]? data, long rx)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<MessageEventArgs> handler = (s, e) =>
+            {
+                if (e.typeOfMessage == MessageTypes.VESPER_TIME_SYNC) tcs.TrySetResult((e.MessageData, e.RxTimestamp));
+                else if (e.typeOfMessage == MessageTypes.NACK) tcs.TrySetResult((null, 0));
+            };
+
+            this._comport.MessageEvent += handler;
+            try
+            {
+                byte[] payload = BitConverter.GetBytes(seq);
+                byte[] frame = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_TIME_SYNC, (byte)payload.Length, payload, 0);
+                long t1 = Stopwatch.GetTimestamp();
+                this._comport.SendToDevice(frame, 0, frame.Length);
+
+                using var cts = new System.Threading.CancellationTokenSource(timeoutMs);
+                using (cts.Token.Register(() => tcs.TrySetResult((null, 0))))
+                {
+                    var (data, rx) = await tcs.Task.ConfigureAwait(false);
+                    if (data == null) return null;
+                    RtcExchange? ex = RtcExchange.Parse(data, t1, rx != 0 ? rx : Stopwatch.GetTimestamp());
+                    return (ex != null && ex.Seq == seq) ? ex : null;
+                }
+            }
+            finally
+            {
+                this._comport.MessageEvent -= handler;
+            }
+        }
+
+        /// <summary>Set the device RTC (whole seconds; the device restarts its sub-second counter)
+        /// and wait for the ACK.</summary>
+        public async Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000)
+        {
+            if (!IsConsoleLogger) return false;
+            return await SendAckCommandAsync(MessageTypes.VESPER_SET_RTC, SerialMessage.DateTimeToBytes(deviceTime), timeoutMs);
+        }
+
+        /// <summary>Shift the device RTC by less than one second (VESPER_RTC_SHIFT, + advances).</summary>
+        public async Task<bool> RtcShiftAsync(int microseconds, int timeoutMs = 2000)
+        {
+            if (!IsConsoleLogger) return false;
+            return await SendAckCommandAsync(MessageTypes.VESPER_RTC_SHIFT, BitConverter.GetBytes(microseconds), timeoutMs);
+        }
+
+        /// <summary>VESPER_RTC_CAL request (op 0 get, 1 set, 2 clear, 3 measure temperature).</summary>
+        public async Task<RtcCalStatus?> RtcCalAsync(byte[] payload, int timeoutMs = 2000)
+        {
+            if (!IsConsoleLogger) return null;
+            return RtcCalStatus.Parse(await SendCommandAsync(MessageTypes.VESPER_RTC_CAL, payload, timeoutMs));
         }
 
         #endregion

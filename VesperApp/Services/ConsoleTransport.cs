@@ -92,6 +92,7 @@ namespace VesperApp.Services
             {
                 typeOfMessage = (MessageTypes)m.Type,
                 MessageData = m.Payload,
+                RxTimestamp = m.RxTimestamp,
             });
         }
     }

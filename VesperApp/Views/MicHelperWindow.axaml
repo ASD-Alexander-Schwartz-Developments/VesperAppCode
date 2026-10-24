@@ -1,0 +1,135 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="720" d:DesignHeight="760"
+        x:Class="VesperApp.Views.MicHelperWindow"
+        Title="Recording helper"
+        Icon="/Assets/bat.ico"
+        Width="720" MinWidth="560"
+        Height="780" MinHeight="420"
+        CanResize="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+	<Window.Styles>
+		<Style Selector="TextBlock.step">
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="Margin" Value="0,0,0,8"/>
+		</Style>
+		<Style Selector="TextBlock.field">
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Margin" Value="0,0,12,0"/>
+		</Style>
+	</Window.Styles>
+
+	<DockPanel Margin="18">
+
+		<Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto,Auto" Margin="0,14,0,0" ColumnSpacing="8">
+			<Button Grid.Column="1" x:Name="btnCancel" Content="Cancel" MinWidth="90" IsCancel="True"/>
+			<Button Grid.Column="2" x:Name="btnApply" Classes="accent" Content="Apply" MinWidth="120" FontWeight="Bold" IsDefault="True"/>
+		</Grid>
+
+		<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+			<StackPanel Spacing="12">
+
+				<!-- 1. what -->
+				<Border Classes="card" Padding="14,10">
+					<StackPanel>
+						<TextBlock Classes="step" Text="1.  What are you recording?"/>
+						<ListBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" SelectionMode="Single">
+							<ListBox.ItemTemplate>
+								<DataTemplate>
+									<StackPanel Margin="2,3">
+										<TextBlock FontWeight="SemiBold" Text="{Binding Name}"/>
+										<TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding Description}"/>
+									</StackPanel>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+					</StackPanel>
+				</Border>
+
+				<!-- 2. where -->
+				<Border Classes="card" Padding="14,10">
+					<StackPanel Spacing="6">
+						<TextBlock Classes="step" Text="2.  How noisy is the site?"/>
+						<ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Sites}" SelectedItem="{Binding SelectedSite}"/>
+						<TextBlock Classes="caption" TextWrapping="Wrap"
+								   Text="Used to show what a relative trigger level means in dB SPL. Measuring the background on the unit itself comes with the firmware's level reporting."/>
+					</StackPanel>
+				</Border>
+
+				<!-- 3. recording -->
+				<Border Classes="card" Padding="14,10">
+					<StackPanel Spacing="8">
+						<TextBlock Classes="step" Text="3.  Recording"/>
+						<Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="8">
+							<TextBlock Grid.Row="0" Classes="field" Text="Sample rate"/>
+							<ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding Rates}" SelectedItem="{Binding SelectedRate}"/>
+							<TextBlock Grid.Row="1" Classes="field" Text="Apply to"/>
+							<ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}"/>
+						</Grid>
+					</StackPanel>
+				</Border>
+
+				<!-- 4. trigger -->
+				<Border Classes="card" Padding="14,10">
+					<StackPanel Spacing="8">
+						<TextBlock Classes="step" Text="4.  Trigger"/>
+
+						<TextBlock Classes="field" Text="Start a recording when the sound is"/>
+						<StackPanel Orientation="Horizontal" Spacing="16">
+							<RadioButton GroupName="lvl" Content="louder than the background by" IsChecked="{Binding Relative}"/>
+							<RadioButton GroupName="lvl" Content="louder than a fixed level" IsChecked="{Binding Absolute}"/>
+						</StackPanel>
+						<ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding RelativeLevels}" SelectedItem="{Binding SelectedRelative}" IsVisible="{Binding Relative}"/>
+						<ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding AbsoluteLevels}" SelectedItem="{Binding SelectedAbsolute}" IsVisible="{Binding Absolute}"/>
+						<TextBlock Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !Triggered}"
+								   Text="Off records continuously (duty-cycle windows apply if set in the editor). Choose a level to record only when a sound arrives."/>
+
+						<StackPanel Spacing="8" IsVisible="{Binding Triggered}">
+						<TextBlock Classes="field" Margin="0,6,0,0" Text="Detector"/>
+						<RadioButton GroupName="det" IsChecked="{Binding Software}">
+							<StackPanel>
+								<TextBlock Text="Software"/>
+								<TextBlock Classes="caption" TextWrapping="Wrap" Text="Keeps the moments before the trigger and can ignore everything below 15 kHz. Uses more power: the processor checks every audio buffer."/>
+							</StackPanel>
+						</RadioButton>
+						<RadioButton GroupName="det" IsChecked="{Binding Hardware}" IsEnabled="{Binding HardwareAvailable}">
+							<StackPanel>
+								<TextBlock Text="Hardware"/>
+								<TextBlock Classes="caption" TextWrapping="Wrap" Text="The unit sleeps until a sound arrives — the longest battery life. No pre-trigger, no ultrasound-only option."/>
+								<TextBlock Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HardwareAvailable}"
+										   Text="Not available on the current boards: the microphones are not wired to the converter that has the sound detector. Planned for a hardware revision."/>
+							</StackPanel>
+						</RadioButton>
+
+						<Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" Margin="0,6,0,0">
+							<TextBlock Grid.Row="0" Classes="field" Text="Stop when it is"/>
+							<ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding StopLevels}" SelectedItem="{Binding SelectedStop}"/>
+							<TextBlock Grid.Row="1" Classes="field" Text="for at least"/>
+							<ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding Holds}" SelectedItem="{Binding SelectedHold}"/>
+							<TextBlock Grid.Row="2" Classes="field" Text="Keep before the trigger" IsVisible="{Binding Software}"/>
+							<ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding PreTriggers}" SelectedItem="{Binding SelectedPre}" IsVisible="{Binding Software}"/>
+						</Grid>
+						<TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding PreTriggerNote}" IsVisible="{Binding Software}"/>
+						<CheckBox Content="Ultrasound only — only sound above 15 kHz can start a recording (bats, insects; not wind or birdsong)"
+								  IsChecked="{Binding Ultrasound}" IsVisible="{Binding Software}"/>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- summary -->
+				<Border Classes="card" Padding="14,10" BorderBrush="{DynamicResource AppAccentBrush}" BorderThickness="1">
+					<StackPanel Spacing="6">
+						<TextBlock Classes="step" Text="What the unit will do"/>
+						<TextBlock TextWrapping="Wrap" Text="{Binding Summary}"/>
+						<TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding ApplyNote}"/>
+						<TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding FirmwareNote}" IsVisible="{Binding Triggered}"/>
+					</StackPanel>
+				</Border>
+			</StackPanel>
+		</ScrollViewer>
+	</DockPanel>
+</Window>

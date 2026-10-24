@@ -460,13 +460,14 @@ namespace VesperApp.ViewModels
             ("ALS", "Light", Symbol.WeatherSunnyLow),
             ("THCAM", "Camera", Symbol.Camera),
             ("DAT", "GNSS", Symbol.Globe),
+            ("HEALTH", "Health log", Symbol.Document),
         };
 
         // Binary intermediates the parse phase emits; the decode phase turns these into
         // WAV/CSV/images. Hidden from the browser when Settings → Recordings → "Hide
         // intermediate files" is on, leaving only the decoded outputs visible.
         private static readonly HashSet<string> IntermediateExtensions =
-            new(StringComparer.OrdinalIgnoreCase) { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN" };
+            new(StringComparer.OrdinalIgnoreCase) { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN", ".HBN" };
 
         /// <summary>Build the full recursive tree of the browsed folder: every session
         /// folder and file (minus hidden sidecars / intermediates per Settings), with
@@ -559,7 +560,7 @@ namespace VesperApp.ViewModels
         {
             ['G'] = "GPS", ['U'] = "Audio", ['M'] = "Motion", ['E'] = "EXG",
             ['R'] = "Temp/RH", ['L'] = "Light", ['X'] = "Proximity",
-            ['O'] = "Log", ['S'] = "Analog", ['C'] = "Camera",
+            ['O'] = "Log", ['S'] = "Analog", ['C'] = "Camera", ['H'] = "Health log",
         };
 
         private static string KindForFile(string path)
@@ -579,6 +580,7 @@ namespace VesperApp.ViewModels
                 case ".RBN": return "Temp/RH (parsed)";
                 case ".EBN": return "EXG (parsed)";
                 case ".CBN": return "Camera (parsed)";
+                case ".HBN": return "Health log (parsed)";
                 case ".WAV": return "Audio (WAV)";
                 case ".CSV": return "Data (CSV)";
                 case ".JPG": case ".JPEG": case ".PNG": return "Image";
@@ -968,6 +970,11 @@ namespace VesperApp.ViewModels
                             Patterns = new[]{"*O.bin", "*O.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
+                        new("Health Log (LOGGER) (.bin) ")
+                        {
+                            Patterns = new[]{"*H.bin", "*H.BIN"},
+                            MimeTypes = new[]{"bin/*"}
+                        },
                     },
                     AllowMultiple = true,
                 };
@@ -1146,6 +1153,17 @@ namespace VesperApp.ViewModels
                                         {
                                             string fullPathOnly = Path.GetFullPath(currentDirectory);
                                             fullPathOnly += Path.DirectorySeparatorChar + "THCAM";
+                                            if (Directory.Exists(fullPathOnly) == false)
+                                            {
+                                                Directory.CreateDirectory(fullPathOnly);
+                                            }
+
+                                            await BinaryParser.StripSplit(lp, fullPathOnly, 0);
+                                        }
+                                        else if (currentFilename.Contains("H.BIN"))
+                                        {
+                                            string fullPathOnly = Path.GetFullPath(currentDirectory);
+                                            fullPathOnly += Path.DirectorySeparatorChar + "HEALTH";
                                             if (Directory.Exists(fullPathOnly) == false)
                                             {
                                                 Directory.CreateDirectory(fullPathOnly);

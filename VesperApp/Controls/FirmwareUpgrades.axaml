@@ -32,7 +32,8 @@
 					<ui:CommandBarSeparator />
 					<ui:CommandBarButton Command="{Binding DownloadReleaseCommand}" IconSource="Download" Label="Download" ToolTip.Tip="Download Update"/>
 					<ui:CommandBarSeparator />
-					<ui:CommandBarButton Command="{Binding FlashCommand}" IconSource="Sync" Label="Flash to Device" ToolTip.Tip="Flash the selected firmware to the device (VT04: STM32 DFU through the dock; KOL: commanded DFU over its own USB cable; Nanotag: USB-HID bootloader)"/>				
+					<ui:CommandBarButton Command="{Binding FlashCommand}" IconSource="Sync" Label="Flash to Device" ToolTip.Tip="Flash the selected firmware to the device (VT04: STM32 DFU through the dock; KOL: commanded DFU over its own USB cable; Nanotag: USB-HID bootloader)"/>
+					<ui:CommandBarButton Command="{Binding FlashFromFileCommand}" IconSource="OpenFile" Label="Flash from File" ToolTip.Tip="Flash a firmware file from disk to the device of the selected type - pre-release builds from CI or bench builds; same path as a release"/>				
 				</ui:CommandBar.PrimaryCommands>
 			
 				<ui:CommandBar.SecondaryCommands>

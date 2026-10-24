@@ -31,9 +31,12 @@
 		<!-- Surfaces $(CdnBaseUrl) as [assembly: AssemblyMetadata("CdnBaseUrl", "...")]
 		     (GenerateAssemblyInfo is on by default), which CdnConfig reads via reflection. -->
 		<AssemblyMetadata Include="CdnBaseUrl" Value="$(CdnBaseUrl)" />
+		<!-- Unit tests reach internal test hooks (e.g. ReferenceClock.ForTest). -->
+		<InternalsVisibleTo Include="VesperApp.Tests" />
 	</ItemGroup>
 	<ItemGroup>
 		<AvaloniaResource Include="Assets\**" />
+		<EmbeddedResource Include="Specs\audio-selftest-spec.json" LogicalName="VesperApp.Specs.audio-selftest-spec.json" />
 		<!-- Offline first-run copy of the Help documentation. The Help tab fetches these
 		     pages live from the GitHub wiki (docs/wiki is the wiki's in-repo source of
 		     truth); the embedded copy is the fallback before any fetch has succeeded.

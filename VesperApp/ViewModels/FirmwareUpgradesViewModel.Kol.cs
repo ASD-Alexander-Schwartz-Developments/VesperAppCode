@@ -7,8 +7,9 @@ using VesperApp.Services;
 namespace VesperApp.ViewModels
 {
     /// <summary>
-    /// KOL firmware flashing without the docking station: the app commands the
-    /// running firmware into the ST ROM DFU bootloader over its own CDC console
+    /// Firmware flashing without the docking station - KOL, and a Vesper / Pipistrelle already
+    /// running firmware with commanded DFU entry (<see cref="LoggerDevice.SupportsUsbModes"/>): the
+    /// app commands the running firmware into the ST ROM DFU bootloader over its own CDC console
     /// (<c>VESPER_ENTER_BOOTLOADER</c>), then runs the same hardware-verified STM32
     /// DFU flasher the dock flow uses. Nothing persistent changes on bootloader
     /// entry, so any reset or power cycle returns the device to its application —
@@ -19,23 +20,25 @@ namespace VesperApp.ViewModels
     {
         private const int KolReturnTimeoutSeconds = 20;
 
-        private async Task<bool> RunKolFlash(ReleaseEntry selected)
+        private async Task<bool> RunDirectFlash(ReleaseEntry selected, DeviceTypes target)
         {
+            string name = DeviceCapabilities.DisplayName(target);
+            string title = $"{name} firmware update";
             LoggerDevice? dev = _main?.SelectedLoggerDevice;
-            if (dev is null || !dev.IsKol || !dev.IsConnected)
+            if (dev is null || dev.DeviceType != target || !dev.SupportsUsbModes || !dev.IsConnected)
             {
-                FlashStatus = "Connect the KOL over USB, select it in the device list and press Connect Device first. "
-                            + "KOL flashes directly over its USB cable — no docking station is needed.";
-                await ShowInfo("KOL firmware update", FlashStatus);
+                FlashStatus = $"Connect the {name} over USB, select it in the device list and press Connect Device first. "
+                            + $"{name} flashes directly over its USB cable — no docking station is needed.";
+                await ShowInfo(title, FlashStatus);
                 return false;
             }
-            if (feedService is null)
+            if (feedService is null && _localFirmwarePath is null)
             {
                 FlashStatus = "No update source is configured in this build.";
                 return false;
             }
 
-            if (!await ConfirmFlash(DeviceTypes.Kol, Path.GetFileName(selected.Asset!)))
+            if (!await ConfirmFlash(target, Path.GetFileName(selected.Asset!)))
                 return false;
 
             string serial = dev.SerialNumber ?? string.Empty;
@@ -46,16 +49,15 @@ namespace VesperApp.ViewModels
             FlashPercent = 0;
             try
             {
-                FlashStatus = "Downloading firmware…";
-                await feedService.DownloadAssetAsync(selected, tmp);
+                await FetchFirmwareAsync(selected, tmp);
 
-                FlashStatus = "Commanding the KOL into its bootloader…";
+                FlashStatus = $"Commanding the {name} into its bootloader…";
                 bool ack = await dev.EnterBootloaderAsync();
                 if (!ack)
                 {
-                    FlashStatus = "The KOL did not acknowledge the bootloader command. "
+                    FlashStatus = $"The {name} did not acknowledge the bootloader command. "
                                 + "Its current firmware may predate commanded DFU entry — flash it once through the docking station instead.";
-                    await ShowInfo("KOL firmware update", FlashStatus);
+                    await ShowInfo(title, FlashStatus);
                     return false;
                 }
 
@@ -72,13 +74,13 @@ namespace VesperApp.ViewModels
 
                 await Stm32DfuFlasher.FlashDfuDeviceAsync(tmp, progress, viaDock: false);
 
-                FlashStatus = "Firmware written — waiting for the KOL to restart…";
+                FlashStatus = $"Firmware written — waiting for the {name} to restart…";
                 LoggerDevice? back = await _main.WaitForKolReturnAsync(serial, TimeSpan.FromSeconds(KolReturnTimeoutSeconds));
                 if (back is null)
                 {
-                    FlashStatus = $"Firmware written, but the KOL did not reappear within {KolReturnTimeoutSeconds} s. "
+                    FlashStatus = $"Firmware written, but the {name} did not reappear within {KolReturnTimeoutSeconds} s. "
                                 + "Unplug and replug its USB cable (or press reset) — it boots the new firmware on any reset.";
-                    await ShowInfo("KOL firmware update", FlashStatus);
+                    await ShowInfo(title, FlashStatus);
                     return true;
                 }
 
@@ -86,15 +88,15 @@ namespace VesperApp.ViewModels
                 await back.GetInfo();
                 await Task.Delay(750);
                 string fw = string.IsNullOrEmpty(back.FwId) ? string.Empty : $" (firmware {back.FwId})";
-                FlashStatus = $"KOL firmware updated — device is back in Idle mode{fw}.";
+                FlashStatus = $"{name} firmware updated — device is back in Idle mode{fw}.";
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("KOL flash failed: " + ex);
+                System.Diagnostics.Debug.WriteLine($"{name} flash failed: " + ex);
                 FlashStatus = "Flash failed: " + ex.Message
                             + " If the device is still in bootloader mode, unplug and replug it to return to the previous firmware, then try again.";
-                await ShowInfo("KOL firmware update failed", FlashStatus);
+                await ShowInfo($"{title} failed", FlashStatus);
                 return false;
             }
             finally
