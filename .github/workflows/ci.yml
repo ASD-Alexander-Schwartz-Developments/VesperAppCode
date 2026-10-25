@@ -28,15 +28,21 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
+      - name: vpk pin matches the Velopack library
+        run: |
+          LIB=$(sed -n 's:.*PackageReference Include="Velopack" Version="\([^"]*\)".*:\1:p' VesperApp/VesperApp.csproj)
+          VPK=$(sed -n 's/^  VPK_VERSION: *\([^ ]*\).*/\1/p' .github/workflows/app-release.yml)
+          echo "Velopack library $LIB, vpk $VPK"
+          [ -n "$LIB" ] && [ "$LIB" = "$VPK" ] || { echo "::error::VPK_VERSION in app-release.yml ($VPK) must equal the Velopack PackageReference ($LIB)"; exit 1; }
       - name: Unit tests
         run: dotnet test VesperApp.Tests/VesperApp.Tests.csproj -c Release --logger "trx;LogFileName=tests.trx"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
@@ -45,16 +51,16 @@ jobs:
 
   prerelease:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         rid: [ win-x64, linux-x64 ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
@@ -82,7 +88,7 @@ jobs:
           -p:CdnBaseUrl=${{ secrets.CDN_BASE_URL }}
           -o publish/${{ matrix.rid }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: VesperApp-${{ steps.meta.outputs.ver }}-${{ steps.meta.outputs.sha }}-${{ matrix.rid }}
           path: publish/${{ matrix.rid }}

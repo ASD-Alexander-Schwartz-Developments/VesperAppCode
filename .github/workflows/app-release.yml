@@ -70,6 +70,10 @@ env:
   S3_BUCKET:    ${{ vars.RELEASE_S3_BUCKET }}
   AWS_REGION:   ${{ vars.AWS_REGION }}
   CF_DIST_ID:   ${{ vars.RELEASE_CF_DISTRIBUTION_ID }}
+  # Velopack CLI pinned to the Velopack library in VesperApp/VesperApp.csproj — vpk and the
+  # runtime library must be the same version (feed/package format). Bump both together;
+  # ci.yml fails if they drift.
+  VPK_VERSION:  0.0.1298
 
 jobs:
   # Resolve the release version exactly once (the release matrix has two legs that
@@ -78,12 +82,12 @@ jobs:
   # tag. Pushing with GITHUB_TOKEN does NOT re-trigger this workflow, so the
   # release continues in this run only.
   version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.ver.outputs.version }}
       matrix: ${{ steps.targets.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0      # full history: latest v* tag + commit log for notes
 
@@ -129,10 +133,10 @@ jobs:
           # win-x64 + win-x86 always. linux-x64 only on manual dispatch with
           # publish_linux=true — the Linux build is verified manually until proven.
           MATRIX='[
-            {"os":"windows-latest","rid":"win-x64","mainExe":"VesperApp.exe","icon":"VesperApp/Assets/bat.ico"},
-            {"os":"windows-latest","rid":"win-x86","mainExe":"VesperApp.exe","icon":"VesperApp/Assets/bat.ico"}]'
+            {"os":"windows-2025","rid":"win-x64","mainExe":"VesperApp.exe","icon":"VesperApp/Assets/bat.ico"},
+            {"os":"windows-2025","rid":"win-x86","mainExe":"VesperApp.exe","icon":"VesperApp/Assets/bat.ico"}]'
           if [ "${{ inputs.publish_linux }}" = "true" ]; then
-            MATRIX=$(echo "$MATRIX" | jq -c '. + [{"os":"ubuntu-latest","rid":"linux-x64","mainExe":"VesperApp","icon":""}]')
+            MATRIX=$(echo "$MATRIX" | jq -c '. + [{"os":"ubuntu-24.04","rid":"linux-x64","mainExe":"VesperApp","icon":""}]')
           else
             MATRIX=$(echo "$MATRIX" | jq -c '.')
           fi
@@ -151,11 +155,11 @@ jobs:
         shell: bash           # one shell across both runners (git-bash on Windows)
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0      # need tags + annotation for versioning / release notes
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
@@ -174,7 +178,7 @@ jobs:
 
       - name: Install Velopack CLI (vpk)
         run: |
-          dotnet tool install -g vpk
+          dotnet tool install -g vpk --version "$VPK_VERSION"
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Publish self-contained (${{ matrix.rid }})
@@ -190,7 +194,7 @@ jobs:
           -o publish/${{ matrix.rid }}
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           # ── Hardening: OIDC (no long-lived keys). Create a least-privilege role,
           #    set vars.RELEASE_ROLE_ARN, then DELETE the two key lines below and use:
@@ -241,3 +245,16 @@ jobs:
             --distribution-id "$CF_DIST_ID" \
             --paths "/releases.${{ steps.meta.outputs.channel }}.json" \
                     "/assets.${{ steps.meta.outputs.channel }}.json"
+
+  # The wiki goes live with the release. A pushed v* tag starts wiki-publish.yml itself, but the
+  # tag pushed by the dispatch path above uses GITHUB_TOKEN, which does not trigger other
+  # workflows — so dispatch releases publish the wiki here, from the release tag, after every
+  # release leg succeeded.
+  wiki:
+    needs: [ version, release ]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/wiki-publish.yml
+    with:
+      ref: v${{ needs.version.outputs.version }}

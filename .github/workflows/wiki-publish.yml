@@ -7,7 +7,9 @@
 #   • the wiki is therefore a *publish target*, never an editing surface.
 # Edit docs under docs/wiki/ in a normal PR. The wiki goes live WITH A RELEASE:
 # this workflow mirrors the folder when a v* release tag is pushed (the same tag
-# that starts app-release.yml), or on a manual run - merging into master does not
+# that starts app-release.yml), when app-release.yml calls it after a dispatch release
+# (workflow_call: that tag is pushed with GITHUB_TOKEN and so triggers nothing), or on a
+# manual run - merging into master does not
 # publish, so pre-release pages never describe features users do not have yet
 # (the pre-release builds carry the new pages as their embedded Help). Direct wiki
 # edits will be overwritten on the next publish (mirror push) — by design.
@@ -23,6 +25,13 @@ on:
   push:
     tags: [ 'v*' ]
   workflow_dispatch: {}
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref (the release tag) whose docs/wiki is published
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -33,10 +42,12 @@ concurrency:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}   # empty (tag push / manual run) = the triggering ref
 
       - name: Mirror docs/wiki into the wiki repository
         env:
@@ -63,5 +74,6 @@ jobs:
             echo "Wiki already up to date."
             exit 0
           fi
-          git commit -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7} (docs/wiki)"
+          SRC="$(git -C .. rev-parse --short HEAD)"
+          git commit -m "Sync from ${GITHUB_REPOSITORY}@${SRC} (docs/wiki)"
           git push
