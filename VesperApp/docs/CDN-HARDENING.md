@@ -133,3 +133,37 @@ the bucket unreachable directly. Do these in the AWS account that owns the distr
 Because the origin is only in the CI secret + the shipped binary, rotating it (new distribution) is:
 update `CDN_BASE_URL`, cut a new release. Already-installed clients keep pointing at the old origin
 until they self-update, so keep the old distribution alive through at least one release cycle.
+
+## Part 3 — gated beta ring (planned, decided 2026-10-25)
+
+Today the beta ring is public by obscurity only: `VesperApp-<rid>-beta-Setup.exe` and
+`releases.<rid>-beta.json` are served to anyone who knows the (predictable) name. Stable stays
+public; only `*-beta*` objects get real access control.
+
+**App fix first (needed whatever the gating):** `UpdateCheckerViewModel` forces
+`ExplicitChannel = rid + "-stable"` with `AllowVersionDowngrade = true`, so a beta install that
+checks for updates is offered the *older* stable release (1.2.0 beta → "Update available: 1.1.0",
+a downgrade), and never sees a newer beta. Use the channel the app was installed from
+(`UpdateManager` without `ExplicitChannel`, falling back to `<rid>-stable` for dev builds), and keep
+downgrade only for an explicit "leave beta" action.
+
+**Edge (CloudFront):**
+- [ ] A cache behavior for the beta paths (`/releases.*-beta.json`, `/assets.*-beta.json`,
+      `/RELEASES-*-beta`, `/VesperApp-*-beta*`) with **Restrict viewer access → trusted key group**:
+      requests need a CloudFront signed URL or signed cookie. Stable behaviors unchanged.
+- [ ] Key pair: the public key in the key group; the private key only where signing happens
+      (Secrets Manager / a CI secret) — never in the app.
+
+**Signing (who gets a beta):**
+- Target: the backend from the VesperApp ↔ PLM secure-connection work mints short-lived signed
+  cookies for registered beta testers; the app requests them before a beta update check / download
+  (a Velopack `IFileDownloader` that adds the cookie, or the `downloadUrlResolver` seam).
+  First install comes from a signed Setup link on the tester's portal page.
+- Interim (before PLM): the release workflow, on `ring=beta`, prints signed Setup URLs valid for
+  N days (`aws cloudfront sign`) in the run summary; testers install from those and reinstall for
+  each beta (beta update checks get 403 → the app must show "beta updates need sign-in", not an
+  error).
+
+**Order:** app fix → release it on stable → enable the beta behavior together with the interim
+signing step in `app-release.yml`. Enabling the behavior earlier only cuts existing beta installs
+off from update checks (they reinstall).
