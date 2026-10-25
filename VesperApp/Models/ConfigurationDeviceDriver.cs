@@ -508,6 +508,12 @@ namespace VesperApp.Models
                     case "LOGGER":
                         baseClass = (ConfigLoggerDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigLoggerDriver));
                         break;
+                    default:
+                        // A driver this version does not know (newer firmware / app): keep the entry
+                        // verbatim instead of failing the whole configuration.
+                        using (JsonDocument doc = JsonDocument.ParseValue(ref reader))
+                            baseClass = new ConfigUnknownDriver(typeDiscriminator!, doc.RootElement.Clone());
+                        break;
                 }
 
 
@@ -578,6 +584,10 @@ namespace VesperApp.Models
                 else if (value is ConfigLoggerDriver loggerDriver)
                 {
                     JsonSerializer.Serialize(writer, loggerDriver);
+                }
+                else if (value is ConfigUnknownDriver unknownDriver)
+                {
+                    unknownDriver.Raw.WriteTo(writer);                  // as read
                 }
                 else if (value is ConfigEXG48Driver exg48Driver)
                 {

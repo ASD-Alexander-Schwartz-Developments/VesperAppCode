@@ -27,6 +27,10 @@ namespace VesperApp.ViewModels
     {
         private ConfigurationJSON configurationJSONInstance;
 
+        // Device entries of the loaded config.json this version does not know (ConfigUnknownDriver):
+        // not editable here, written back unchanged on save.
+        private readonly List<ConfigurationDeviceDriver> carriedDrivers = new();
+
         public ICommand? NewConfigCommand { get; }
         public ICommand? SaveConfigCommand { get; }
         public ICommand? LoadConfigCommand { get; }
@@ -286,6 +290,7 @@ namespace VesperApp.ViewModels
                                     foreach (ConfigurationDeviceDriver d in DriversViewModel.DeviceDriversCollection)
                                         if (d.IsChecked) configurationJSONInstance.DeviceDrivers.Add(d);
                                 }
+                                configurationJSONInstance.DeviceDrivers.AddRange(carriedDrivers);
 
                                 configurationJSONInstance.Schedule.Clear();
                                 if (ScheduleViewModel != null)
@@ -457,9 +462,15 @@ namespace VesperApp.ViewModels
 
                     //DriversViewModel.DeviceDriversCollection.Clear();
                     DriversViewModel.ActiveDeviceDriversCollection.Clear();
+                    carriedDrivers.Clear();
 
                     foreach (ConfigurationDeviceDriver drv in config.DeviceDrivers)
                     {
+                        if (drv is ConfigUnknownDriver)
+                        {
+                            carriedDrivers.Add(drv);
+                            continue;
+                        }
                         int index = DriversViewModel.DeviceDriversCollection.IndexOf(drv);
 
                         if (index >= 0 && index < DriversViewModel.DeviceDriversCollection.Count)
@@ -467,6 +478,25 @@ namespace VesperApp.ViewModels
                             DriversViewModel.DeviceDriversCollection[index].Load(drv);
                             DriversViewModel.DeviceDriversCollection[index].IsChecked = true;
                         }
+                    }
+
+                    if (carriedDrivers.Count > 0)
+                    {
+                        string names = string.Join(", ", carriedDrivers.Select(d => d.Name));
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            var info = MessageBoxManager.GetMessageBoxStandard(new MessageBoxStandardParams
+                            {
+                                ContentTitle = "Configuration",
+                                Icon = Icon.Info,
+                                ButtonDefinitions = ButtonEnum.Ok,
+                                ShowInCenter = true,
+                                SizeToContent = SizeToContent.WidthAndHeight,
+                                ContentMessage = $"This configuration contains sensor drivers this VesperApp version does not know: {names}.\n"
+                                               + "They are not shown here and are saved back unchanged. Update VesperApp to edit them.",
+                            });
+                            _ = info.ShowAsync();
+                        }, DispatcherPriority.Background);
                     }
                 }
 
