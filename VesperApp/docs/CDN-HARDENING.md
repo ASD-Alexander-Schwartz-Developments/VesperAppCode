@@ -140,12 +140,15 @@ Today the beta ring is public by obscurity only: `VesperApp-<rid>-beta-Setup.exe
 `releases.<rid>-beta.json` are served to anyone who knows the (predictable) name. Stable stays
 public; only `*-beta*` objects get real access control.
 
-**App fix first (needed whatever the gating):** `UpdateCheckerViewModel` forces
-`ExplicitChannel = rid + "-stable"` with `AllowVersionDowngrade = true`, so a beta install that
-checks for updates is offered the *older* stable release (1.2.0 beta → "Update available: 1.1.0",
-a downgrade), and never sees a newer beta. Use the channel the app was installed from
-(`UpdateManager` without `ExplicitChannel`, falling back to `<rid>-stable` for dev builds), and keep
-downgrade only for an explicit "leave beta" action.
+**App fix first (needed whatever the gating) — done on master (after 1.2.0):** `UpdateCheckerViewModel`
+used to force `ExplicitChannel = rid + "-stable"` with `AllowVersionDowngrade = true`, so a beta install
+that checked for updates was offered the *older* stable release (1.2.0 beta → "Update available: 1.1.0",
+a downgrade), and never saw a newer beta. Now (`Services/UpdateChannelPolicy.cs`, unit-tested): a
+normal check follows the channel the app was installed from (`VelopackLocator.Current.Channel`,
+falling back to `<rid>-stable` for dev builds) and never offers a version that is not newer; a lower
+version is only possible through the explicit **Leave beta (switch to stable)** button on the
+Software Upgrades page. 1.2.0-beta installs still run the old logic (offered 1.1.0, never see a
+newer beta): testers must not accept that "update" and reinstall from the next beta Setup.
 
 **Edge (CloudFront):**
 - [ ] A cache behavior for the beta paths (`/releases.*-beta.json`, `/assets.*-beta.json`,

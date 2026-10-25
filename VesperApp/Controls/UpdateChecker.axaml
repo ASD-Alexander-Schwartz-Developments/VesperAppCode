@@ -30,6 +30,16 @@
                                     IsEnabled="{Binding !IsChecking}"/>
                         </Grid>
 
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Classes="caption" VerticalAlignment="Center"
+                                       Text="{Binding ChannelInfo}"/>
+                            <Button Grid.Column="1" VerticalAlignment="Center"
+                                    Content="Leave beta (switch to stable)"
+                                    ToolTip.Tip="Checks the stable channel; the stable release may be an older version than this beta."
+                                    IsVisible="{Binding CanLeaveBeta}"
+                                    Command="{Binding LeaveBetaCommand}"/>
+                        </Grid>
+
                         <ProgressBar Classes="slim" IsIndeterminate="True"
                                      IsVisible="{Binding IsChecking}"/>
 

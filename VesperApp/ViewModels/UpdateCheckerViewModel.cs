@@ -26,8 +26,12 @@ namespace VesperApp.ViewModels
         private bool _isUpdateDownloading;
         private string? _status;
 
+        private readonly string _rid = "win-x64";
+        private readonly string? _installedChannel;
         private UpdateManager? _um;
         private UpdateInfo? _update;
+        private UpdateChannelPolicy.Decision _decision;
+        private bool _canLeaveBeta;
 
         private Velopack.VelopackAsset? _latestRelease;
         public ObservableCollection<VelopackAsset> AvailableUpdates { get; } = new();
@@ -35,6 +39,22 @@ namespace VesperApp.ViewModels
         public ICommand CheckUpdatesCommand { get; }
         public ICommand UpdateCommand { get; }
         public ICommand RestartApplyCommand { get; }
+        /// <summary>Explicit user action: switch this install from the beta ring to stable
+        /// (the only path on which a lower version may be offered).</summary>
+        public ICommand LeaveBetaCommand { get; }
+
+        /// <summary>The ring this install follows: "stable" or "beta".</summary>
+        public string InstalledRing => UpdateChannelPolicy.RingOf(_installedChannel);
+
+        public string ChannelInfo => _um is null
+            ? "Update channel: none (development build)"
+            : $"Update channel: {_decision.Channel}";
+
+        public bool CanLeaveBeta
+        {
+            get => _canLeaveBeta;
+            private set => this.RaiseAndSetIfChanged(ref _canLeaveBeta, value);
+        }
 
         public bool IsChecking
         {
@@ -67,34 +87,62 @@ namespace VesperApp.ViewModels
 
         public UpdateCheckerViewModel()
         {
-            CheckUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForUpdatesAsync);
+            CheckUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForNormalUpdatesAsync);
             UpdateCommand = ReactiveCommand.CreateFromTask(PerformUpdateAsync, this.WhenAnyValue(x => x.IsUpdateAvailable));
             RestartApplyCommand = ReactiveCommand.Create(RestartApplyUpdate, this.WhenAnyValue(x => x.IsPendingRestart));
 
             if (Design.IsDesignMode == false && !string.IsNullOrWhiteSpace(_updateUrl))
             {
-                // Pick the auto-update channel for THIS OS + process architecture, so an
-                // x86 install doesn't update itself into an x64 build (and vice versa).
-                // The app-release CI publishes win-x64 / win-x86 / linux-x64 channels.
-                string rid;
+                // Runtime id of THIS OS + process architecture, so an x86 install doesn't
+                // update itself into an x64 build (and vice versa). The app-release CI publishes
+                // <rid>-stable and <rid>-beta channels for win-x64 / win-x86 (/ linux-x64).
                 if (OperatingSystem.IsWindows())
-                    rid = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture ==
+                    _rid = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture ==
                           System.Runtime.InteropServices.Architecture.X86 ? "win-x86" : "win-x64";
                 else if (OperatingSystem.IsMacOS())
-                    rid = "osx-arm64";
+                    _rid = "osx-arm64";
                 else
-                    rid = "linux-x64";
+                    _rid = "linux-x64";
 
-                // NOTE: self-update follows the stable channel only; beta-ring releases
-                // are not offered to installed clients.
-                _um = new UpdateManager(_updateUrl, new UpdateOptions
+                // The channel the installed package was packed for (vpk --channel), e.g.
+                // win-x64-beta. Null in a dev build (not installed via Velopack).
+                try
                 {
-                    ExplicitChannel = rid + "-stable",
-                    AllowVersionDowngrade = true,
-                });
+                    if (Velopack.Locators.VelopackLocator.IsCurrentSet)
+                        _installedChannel = Velopack.Locators.VelopackLocator.Current.Channel;
+                }
+                catch { _installedChannel = null; }
+
+                // Normal checks follow the installed ring and never offer a lower version.
+                _um = CreateManager(UpdateChannelPolicy.Decide(_rid, _installedChannel));
             }
 
+            CanLeaveBeta = _um != null && InstalledRing == UpdateChannelPolicy.BetaRing;
+            LeaveBetaCommand = ReactiveCommand.CreateFromTask(LeaveBetaAsync, this.WhenAnyValue(x => x.CanLeaveBeta));
+
             _update = null;
+        }
+
+        private UpdateManager CreateManager(UpdateChannelPolicy.Decision decision)
+        {
+            _decision = decision;
+            this.RaisePropertyChanged(nameof(ChannelInfo));
+            return new UpdateManager(_updateUrl, new UpdateOptions
+            {
+                // Velopack treats ExplicitChannel == installed channel as "no switch".
+                ExplicitChannel = decision.Channel,
+                AllowVersionDowngrade = decision.AllowDowngrade,
+            });
+        }
+
+        /// <summary>"Leave beta": check the stable channel for this rid, allowing the (usually
+        /// lower) stable version. After the update is applied the app is a stable install.</summary>
+        private async Task LeaveBetaAsync()
+        {
+            if (_um is null)
+                return;
+            _um = CreateManager(UpdateChannelPolicy.Decide(_rid, _installedChannel, UpdateChannelPolicy.StableRing));
+            await CheckForUpdatesAsync();
         }
 
         private void RestartApplyUpdate()
@@ -114,6 +162,14 @@ namespace VesperApp.ViewModels
                 });
         }
 
+        /// <summary>"Check for updates": back to the installed ring if a ring switch was previewed.</summary>
+        private Task CheckForNormalUpdatesAsync()
+        {
+            if (_um != null && _decision.IsRingSwitch)
+                _um = CreateManager(UpdateChannelPolicy.Decide(_rid, _installedChannel));
+            return CheckForUpdatesAsync();
+        }
+
         private async Task CheckForUpdatesAsync()
         {
             if (_um is null)
@@ -127,8 +183,11 @@ namespace VesperApp.ViewModels
             AvailableUpdates.Clear();
             try
             {
-                // Adjust the source as needed (e.g., GithubSource, FileSource, etc.)
                 _update = await _um.CheckForUpdatesAsync();
+                // Belt and braces: whatever the feed says, a normal check never offers a
+                // version that is not newer than the running one.
+                if (_update != null && !UpdateChannelPolicy.ShouldOffer(_um.CurrentVersion, _update.TargetFullRelease?.Version, _decision))
+                    _update = null;
                 if (_update != null)
                 {
                     // DeltasToTarget may be empty when no delta chain reaches the target
@@ -139,12 +198,16 @@ namespace VesperApp.ViewModels
 
                     _latestRelease = _update.TargetFullRelease;
                     IsUpdateAvailable = true;
-                    Status = $"Update available: {_latestRelease?.Version}";
+                    Status = _decision.IsRingSwitch
+                        ? $"Stable release available: {_latestRelease?.Version} (leaves the beta ring)"
+                        : $"Update available: {_latestRelease?.Version}";
                 }
                 else
                 {
                     IsUpdateAvailable = false;
-                    Status = "No updates available.";
+                    Status = _decision.IsRingSwitch
+                        ? "No stable release available for this platform."
+                        : "No updates available.";
                 }
             }
             catch (System.Exception ex)
