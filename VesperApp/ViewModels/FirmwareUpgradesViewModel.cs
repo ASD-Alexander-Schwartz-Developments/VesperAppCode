@@ -215,9 +215,9 @@ namespace VesperApp.ViewModels
             }
         }
 
-        // Download the selected release and flash it to the docked device. STM32 products
-        // (Vesper/Kol/Pipistrelle) go through the dock-GPIO USB-DFU path; Nanotag (Microchip
-        // bootloader) is not implemented yet.
+        // Download the selected release and flash it. STM32 products (Vesper/Kol/Pipistrelle) go
+        // through the dock-GPIO USB-DFU path; Nanotag is flashed over its own USB (Microchip HID
+        // bootloader, NanotagFlasher), including a tag left in the bootloader by an interrupted update.
         private async Task<bool> RunFlash()
         {
             // Order matters for a truthful message: an unconfigured feed or an empty

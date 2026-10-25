@@ -10,11 +10,11 @@ The **Software Upgrades** tab manages the application's own updates:
 
 *The Software Upgrades tab.*
 
-1. Press **Check Updates**. The app polls the **stable** release channel for your platform.
+1. Press **Check for updates**. The app polls the release channel it was installed from (shown on the page as *Update channel*), for your platform — stable, or beta for a beta install. Only a newer version is ever offered.
 2. If a newer version exists, its version number is shown next to your installed version. Press **Download** — updates are delta-patched where possible, so downloads are small (a full download is used automatically when no delta path exists).
 3. When the download finishes, press **Restart & Apply**. The app relaunches on the new version.
 
-Updates are published per platform (Windows x64, Windows x86, Linux x64). Beta-channel builds exist for early testing but are installed manually — the in-app updater always follows stable.
+Updates are published per platform (Windows x64, Windows x86, Linux x64). Beta-channel builds exist for early testing and are installed manually from a beta setup; a beta install then updates to newer betas. To go back, press **Leave beta (switch to stable)** (shown only on a beta install): it checks the stable channel and offers the stable release even when its version number is lower than your beta.
 
 On **Linux**, applying an update replaces the AppImage file in place, so the AppImage must live in a user-writable location — see [Linux Setup](Linux-Setup).
 
@@ -34,6 +34,8 @@ On the **Plugins** tab each plugin has its own card:
 1. The card shows the plugin's installed version, or *not installed*.
 2. Press **Check for updates** to poll the plugin feed.
 3. If a new version is available, download it. Plugins are applied **on the next launch** — the page will indicate a pending restart.
+
+A version that is published but cannot be loaded by your VesperApp (for example a pack built without a plugin adapter, or for a different compatibility version) is not offered; the card says which version it is and why. If an installed pack cannot be loaded, the card says so and offers the published version as a repair.
 
 Notes:
 

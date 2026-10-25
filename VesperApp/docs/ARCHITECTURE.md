@@ -134,7 +134,8 @@ The plugin loader is general: it also binds a proprietary `IPlmClient` /
 ### Plugin discovery, updates, and the ABI gate
 
 Plugins update on their **own channel**, independently of the shell (which self-updates
-via Velopack) and of device firmware (Octokit/GitHub). To keep those cadences separate:
+via Velopack from the CDN feed) and of device firmware (the CDN firmware feed, read by
+`ReleaseFeedService`). To keep those cadences separate:
 
 - **Where they live.** `PluginLoader` scans the per-user `DataPluginsDir`
   (`%LOCALAPPDATA%/VesperApp/plugins`) first, then the `BundledPluginsDir` next to the
