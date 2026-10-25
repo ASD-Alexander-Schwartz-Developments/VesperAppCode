@@ -1,15 +1,21 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ASD.Contracts;
 using ASD.Platform;
 
 namespace VesperApp.Services
 {
     /// <summary>Outcome of a plugin update attempt.</summary>
     public sealed record PluginUpdateResult(bool Success, string Message, string? StagedPath = null);
+
+    /// <summary>Feed check for this platform: the newest entry this app can install and load
+    /// (<see cref="Installable"/>), and the newest entry of any kind (<see cref="Newest"/>).</summary>
+    public sealed record PluginFeedCheck(ReleaseEntry? Installable, ReleaseEntry? Newest);
 
     /// <summary>
     /// Updates a proprietary plugin pack (e.g. the GNSS pack) on its OWN channel, independent of the
@@ -41,19 +47,82 @@ namespace VesperApp.Services
             string.IsNullOrEmpty(_requiredEntitlement) ||
             PlatformServices.Entitlements.Has(_requiredEntitlement!);
 
-        /// <summary>The highest-version feed entry matching this host's platform, or null. Does not
-        /// rely on feed ordering — entries are compared by semantic version so the true newest wins.</summary>
+        /// <summary>The highest-version INSTALLABLE feed entry for this host's platform, or null.</summary>
         public async Task<ReleaseEntry?> CheckLatestAsync(CancellationToken ct = default)
+            => (await CheckFeedAsync(ct).ConfigureAwait(false)).Installable;
+
+        /// <summary>
+        /// Read the feed and pick, for this host's platform, the newest entry overall and the newest
+        /// <see cref="IsInstallable">installable</see> one. Does not rely on feed ordering — entries are
+        /// compared by semantic version so the true newest wins.
+        /// </summary>
+        public async Task<PluginFeedCheck> CheckFeedAsync(CancellationToken ct = default)
         {
-            string plat = PluginLoader.CurrentPlatform();
             var releases = await _feed.GetReleasesAsync(ct).ConfigureAwait(false);
+            return Pick(releases, PluginLoader.CurrentPlatform());
+        }
+
+        /// <summary>Pure selection behind <see cref="CheckFeedAsync"/> (unit-tested).</summary>
+        public static PluginFeedCheck Pick(IEnumerable<ReleaseEntry> releases, string platform)
+        {
             // Accept an entry with no Target (any) or one matching this platform.
-            return releases
+            var forPlatform = releases
                 .Where(r => string.IsNullOrWhiteSpace(r.Target) ||
-                            string.Equals(r.Target, plat, StringComparison.OrdinalIgnoreCase))
+                            string.Equals(r.Target, platform, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(r => ParseVersion(r.Version))
                 .ThenByDescending(r => r.Version, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault();
+                .ToList();
+            return new PluginFeedCheck(forPlatform.FirstOrDefault(IsInstallable), forPlatform.FirstOrDefault());
+        }
+
+        /// <summary>
+        /// True when a feed entry describes a pack this app can bind: it has an asset and declares a
+        /// contract ABI the loader accepts (<see cref="ContractsAbi"/>). Packs published without an
+        /// <c>abi</c> (e.g. pluto-gnss 0.1.0 — a bare tool bundle with no ASD.PlutoGnss adapter) would
+        /// install but never load, so they are not offered.
+        /// </summary>
+        public static bool IsInstallable(ReleaseEntry e) =>
+            !string.IsNullOrWhiteSpace(e.Asset) &&
+            e.Abi >= ContractsAbi.MinSupported && e.Abi <= ContractsAbi.Version;
+
+        /// <summary>
+        /// Why the INSTALLED pack cannot be loaded, or null when it looks loadable (or nothing is
+        /// installed). Mirrors the <see cref="PluginLoader"/> manifest gate: a plugin.json with a
+        /// supported ABI and an entry DLL that is present in the pack.
+        /// </summary>
+        public string? InstalledPackProblem()
+        {
+            foreach (string root in new[] { PluginLoader.DataPluginsDir, PluginLoader.BundledPluginsDir })
+            {
+                string packDir = Path.Combine(root, _packName);
+                if (!Directory.Exists(packDir)) continue;
+                try
+                {
+                    string? manifest = Directory
+                        .EnumerateFiles(packDir, "plugin.json", SearchOption.AllDirectories)
+                        .FirstOrDefault();
+                    if (manifest is null) continue;
+                    return ManifestProblem(PluginManifest.TryLoad(manifest), Path.GetDirectoryName(manifest)!);
+                }
+                catch (Exception ex) { return "The installed pack cannot be read: " + ex.Message; }
+            }
+            return null;
+        }
+
+        /// <summary>Pure check behind <see cref="InstalledPackProblem"/> (unit-tested).</summary>
+        public static string? ManifestProblem(PluginManifest? m, string manifestDir)
+        {
+            if (m is null)
+                return "The installed pack's plugin.json is unreadable.";
+            if (m.Abi < ContractsAbi.MinSupported || m.Abi > ContractsAbi.Version)
+                return m.Abi == 0
+                    ? "The installed pack declares no plugin ABI, so it has no adapter VesperApp can load."
+                    : $"The installed pack was built for plugin ABI {m.Abi}; this VesperApp supports {ContractsAbi.MinSupported}..{ContractsAbi.Version}.";
+            if (string.IsNullOrWhiteSpace(m.EntryDll))
+                return "The installed pack names no adapter (entryDll), so VesperApp cannot load it.";
+            if (!File.Exists(Path.Combine(manifestDir, m.EntryDll)))
+                return $"The installed pack is missing its adapter {m.EntryDll}.";
+            return null;
         }
 
         /// <summary>The version of the currently-installed pack (from its <c>plugin.json</c>), or
@@ -106,6 +175,9 @@ namespace VesperApp.Services
                 return new PluginUpdateResult(false, "This account is not entitled to this plugin.");
             if (string.IsNullOrWhiteSpace(entry.Asset))
                 return new PluginUpdateResult(false, "Release has no downloadable asset.");
+            if (!IsInstallable(entry))
+                return new PluginUpdateResult(false,
+                    $"Version {entry.Version} on the feed has no plugin adapter this VesperApp can load (ABI {entry.Abi}); not installed.");
 
             string tempZip = Path.Combine(Path.GetTempPath(), $"vesper-plugin-{_packName}-{Guid.NewGuid():N}.zip");
             string targetDir = Path.Combine(PluginLoader.DataPluginsDir, _packName);

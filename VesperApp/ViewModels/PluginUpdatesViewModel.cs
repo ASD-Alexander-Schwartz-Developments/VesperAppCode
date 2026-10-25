@@ -83,12 +83,16 @@ namespace VesperApp.ViewModels
             RestartCommand = ReactiveCommand.Create(Relaunch, this.WhenAnyValue(x => x.IsPendingRestart));
 
             CurrentVersion = _service?.InstalledVersion() ?? NotInstalled;
+            string? installedProblem = null;
+            try { installedProblem = _service?.InstalledPackProblem(); } catch { /* shown on Check */ }
 
             Status = _service is null
                 ? "Plugin updates are unavailable: no update source is configured in this build."
                 : IsEntitled
                     ? "Check for an update."
                     : "Sign in with a registered account (free or paid) to download this plugin.";
+            if (_service is not null && installedProblem != null)
+                Status = installedProblem + " " + Status;
         }
 
         public string Title { get; }
@@ -142,10 +146,28 @@ namespace VesperApp.ViewModels
                 Status = "Checking for updates…";
 
                 CurrentVersion = _service.InstalledVersion() ?? NotInstalled;   // refresh in case it changed
-                _latest = await _service.CheckLatestAsync();
+                PluginFeedCheck feed = await _service.CheckFeedAsync();
+                _latest = feed.Installable;
+                string? installedProblem = _service.InstalledPackProblem();
                 if (_latest is null)
                 {
-                    Status = "No compatible version found for this platform.";
+                    // Feed entries that would install but never load (no adapter / no or foreign ABI,
+                    // e.g. pluto-gnss 0.1.0) are not offered — say so instead of offering a dead pack.
+                    Status = feed.Newest is null
+                        ? "No version of this plugin is published for this platform yet."
+                        : $"Version {feed.Newest.Version} is published, but it has no plugin adapter this VesperApp can load — it is not offered. Wait for a newer pack.";
+                    if (installedProblem != null)
+                        Status += " " + installedProblem;
+                }
+                else if (installedProblem != null)
+                {
+                    // The installed pack can't load; offer the feed version as a repair whatever its number.
+                    LatestVersion = _latest.Version ?? "?";
+                    if (PluginUpdateService.IsNewer(_latest.Version, _service.InstalledVersion()))
+                        IsUpdateAvailable = true;
+                    else
+                        IsReinstallAvailable = true;
+                    Status = $"{installedProblem} Install {LatestVersion} to fix it.";
                 }
                 else
                 {
