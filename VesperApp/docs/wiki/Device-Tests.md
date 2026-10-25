@@ -64,7 +64,7 @@ Firmware: KOL 1.8 or later; Vesper and Pipistrelle 1.22 or later.
 | **Not found** | No board of that type answered — not fitted, badly seated, or another board on the same address (light and temperature boards cannot be stacked together). |
 | **No answer** | The unit did not reply — it is recording, or its firmware has no sensor test. |
 
-## GNSS / RF self-test (Vesper / Nanotag)
+## GNSS / RF self-test (Vesper)
 
 Exercises the GNSS receive chain in the device's own firmware. This is a **bench test**: it expects a controlled RF environment (a shielded enclosure with an RF generator coupled in), and is primarily used in production and service settings.
 
