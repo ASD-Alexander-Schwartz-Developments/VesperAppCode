@@ -37,6 +37,9 @@ namespace VesperApp.Models
         public static readonly int DEVICE_NAME_LENGTH = 16;
 		public static readonly int MAX_LOADED_DEVICES = 4;
 		public static readonly int MAX_SCHEDULE_SIZE = 32;
+		// The table holds 32 slots, but the firmware refuses to arm when all 32 are used
+		// (app.c: count >= MAX_SCHEDULE_SIZE), so at most 31 entries can be written.
+		public static readonly int MAX_SCHEDULE_ENTRIES = MAX_SCHEDULE_SIZE - 1;
 		public static readonly int REFERENCE_YEAR = 2020;
 		public static readonly int CONFIG_CHUNK_SIZE = 256;
 
@@ -121,6 +124,9 @@ namespace VesperApp.Models
 					ok = false;                     // a delay the tag cannot hold: no config (upload fails)
 				}
 			}
+
+			if (ok == true && config != null && config.Schedule != null && config.Schedule.Count > MAX_SCHEDULE_ENTRIES)
+				ok = false;                         // the tag would refuse to arm: no config (upload fails)
 
 			if (ok == true && config != null)
 			{

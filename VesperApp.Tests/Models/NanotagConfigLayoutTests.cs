@@ -104,6 +104,22 @@ public class NanotagConfigLayoutTests
         Assert.Empty(Nanotag.ConfigBinaryConverter(json));        // no config rather than a wrong delay
     }
 
+    private static string ScheduleJson(int entries)
+    {
+        var items = string.Join(", ", Enumerable.Range(0, entries)
+            .Select(i => $"{{ \"time\": \"2026-11-{1 + i / 24:00} {i % 24:00}:00:00\", \"config\": 1 }}"));
+        return "{" + BaseJson.Replace("\"schedule\": []", "\"schedule\": [" + items + "]") + "}";
+    }
+
+    [Fact]
+    public void Schedule_31Entries_IsWritten()
+        => Assert.Equal(768, Nanotag.ConfigBinaryConverter(ScheduleJson(Nanotag.MAX_SCHEDULE_ENTRIES)).Length);
+
+    [Fact]
+    public void Schedule_32Entries_IsRefused()
+        // the firmware refuses to arm with all 32 slots used (app.c: count >= MAX_SCHEDULE_SIZE)
+        => Assert.Empty(Nanotag.ConfigBinaryConverter(ScheduleJson(Nanotag.MAX_SCHEDULE_SIZE)));
+
     [Fact]
     public void DelayedStart_AbsoluteBefore2021_IsRefused()
     {
