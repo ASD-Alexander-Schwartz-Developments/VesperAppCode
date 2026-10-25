@@ -109,6 +109,19 @@ namespace VesperApp.Models
 			{ }
 
 
+			UInt32 delayedStart = 0;
+			if (ok == true && config != null)
+			{
+				try
+				{
+					delayedStart = config.PowerOn.ToNanotagDateTime();
+				}
+				catch (ArgumentOutOfRangeException)
+				{
+					ok = false;                     // a delay the tag cannot hold: no config (upload fails)
+				}
+			}
+
 			if (ok == true && config != null)
 			{
 				int structsize = 3 * CONFIG_CHUNK_SIZE;
@@ -130,9 +143,10 @@ namespace VesperApp.Models
 					sConfiguration.general.config_rev = 0;
 					sConfiguration.general.reference_year = 2020;
 					sConfiguration.general.Schedule_type = ConvertNanotagScheduleType(config.ScheduleType);
-					// The firmware's powerOn is a single byte it never reads; the packed 32-bit power-on
-					// time used to be written here and spilled into the RTC compensation fields (11..13).
-					sConfiguration.general.poweron = 0;
+					// Delayed start ("poweron") at offset 18, firmware 1.39 (older firmware ignores it). The
+					// byte at 10 stays 0: the packed time used to be written there and spilled into 11..13.
+					sConfiguration.general.powerOnUnused = 0;
+					sConfiguration.general.poweron = delayedStart;
 					// RTC temperature compensation (firmware rtc_cal.c); 0 = firmware default.
 					sConfiguration.general.rtc_tcomp = (byte)(config.TempComp == true ? 1 : 0);
 					sConfiguration.general.rtc_tck = (ushort)Math.Min(config.TempCompCurvature ?? 0u, ushort.MaxValue);
@@ -207,7 +221,9 @@ namespace VesperApp.Models
         {
 			UInt32 ret = 0;
 
-			int year = (dt.Year > REFERENCE_YEAR) ? dt.Year - REFERENCE_YEAR : REFERENCE_YEAR;
+			// Years since 2020 in 6 bits; 2020 and earlier (daily entries are written with year 2000)
+			// are 0 - it used to be 2020, which wrapped to 36 (2056) in the 6-bit field.
+			int year = (dt.Year > REFERENCE_YEAR) ? Math.Min(dt.Year - REFERENCE_YEAR, 63) : 0;
 
 			UInt32 yr  = (UInt32)((UInt32)year << 26);
 			UInt32 mt = (UInt32)((UInt32)dt.Month << 22);
@@ -365,7 +381,7 @@ namespace VesperApp.Models
 
 	[System.Runtime.InteropServices.StructLayout(LayoutKind.Sequential, Pack = 1)]
 	// Byte-for-byte mirror of the firmware's device_general_params_t (NANOTAG firmware src/params.h,
-	// 1.37 / 7af8337): 64 bytes used + 3 x 64 spare = 256 bytes (one EEPROM row). Offsets are pinned
+	// 1.39): 64 bytes used + 3 x 64 spare = 256 bytes (one EEPROM row). Offsets are pinned
 	// by VesperApp.Tests NanotagConfigLayoutTests — change both sides together.
 	internal struct NanotagGeneralConfiguration
 	{
@@ -375,13 +391,15 @@ namespace VesperApp.Models
 		public UInt16 battery_capacity;                                     // 4
 		public UInt16 reference_year;                                       // 6
 		public UInt16 Schedule_type;                                        // 8   0=continues, 1=first_trigger,  2=dated, 3 = daily, 4 = weekly, 5 = relative
-		public byte poweron;                                                // 10  u8 powerOn in the firmware (not read by it)
+		public byte powerOnUnused;                                          // 10  u8 powerOn in the firmware: unused, always 0
 		public byte rtc_tcomp;                                              // 11  RTC temperature compensation, 1 = on (config.json "tcomp")
 		public UInt16 rtc_tck;                                              // 12  curvature ppb/degC^2, 0 = default 34 ("tck")
 		public Int16 rtc_tct0;                                              // 14  turnover in 0.1 degC, 0 = default 250 ("tct0")
 		public UInt16 rtc_tcper;                                            // 16  re-apply period s, 0 = default 600, min 60 ("tcper")
-		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 46)]
-		public byte[]res;                                                   // 18..63
+		public UInt32 poweron;                                              // 18  delayed start ("poweron", firmware 1.39): packed RTC time, 0 = none,
+		                                                                    //     year 0 = relative (days + h:m:s after arming), else absolute
+		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 42)]
+		public byte[]res;                                                   // 22..63
 		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
 		public byte[]reserved2;
 		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]

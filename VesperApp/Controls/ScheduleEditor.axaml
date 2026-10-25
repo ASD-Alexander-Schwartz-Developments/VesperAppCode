@@ -76,9 +76,10 @@
 						<Label Grid.Row="1" Grid.Column="3" Content="Power-On Time/Delay" VerticalAlignment="Center" Margin="0,0,8,0"/>
 						<StackPanel Grid.Row="1" Grid.Column="4" Orientation="Horizontal" Spacing="8">
 							<MaskedTextBox x:Name="maskPoweron" MinWidth="160" Focusable="True"
-										   Text="{Binding PowerOnText, Mode=TwoWay}" Mask="{Binding PowerOnEditMask}"/>
+										   Text="{Binding PowerOnText, Mode=TwoWay}" Mask="{Binding PowerOnEditMask}"
+										   ToolTip.Tip="Delayed start, for every schedule type: the device is activated but stays off until this time, then starts its schedule (relative schedule entries count from here). Empty = start at activation. Relative delay: at most 31 days."/>
 							<CheckBox x:Name="cbIsPoweronRelative" IsThreeState="False" IsChecked="{Binding IsPowerOnRelative}"
-									  ToolTip.Tip="When checked, power-on is a relative delay (dd hh:mm:ss; activation is time 0 - the magnet on Vesper / Pipistrelle, Start Recording on a KOL); otherwise an absolute date/time">
+									  ToolTip.Tip="When checked, power-on is a relative delay (dd hh:mm:ss; activation is time 0 - the magnet on Vesper / Pipistrelle / Nanotag, Start Recording on a KOL); otherwise an absolute date/time">
 								Relative
 							</CheckBox>
 						</StackPanel>

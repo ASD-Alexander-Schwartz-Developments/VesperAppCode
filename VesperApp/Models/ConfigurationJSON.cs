@@ -249,28 +249,32 @@ namespace VesperApp.Models
             }
 
 
+            /// <summary>The Nanotag delayed start (general config row offset 18, firmware 1.39): the
+            /// packed RTC date/time, as the "poweron" date/time of VesperU5 / KOL. 0 = none; year 0 =
+            /// relative (days 0..31 + h:m:s after arming, month 0); otherwise an absolute time (years
+            /// since 2020). Throws <see cref="ArgumentOutOfRangeException"/> for a relative delay over
+            /// 31 days or an absolute time outside 2021..2083 (the 5-bit day / 6-bit year fields).</summary>
             public UInt32 ToNanotagDateTime()
             {
-                UInt32 ret = 0xFFFFFFFF;
+                UInt32 ret = 0;
 
                 if (IsRelative && relativeOffset != null)
                 {
-                    int year = Nanotag.REFERENCE_YEAR;
-                    int month = 0;
+                    if (relativeOffset.Value.Days > 31)
+                        throw new ArgumentOutOfRangeException(nameof(PowerOn), "A relative power-on delay can be at most 31 days.");
 
-                    UInt32 yr = (UInt32)((UInt32)year << 26);
-                    UInt32 mt = (UInt32)((UInt32)month << 22);
                     UInt32 dy = (UInt32)((UInt32)relativeOffset.Value.Days << 17);
                     UInt32 hr = (UInt32)((UInt32)relativeOffset.Value.Hours << 12);
                     UInt32 mn = (UInt32)((UInt32)relativeOffset.Value.Minutes << 6);
                     UInt32 sc = (UInt32)((UInt32)relativeOffset.Value.Seconds);
 
-                    ret = yr | mt | dy | hr | mn | sc;
+                    ret = dy | hr | mn | sc;                       // year 0, month 0: relative
                 }
                 else if (!IsRelative && absoluteOffset != null)
                 {
-                    int year = (absoluteOffset.Value.Year > Nanotag.REFERENCE_YEAR) ? 
-                        absoluteOffset.Value.Year - Nanotag.REFERENCE_YEAR : Nanotag.REFERENCE_YEAR;
+                    int year = absoluteOffset.Value.Year - Nanotag.REFERENCE_YEAR;
+                    if (year < 1 || year > 63)                      // year 0 would read as relative
+                        throw new ArgumentOutOfRangeException(nameof(PowerOn), "An absolute power-on time must be in 2021..2083.");
 
                     UInt32 yr = (UInt32)((UInt32)year << 26);
                     UInt32 mt = (UInt32)((UInt32)absoluteOffset.Value.Month << 22);

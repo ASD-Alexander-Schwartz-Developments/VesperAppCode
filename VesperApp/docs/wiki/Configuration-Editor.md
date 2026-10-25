@@ -14,7 +14,7 @@ The **Configuration** tab edits the JSON configuration that tells a device *what
 | **Minimum hardware** | The hardware revision this configuration requires (e.g. `4.0`) |
 | **Allow magnet turn-off** | Whether a magnet may power the device down in the field (after activation). Vesper / Pipistrelle; a KOL has no magnet and ignores it. |
 | **Battery capacity** | The fitted battery's capacity in mAh (informational, used for documentation - no real impact on execution) |
-| **Power-on time/delay** | Optional power-on time/delay after activation (magnet on Vesper / Pipistrelle, **Start Recording** on a KOL) - when the device becomes active — an absolute date/time or relative delay |
+| **Power-on time/delay** | Optional delayed start, for every schedule type: after activation (magnet on Vesper / Pipistrelle / Nanotag, **Start Recording** on a KOL) the device stays off until this time, then starts its schedule — an absolute date/time or a relative delay (at most 31 days). Relative schedule entries count from the delayed start. Nanotag: firmware 1.39 or later |
 | **Clock drift** | Legacy RTC drift constant, the same for every unit (a raw value for the clock's calibration register). Units calibrated on the [Clock Calibration](Clock-Calibration) page use their own measured value instead; leave empty for no correction |
 | **RTC temperature compensation** | KOL / Vesper / Pipistrelle: periodically read the internal temperature sensor and correct the clock crystal's temperature drift. Off unless ticked; the optional curve steepness, turnover temperature and interval default to 34 ppb/°C², 25.0 °C and 600 s — see [Clock Calibration](Clock-Calibration) |
 
@@ -29,7 +29,9 @@ There are 4 types of schedules supported:
 | **Continuous** | Record continuously after activation while powered. Can be stopped manually via magnet if enabled on the General section (Vesper / Pipistrelle); a KOL stops when it is unplugged and connected to a computer. |
 | **Daily** | Repeat the same time windows every 24HR; schdule runs 00:00 to 23:59 if entry should run over midnight, split it till 23:59 and after 00:00 |
 | **Dated** | Run in specific calendar windows based on absolute dates |
-| **Relative** | Windows relative to the date of activation (magnet, or **Start Recording** on a KOL) with dates relative to date of activation (1,2,3...) |
+| **Relative** | Windows relative to the date of activation (magnet, or **Start Recording** on a KOL), or to the end of the power-on delay when one is set, with dates relative to that start (1,2,3...) |
+
+The same four types and the power-on delay apply to Vesper, Pipistrelle, KOL and Nanotag (Nanotag: firmware 1.39 or later behaves as the others; a dated or relative schedule stays in its last entry's state after its last entry).
 
 A configuration contains one or more **schedule blocks** marked as **config0 (Off)**, **config1 (On)**, **config2 (On)**.
 Blocks define when each sensor records, so you can, for example, record audio only at night while sampling environment sensors around the clock.  
