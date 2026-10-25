@@ -130,7 +130,14 @@ namespace VesperApp.Models
 					sConfiguration.general.config_rev = 0;
 					sConfiguration.general.reference_year = 2020;
 					sConfiguration.general.Schedule_type = ConvertNanotagScheduleType(config.ScheduleType);
-					sConfiguration.general.poweron = config.PowerOn.ToNanotagDateTime();
+					// The firmware's powerOn is a single byte it never reads; the packed 32-bit power-on
+					// time used to be written here and spilled into the RTC compensation fields (11..13).
+					sConfiguration.general.poweron = 0;
+					// RTC temperature compensation (firmware rtc_cal.c); 0 = firmware default.
+					sConfiguration.general.rtc_tcomp = (byte)(config.TempComp == true ? 1 : 0);
+					sConfiguration.general.rtc_tck = (ushort)Math.Min(config.TempCompCurvature ?? 0u, ushort.MaxValue);
+					sConfiguration.general.rtc_tct0 = (short)Math.Min(config.TempCompTurnover ?? 0u, (uint)short.MaxValue);
+					sConfiguration.general.rtc_tcper = (ushort)Math.Min(config.TempCompPeriod ?? 0u, ushort.MaxValue);
 
                     if (sConfiguration.devices_list != null)
 					{
@@ -357,17 +364,24 @@ namespace VesperApp.Models
 
 
 	[System.Runtime.InteropServices.StructLayout(LayoutKind.Sequential, Pack = 1)]
-	internal struct NanotagGeneralConfiguration         // sizeof = 64 bytes with spares up to 256 bytes
+	// Byte-for-byte mirror of the firmware's device_general_params_t (NANOTAG firmware src/params.h,
+	// 1.37 / 7af8337): 64 bytes used + 3 x 64 spare = 256 bytes (one EEPROM row). Offsets are pinned
+	// by VesperApp.Tests NanotagConfigLayoutTests — change both sides together.
+	internal struct NanotagGeneralConfiguration
 	{
-		public UInt16 minimum_hw_ver;
-		public byte isMagnetOffEnabled;
-		public byte config_rev;
-		public UInt16 battery_capacity;
-		public UInt16 reference_year;
-		public UInt16 Schedule_type;                                        // 0=continues, 1=first_trigger,  2=dated, 3 = daily, 4 = weekly, 5 = relative
-        public UInt32 poweron;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 50)]
-		public byte[]res;
+		public UInt16 minimum_hw_ver;                                       // 0
+		public byte isMagnetOffEnabled;                                     // 2
+		public byte config_rev;                                             // 3
+		public UInt16 battery_capacity;                                     // 4
+		public UInt16 reference_year;                                       // 6
+		public UInt16 Schedule_type;                                        // 8   0=continues, 1=first_trigger,  2=dated, 3 = daily, 4 = weekly, 5 = relative
+		public byte poweron;                                                // 10  u8 powerOn in the firmware (not read by it)
+		public byte rtc_tcomp;                                              // 11  RTC temperature compensation, 1 = on (config.json "tcomp")
+		public UInt16 rtc_tck;                                              // 12  curvature ppb/degC^2, 0 = default 34 ("tck")
+		public Int16 rtc_tct0;                                              // 14  turnover in 0.1 degC, 0 = default 250 ("tct0")
+		public UInt16 rtc_tcper;                                            // 16  re-apply period s, 0 = default 600, min 60 ("tcper")
+		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 46)]
+		public byte[]res;                                                   // 18..63
 		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
 		public byte[]reserved2;
 		[MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
