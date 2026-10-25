@@ -165,14 +165,22 @@ public class ConfigurationJsonTests
     [InlineData("""{ "name": "KOL", "devices": [ { "sampleRate": [0,1,1], "name": "KOL" } ] }""")]   // "name" must come first
     public void TryParse_RejectsNonConfigurations(string json) => Assert.Null(ConfigurationJSON.TryParse(json));
 
-    [Fact(Skip = "Open question, not a clear bug: a config.json with a driver this VesperApp does not know (e.g. from a newer " +
-                 "release) is rejected as a whole - the converter returns null without consuming the object, System.Text.Json " +
-                 "throws and TryParse gives null. Decide whether unknown drivers should be skipped (and kept) instead.")]
-    public void TryParse_UnknownDriverName_GivesNullEntry()
+    [Fact]
+    public void TryParse_UnknownDriver_IsKeptVerbatim()
     {
-        var c = ConfigurationJSON.TryParse("""{ "name": "KOL", "devices": [ { "name": "FUTURE", "bitmask": 1 } ] }""");
+        // A driver from a newer firmware / app: the config still opens (it was rejected as a whole),
+        // the entry is a ConfigUnknownDriver and is written back exactly as read.
+        var c = ConfigurationJSON.TryParse("""{ "name": "KOL", "devices": [ { "name": "KOL", "sampleRate": [0, 48000, 0] }, { "name": "FUTURE", "bitmask": 1, "newKey": [1, 2] } ] }""");
         Assert.NotNull(c);
-        Assert.Null(Assert.Single(c!.DeviceDrivers));
+        Assert.Equal(2, c!.DeviceDrivers.Count);
+        Assert.IsType<ConfigKOLDriver>(c.DeviceDrivers[0]);
+        var u = Assert.IsType<ConfigUnknownDriver>(c.DeviceDrivers[1]);
+        Assert.Equal("FUTURE", u.Name);
+
+        var opt = new System.Text.Json.JsonSerializerOptions();
+        opt.Converters.Add(new ConfigurationDeviceDriver.ConfigurationDeviceDriverConverter());
+        string back = System.Text.Json.JsonSerializer.Serialize(u as ConfigurationDeviceDriver, opt);
+        Assert.Equal("""{"name":"FUTURE","bitmask":1,"newKey":[1,2]}""", back);
     }
 
     [Fact]

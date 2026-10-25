@@ -177,6 +177,19 @@ public class BinHeaderTests
     }
 
     [Fact]
+    public void BinHeader_ToBytes_IsTheBlockAtItsOffset()
+    {
+        // ToBytes copied 16 bytes from offset 0 of the buffer instead of the block's own position.
+        byte[] buf = new byte[40];
+        for (int k = 0; k < buf.Length; k++) buf[k] = (byte)(0xC0 + k);
+        byte[] block = { 0x5A, 0xA5, 0x5A, 0xA5, 0x09, 0x30, 0x15, 0x00, 0x07, 0x10, 0x25, 0x26, 0xFF, 0x00, 0x00, 0x00 };
+        Array.Copy(block, 0, buf, 20, block.Length);
+        var h = new BinHeader(buf, 20, 'H');
+        Assert.Equal(block, h.ToBytes());
+        Assert.Empty(new BinHeader(buf, 30, 'H').ToBytes());          // not enough bytes left: no header
+    }
+
+    [Fact]
     public void BinaryTypeHeader_ParsesAllFields()
     {
         var h = new BinaryTypeHeader(Raw.FileHeader("LOGGER", 60000, 0x2, 0x2F, 0x301, 7, 8, uid: 0x47625051, fwid: 0x0108, winLen: 5, winRate: 6));

@@ -43,7 +43,7 @@ namespace VesperApp.Models
         public BinHeader(byte[] data, int start_position, char first_char)
         {
             original_bytes = new byte[0];
-            if (data != null && data.Length >= BIN_HEADER_LENGTH)
+            if (data != null && start_position >= 0 && start_position + BIN_HEADER_LENGTH <= data.Length)
             {
                 int i = start_position;
 
@@ -53,7 +53,7 @@ namespace VesperApp.Models
                 {
                     original_bytes = new byte[BIN_HEADER_LENGTH];
 
-                    Array.Copy(data, original_bytes, BIN_HEADER_LENGTH);
+                    Array.Copy(data, start_position, original_bytes, 0, BIN_HEADER_LENGTH);   // this block (it copied from offset 0)
 
                     this.preamble = pmbl;
 
