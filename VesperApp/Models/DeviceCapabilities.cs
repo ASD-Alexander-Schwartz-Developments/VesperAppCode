@@ -117,6 +117,19 @@ namespace VesperApp.Models
             _ => string.Empty,
         };
 
+        /// <summary>
+        /// Most schedule entries the configuration editor lets a config hold for the product: Vesper / Pipistrelle
+        /// <see cref="Vesper.MAX_SCHEDULE_SIZE"/>, KOL <see cref="Kol.MAX_SCHEDULE_SIZE"/>, Nanotag
+        /// <see cref="Nanotag.MAX_SCHEDULE_ENTRIES"/>. No product chosen yet: the Vesper limit.
+        /// </summary>
+        public static int MaxScheduleEntries(DeviceTypes? product) => product switch
+        {
+            DeviceTypes.Kol => Kol.MAX_SCHEDULE_SIZE,
+            DeviceTypes.Pipistrelle => Pipistrelle.MAX_SCHEDULE_SIZE,
+            DeviceTypes.Nanotag => Nanotag.MAX_SCHEDULE_ENTRIES,
+            _ => Vesper.MAX_SCHEDULE_SIZE,
+        };
+
         /// <summary>Product name for user-facing texts.</summary>
         public static string DisplayName(DeviceTypes? product) => product switch
         {

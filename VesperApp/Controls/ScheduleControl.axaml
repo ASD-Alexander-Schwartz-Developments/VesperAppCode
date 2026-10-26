@@ -74,9 +74,14 @@
 			</StackPanel>
 
 			<StackPanel Margin="1,10,10,0" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Stretch" MinWidth="265" DockPanel.Dock="Left">
-				<Label Content="Operating Schedule Alarms"/>
+				<StackPanel Orientation="Horizontal" Spacing="6">
+					<Label Content="Operating Schedule Alarms"/>
+					<Label Content="{Binding EntryCountText}" VerticalAlignment="Center" Opacity="0.7"
+						   ToolTip.Tip="Entries in the schedule / the most the selected device accepts."/>
+				</StackPanel>
 				<Border BorderThickness="1" BorderBrush="{DynamicResource AppStrokeBrush}" CornerRadius="6">
-				<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+				<!-- MaxHeight: a long schedule (up to 150 entries) scrolls here instead of stretching the editor. -->
+				<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" MaxHeight="420">
 				<ListBox ItemsSource="{Binding ScheduleEventsList}" 
 						 x:Name="listScheduleEventsList" 
 						 Margin="1,1,1,1" 

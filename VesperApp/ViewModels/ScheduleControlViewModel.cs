@@ -24,6 +24,7 @@ namespace VesperApp.ViewModels
             SelectedConfiguration = WorkingConfiguration.Off;
  
             ScheduleEventsList = new ObservableCollection<ConfigScheduleJSONItem>(items);
+            ScheduleEventsList.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(EntryCountText));
 
             SelectedScheduleType = ScheduleTypes.Continues;
             previousScheduleType = ScheduleTypes.Continues;
@@ -34,7 +35,11 @@ namespace VesperApp.ViewModels
 
             CommandAddButton = ReactiveCommand.Create(async () =>
             {
-                if(SelectedScheduleType == ScheduleTypes.Continues)
+                if (!CanAddEntry)
+                {
+                    await ShowScheduleFullAsync();
+                }
+                else if(SelectedScheduleType == ScheduleTypes.Continues)
                 {
                     var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
                     new MessageBoxStandardParams
@@ -139,7 +144,7 @@ namespace VesperApp.ViewModels
                 }
 
                 nitem.Configuration = SelectedConfiguration;
-                ScheduleEventsList.Add(nitem);
+                TryAddEntry(nitem);
                 IsAddingNewEntry = false;
                 SelectedDate = null;
                 SelectedTime = null;
@@ -213,6 +218,56 @@ namespace VesperApp.ViewModels
         }
 
         public ObservableCollection<ConfigScheduleJSONItem> ScheduleEventsList { get; }
+
+        /// <summary>
+        /// Most entries the schedule may hold for the selected device (<see cref="DeviceCapabilities.MaxScheduleEntries"/>);
+        /// set by the configuration editor when the device type changes. Default: the Vesper / Pipistrelle limit.
+        /// </summary>
+        public int MaxEntries
+        {
+            get => maxEntries;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref maxEntries, Math.Max(0, value));
+                this.RaisePropertyChanged(nameof(EntryCountText));
+            }
+        }
+        private int maxEntries = Vesper.MAX_SCHEDULE_SIZE;
+
+        /// <summary>"n / max" next to the list title.</summary>
+        public string EntryCountText => $"{ScheduleEventsList.Count} / {MaxEntries}";
+
+        /// <summary>Whether one more entry fits.</summary>
+        public bool CanAddEntry => ScheduleEventsList.Count < MaxEntries;
+
+        /// <summary>Whether the schedule holds more entries than the selected device accepts (a loaded file).</summary>
+        public bool IsOverLimit => ScheduleEventsList.Count > MaxEntries;
+
+        /// <summary>Adds the entry when it fits (<see cref="MaxEntries"/>); false when the schedule is full.</summary>
+        public bool TryAddEntry(ConfigScheduleJSONItem item)
+        {
+            if (!CanAddEntry)
+                return false;
+            ScheduleEventsList.Add(item);
+            return true;
+        }
+
+        private async Task ShowScheduleFullAsync()
+        {
+            var box = MessageBoxManager.GetMessageBoxStandard(
+            new MessageBoxStandardParams
+            {
+                ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
+                ContentTitle = "New Schedule Entry",
+                ContentHeader = "The schedule is full",
+                ContentMessage = $"The selected device accepts at most {MaxEntries} schedule entries.",
+                SizeToContent = SizeToContent.WidthAndHeight,
+                WindowIcon = App.MainWindow?.Icon,
+                Icon = MsBox.Avalonia.Enums.Icon.Info
+            });
+
+            await box.ShowWindowDialogAsync(App.MainWindow);
+        }
 
         /// <summary>
         /// A relative schedule entry from the day-offset + time editor: day 0 = the day the schedule starts

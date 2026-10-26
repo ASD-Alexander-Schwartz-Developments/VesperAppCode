@@ -15,7 +15,10 @@ namespace VesperApp.Models
     {
 		public static readonly int DEVICE_NAME_LENGTH = 16;
 		public static readonly int MAX_LOADED_DEVICES = 4;
-		public static readonly int MAX_SCHEDULE_SIZE = 64;
+		/// <summary>Most config.json schedule entries VesperApp writes. VesperU5 (params.h MAX_SCHEDULE_SIZE 160)
+		/// arms with at most 159 (app_threadx.c: count >= MAX_SCHEDULE_SIZE stops it); 150 leaves room and a
+		/// worst-case config.json with 150 entries and 4 devices stays under the 16 KB file limit (params.c CACHE_SIZE).</summary>
+		public static readonly int MAX_SCHEDULE_SIZE = 150;
 		public static readonly int REFERENCE_YEAR = 2020;
 
 		private static readonly int TICKS_IN_SECOND = 1024;

@@ -244,6 +244,23 @@ namespace VesperApp.ViewModels
         {
             bool ok = false;
 
+            if (ScheduleViewModel != null && ScheduleViewModel.IsOverLimit)
+            {
+                /* a loaded file can hold more entries than the device accepts: the firmware would not arm with it */
+                var tooMany = MessageBoxManager.GetMessageBoxStandard(
+                new MessageBoxStandardParams
+                {
+                    ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
+                    ContentTitle = "Save Configuration",
+                    ContentHeader = "Too many schedule entries",
+                    ContentMessage = $"The schedule has {ScheduleViewModel.ScheduleEventsList.Count} entries; the selected device accepts at most {ScheduleViewModel.MaxEntries}. Delete entries before saving.",
+                    WindowIcon = App.MainWindow?.Icon,
+                    Icon = MsBox.Avalonia.Enums.Icon.Warning
+                });
+                await tooMany.ShowWindowDialogAsync(App.MainWindow);
+                return false;
+            }
+
             string json = string.Empty;
             string error = string.Empty;
 
@@ -566,6 +583,8 @@ namespace VesperApp.ViewModels
 
         private async void UpdateSelectedDeviceType(DeviceTypes? _seldeviceType)
         {
+            ScheduleViewModel.MaxEntries = DeviceCapabilities.MaxScheduleEntries(_seldeviceType);
+
             if (_seldeviceType != null)
             {
                 //configurationJSONInstance.Name = (string)_seldeviceType.ToString();
