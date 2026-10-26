@@ -22,11 +22,21 @@ namespace VesperApp.Services
         CancellationTokenSource tokenSource;
         CancellationToken token;
 
-        SerialPort? _serialPort;
+        // COM discovery: the ports to look at, and the GET_VER probe (a fake port list / probe in the tests).
+        readonly Func<string[]> _listComPorts;
+        readonly ComPortProbe _comPortProbe;
+        int _comScanRunning;
+
+        /// <summary>Baud rate of a discovered CDC logger (the SerialPort default; a CDC port ignores it).</summary>
+        const int ComportBaudRate = 9600;
 
 
-        public DeviceUsbAdapter()
+        public DeviceUsbAdapter() : this(null, null) { }
+
+        internal DeviceUsbAdapter(Func<string[]>? listComPorts, ComPortProbe? comPortProbe)
         {
+            _listComPorts = listComPorts ?? ListLoggerComPorts;
+            _comPortProbe = comPortProbe ?? new ComPortProbe();
             _loggerDevices = new List<Models.LoggerDevice>();
 
             // libusb is only needed for non-serial devices (Nanotag bulk); if the
@@ -45,7 +55,6 @@ namespace VesperApp.Services
                     "libusb unavailable - USB (non-serial) device discovery disabled: " + ex.Message);
             }
             _device = null;
-            _serialPort = new SerialPort();
             tokenSource = new CancellationTokenSource();
             token = tokenSource.Token;
 
@@ -225,109 +234,64 @@ namespace VesperApp.Services
 
 
 
+        /// <summary>
+        /// Cross-platform VID/PID-filtered discovery: list ports WITH their USB
+        /// identity (without opening them) and keep only ASD CDC loggers. This
+        /// replaces "open and probe every COM port". Ports whose USB id the
+        /// platform couldn't resolve (null) are still probed as a safety net
+        /// (e.g. macOS usbmodem nodes), but known non-ASB USB devices are skipped.
+        /// </summary>
+        private static string[] ListLoggerComPorts() =>
+            ASD.DeviceCore.Transport.SerialEnumerator.List()
+                .Where(p => ASD.Devices.AsdDeviceIds.IsCdcLogger(p.Vid, p.Pid)
+                            || (p.Vid is null && p.Pid is null))
+                .Select(p => p.PortName)
+                .ToArray();
+
         public async Task<IEnumerable<LoggerDevice>> ScanComPortsAsync(bool forceRefresh = false)
         {
             if (forceRefresh == true)
                 this._loggerDevices.Clear();
 
-            if (this._serialPort != null && this._serialPort.IsOpen == false)
+            // One scan at a time: a scan already running (periodic refresh, re-enumeration wait) owns the ports.
+            if (Interlocked.CompareExchange(ref _comScanRunning, 1, 0) == 0)
             {
-                // Cross-platform VID/PID-filtered discovery: list ports WITH their USB
-                // identity (without opening them) and keep only ASD CDC loggers. This
-                // replaces "open and probe every COM port". Ports whose USB id the
-                // platform couldn't resolve (null) are still probed as a safety net
-                // (e.g. macOS usbmodem nodes), but known non-ASB USB devices are skipped.
-                string[] comports = ASD.DeviceCore.Transport.SerialEnumerator.List()
-                    .Where(p => ASD.Devices.AsdDeviceIds.IsCdcLogger(p.Vid, p.Pid)
-                                || (p.Vid is null && p.Pid is null))
-                    .Select(p => p.PortName)
-                    .ToArray();
-
-                foreach (string s in comports)
+                try
                 {
-                    try
+                    string[] comports = _listComPorts();
+
+                    foreach (string s in comports)
                     {
-                        if(this._serialPort?.IsOpen == true)
-                            this._serialPort.Close();
-
-                        this._serialPort.PortName = s;
-                        this._serialPort.ReadTimeout = 100;
-                        this._serialPort.WriteTimeout = 100;
-                        // STM32 CDC firmware may hold TX until the host asserts DTR;
-                        // Windows drivers often mask this, Linux cdc_acm does not.
-                        this._serialPort.DtrEnable = true;
-                        this._serialPort.Open();
-                        if (this._serialPort.IsOpen)
+                        /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
+                        GetVerReply? reply = await _comPortProbe.ProbeAsync(s);
+                        if (reply != null)
                         {
-                            //Debug.WriteLine("Opened " + s);
-                            /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
+                            var dev = new LoggerDevice(s, ComportBaudRate, reply.Type, reply.Serial, new System.Version(reply.Major, reply.Minor));
 
-                            byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_GET_VER,
-                                0, new byte[0], 0);
-                            this._serialPort.Write(buffer, 0, buffer.Length);
-
-                            // Accumulate the GET_VER reply: serial data may arrive in
-                            // chunks (especially on Linux cdc_acm), so a single Read —
-                            // which returns whatever happens to be buffered — can be
-                            // short even when the device answered.
-                            byte[] resp = new byte[32];
-                            int got = 0;
-                            DateTime deadline = DateTime.UtcNow.AddMilliseconds(500);
-                            while (got < 12 && DateTime.UtcNow < deadline)
-                            {
-                                await Task.Delay(25);
-                                try
-                                {
-                                    int n = this._serialPort.Read(resp, got, resp.Length - got);
-                                    if (n > 0) got += n;
-                                }
-                                catch (TimeoutException) { }
-                            }
-
-                            int i = got > 0 ? Array.IndexOf(resp, (byte)0x5A, 0, got) : -1;
-                            if (i >= 0 && i + 10 < got && resp[i + 2] == (byte)MessageTypes.VESPER_GET_VER)             /// need to implement something real here
-                            {
-                                byte major = (byte)(resp[i + 4]);
-                                byte minor = (byte)(resp[i + 5]);
-                                uint serial = (uint)((uint)resp[i + 6] + ((uint)resp[i + 7] << 8) + ((uint)resp[i + 8] << 16) + ((uint)resp[i + 9] << 24));
-                                DeviceTypes type = (DeviceTypes)resp[i + 10];
-
-                                var dev = new LoggerDevice(_serialPort.PortName, _serialPort.BaudRate, type, serial, new System.Version(major, minor));
-
-                                if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
-                                    this._loggerDevices.Add(dev);
-                            }
-
-                            this._serialPort?.Close();
+                            if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
+                                this._loggerDevices.Add(dev);
                         }
                     }
-                    catch(Exception ex)
-                    { 
-                        //Debug.WriteLine(ex.Message);
-                    }
-                    finally
-                    {
-                        if (this._serialPort != null && this._serialPort?.IsOpen == true)
-                            this._serialPort?.Close();
 
-                        //Debug.WriteLine("Closed " + s);
+                    List<string> _names = comports.ToList();
+
+                    for(int i = 0; i < this._loggerDevices.Count; i++)
+                    {
+                        if (_loggerDevices[i].IsComportDevice)
+                        {
+                            if (_names.Exists((d) => d.Equals(_loggerDevices[i].ComPort)) == false) 
+                            {
+                               // Debug.WriteLine("Remove " + _loggerDevices[i].Name);
+                                _loggerDevices.RemoveAt(i);
+                                i = 0;
+                                break;
+                            }
+                        }
                     }
                 }
-
-                List<string> _names = comports.ToList();
-
-                for(int i = 0; i < this._loggerDevices.Count; i++)
+                finally
                 {
-                    if (_loggerDevices[i].IsComportDevice)
-                    {
-                        if (_names.Exists((d) => d.Equals(_loggerDevices[i].ComPort)) == false) 
-                        {
-                           // Debug.WriteLine("Remove " + _loggerDevices[i].Name);
-                            _loggerDevices.RemoveAt(i);
-                            i = 0;
-                            break;
-                        }
-                    }
+                    Interlocked.Exchange(ref _comScanRunning, 0);
                 }
             }
 
