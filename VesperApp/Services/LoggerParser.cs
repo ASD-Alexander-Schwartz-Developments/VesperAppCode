@@ -97,7 +97,8 @@ namespace VesperApp.Services
             _ => level.ToString(),
         };
 
-        /// <summary>Firmware log codes (logger_codes.h, same catalogue in KOL and VesperU5).</summary>
+        /// <summary>Firmware log codes (logger_codes.h: one catalogue shared by KOL, VesperU5 and Nanotag;
+        /// some codes are logged by one family only - see asd-interfaces interfaces/logger-file.md).</summary>
         public static readonly IReadOnlyDictionary<ushort, string> Codes = new Dictionary<ushort, string>
         {
             [0x0101] = "Firmware started",
@@ -112,9 +113,14 @@ namespace VesperApp.Services
             [0x0202] = "Write to a data file failed",
             [0x0203] = "Storage full",
             [0x0204] = "Storage flush failed",
+            [0x0205] = "NAND page read uncorrectable (ECC)",
+            [0x0206] = "NAND page read corrected at/above the ECC threshold",
+            [0x0207] = "NAND block retired",
+            [0x0208] = "NAND bad block table repaired at boot",
             [0x0301] = "Battery reading not possible",
             [0x0302] = "USB power attached",
             [0x0303] = "USB power removed",
+            [0x0304] = "Battery low: recording stopped",
             [0x0401] = "MCU temperature reading not possible",
             [0x0402] = "Microphone clock lock re-armed",
             [0x0403] = "Microphone clock trimmed",
@@ -124,6 +130,7 @@ namespace VesperApp.Services
             [0x0502] = "Recording session stopped",
             [0x0503] = "Schedule entry reached",
             [0x0504] = "Schedule finished",
+            [0x0505] = "config.json refused, nothing applied",
             [0x0601] = "Audio window opened",
             [0x0602] = "Audio window closed",
             [0x0603] = "Audio samples missed (overrun)",
@@ -135,11 +142,11 @@ namespace VesperApp.Services
         };
 
         /// <summary>Readable event name; 0x08xx = configured sensor not found, low byte = driver type.</summary>
-        public static string CodeName(ushort code, byte deviceType = 0)
+        public static string CodeName(ushort code, byte deviceType = 1)
         {
             if ((code & 0xFF00) == 0x0800)
             {
-                string[] names = deviceType == 3 ? KolSensors : VesperSensors;
+                string[] names = SensorTable(deviceType);
                 int t = code & 0xFF;
                 return "Configured sensor not found: " + (t < names.Length ? names[t] : $"type {t}");
             }
@@ -151,10 +158,21 @@ namespace VesperApp.Services
             { "DMIKE", "KOL", "EADC", "IMU", "EEG", "THCAMERA", "ALS", "AUX4", "TPRH31", "LED", "LOGGER" };
         private static readonly string[] VesperSensors =
             { "GPS", "DMIKE", "MIC", "EADC", "IMU", "EEG", "THCAMERA", "ALS3001D", "AUX4", "TPRH31", "LED", "RADIO", "PROXTIT", "LOGGER" };
+        // Nanotag nanotag.h SENSOR_Typedef: SNS_GPS (ACLYS), SNS_ACC, SNS_BLE (ProxTit add-on), SNS_EADC (ADS1115), ...
+        private static readonly string[] NanotagSensors =
+            { "ACLYS", "NANOACC", "PROXTIT", "ADS1115", "IMU", "EEG", "THCAMERA", "ALS3001D", "AUX4", "TPRH31", "LOGGER" };
+
+        /// <summary>GET_VER device type: 0 Nanotag, 1 Vesper, 2 Pipistrelle, 3 KOL.</summary>
+        private static string[] SensorTable(byte deviceType) => deviceType switch
+        {
+            0 => NanotagSensors,
+            3 => KolSensors,
+            _ => VesperSensors,
+        };
 
         public static string SensorNames(byte deviceType, uint bits)
         {
-            string[] names = deviceType == 3 ? KolSensors : VesperSensors;     // 3 = KOL (GET_VER device type)
+            string[] names = SensorTable(deviceType);
             var on = new List<string>();
             for (int b = 0; b < 32; b++)
             {

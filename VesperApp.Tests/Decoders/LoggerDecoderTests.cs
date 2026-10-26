@@ -148,6 +148,22 @@ public class LoggerDecoderTests
     [InlineData((ushort)0x0104, (byte)3, "Reset: software")]
     [InlineData((ushort)0x0405, (byte)1, "RTC synchronised by the host")]
     [InlineData((ushort)0x0999, (byte)3, "unknown")]
+    // codes added after the first catalogue (Nanotag NAND, VesperU5 1.22)
+    [InlineData((ushort)0x0205, (byte)0, "NAND page read uncorrectable (ECC)")]
+    [InlineData((ushort)0x0206, (byte)0, "NAND page read corrected at/above the ECC threshold")]
+    [InlineData((ushort)0x0207, (byte)0, "NAND block retired")]
+    [InlineData((ushort)0x0208, (byte)0, "NAND bad block table repaired at boot")]
+    [InlineData((ushort)0x0304, (byte)1, "Battery low: recording stopped")]
+    [InlineData((ushort)0x0505, (byte)1, "config.json refused, nothing applied")]
+    // Nanotag (device type 0): its own SENSOR_Typedef numbering
+    [InlineData((ushort)0x0401, (byte)0, "MCU temperature reading not possible")]
+    [InlineData((ushort)0x0504, (byte)0, "Schedule finished")]
+    [InlineData((ushort)0x0704, (byte)0, "Sensor reading failed")]
+    [InlineData((ushort)0x0800, (byte)0, "Configured sensor not found: ACLYS")]
+    [InlineData((ushort)0x0801, (byte)0, "Configured sensor not found: NANOACC")]
+    [InlineData((ushort)0x0802, (byte)0, "Configured sensor not found: PROXTIT")]
+    [InlineData((ushort)0x0807, (byte)0, "Configured sensor not found: ALS3001D")]
+    [InlineData((ushort)0x0809, (byte)0, "Configured sensor not found: TPRH31")]
     public void CodeName_MapsCatalogueAndMissingSensorPerFamily(ushort code, byte deviceType, string expected)
         => Assert.Equal(expected, LoggerParser.CodeName(code, deviceType));
 
@@ -156,6 +172,8 @@ public class LoggerDecoderTests
     [InlineData((byte)3, 0x102u, "KOL+TPRH31")]
     [InlineData((byte)1, 0x3u, "GPS+DMIKE")]
     [InlineData((byte)3, 0x80000000u, "bit31")]
+    [InlineData((byte)0, 0x283u, "ACLYS+NANOACC+ALS3001D+TPRH31")]   // Nanotag
+    [InlineData((byte)0, 0x4u, "PROXTIT")]
     public void SensorNames_UsesFamilySpecificBitNames(byte deviceType, uint bits, string expected)
         => Assert.Equal(expected, LoggerParser.SensorNames(deviceType, bits));
 
