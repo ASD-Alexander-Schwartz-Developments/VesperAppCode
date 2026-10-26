@@ -97,6 +97,7 @@ namespace VesperApp.Models
             this._comport = new ConsoleTransport(port, baudrate);
             _serialnumber = serial.ToString("X");
             _firmwareVersion = firmware;
+            fwid = firmware != null ? FirmwareIdText(firmware) : null;
             this._usbDevice = null;
             _type = type;
             HwId = "4.0.0";
@@ -133,15 +134,13 @@ namespace VesperApp.Models
                 case MessageTypes.VESPER_GET_VER:
                     if (e.MessageData != null)
                     {
-                        byte l = e.MessageData[0];
-                        byte h = e.MessageData[1];
-
+                        /* GET_VER: [0] major, [1] minor, [2..5] UID (LE), [6] device type */
+                        Version fw = ParseGetVerFirmware(e.MessageData);
                         uint serial_num = (uint)((uint)e.MessageData[2] + ((uint)e.MessageData[3] << 8) + ((uint)e.MessageData[4] << 16) + ((uint)e.MessageData[5] << 24));
 
-
-                        this.FwId = h.ToString() + l.ToString();
+                        this.FwId = FirmwareIdText(fw);
                         this._serialnumber = serial_num.ToString("X");
-                        this.FirmwareVersion = new Version(l, h);   /* GET_VER: [0] major, [1] minor */
+                        this.FirmwareVersion = fw;
                     }
                     break;
 
@@ -232,10 +231,11 @@ namespace VesperApp.Models
                         UInt32 major = (UInt32)(data[16]);
                         UInt32 minor = (UInt32)(data[17]);
                         byte[] vuid = { data[18], data[19], data[20], data[21] };
-                        string fwid = major.ToString() + "." + minor.ToString();
+                        var fw = new Version((int)major, (int)minor);
+                        string fwid = FirmwareIdText(fw);
 
                         if (this.FwId != fwid) { this.FwId = fwid; }
-                        this.FirmwareVersion = new Version((int)major, (int)minor);
+                        this.FirmwareVersion = fw;
 
 //                        vd.isarmed = (data[24] == 0) ? "Armed" : "Not Armed";
                         byte[] dtarray = { data[25], data[26], data[27], data[28], data[29], data[30], data[31] };
@@ -581,6 +581,7 @@ namespace VesperApp.Models
                     fwidmn = response[2];
                     fwidbld = response[3];
                     FwId = fwidmj.ToString() + "." + fwidmd.ToString() + "." + fwidmn.ToString() + "." + fwidbld.ToString();
+                    if (_type == DeviceTypes.Nanotag) FirmwareVersion = NanotagFirmwareVersion(response);
 
                     byte hwidmj = response[4];
                     byte hwidmn = response[5];
@@ -781,7 +782,20 @@ namespace VesperApp.Models
         /// <summary>The device is a KOL reached over its CDC console.</summary>
         public bool IsKol => _type == DeviceTypes.Kol && IsComportDevice;
 
-        /// <summary>Application firmware MAJOR.MINOR (GET_VER / GET_RTC); null until known.</summary>
+        /// <summary>MAJOR.MINOR from a GET_VER reply (id 15, VesperU5 / KOL): [0] major, [1] minor.</summary>
+        internal static Version ParseGetVerFirmware(byte[] reply) => new Version(reply[0], reply[1]);
+
+        /// <summary>Firmware id as shown in the device list: "1.7" for KOL 1.7, "1.22" for Vesper 1.22.</summary>
+        internal static string FirmwareIdText(Version firmware) => $"{firmware.Major}.{firmware.Minor}";
+
+        /// <summary>
+        /// Nanotag feed / release version from a VND_CMD_GET_INFO reply ([0] MAJOR, [1] MID, [2] MINOR, [3] BLD,
+        /// shown as 0.0.1.39): the release is MINOR.BLD ("1.39"), which is what the capability gates compare.
+        /// </summary>
+        internal static Version NanotagFirmwareVersion(byte[] info) => new Version(info[2], info[3]);
+
+        /// <summary>Application firmware MAJOR.MINOR (GET_VER / GET_RTC; Nanotag: MINOR.BLD from GET_INFO);
+        /// null until known.</summary>
         public Version? FirmwareVersion
         {
             get => _firmwareVersion;
