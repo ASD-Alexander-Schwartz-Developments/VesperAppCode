@@ -13,7 +13,26 @@ namespace VesperApp.Models
     {
         public const UInt32 BITMASK_MIKE_LED = 0x02;
 
-        private UInt16 num_mikes;
+        /// <summary>Microphones a new KOL driver records: all four.</summary>
+        public const UInt16 DefaultMicCount = 4;
+
+        /// <summary>
+        /// The counts the KOL variants have (1, 2 or 4 microphones). The firmware copies "mikeon" straight into
+        /// MIKE_NUMBER (ultrasonic.c) and loops over that many microphones: 0 starts no microphone at all (the unit
+        /// "records" with no audio files), above 4 runs past its four-entry microphone tables.
+        /// </summary>
+        public static readonly UInt16[] ValidMicCounts = { 1, 2, 4 };
+
+        /// <summary>A valid microphone count for <paramref name="value"/>: 1, 2 or 4 as given; 0 (not set) = 4;
+        /// 3 or above 4 = 4 (never fewer microphones than asked for).</summary>
+        public static UInt16 CoerceMicCount(UInt32 value) => value switch
+        {
+            1 => 1,
+            2 => 2,
+            _ => DefaultMicCount,
+        };
+
+        private UInt16 num_mikes = DefaultMicCount;
 
         public ConfigKOLDriver() : base("KOL", "KOL - Scientific Audio Configuration") { }
 
@@ -21,7 +40,7 @@ namespace VesperApp.Models
         public override MicChainSolver.Product Product => MicChainSolver.Product.Kol;
 
         [JsonIgnore, Browsable(false)]
-        public override int MicCount => num_mikes == 0 ? 4 : num_mikes;
+        public override int MicCount => num_mikes;
 
         public override void Load(ConfigurationDeviceDriver ldrv)
         {
@@ -34,7 +53,7 @@ namespace VesperApp.Models
 
         [DisplayName("Number of Active Microphones"),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("How many of the KOL's four microphones record: 1, 2 or 4.")]
+        DescriptionAttribute("How many of the KOL's four microphones record: 1, 2 or 4 (default 4). Other values are set to 4.")]
         [JsonPropertyName("mikeon"), JsonPropertyOrder(20)]
         [Browsable(true)]
         public UInt32 MikesOn
@@ -42,10 +61,8 @@ namespace VesperApp.Models
             get { return (UInt32)this.num_mikes; }
             set
             {
-                if (value > 4)
-                    this.num_mikes = 4;
-                else
-                    this.num_mikes = (UInt16)value;
+                /* never 0: the firmware would start no microphone (see ValidMicCounts) */
+                this.num_mikes = CoerceMicCount(value);
 
                 OnPropertyChanged();
             }

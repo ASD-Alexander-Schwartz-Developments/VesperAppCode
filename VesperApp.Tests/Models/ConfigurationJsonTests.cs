@@ -218,6 +218,61 @@ public class ConfigurationJsonTests
     [Fact]
     public void KolDriver_MikesOnIsCappedAtFour() => Assert.Equal(4u, new ConfigKOLDriver { MikesOn = 9 }.MikesOn);
 
+    /// <summary>KOL firmware copies "mikeon" into MIKE_NUMBER (ultrasonic.c) and starts that many microphones:
+    /// 0 records no audio at all, so a config never carries 0; only the variants' 1 / 2 / 4 are written.</summary>
+    [Theory]
+    [InlineData(0u, 4u)]
+    [InlineData(1u, 1u)]
+    [InlineData(2u, 2u)]
+    [InlineData(3u, 4u)]
+    [InlineData(4u, 4u)]
+    [InlineData(5u, 4u)]
+    public void KolDriver_MikesOn_IsAlwaysAValidCount(uint set, uint expected)
+    {
+        var kol = new ConfigKOLDriver { MikesOn = set };
+        Assert.Equal(expected, kol.MikesOn);
+        Assert.Contains((ushort)kol.MikesOn, ConfigKOLDriver.ValidMicCounts);
+        Assert.Equal((int)expected, kol.MicCount);
+    }
+
+    [Fact]
+    public void KolDriver_ValidCounts_MatchTheProductVariants()
+        => Assert.Equal(DeviceCapabilities.MicCountOptions(DeviceTypes.Kol), ConfigKOLDriver.ValidMicCounts.Select(c => (int)c).ToArray());
+
+    [Fact]
+    public void KolDriver_New_WritesFourMicrophones()
+    {
+        var config = new ConfigurationJSON { Name = "KOL" };
+        config.DeviceDrivers.Add(new ConfigKOLDriver());
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(config, Options()));
+        Assert.Equal(4u, doc.RootElement.GetProperty("devices")[0].GetProperty("mikeon").GetUInt32());
+    }
+
+    [Theory]
+    [InlineData("\"mikeon\":0,")]           // older VesperApp builds wrote 0 for a new KOL driver: it recorded nothing
+    [InlineData("")]                        // no "mikeon" at all
+    public void KolDriver_LoadedWithoutAValidCount_GetsFour(string mikeon)
+    {
+        string json = "{\"name\":\"KOL\",\"devices\":[{\"name\":\"KOL\"," + mikeon + "\"sampleRate\":[0,192000,0]}],\"schedule\":[]}";
+        ConfigurationJSON? back = ConfigurationJSON.TryParse(json);
+        Assert.NotNull(back);
+        Assert.Equal(4u, Assert.IsType<ConfigKOLDriver>(Assert.Single(back!.DeviceDrivers)).MikesOn);
+    }
+
+    /// <summary>What a new KOL driver starts with (the documentation lists these).</summary>
+    [Fact]
+    public void KolDriver_Defaults()
+    {
+        var kol = new ConfigKOLDriver();
+        Assert.Equal(new uint[] { 0, 0, 0 }, kol.SampleRate);         // Sample Rate [1] / [2]: Off
+        Assert.Equal(0, kol.HPF);                                      // High Pass Filter: off
+        Assert.Equal(0, kol.GAIN);                                     // Programmable Gain: 0.0 dB
+        Assert.False(kol.EnableLEDIndication);                         // mic activity LED: off
+        Assert.Equal(4u, kol.MikesOn);
+        Assert.Equal(8u * 1024 * 1024, kol.FileSize);
+        Assert.False(kol.Trigger.On);                                  // continuous, no sound trigger
+    }
+
     [Fact]
     public void SupportedDrivers_PerProduct()
     {
