@@ -128,7 +128,7 @@ namespace VesperApp.ViewModels
         private string _powerOnEditMask = "00 00:00:00";
 
         /// <summary>Reflect the general device settings of <paramref name="config"/> in the editor.</summary>
-        private async Task ShowGeneralSettings(ConfigurationJSON config)
+        internal async Task ShowGeneralSettings(ConfigurationJSON config)
         {
             DeviceName = config.Name;
             MinimumHardware = config.MinimumSupportedHardware;
@@ -149,7 +149,7 @@ namespace VesperApp.ViewModels
         }
 
         /// <summary>Write the general device settings shown in the editor into <paramref name="config"/>.</summary>
-        private void ApplyGeneralSettings(ConfigurationJSON config)
+        internal void ApplyGeneralSettings(ConfigurationJSON config)
         {
             config.Name = DeviceName;
             config.MinimumSupportedHardware = MinimumHardware;
