@@ -24,7 +24,15 @@
 
 			<StackPanel Margin="1,10,10,0" Orientation="Vertical" DockPanel.Dock="Right" IsEnabled="{Binding IsAddingNewEntry}">
 				<StackPanel Orientation="Vertical" VerticalAlignment="Center">
+					<StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsRelativeSchedule}" Margin="0,0,0,14"
+								ToolTip.Tip="Days after the start of the schedule (activation, or the end of the delayed start). Day 0 = the start day itself.">
+						<Label Content="Day" VerticalAlignment="Center"/>
+						<NumericUpDown x:Name="nudDayOffset" Value="{Binding SelectedDayOffset}" Minimum="0" Maximum="{Binding MaxRelativeDays}"
+									   Increment="1" FormatString="0" Width="110" FontSize="12" VerticalAlignment="Center"/>
+						<Label Content="after the start" VerticalAlignment="Center"/>
+					</StackPanel>
 					<DatePicker IsEnabled="{Binding IsDateEnabled}" 
+								IsVisible="{Binding !IsRelativeSchedule}"
 								MonthVisible="{Binding IsMonthVisible}"
 								YearVisible="{Binding IsYearVisible}"
 								DayVisible="{Binding IsDayVisible}"
@@ -85,7 +93,8 @@
 									<ColumnDefinition Width="*" />
 								</Grid.ColumnDefinitions>
 								<StackPanel Margin="1,1,1,1" Orientation="Horizontal" Spacing="5">
-									<TextBlock Text="{Binding Alarm, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" Classes="mono" FontSize="13" />
+									<TextBlock Text="{Binding DisplayTime}" Classes="mono" FontSize="13" />
+
 									<TextBlock Text="{Binding ConfigName}" TextWrapping="Wrap" FontWeight="Bold" FontSize="13" />
 								</StackPanel>
 							</Grid>

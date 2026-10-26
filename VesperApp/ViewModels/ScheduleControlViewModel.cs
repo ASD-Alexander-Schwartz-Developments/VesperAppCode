@@ -114,7 +114,11 @@ namespace VesperApp.ViewModels
                 ConfigScheduleJSONItem nitem = new ConfigScheduleJSONItem();
                 //DateTime dt = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
-                if (SelectedDate != null)
+                if (selectedScheduleType == ScheduleTypes.Relative)
+                {
+                    nitem = BuildRelativeEntry(SelectedDayOffset, SelectedTime, SelectedConfiguration);
+                }
+                else if (SelectedDate != null)
                 {
                     nitem.Alarm = SelectedDate.Value.DateTime;
                 }
@@ -128,7 +132,7 @@ namespace VesperApp.ViewModels
                     nitem.Alarm = new DateTime(Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0, 0, DateTimeKind.Unspecified);
                 }
 
-                if (SelectedTime != null)
+                if (SelectedTime != null && selectedScheduleType != ScheduleTypes.Relative)
                 {
                     nitem.Alarm += (TimeSpan)SelectedTime;
                     nitem.Alarm -= new TimeSpan(0, 0, nitem.Alarm.Second);
@@ -139,6 +143,7 @@ namespace VesperApp.ViewModels
                 IsAddingNewEntry = false;
                 SelectedDate = null;
                 SelectedTime = null;
+                SelectedDayOffset = 0;
                 SelectedConfiguration = WorkingConfiguration.Off;
             });
 
@@ -169,7 +174,7 @@ namespace VesperApp.ViewModels
                         ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.YesNoCancel,
                         ContentTitle = "Delete Schedule Entry",
                         ContentHeader = "Do you really want to delete this entry?",
-                        ContentMessage = ScheduleEventsList[_selectedIndex].Alarm.ToString() + " " + ScheduleEventsList[_selectedIndex].Configuration.ToString(),
+                        ContentMessage = ScheduleEventsList[_selectedIndex].DisplayTime + " " + ScheduleEventsList[_selectedIndex].Configuration.ToString(),
                         SizeToContent = SizeToContent.WidthAndHeight,
                         WindowIcon = App.MainWindow?.Icon,
                         Icon = MsBox.Avalonia.Enums.Icon.Question
@@ -208,6 +213,45 @@ namespace VesperApp.ViewModels
         }
 
         public ObservableCollection<ConfigScheduleJSONItem> ScheduleEventsList { get; }
+
+        /// <summary>
+        /// A relative schedule entry from the day-offset + time editor: day 0 = the day the schedule starts
+        /// (activation, or the end of the delayed start), up to <see cref="ConfigScheduleJSONItem.MaxRelativeDays"/>.
+        /// Seconds are dropped (the time picker has minutes; VesperU5 keeps 2-s units).
+        /// </summary>
+        internal static ConfigScheduleJSONItem BuildRelativeEntry(decimal? dayOffset, TimeSpan? time, WorkingConfiguration config)
+        {
+            int days = (int)Math.Clamp(dayOffset ?? 0m, 0m, ConfigScheduleJSONItem.MaxRelativeDays);
+            TimeSpan t = time ?? TimeSpan.Zero;
+            t = new TimeSpan(t.Hours, t.Minutes, 0);
+            return ConfigScheduleJSONItem.Relative(days, t, config);
+        }
+
+        /// <summary>Marks the entries relative when the schedule is relative (and not otherwise), so they are
+        /// written as day offsets. An entry loaded from an older file keeps its meaning: day of month = day offset.</summary>
+        public void ApplyScheduleTypeToEntries()
+        {
+            foreach (ConfigScheduleJSONItem item in ScheduleEventsList)
+                item.IsRelative = selectedScheduleType == ScheduleTypes.Relative;
+        }
+
+        /// <summary>Relative schedules are edited as a day offset + time, not a date.</summary>
+        public bool IsRelativeSchedule
+        {
+            get => isRelativeSchedule;
+            private set => this.RaiseAndSetIfChanged(ref isRelativeSchedule, value);
+        }
+        private bool isRelativeSchedule;
+
+        /// <summary>Day offset of a new relative entry, 0..31 (0 = the start day).</summary>
+        public decimal? SelectedDayOffset
+        {
+            get => selectedDayOffset;
+            set => this.RaiseAndSetIfChanged(ref selectedDayOffset, value);
+        }
+        private decimal? selectedDayOffset = 0;
+
+        public decimal MaxRelativeDays => ConfigScheduleJSONItem.MaxRelativeDays;
         //public SelectionModel<ConfigScheduleJSONItem>? SelectedScheduleEvent { get; }
 
 
@@ -297,6 +341,8 @@ namespace VesperApp.ViewModels
             set
             {
                 this.RaiseAndSetIfChanged(ref selectedScheduleType, value);
+                IsRelativeSchedule = selectedScheduleType == ScheduleTypes.Relative;
+
 
                 if(selectedScheduleType == ScheduleTypes.Continues)
                 {

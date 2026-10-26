@@ -29,7 +29,8 @@ There are 4 types of schedules supported:
 | **Continuous** | Record continuously after activation while powered. Can be stopped manually via magnet if enabled on the General section (Vesper / Pipistrelle); a KOL stops when it is unplugged and connected to a computer. |
 | **Daily** | Repeat the same time windows every 24HR; schdule runs 00:00 to 23:59 if entry should run over midnight, split it till 23:59 and after 00:00 |
 | **Dated** | Run in specific calendar windows based on absolute dates |
-| **Relative** | Windows relative to the date of activation (magnet, or **Start Recording** on a KOL), or to the end of the power-on delay when one is set, with dates relative to that start (1,2,3...) |
+| **Relative** | Windows relative to the date of activation (magnet, or **Start Recording** on a KOL), or to the end of the power-on delay when one is set, with entries given as a day offset and a time: **Day 0** is the start day itself, Day 1 the next day, up to Day 31. Written in config.json as `"2000-00-DD hh:mm:ss"` (DD = day offset) |
+
 
 The same four types and the power-on delay apply to Vesper, Pipistrelle, KOL and Nanotag (Nanotag: firmware 1.39 or later behaves as the others; a dated or relative schedule stays in its last entry's state after its last entry).
 

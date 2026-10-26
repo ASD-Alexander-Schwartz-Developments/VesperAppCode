@@ -196,7 +196,7 @@ namespace VesperApp.Models
 							{
 								if (config.Schedule.Count > i)
 								{
-									sConfiguration.schedule_entries[i].time = ToTimestamp(config.Schedule[i].Alarm);
+									sConfiguration.schedule_entries[i].time = ScheduleEntryTimestamp(config.Schedule[i], config.ScheduleType);
 									sConfiguration.schedule_entries[i].config = ((uint)config.Schedule[i].Configuration);
 								}
 								else
@@ -223,8 +223,24 @@ namespace VesperApp.Models
         }
 
 
+		/// <summary>
+		/// A schedule entry in the tag's RTC layout. Relative schedule: year 0 (= relative), month 0, day = day
+		/// offset 0..31 + time (firmware 1.39 schedule.c Sched_ShiftRelative adds it to the start time, so day 0 =
+		/// the start day). Other types: <see cref="ToTimestamp"/>.
+		/// </summary>
+		public static UInt32 ScheduleEntryTimestamp(ConfigScheduleJSONItem item, ScheduleTypes scheduleType)
+		{
+			if (scheduleType != ScheduleTypes.Relative)
+				return ToTimestamp(item.Alarm);
+
+			TimeSpan off = item.RelativeOffset;
+			int days = Math.Min(off.Days, ConfigScheduleJSONItem.MaxRelativeDays);
+			return ((UInt32)days << 17) | ((UInt32)off.Hours << 12) | ((UInt32)off.Minutes << 6) | (UInt32)off.Seconds;
+		}
+
 		public static UInt32 ToTimestamp(DateTime dt)
         {
+
 			UInt32 ret = 0;
 
 			// Years since 2020 in 6 bits; 2020 and earlier (daily entries are written with year 2000)

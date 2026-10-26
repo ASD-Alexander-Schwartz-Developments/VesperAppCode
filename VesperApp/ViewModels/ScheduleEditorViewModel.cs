@@ -295,6 +295,7 @@ namespace VesperApp.ViewModels
                                 configurationJSONInstance.Schedule.Clear();
                                 if (ScheduleViewModel != null)
                                 {
+                                    ScheduleViewModel.ApplyScheduleTypeToEntries();
                                     foreach (ConfigScheduleJSONItem item in ScheduleViewModel.ScheduleEventsList)
                                         configurationJSONInstance.Schedule.Add(item);
 
@@ -508,7 +509,9 @@ namespace VesperApp.ViewModels
                     {
                         ScheduleViewModel.ScheduleEventsList.Add(jSONItem);
                     }
+                    ScheduleViewModel.ApplyScheduleTypeToEntries();
                 }
+
 
                 await ShowGeneralSettings(config);
                 return true;
