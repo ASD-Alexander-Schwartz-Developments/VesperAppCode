@@ -59,6 +59,8 @@ namespace VesperApp.Models
         BadSchedule = 5,
         NoClock = 6,
         DiskFull = 7,
+        /// <summary>config.json refused as a whole (KOL main 8c177c4): wrong device, unknown key, bad value, damaged or too large.</summary>
+        ConfigRefused = 8,
     }
 
     /// <summary>Reply of <c>VESPER_GET_USB_MODE</c>: the active mode and the one a
@@ -121,6 +123,7 @@ namespace VesperApp.Models
             KolRecordReason.BadSchedule => "Schedule invalid",
             KolRecordReason.NoClock => "Clock not set",
             KolRecordReason.DiskFull => "SD card full",
+            KolRecordReason.ConfigRefused => "config.json refused",
             _ => "Not ready",
         };
 
@@ -134,6 +137,8 @@ namespace VesperApp.Models
             KolRecordReason.BadSchedule => "The schedule in config.json has too many entries. Shorten it in the Configuration editor.",
             KolRecordReason.NoClock => "The KOL's clock has not been set since its battery was connected. Press Set Time, then start again.",
             KolRecordReason.DiskFull => "There is less free space than one recording file. Download the recordings and free up space.",
+            KolRecordReason.ConfigRefused => "config.json on the card is not a valid KOL configuration (made for another device, an unknown setting, a damaged or too large file). Nothing of it is used. Open it in the Configuration editor and save it again, or write a new one.",
+
             _ => string.Empty,
         };
     }

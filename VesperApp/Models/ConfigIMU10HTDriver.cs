@@ -29,7 +29,36 @@ namespace VesperApp.Models
             this.FileSize = 512 * 1024;
         }
 
+        /// <summary>Highest IMU10HT sample rate the firmware encodes (KOL / VesperU5 rate table), Hz.</summary>
+        public const UInt32 MaxSampleRateHz = 1000;
+
+        /// <summary>0 = off; otherwise 1..<see cref="MaxSampleRateHz"/> Hz (higher values are capped).</summary>
+        public static UInt32 ClampRate(UInt32 hz) => Math.Min(hz, MaxSampleRateHz);
+
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Sample rate in Config 1, 1 to 1000 Hz (0 = off)."),
+        DisplayName("Sample Rate [1] (Hz)")]
+        [JsonIgnore]
+        [Browsable(true)]
+        public override UInt32 SampleRate1
+        {
+            get => SampleRate[1];
+            set { SampleRate[1] = ClampRate(value); OnPropertyChanged(); }
+        }
+
+        [CategoryAttribute("Standard configuration"),
+        DescriptionAttribute("Sample rate in Config 2, 1 to 1000 Hz (0 = off)."),
+        DisplayName("Sample Rate [2] (Hz)")]
+        [JsonIgnore]
+        [Browsable(true)]
+        public override UInt32 SampleRate2
+        {
+            get => SampleRate[2];
+            set { SampleRate[2] = ClampRate(value); OnPropertyChanged(); }
+        }
+
         public override void Load(ConfigurationDeviceDriver ldrv)
+
         {
             if (ldrv is not null)
             {

@@ -229,7 +229,32 @@ public class KolUsbModeTests
     }
 
     [Fact]
+    public void Reason8_IsConfigRefused_NotCardError()
+    {
+        // KOL main 8c177c4 refuses a bad config.json whole and reports reason 8
+        Assert.Equal(KolRecordReason.ConfigRefused, KolRecordReasonInfo.From(8));
+        Assert.Equal(KolRecordReason.ConfigRefused, KolUsbModeState.Parse(new byte[] { 0, 0, 0, 8 })!.Reason);
+        Assert.Equal("config.json refused", KolRecordReasonInfo.Short(KolRecordReason.ConfigRefused));
+        Assert.StartsWith("config.json on the card is not a valid KOL configuration", KolRecordReasonInfo.Advice(KolRecordReason.ConfigRefused));
+        Assert.Equal(KolRecordReason.CardError, KolRecordReasonInfo.From(9));          // still unknown
+    }
+
+    [Theory]
+    [InlineData(0u, 0u)]
+    [InlineData(1u, 1u)]
+    [InlineData(1000u, 1000u)]
+    [InlineData(1600u, 1000u)]
+    public void Imu10ht_SampleRateEntry_LimitedTo1000Hz(uint entered, uint kept)
+    {
+        var d = new ConfigIMU10HTDriver { SampleRate1 = entered, SampleRate2 = entered };
+        Assert.Equal(kept, d.SampleRate[1]);
+        Assert.Equal(kept, d.SampleRate[2]);
+    }
+
+
+    [Fact]
     public void Parse_ThreeBytes_TreatedAsTwo()
+
     {
         KolUsbModeState s = KolUsbModeState.Parse(new byte[] { 1, 1, 0xFF })!;
         Assert.False(s.HasStatus);
