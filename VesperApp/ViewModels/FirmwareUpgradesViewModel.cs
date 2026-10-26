@@ -158,20 +158,22 @@ namespace VesperApp.ViewModels
         // any entry with no Target (treated as applying to every device).
         private void ApplyDeviceFilter()
         {
-            string device = SelectedDeviceType.ToString();
             Releases.Clear();
-            foreach (var r in allReleases)
-            {
-                if (string.IsNullOrWhiteSpace(r.Target) ||
-                    string.Equals(r.Target, device, StringComparison.OrdinalIgnoreCase))
-                {
-                    Releases.Add(r);
-                }
-            }
+            foreach (var r in ReleasesFor(allReleases, SelectedDeviceType))
+                Releases.Add(r);
 
             // Drop a selection the new filter hides.
             if (SelectedFirmwareRelease is not null && !Releases.Contains(SelectedFirmwareRelease))
                 SelectedFirmwareRelease = null;
+        }
+
+        /// <summary>Feed entries for <paramref name="device"/>, in feed order: Target equal to the device type's
+        /// name (case-insensitive), or no Target.</summary>
+        internal static IEnumerable<ReleaseEntry> ReleasesFor(IEnumerable<ReleaseEntry> feed, DeviceTypes device)
+        {
+            string name = device.ToString();
+            return feed.Where(r => string.IsNullOrWhiteSpace(r.Target) ||
+                                   string.Equals(r.Target, name, StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task<bool> RunReleaseDownload()

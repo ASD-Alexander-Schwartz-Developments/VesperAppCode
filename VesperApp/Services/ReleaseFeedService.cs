@@ -109,8 +109,10 @@ namespace VesperApp.Services
 
         private static async Task VerifySha256Async(string path, string expectedHex, CancellationToken ct)
         {
-            await using FileStream fs = File.OpenRead(path);
-            byte[] hash = await SHA256.HashDataAsync(fs, ct).ConfigureAwait(false);
+            byte[] hash;
+            /* closed before the comparison: Windows cannot delete a file that is still open */
+            await using (FileStream fs = File.OpenRead(path))
+                hash = await SHA256.HashDataAsync(fs, ct).ConfigureAwait(false);
             string actual = Convert.ToHexString(hash);
             string expected = expectedHex.Replace("0x", "").Trim();
 
