@@ -54,7 +54,7 @@ To release the hardware for other software, use **Disconnect**.
 | Recording import from device storage | Yes, for docked products |
 | Configuration read/write | Yes, for docked products |
 | Device Tests (mic health, GNSS self-test) | Yes, for docked products |
-| Nanotag operations | No — the Nanotag connects over its own USB interface |
+| Nanotag operations | Yes — the Nanotag sits in the dock slot (TOP side up), exactly like a Vesper or Pipistrelle |
 | App/plugin updates, decoding already-imported data | No |
 
 ## Care and usage notes

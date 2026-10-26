@@ -13,7 +13,7 @@
 - Disconnect/reconnect the dock in the app to force a re-scan.
 
 **My Nanotag isn't detected.**
-- Nanotags connect directly over USB, not via the dock — plug the tag itself in.
+- The Nanotag connects through the docking station like a Vesper: check it sits fully in the slot with the **TOP** side up and that the dock is connected.
 
 ## Firmware flashing
 

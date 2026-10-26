@@ -1,6 +1,6 @@
 # Firmware Updates
 
-The **Firmware Upgrades** tab downloads released device firmware and flashes it — through the docking station for the VT04 family, or directly over USB for the KOL and the Nanotag. A Vesper or Pipistrelle that already runs firmware 1.22 or later can also be flashed directly over its USB cable: with no docking station connected, select the unit, press Connect Device, then Flash — the app commands it into its bootloader the same way as a KOL.
+The **Firmware Upgrades** tab downloads released device firmware and flashes it — through the docking station for the VT04 family and the Nanotag, or directly over USB for the KOL. A Vesper or Pipistrelle that already runs firmware 1.22 or later can also be flashed directly over its USB cable: with no docking station connected, select the unit, press Connect Device, then Flash — the app commands it into its bootloader the same way as a KOL.
 
 ![The Firmware Upgrades tab](images/tab-firmware-upgrades.png)
 
@@ -42,9 +42,9 @@ Older KOL firmware that predates commanded bootloader entry will not acknowledge
 
 ## Flashing a Nanotag
 
-The Nanotag uses a USB-HID bootloader and needs **no dock**:
+The Nanotag uses a USB-HID bootloader:
 
-1. Connect the Nanotag over USB.
+1. Insert the Nanotag into the docking station slot (TOP side up) and connect the dock.
 2. Select the downloaded Nanotag release and press **Flash**.
 3. The app commands the tag into its bootloader, erases the application area (this alone takes several seconds — the progress text says so), programs the image, verifies it with the bootloader's CRC check, and restarts the tag into the new firmware.
 

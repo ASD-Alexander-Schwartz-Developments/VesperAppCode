@@ -7,7 +7,7 @@ VesperApp works with the ASD logger and tag product family:
 | **Vesper** | VT04-VESPER | 1 | Yes (snapshot GNSS) | Docking station (direct USB from firmware 1.22) |
 | **Pipistrelle** | VT04-PP | 1 | No | Docking station (direct USB from firmware 1.22) |
 | **KOL** | KOL | up to 4 (1/2/4-mic configurations) | No | Direct USB (dock optional) |
-| **Nanotag** | Nanotag | none | Yes (snapshot GNSS) | Direct USB |
+| **Nanotag** | Nanotag | none | Yes (snapshot GNSS) | Docking station |
 
 The VT04-family loggers are card-edge boards: the gold edge connector slides into the docking station's LOGGER slot (match the **TOP** silkscreen marking with the slot's TOP side).
 
