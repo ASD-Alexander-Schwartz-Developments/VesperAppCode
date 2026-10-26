@@ -360,14 +360,15 @@ namespace VesperApp.Models
 
         public EXGCompThOptions LOffCompTh
         {
+            // eegconf1 bits 24..26 = exg2_params.comp_th in VesperU5 (bits 16..19 are Mux 1)
             get
             {
-                return EXGCompThOptions.CreateFromValue((byte)((this.eegconf1 >> 16) & 0x07));
+                return EXGCompThOptions.CreateFromValue((byte)((this.eegconf1 >> 24) & 0x07));
             }
             set
             {
-                this.eegconf1 &= ~(uint)(0x07 << 16);
-                this.eegconf1 |= ((uint)((value.Value & 0x07) << 16));
+                this.eegconf1 &= ~(uint)(0x07 << 24);
+                this.eegconf1 |= ((uint)((value.Value & 0x07) << 24));
                 OnPropertyChanged();
             }
         }
@@ -382,14 +383,15 @@ namespace VesperApp.Models
 
         public EXGGainOptions GlobalGain
         {
+            // eegconf1 bits 3..5 = exg2_params.ggain in VesperU5 (bits 0..2 are the unused sr field)
             get
             {
-                return EXGGainOptions.CreateFromValue((byte)(this.eegconf1 & 0x07));
+                return EXGGainOptions.CreateFromValue((byte)((this.eegconf1 >> VesperApp.Services.ExgGain.Exg2GainShift) & 0x07));
             }
             set
             {
-                this.eegconf1 &= ~(uint)(0x07);
-                this.eegconf1 |= (uint)(value.Value & 0x07);
+                this.eegconf1 &= ~(uint)(0x07 << VesperApp.Services.ExgGain.Exg2GainShift);
+                this.eegconf1 |= (uint)((value.Value & 0x07) << VesperApp.Services.ExgGain.Exg2GainShift);
                 OnPropertyChanged();
             }
         }

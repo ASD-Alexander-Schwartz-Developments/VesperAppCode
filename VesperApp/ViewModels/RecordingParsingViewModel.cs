@@ -1849,7 +1849,7 @@ namespace VesperApp.ViewModels
                                             }
                                         }
 
-                                        using (EXG48Parser ip = new EXG48Parser(lp, data, dtStart, 1, us_sample))
+                                        using (EXG48Parser ip = new EXG48Parser(lp, data, dtStart, ExgGain.CodeFromSidecar(lp + ".txt", false), us_sample))
                                         {
                                             ip.WriteFile();
                                         }
@@ -2004,7 +2004,7 @@ namespace VesperApp.ViewModels
                                             }
                                         }
 
-                                        using (EXG1292Parser ip = new EXG1292Parser(lp, data, dtStart, 1, us_sample))
+                                        using (EXG1292Parser ip = new EXG1292Parser(lp, data, dtStart, ExgGain.CodeFromSidecar(lp + ".txt", true), us_sample))
                                         {
                                             ip.WriteFile();
                                         }

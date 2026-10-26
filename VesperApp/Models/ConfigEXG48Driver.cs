@@ -1087,7 +1087,7 @@ namespace VesperApp.Models
 
 
         [DisplayName("Gain"),
-        TypeConverter(typeof(bool)),
+        TypeConverter(typeof(EXGGainOptions)),
         CategoryAttribute("EXG Specific Settings"),
         DescriptionAttribute("Select gain for all active channels"),
         Browsable(true)]
@@ -1095,14 +1095,15 @@ namespace VesperApp.Models
 
         public EXGGainOptions GlobalGain
         {
+            // eegconf1 bits 16..18 = eeg_params.ggain in VesperU5 (bit 0 is High Resolution, bits 1..3 the sr field)
             get
             {
-                return EXGGainOptions.CreateFromValue((byte)(this.eegconf1 & 0x07));
+                return EXGGainOptions.CreateFromValue((byte)((this.eegconf1 >> VesperApp.Services.ExgGain.Exg48GainShift) & 0x07));
             }
             set
             {
-                this.eegconf1 &= ~(uint)(0x07);
-                this.eegconf1 |= (uint)(value.Value & 0x07);
+                this.eegconf1 &= ~(uint)(0x07 << VesperApp.Services.ExgGain.Exg48GainShift);
+                this.eegconf1 |= (uint)((value.Value & 0x07) << VesperApp.Services.ExgGain.Exg48GainShift);
                 OnPropertyChanged();
             }
         }
@@ -1184,7 +1185,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1);
+                this.eegconf4 &= ~(uint)(1);
+                if (value) this.eegconf4 |= (uint)(1);
                 OnPropertyChanged();
             }
         }
@@ -1203,7 +1205,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1<<1);
+                this.eegconf4 &= ~(uint)(1<<1);
+                if (value) this.eegconf4 |= (uint)(1<<1);
                 OnPropertyChanged();
             }
         }
@@ -1222,7 +1225,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1 << 2);
+                this.eegconf4 &= ~(uint)(1 << 2);
+                if (value) this.eegconf4 |= (uint)(1 << 2);
                 OnPropertyChanged();
             }
         }
@@ -1241,7 +1245,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1 << 3);
+                this.eegconf4 &= ~(uint)(1 << 3);
+                if (value) this.eegconf4 |= (uint)(1 << 3);
                 OnPropertyChanged();
             }
         }
@@ -1260,7 +1265,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1 << 4);
+                this.eegconf4 &= ~(uint)(1 << 4);
+                if (value) this.eegconf4 |= (uint)(1 << 4);
                 OnPropertyChanged();
             }
         }
@@ -1279,7 +1285,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1 << 5);
+                this.eegconf4 &= ~(uint)(1 << 5);
+                if (value) this.eegconf4 |= (uint)(1 << 5);
                 OnPropertyChanged();
             }
         }
@@ -1298,7 +1305,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1 << 8);
+                this.eegconf4 &= ~(uint)(1 << 8);
+                if (value) this.eegconf4 |= (uint)(1 << 8);
                 OnPropertyChanged();
             }
         }
@@ -1317,7 +1325,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1 << 16);
+                this.eegconf4 &= ~(uint)(1 << 16);
+                if (value) this.eegconf4 |= (uint)(1 << 16);
                 OnPropertyChanged();
             }
         }
@@ -1336,7 +1345,8 @@ namespace VesperApp.Models
             }
             set
             {
-                this.eegconf1 &= ~(uint)(1 << 24);
+                this.eegconf4 &= ~(uint)(1 << 24);
+                if (value) this.eegconf4 |= (uint)(1 << 24);
                 OnPropertyChanged();
             }
         }
@@ -1928,11 +1938,12 @@ namespace VesperApp.Models
             }
         }
 
+        /// <summary>Gain of an ADS129x GAIN[2:0] code; 111 (reserved) counts as x1.</summary>
         static public double ToMultiplier(byte v)
         {
             int index = v & 0x07;
 
-            return listOfMults[index];
+            return index < listOfMults.Length ? listOfMults[index] : 1.0;
         }
 
         public override string ToString()

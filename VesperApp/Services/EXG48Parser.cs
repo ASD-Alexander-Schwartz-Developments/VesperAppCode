@@ -18,7 +18,9 @@ namespace VesperApp.Services
 
         private List<string>? csv_lines;
 
-        public EXG48Parser(string filename, byte[] data, DateTime dtStart, uint gain, uint us_sample) 
+        /// <param name="gain">ADS1298 gain code the recording was made with (<see cref="ExgGain"/>, from the header's
+        /// Config0); above 7 (<see cref="ExgGain.Unknown"/>) = x1.</param>
+        public EXG48Parser(string filename, byte[] data, DateTime dtStart, uint gain, uint us_sample)
         { 
             if(data == null) throw new ArgumentNullException("data");
 
@@ -85,14 +87,15 @@ namespace VesperApp.Services
                     Int32 cha8_raw = Utils.FromBytesS24bitMSB(data, index);
                     index += 3;
 
-                    line.CH1 = (((cha1_raw / ((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
-                    line.CH2 = (((cha2_raw / ((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
-                    line.CH3 = (((cha3_raw / ((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
-                    line.CH4 = (((cha4_raw / ((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
-                    line.CH5 = (((cha5_raw / ((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
-                    line.CH6 = (((cha6_raw / ((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
-                    line.CH7 = (((cha7_raw / ((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
-                    line.CH8 = (((cha8_raw / ((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
+                    // (double): an int / int here kept only the top 8 bits of each sample
+                    line.CH1 = (((cha1_raw / (double)((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
+                    line.CH2 = (((cha2_raw / (double)((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
+                    line.CH3 = (((cha3_raw / (double)((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
+                    line.CH4 = (((cha4_raw / (double)((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
+                    line.CH5 = (((cha5_raw / (double)((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
+                    line.CH6 = (((cha6_raw / (double)((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
+                    line.CH7 = (((cha7_raw / (double)((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
+                    line.CH8 = (((cha8_raw / (double)((1 << 24) - 1)) / 256.0) * 2400000) / __gain;
 
                     csv_lines.Add(line.ToString());
                 }

@@ -18,7 +18,9 @@ namespace VesperApp.Services
 
         private List<string>? csv_lines;
 
-        public EXG1292Parser(string filename, byte[] data, DateTime dtStart, uint gain, uint us_sample) 
+        /// <param name="gain">ADS1292 gain code the recording was made with (<see cref="ExgGain"/>, from the header's
+        /// Config0); above 7 (<see cref="ExgGain.Unknown"/>) = x1.</param>
+        public EXG1292Parser(string filename, byte[] data, DateTime dtStart, uint gain, uint us_sample)
         { 
             if(data == null) throw new ArgumentNullException("data");
 

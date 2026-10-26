@@ -287,15 +287,18 @@ namespace VesperApp.Services
             string? sensor = MetaText(path, "Sensor");
             DateTime start = StartTime(name, "E");
             uint sr = MetaUint(path, "SampleRate");
+            bool exg2 = ExgGain.IsExg2(sensor);
+            // the gain the unit recorded with (header Config0 = eegconf1), not a fixed x1
+            uint gain = ExgGain.CodeFromSidecar(path + ".txt", exg2);
 
-            if (sensor != null && sensor.Trim().Equals("EXG2", StringComparison.OrdinalIgnoreCase))
+            if (exg2)
             {
-                using var ip = new EXG1292Parser(path, data, start, 1, Exg1292UsPerSample(sr));
+                using var ip = new EXG1292Parser(path, data, start, gain, Exg1292UsPerSample(sr));
                 ip.WriteFile();
             }
             else
             {
-                using var ip = new EXG48Parser(path, data, start, 1, sr > 0 ? 1000 / sr : 0);
+                using var ip = new EXG48Parser(path, data, start, gain, sr > 0 ? 1000 / sr : 0);
                 ip.WriteFile();
             }
             sum.Csv++;
