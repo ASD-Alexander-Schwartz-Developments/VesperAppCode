@@ -54,9 +54,21 @@ namespace VesperApp.Models
 			{ new ConfigTPRH31Driver() },
 			{ new ConfigNanotagAcc() },
 			{ new ConfigALS3001DDriver() },
-            { new ConfigProxtitDriver() }
+            { new ConfigProxtitDriver() },
+            { new ConfigLoggerDriver() }          // firmware 1.35+: health samples + event codes in the NAND log area
 
         };
+
+		/// <summary>
+		/// The 16 raw_data bytes of a binary driver slot (params.h union): LOGGER = { logmask }, PROXTIT =
+		/// proxtit_params (<see cref="ConfigProxtitDriver.NanotagParams"/>), others their RawData1..4.
+		/// </summary>
+		public static uint[] SlotRawData(ConfigurationDeviceDriver drv) => drv switch
+		{
+			ConfigLoggerDriver l => new uint[] { l.LogMask, 0, 0, 0 },
+			ConfigProxtitDriver p => p.NanotagParams(),
+			_ => new uint[] { drv.RawData1, drv.RawData2, drv.RawData3, drv.RawData4 },
+		};
 
 		public static ushort ConvertNanotagScheduleType(ScheduleTypes scheduleType)
 		{
@@ -177,10 +189,12 @@ namespace VesperApp.Models
 								sConfiguration.devices_list[i].sampleRate2 = config.DeviceDrivers[i].SampleRate[2];
 								sConfiguration.devices_list[i].controlBitmask = config.DeviceDrivers[i].Bitmask;
 								///sConfiguration.devices_list[i].memorySize = config.DeviceDrivers[i].MemoryBufferSize;	/// deprecated
-								sConfiguration.devices_list[i].RawData1 = config.DeviceDrivers[i].RawData1;
-								sConfiguration.devices_list[i].RawData2 = config.DeviceDrivers[i].RawData2;
-								sConfiguration.devices_list[i].RawData3 = config.DeviceDrivers[i].RawData3;
-								sConfiguration.devices_list[i].RawData4 = config.DeviceDrivers[i].RawData4;
+								uint[] raw = SlotRawData(config.DeviceDrivers[i]);
+								sConfiguration.devices_list[i].RawData1 = raw[0];
+								sConfiguration.devices_list[i].RawData2 = raw[1];
+								sConfiguration.devices_list[i].RawData3 = raw[2];
+								sConfiguration.devices_list[i].RawData4 = raw[3];
+
 								// NANOTAG does not have file size property
 							}
 							else

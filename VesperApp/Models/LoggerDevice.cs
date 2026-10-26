@@ -472,8 +472,23 @@ namespace VesperApp.Models
 
 
         private int WriteRead(byte cmd, byte param1, byte param2, byte param3, byte[] data2send, out byte[] data2recv, int bytes2recv)
+            => WriteReadTimed(cmd, param1, param2, param3, data2send, out data2recv, bytes2recv, out _, out _);
+
+        private readonly object _vendorLock = new object();
+
+        /// <summary>One vendor-interface request / reply. <paramref name="t1"/> / <paramref name="t4"/>: Stopwatch
+        /// timestamps just before the request is written and just after the reply was read (time sync).</summary>
+        private int WriteReadTimed(byte cmd, byte param1, byte param2, byte param3, byte[] data2send, out byte[] data2recv, int bytes2recv, out long t1, out long t4)
+        {
+            lock (_vendorLock)
+                return WriteReadLocked(cmd, param1, param2, param3, data2send, out data2recv, bytes2recv, out t1, out t4);
+        }
+
+        private int WriteReadLocked(byte cmd, byte param1, byte param2, byte param3, byte[] data2send, out byte[] data2recv, int bytes2recv, out long t1, out long t4)
         {
             data2recv = new byte[0];
+            t1 = 0;
+            t4 = 0;
 
             if (bytes2recv < 0) bytes2recv = 0;
 
@@ -495,6 +510,7 @@ namespace VesperApp.Models
             data2send.CopyTo(buffer, 4);
             //Write three bytes
             //Console.WriteLine("Writing");
+            t1 = Stopwatch.GetTimestamp();
             LibUsbError ?err = _usbEndpointWriter?.Write(buffer, 500, out wr);
 
             if(err != null && err != LibUsbError.Success)
@@ -515,7 +531,9 @@ namespace VesperApp.Models
             //Read some data
             DateTime dtstart = DateTime.Now;
             err = _usbEndpointReader?.Read(readBuffer, 500, out rd);
+            t4 = Stopwatch.GetTimestamp();
             if (err != null && err != LibUsbError.Success)
+
             {
                 if (err == LibUsbError.Io || err == LibUsbError.NoDevice || err == LibUsbError.NotFound)
                 {
@@ -1140,6 +1158,7 @@ namespace VesperApp.Models
                             UInt32 last_page = (UInt32)(((UInt32)response[4]) + ((UInt32)response[5] << 8) + ((UInt32)response[6] << 16) + ((UInt32)response[7] << 24));
 
                             //Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
+                            var addons = new NanotagAddonCollector();       // TPRH31 / ALS3001D / ProxTit pages (firmware 1.36+)
 
                             for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
                             {
@@ -1157,7 +1176,9 @@ namespace VesperApp.Models
                                 {
                                     Debug.Write(" - OK ");
 
-                                    ProcessOnePage(dpageresponse, path);
+                                    NanotagPage? np = NanotagPage.TryParse(dpageresponse);
+                                    if (np == null || !addons.Add(np))
+                                        ProcessOnePage(dpageresponse, path);
                                 }
                                 else if (getpageresult == -200)
                                 {
@@ -1166,6 +1187,16 @@ namespace VesperApp.Models
                                 }
                                 await Dispatcher.UIThread.InvokeAsync(() => UpdateDiskStatus());
                             }
+                            try { addons.WriteAll(path, _serialnumber); }
+                            catch (Exception ex) { Debug.WriteLine("Add-on output failed: " + ex.Message); }
+
+                            // LOGGER log area (firmware 1.35+): its own ring of pages, read after the data
+                            if (FirmwareVersion == null || FirmwareVersion >= NanotagLoggerFirmware)
+                            {
+                                try { DownloadLogArea(path); }
+                                catch (Exception ex) { Debug.WriteLine("Log download failed: " + ex.Message); }
+                            }
+
                             DownloadProgress = 100.0;
                             UpdateDiskStatus();
                             r = true;
@@ -1203,7 +1234,50 @@ namespace VesperApp.Models
 
 
 
+        /// <summary>First Nanotag release with the LOGGER log area (GET_LOGNPAGES / GET_LOGCHUNK).</summary>
+        public static readonly Version NanotagLoggerFirmware = new(1, 35);
+
+        /// <summary>
+        /// Read the Nanotag LOGGER log area (oldest to newest page, wrapping; a bad block is skipped) and write
+        /// HEALTH/Hâ€¦.HBN + .csv / .log.csv into <paramref name="path"/>. Returns the number of log pages read, -1
+        /// when the unit does not answer GET_LOGNPAGES (firmware before 1.35).
+        /// </summary>
+        public int DownloadLogArea(string path)
+        {
+            if (WriteRead(Nanotag.VND_CMD_GET_LOGNPAGES, new byte[0], out byte[] resp, 16) != 0) return -1;
+            var range = NanotagLog.ParseRange(resp);
+            if (range == null) return -1;
+            List<uint> order = NanotagLog.ReadOrder(range.Value.Start, range.Value.End, range.Value.Oldest, range.Value.Newest);
+
+            var pages = new List<NanotagPage>();
+            for (int k = 0; k < order.Count; k++)
+            {
+                uint page = order[k];
+                int res = WriteRead(Nanotag.VND_CMD_GET_LOGCHUNK, BitConverter.GetBytes(page), out byte[] data, NanotagPage.FullSize);
+                if (res == 0)
+                {
+                    NanotagPage? np = NanotagPage.TryParse(data);
+                    if (np != null && np.PageType == NanotagPage.TypeLog) pages.Add(np);
+                }
+                else if (res == -200)
+                {
+                    uint block = page / NanotagPage.PagesPerBlock;          // bad block: skip the rest of it
+                    while (k + 1 < order.Count && order[k + 1] / NanotagPage.PagesPerBlock == block) k++;
+                }
+                else if (res == -999)
+                {
+                    break;                                                  // unplugged
+                }
+                DownloadProgress = 100.0 * (k + 1) / Math.Max(1, order.Count);
+            }
+
+            byte[] records = NanotagLog.Assemble(pages, out ushort logmask, out uint first, out uint last);
+            NanotagLog.Write(path, records, logmask, first, last, _serialnumber);
+            return pages.Count;
+        }
+
         private MemoryStream memoryStreamPage;
+
         private readonly int bytes_in_flash_page = (4096 + 128);
         private readonly UInt32 preamnle_ok = 0x54445341;
         private readonly int reference_year = 2020;

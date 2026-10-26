@@ -64,7 +64,29 @@ namespace VesperApp.Models
         [JsonPropertyName("prxAvgSec"), JsonPropertyOrder(25)]
         public UInt16 AvgSeconds { get => avgSeconds; set => this.avgSeconds = value; }
 
+        /// <summary>Not a config.json key (VesperU5 1.20 does not know "prxBcnDurn"): the tag keeps its own value.</summary>
+        public const UInt16 Unset = 0xFFFF;
+
+        /// <summary>
+        /// Nanotag binary slot raw_data[0..3] = proxtit_params, u16 LE in the VesperU5 order: prox_mode,
+        /// beacon_interval, beacon_duration, scan_interval, scan_window, delta_rssi, avg_seconds, rssi_gate_dbm
+        /// (asd-interfaces interfaces/nanotag-addon-pages.md). beacon_duration is not edited here and goes as 0xFFFF
+        /// (unset: the tag keeps its persisted value); the Nanotag skips 0 for every field except delta_rssi.
+        /// </summary>
+        public uint[] NanotagParams()
+        {
+            static uint Pair(UInt16 lo, UInt16 hi) => (uint)lo | ((uint)hi << 16);
+            return new[]
+            {
+                Pair(proxMode, beaconInterval),
+                Pair(Unset, scanInterval),
+                Pair(scanWindow, deltaRssi),
+                Pair(avgSeconds, unchecked((UInt16)rssiGate)),
+            };
+        }
+
         [DisplayName("Host log RSSI gate (dBm, 0 = keep all)"),
+
         CategoryAttribute("Proxtit specific Settings")]
         [JsonPropertyName("prxRssiGate"), JsonPropertyOrder(26)]
         public Int16 RssiGate { get => rssiGate; set => this.rssiGate = value; }

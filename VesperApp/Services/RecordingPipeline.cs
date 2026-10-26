@@ -43,8 +43,8 @@ namespace VesperApp.Services
     /// </summary>
     public static class RecordingPipeline
     {
-        // Intermediate extensions we know how to decode (others, e.g. .SBN/.OBN/.XBN, are left as parsed bins).
-        private static readonly string[] DecodableExts = { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN", ".HBN" };
+        // Intermediate extensions we know how to decode (others, e.g. .SBN/.OBN, are left as parsed bins).
+        private static readonly string[] DecodableExts = { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN", ".HBN", ".XBN" };
 
         public static async Task<DecodeSummary> AutoDecodeAsync(IReadOnlyList<string> rawFiles, IProgress<int>? progress = null)
         {
@@ -259,7 +259,14 @@ namespace VesperApp.Services
                         sum.Csv++;
                         break;
 
+                    case ".XBN":                                    // ProxTit encounters (Vesper X.BIN, Nanotag PRX pages)
+                        using (var xp = new ProxEncounterParser(path, data))
+                            xp.WriteFile();
+                        sum.Csv++;
+                        break;
+
                     case ".CBN":
+
                         var lr = new LeptonReading(path, data, 1024 - 16, DateTime.Now, 0, 0, LeptonFilterType.LEPTON_RAINBOW);
                         lr.SaveAs(OutputFileType.PIC_JPG, path);
                         sum.Image++;
