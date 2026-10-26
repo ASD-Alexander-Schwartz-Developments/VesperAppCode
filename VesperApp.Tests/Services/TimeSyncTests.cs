@@ -243,4 +243,45 @@ public class TimeSyncTests
         Assert.Equal(new DateTime(2026, 10, 25, 9, 30, 0, 500), DeviceEpoch.FromSeconds(846235800.5));
         Assert.Equal(846235800.0, RtcSyncService.DeviceSecondsOfTrue(new DateTime(2026, 10, 25, 9, 30, 0, DateTimeKind.Utc), deviceUtc: true));
     }
+    private static NtpSample N(string server, double offsetMs, double delayMs) =>
+        new(server, offsetMs / 1000.0, delayMs / 1000.0, DateTime.UtcNow);
+
+    [Fact]
+    public void NtpConsensus_OneServerOff_DoesNotMoveTheResult()
+    {
+        /* bench 2026-10-26: one answer 31 ms away from the others */
+        var c = NtpClient.Combine(new[]
+        {
+            N("a", -561.0, 92), N("a", -559.0, 120),
+            N("b", -592.8, 96),
+            N("c", -560.0, 88),
+            N("d", -562.5, 101),
+        })!;
+        Assert.Equal(-0.56175, c.OffsetSeconds, 5);         // median of -592.8, -562.5, -561, -560
+        Assert.Equal(4, c.Used.Count);
+        Assert.Equal(0, c.Rejected);
+    }
+
+    [Fact]
+    public void NtpConsensus_RejectsWideRoundTrips_AndKeepsTheBestReplyPerServer()
+    {
+        var c = NtpClient.Combine(new[]
+        {
+            N("a", -10.0, 10), N("a", -40.0, 60),            // a's best reply is the 10 ms one
+            N("b", -11.0, 14),
+            N("c", +80.0, 200),                              // wide: rejected
+        })!;
+        Assert.Equal(1, c.Rejected);
+        Assert.Equal(-0.0105, c.OffsetSeconds, 4);
+        Assert.Equal(0.006, c.UncertaintySeconds, 4);         // median half round trip of 10 and 14 ms
+    }
+
+    [Fact]
+    public void NtpConsensus_UncertaintyCoversTheSpread_AndEmptyIsNull()
+    {
+        var c = NtpClient.Combine(new[] { N("a", 0.0, 2), N("b", 30.0, 2), N("c", 10.0, 2) })!;
+        Assert.Equal(0.010, c.OffsetSeconds, 4);
+        Assert.Equal(0.015, c.UncertaintySeconds, 4);
+        Assert.Null(NtpClient.Combine(Array.Empty<NtpSample>()));
+    }
 }

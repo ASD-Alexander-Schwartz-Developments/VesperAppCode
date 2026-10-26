@@ -17,8 +17,8 @@ namespace VesperApp.Services.Time
     /// <summary>
     /// Minimal SNTPv4 client (RFC 4330). The PC clock alone is not a usable reference: the default
     /// Windows time service keeps it only to tens or hundreds of milliseconds. Several servers are
-    /// queried a few times each and the reply with the smallest round trip wins, which is also the
-    /// one whose offset is least affected by path asymmetry.
+    /// queried a few times each; each server's smallest-round-trip reply (least affected by path
+    /// asymmetry) counts, and the result is the median over the servers (<see cref="Combine"/>).
     /// </summary>
     public static class NtpClient
     {
@@ -91,15 +91,48 @@ namespace VesperApp.Services.Time
             }
         }
 
-        /// <summary>Best (smallest round trip) sample over <paramref name="perServer"/> queries per server.</summary>
-        public static async Task<NtpSample?> BestOfAsync(IEnumerable<string>? servers = null, int perServer = 3, CancellationToken ct = default)
+        /// <summary>A server whose best round trip exceeds the overall best by this factor (and by
+        /// <see cref="WideMarginSeconds"/>) is dropped: its offset can be off by half that round trip.</summary>
+        public const double WideFactor = 2.0;
+        public const double WideMarginSeconds = 0.020;
+
+        /// <summary>The PC offset agreed by several servers.</summary>
+        /// <param name="UncertaintySeconds">Half the round trip of the agreeing servers (median), at least
+        /// half their offset spread.</param>
+        public sealed record NtpConsensus(double OffsetSeconds, double UncertaintySeconds, IReadOnlyList<NtpSample> Used, int Rejected);
+
+        /// <summary>
+        /// Median of the per-server offsets. Each server contributes its smallest-round-trip reply;
+        /// servers with a wide round trip are rejected first. One bad answer (2026-10-26 bench: a single
+        /// server 31 ms off shifted a sync by that much) then cannot move the result.
+        /// </summary>
+        public static NtpConsensus? Combine(IEnumerable<NtpSample> samples)
+        {
+            List<NtpSample> best = samples.GroupBy(s => s.Server)
+                                          .Select(g => g.OrderBy(s => s.DelaySeconds).First())
+                                          .ToList();
+            if (best.Count == 0) return null;
+            double minDelay = best.Min(s => s.DelaySeconds);
+            double limit = Math.Max(minDelay * WideFactor, minDelay + WideMarginSeconds);
+            List<NtpSample> used = best.Where(s => s.DelaySeconds <= limit).OrderBy(s => s.OffsetSeconds).ToList();
+
+            static double Median(IReadOnlyList<double> v) =>
+                v.Count % 2 == 1 ? v[v.Count / 2] : (v[v.Count / 2 - 1] + v[v.Count / 2]) / 2.0;
+            double offset = Median(used.Select(s => s.OffsetSeconds).ToList());
+            double halfDelay = Median(used.Select(s => s.DelaySeconds / 2.0).OrderBy(x => x).ToList());
+            double halfSpread = (used[^1].OffsetSeconds - used[0].OffsetSeconds) / 2.0;
+            return new NtpConsensus(offset, Math.Max(halfDelay, halfSpread), used, best.Count - used.Count);
+        }
+
+        /// <summary>All replies over <paramref name="perServer"/> queries per server, combined by <see cref="Combine"/>.</summary>
+        public static async Task<NtpConsensus?> ConsensusAsync(IEnumerable<string>? servers = null, int perServer = 4, CancellationToken ct = default)
         {
             var tasks = new List<Task<NtpSample?>>();
             foreach (string s in servers ?? ConfiguredServers())
                 for (int i = 0; i < perServer; i++)
                     tasks.Add(QueryAsync(s, 2500, ct));
             NtpSample?[] all = await Task.WhenAll(tasks).ConfigureAwait(false);
-            return all.Where(x => x != null).OrderBy(x => x!.DelaySeconds).FirstOrDefault();
+            return Combine(all.Where(x => x != null)!);
         }
     }
 
@@ -137,14 +170,18 @@ namespace VesperApp.Services.Time
         /// <summary>NTP-backed reference, or the bare PC clock when no server answers.</summary>
         public static async Task<ReferenceClock> CreateAsync(CancellationToken ct = default)
         {
-            NtpSample? s = await NtpClient.BestOfAsync(null, 3, ct).ConfigureAwait(false);
+            NtpClient.NtpConsensus? c = await NtpClient.ConsensusAsync(null, 4, ct).ConfigureAwait(false);
             /* The first query of a process occasionally gets nothing back (cold DNS / first
                UDP use, bench 2026-10-21); one more round almost always answers. */
-            s ??= await NtpClient.BestOfAsync(null, 2, ct).ConfigureAwait(false);
-            return s == null
-                ? FromPcClock()
-                : new ReferenceClock($"NTP {s.Server}", s.OffsetSeconds, s.DelaySeconds / 2.0, true);
+            c ??= await NtpClient.ConsensusAsync(null, 2, ct).ConfigureAwait(false);
+            return c == null ? FromPcClock() : new ReferenceClock(SourceText(c), c.OffsetSeconds, c.UncertaintySeconds, true);
         }
+
+        private static string SourceText(NtpClient.NtpConsensus c) =>
+            c.Used.Count == 1
+                ? $"NTP {c.Used[0].Server}" + (c.Rejected > 0 ? $" ({c.Rejected} rejected)" : "")
+                : $"NTP median of {c.Used.Count} ({string.Join(", ", c.Used.Select(s => s.Server))})" +
+                  (c.Rejected > 0 ? $", {c.Rejected} rejected" : "");
 
         public DateTime TrueUtcAt(long stopwatchTimestamp)
         {
