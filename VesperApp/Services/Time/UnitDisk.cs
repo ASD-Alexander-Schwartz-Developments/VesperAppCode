@@ -113,13 +113,15 @@ namespace VesperApp.Services.Time
             (int)Math.Round((((calr & 0x8000u) != 0 ? 512 : 0) - (int)(calr & 0x1FFu)) * PpbPerCalm);
 
         /// <summary>Set "cdrift" in the config.json on the unit's disk, leaving everything else as it is.
-        /// Returns the previous value; throws when there is no config.json or it is not a JSON object.</summary>
+        /// Returns the previous value; throws when there is no config.json or it is not a JSON object.
+        /// The file is not rewritten when it already holds <paramref name="cdrift"/>.</summary>
         public static uint? PatchConfigCdrift(string root, uint cdrift)
         {
             string file = FindFile(root, ConfigFile) ?? throw new FileNotFoundException("no config.json on the unit");
             JsonObject o = JsonNode.Parse(File.ReadAllText(file)) as JsonObject
                            ?? throw new InvalidDataException("config.json is not a JSON object");
             uint? previous = o["cdrift"] is JsonValue v && v.TryGetValue(out uint p) ? p : null;
+            if (previous == cdrift) return previous;
             o["cdrift"] = cdrift;
             File.WriteAllText(file, o.ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
             return previous;

@@ -272,9 +272,13 @@ namespace VesperApp.Services.Time
         /// correction at the turnover temperature T0, which is how the firmware reads cdrift with and
         /// without temperature compensation. Returns a sentence for the user.
         /// </summary>
-        public static string PersistToDisk(string unitKey, CalibrationEstimate est, RtcCalStatus st)
+        public static string PersistToDisk(string unitKey, CalibrationEstimate est, RtcCalStatus st) =>
+            PersistToRoot(UnitDisk.FindRoot(unitKey), unitKey, est, st);
+
+        /// <summary><see cref="PersistToDisk(string, CalibrationEstimate, RtcCalStatus)"/> on a known drive root
+        /// (null = the unit's disk is not mounted).</summary>
+        internal static string PersistToRoot(string? root, string unitKey, CalibrationEstimate est, RtcCalStatus st)
         {
-            string? root = UnitDisk.FindRoot(unitKey);
             if (root == null)
                 return "The unit's disk was not found (connect it in Idle mode so its drive is mounted, then Apply again): " +
                        "until then the calibration lives in the RTC backup registers and is lost if the battery is removed.";
@@ -303,9 +307,11 @@ namespace VesperApp.Services.Time
         }
 
         /// <summary>Remove RTCCAL.TXT from the unit's disk. config.json "cdrift" is left as it is.</summary>
-        public static string RemoveFromDisk(string unitKey)
+        public static string RemoveFromDisk(string unitKey) => RemoveFromRoot(UnitDisk.FindRoot(unitKey));
+
+        /// <summary><see cref="RemoveFromDisk(string)"/> on a known drive root (null = not mounted).</summary>
+        internal static string RemoveFromRoot(string? root)
         {
-            string? root = UnitDisk.FindRoot(unitKey);
             if (root == null) return $"The unit's disk was not found: delete {UnitDisk.CalibrationFile} from it by hand, or it is loaded again at the next boot.";
             try
             {
