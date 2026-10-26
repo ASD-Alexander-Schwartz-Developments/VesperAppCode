@@ -26,7 +26,10 @@ namespace VesperApp.ViewModels
     public class ClockCalibrationViewModel : ViewModelBase
     {
         private readonly MainViewViewModel _main;
-        private readonly RtcCalibrationStore _store = RtcCalibrationStore.Default;
+        private readonly RtcCalibrationStore _store;
+        private readonly Func<IRtcDevice?>? _device;                 // tests: a fake unit instead of the selected device
+        private readonly Func<Task<ReferenceClock>> _createReference;
+        private readonly Func<string, string?> _findDiskRoot;
         private ReferenceClock? _rc;
         private DateTime _rcAt;
         private CalibrationEstimate? _estimate;
@@ -78,8 +81,18 @@ namespace VesperApp.ViewModels
         public ICommand MeasureTemperatureCommand { get; }
 
         public ClockCalibrationViewModel(MainViewViewModel main)
+            : this(main, RtcCalibrationStore.Default, null, () => ReferenceClock.CreateAsync(), UnitDisk.FindRoot) { }
+
+        /// <summary>Seam for tests: the calibration store, the unit (instead of the selected device), the
+        /// reference clock (instead of NTP) and the lookup of the unit's mounted disk.</summary>
+        internal ClockCalibrationViewModel(MainViewViewModel? main, RtcCalibrationStore store, Func<IRtcDevice?>? device,
+                                           Func<Task<ReferenceClock>> createReference, Func<string, string?> findDiskRoot)
         {
-            _main = main;
+            _main = main!;
+            _store = store;
+            _device = device;
+            _createReference = createReference;
+            _findDiskRoot = findDiskRoot;
             var idle = this.WhenAnyValue(x => x.IsBusy, b => !b);
             var canApply = this.WhenAnyValue(x => x.IsBusy, x => x.HasEstimate, (b, e) => !b && e);
 
@@ -105,6 +118,7 @@ namespace VesperApp.ViewModels
 
         private IRtcDevice? Device()
         {
+            if (_device != null) return _device();
             LoggerDevice? d = _main?.SelectedLoggerDevice;
             if (d == null || !d.IsConnected) return null;
             if (d.IsConsoleLogger) return new LoggerRtcDevice(d);
@@ -149,7 +163,7 @@ namespace VesperApp.ViewModels
         {
             if (force || _rc == null || (DateTime.UtcNow - _rcAt).TotalMinutes > 10)
             {
-                _rc = await ReferenceClock.CreateAsync();
+                _rc = await _createReference();
                 _rcAt = DateTime.UtcNow;
                 double pcFastMs = -_rc.PcOffsetSeconds * 1000.0;
                 ReferenceText = _rc.IsNtp
@@ -279,7 +293,7 @@ namespace VesperApp.ViewModels
             if (st == null || !st.HasUnitCalibration) { StatusText = "The device did not accept the calibration."; return; }
             string disk = dev.StoresCalibration
                 ? "The tag keeps it in its EEPROM (survives power loss)."
-                : await Task.Run(() => RtcSyncService.PersistToDisk(dev.UnitKey, est, st));
+                : await Task.Run(() => RtcSyncService.PersistToRoot(_findDiskRoot(dev.UnitKey), dev.UnitKey, est, st));
             ShowStatus(st);
             _estimate = null;
             HasEstimate = false;
@@ -294,7 +308,7 @@ namespace VesperApp.ViewModels
             if (st != null) ShowStatus(st);
             StatusText = st == null
                 ? "The device did not answer."
-                : "Calibration cleared on the unit and here. " + (dev.StoresCalibration ? "" : await Task.Run(() => RtcSyncService.RemoveFromDisk(dev.UnitKey)));
+                : "Calibration cleared on the unit and here. " + (dev.StoresCalibration ? "" : await Task.Run(() => RtcSyncService.RemoveFromRoot(_findDiskRoot(dev.UnitKey))));
         }
 
         private async Task MeasureTemperatureAsync()
@@ -315,7 +329,7 @@ namespace VesperApp.ViewModels
 
         {
             History.Clear();
-            string? key = _main?.SelectedLoggerDevice?.SerialNumber?.Trim();
+            string? key = _device != null ? _device()?.UnitKey : _main?.SelectedLoggerDevice?.SerialNumber?.Trim();
             if (string.IsNullOrEmpty(key)) return;
             foreach (SyncPoint p in _store.Get(key).Points.OrderByDescending(p => p.TrueUtc).Take(200))
             {
