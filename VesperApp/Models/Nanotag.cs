@@ -22,6 +22,9 @@ namespace VesperApp.Models
         public const byte VND_CMD_GET_DATACHUNK = 0x05;
         public const byte VND_CMD_SET_DATETIME = 0x06;
         public const byte VND_CMD_SET_SLEEP = 0x07;
+        public const byte VND_CMD_TIME_SYNC = 0x08;         // firmware 1.37+: [4..7] u32 seq -> 26 B (console message 76 layout)
+        public const byte VND_CMD_RTC_CAL = 0x09;           // firmware 1.37+: [4] op, [5..] args -> 23 B (message 78 layout, FREQCORR at 15)
+
         public const byte VND_CMD_SET_BOOT = 0x0F;
 
         public const byte VND_CMD_GET_CFGCHUNK_GEN = 0x0A;

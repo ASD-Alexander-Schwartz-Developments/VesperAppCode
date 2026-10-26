@@ -1039,7 +1039,41 @@ namespace VesperApp.Models
 
 
 
+        /// <summary>First Nanotag release with TIME_SYNC / RTC_CAL on the vendor interface.</summary>
+        public static readonly Version NanotagRtcCalFirmware = new(1, 37);
+
+        /// <summary>A Nanotag connected over its USB vendor interface.</summary>
+        public bool IsNanotagVendor => _type == DeviceTypes.Nanotag && this.USBDevice != null
+                                       && this._usbEndpointReader != null && this._usbEndpointWriter != null;
+
+        /// <summary>
+        /// Nanotag TIME_SYNC (vendor 0x08): the console message 76 exchange. t1 / t4 are taken around the USB
+        /// write and read. Null when the unit does not answer (firmware before 1.37) or the seq does not match.
+        /// </summary>
+        public Task<RtcExchange?> NanotagTimeSyncAsync(uint seq)
+        {
+            if (!IsNanotagVendor) return Task.FromResult<RtcExchange?>(null);
+            return Task.Run(() =>
+            {
+                int r = WriteReadTimed(Nanotag.VND_CMD_TIME_SYNC, 0, 0, 0, BitConverter.GetBytes(seq), out byte[] data,
+                                       RtcExchange.ReplyLength, out long t1, out long t4);
+                if (r != 0) return null;
+                RtcExchange? ex = RtcExchange.Parse(data, t1, t4);
+                return (ex != null && ex.Seq == seq) ? ex : null;
+            });
+        }
+
+        /// <summary>Nanotag RTC_CAL (vendor 0x09): payload [op, args…] as for message 78. Null on NACK / no answer.</summary>
+        public Task<RtcCalStatus?> NanotagRtcCalAsync(byte[] payload)
+        {
+            if (!IsNanotagVendor) return Task.FromResult<RtcCalStatus?>(null);
+            return Task.Run(() =>
+                WriteRead(Nanotag.VND_CMD_RTC_CAL, payload, out byte[] data, RtcCalStatus.ReplyLength) == 0
+                    ? RtcCalStatus.Parse(data) : null);
+        }
+
         public async Task<bool> UploadConfigFile(string json)
+
         {
             bool r = false;
 
@@ -1239,7 +1273,7 @@ namespace VesperApp.Models
 
         /// <summary>
         /// Read the Nanotag LOGGER log area (oldest to newest page, wrapping; a bad block is skipped) and write
-        /// HEALTH/Hâ€¦.HBN + .csv / .log.csv into <paramref name="path"/>. Returns the number of log pages read, -1
+        /// HEALTH/H….HBN + .csv / .log.csv into <paramref name="path"/>. Returns the number of log pages read, -1
         /// when the unit does not answer GET_LOGNPAGES (firmware before 1.35).
         /// </summary>
         public int DownloadLogArea(string path)

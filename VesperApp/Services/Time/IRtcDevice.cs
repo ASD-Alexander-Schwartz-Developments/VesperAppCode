@@ -18,5 +18,17 @@ namespace VesperApp.Services.Time
         Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000);
         Task<bool> ShiftAsync(int microseconds, int timeoutMs = 2000);
         Task<RtcCalStatus?> CalAsync(byte[] payload, int timeoutMs = 2000);
+
+        /// <summary>
+        /// The unit can shift its RTC by a fraction of a second (message 77) and SET restarts its sub-second
+        /// counter (KOL / VesperU5). False on the Nanotag: SET writes whole seconds and keeps the second boundary,
+        /// so a sync leaves the sub-second offset, which is measured and kept.
+        /// </summary>
+        bool CanShift => true;
+
+        /// <summary>The unit keeps its calibration itself across power loss (Nanotag EEPROM), so there is no
+        /// disk copy to write.</summary>
+        bool StoresCalibration => false;
+
     }
 }

@@ -133,7 +133,7 @@ The optional **LOGGER** sensor (KOL firmware 1.8, Vesper and Pipistrelle firmwar
 
 **Auto Decode** writes `<file>.csv` (one row per sample) and `<file>.log.csv` (time, level, code and a readable name per event) into the `HEALTH` folder.
 
-On a **Nanotag** (firmware 1.35 or later) the logger has no file: its records live in a ring of NAND pages. **Download Data** reads them after the data pages and writes the same `HEALTH/H<first>-H<last>.HBN` with its `.csv` and `.log.csv` into the download folder. The same download also writes the Nanotag add-on boards (firmware 1.36 or later) as Vesper does: `TPRH/Râ€¦.RBN` (temperature / humidity), `ALS/Lâ€¦.LBN` (light) and `PRX/Xâ€¦.XBN` (ProxTit encounters), one file per sensor session, each decoded to `<file>.csv`.
+On a **Nanotag** (firmware 1.35 or later) the logger has no file: its records live in a ring of NAND pages. **Download Data** reads them after the data pages and writes the same `HEALTH/H<first>-H<last>.HBN` with its `.csv` and `.log.csv` into the download folder. The same download also writes the Nanotag add-on boards (firmware 1.36 or later) as Vesper does: `TPRH/R….RBN` (temperature / humidity), `ALS/L….LBN` (light) and `PRX/X….XBN` (ProxTit encounters), one file per sensor session, each decoded to `<file>.csv`.
 
 ### ProxTit encounter files (`X`)
 

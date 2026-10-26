@@ -104,6 +104,34 @@ namespace VesperApp.Services.Time
             await dev.SetRtcAsync(DeviceEpoch.FromSeconds(target)).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Whole-second set for a unit whose SET keeps the second boundary (Nanotag): the calendar is written in the
+        /// middle of a device second, with the integer seconds that remove round(offset). Returns the device time
+        /// (seconds since 2000, device calendar) at which the request should arrive, and the value to write; the
+        /// offset left afterwards is offset − round(offset), within ±0.5 s.
+        /// </summary>
+        public static (double ArriveDeviceSeconds, double SetSeconds, double Residual) PlanWholeSecondSet(double trueDeviceSecondsNow, double offset)
+        {
+            double k = Math.Round(offset, MidpointRounding.AwayFromZero);
+            double devNow = trueDeviceSecondsNow + offset;
+            double devArrive = Math.Floor(devNow + 0.25) + 1.5;          // mid-second, at least 0.25 s ahead
+            return (devArrive, Math.Floor(devArrive) - k, offset - k);
+        }
+
+        private static async Task SetWholeSecondsAsync(IRtcDevice dev, ReferenceClock rc, bool deviceUtc, double offset, double oneWay, CancellationToken ct)
+        {
+            var plan = PlanWholeSecondSet(DeviceSecondsOfTrue(rc.TrueUtcNow(), deviceUtc), offset);
+            double sendAtTrue = plan.ArriveDeviceSeconds - offset - oneWay;    // true time, device calendar
+            for (;;)
+            {
+                double remain = sendAtTrue - DeviceSecondsOfTrue(rc.TrueUtcNow(), deviceUtc);
+                if (remain <= 0) break;
+                if (remain > 0.03) await Task.Delay(TimeSpan.FromSeconds(remain - 0.02), ct).ConfigureAwait(false);
+                else Thread.SpinWait(200);
+            }
+            await dev.SetRtcAsync(DeviceEpoch.FromSeconds(plan.SetSeconds)).ConfigureAwait(false);
+        }
+
         public static async Task<SyncResult> SyncAsync(
             IRtcDevice dev, ReferenceClock rc, bool deviceUtc, RtcCalibrationStore? store, CancellationToken ct = default)
         {
@@ -111,6 +139,9 @@ namespace VesperApp.Services.Time
             if (before == null)
                 return new SyncResult(false, "The device does not answer the time-sync command (firmware without VESPER_TIME_SYNC?).", null, null);
             store?.Record(dev.UnitKey, before, SyncPointKind.Measured, rc);   // closes the running segment
+
+            if (!dev.CanShift)
+                return await SyncWholeSecondsAsync(dev, rc, deviceUtc, store, before, ct).ConfigureAwait(false);
 
             double off = before.OffsetSeconds;
             if (Math.Abs(off) >= 0.9)
@@ -155,7 +186,29 @@ namespace VesperApp.Services.Time
             return new SyncResult(ok, msg, before, after);
         }
 
+        /// <summary>Nanotag: whole-second set only, then the sub-second offset is measured and kept.</summary>
+        private static async Task<SyncResult> SyncWholeSecondsAsync(
+            IRtcDevice dev, ReferenceClock rc, bool deviceUtc, RtcCalibrationStore? store, OffsetMeasurement before, CancellationToken ct)
+        {
+            if (Math.Abs(before.OffsetSeconds) >= 0.5)
+            {
+                await SetWholeSecondsAsync(dev, rc, deviceUtc, before.OffsetSeconds, Math.Max(0.0005, before.MinDelaySeconds / 2.0), ct).ConfigureAwait(false);
+                await Task.Delay(200, ct).ConfigureAwait(false);
+            }
+            OffsetMeasurement? after = await MeasureAsync(dev, rc, deviceUtc, 30, ct).ConfigureAwait(false);
+            if (after == null) return new SyncResult(false, "The device stopped answering after the clock was set.", before, null);
+            store?.Record(dev.UnitKey, after, SyncPointKind.AfterSync, rc);
+
+            bool ok = Math.Abs(after.OffsetSeconds) < 0.6;
+            string msg = $"Clock set to the whole second: was {before.OffsetSeconds * 1000:+0.0;-0.0} ms, now " +
+                         $"{after.OffsetSeconds * 1000:+0.0;-0.0} ms (± {Math.Max(after.MinDelaySeconds / 2, 0.0005) * 1000:0.0} ms, reference {rc.Source}). " +
+                         "The Nanotag cannot shift its clock by a fraction of a second: this offset stays and is kept in the history " +
+                         "(subtract it from the unit's timestamps for millisecond accuracy).";
+            return new SyncResult(ok, msg, before, after);
+        }
+
         /// <summary>Crystal error from the most recent segment that spans at least
+
         /// <paramref name="minHours"/>; null when no such segment exists.</summary>
         public static CalibrationEstimate? Estimate(UnitClockRecord rec, double minHours = MinCalibrationHours)
         {

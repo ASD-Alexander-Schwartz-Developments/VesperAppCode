@@ -18,7 +18,8 @@ namespace VesperApp.ViewModels
 
     /// <summary>
     /// Clock page: precise RTC sync against NTP and per-unit crystal calibration for KOL, Vesper and
-    /// Pipistrelle (VESPER_TIME_SYNC / RTC_SHIFT / RTC_CAL; asd-interfaces interfaces/rtc-time-sync.md).
+    /// Pipistrelle (VESPER_TIME_SYNC / RTC_SHIFT / RTC_CAL; asd-interfaces interfaces/rtc-time-sync.md) and the
+    /// Nanotag (firmware 1.37+: vendor TIME_SYNC 0x08 / RTC_CAL 0x09, whole-second set, calibration in EEPROM).
     /// Workflow: Sync -> leave the unit at a stable temperature for 12-24 h -> Sync (or Measure) again
     /// -> Compute -> Apply. The calibration is stored on the unit and kept here as the master copy.
     /// </summary>
@@ -32,7 +33,9 @@ namespace VesperApp.ViewModels
 
         public ObservableCollection<SyncPointRow> History { get; } = new();
 
-        private string _deviceText = "Select a connected KOL, Vesper or Pipistrelle in the device list.";
+        private const string SelectText = "Select a connected KOL, Vesper, Pipistrelle or Nanotag in the device list.";
+
+        private string _deviceText = SelectText;
         public string DeviceText { get => _deviceText; set => this.RaiseAndSetIfChanged(ref _deviceText, value); }
 
         private string _referenceText = "Reference: NTP is queried on the first Sync or Measure (or via ··· > Refresh NTP reference).";
@@ -103,18 +106,34 @@ namespace VesperApp.ViewModels
         private IRtcDevice? Device()
         {
             LoggerDevice? d = _main?.SelectedLoggerDevice;
-            return (d != null && d.IsConsoleLogger && d.IsConnected) ? new LoggerRtcDevice(d) : null;
+            if (d == null || !d.IsConnected) return null;
+            if (d.IsConsoleLogger) return new LoggerRtcDevice(d);
+            if (d.IsNanotagVendor) return new NanotagRtcDevice(d);
+            return null;
+        }
+
+        private bool IsNanotag => _main?.SelectedLoggerDevice?.DeviceType == DeviceTypes.Nanotag;
+
+        /// <summary>Unit text for the Clock page: which devices it serves and what the selected one is.</summary>
+        internal static string Describe(LoggerDevice? d, bool deviceUtc)
+        {
+            if (d == null) return SelectText;
+            bool supported = d.IsConsoleLogger || d.DeviceType == DeviceTypes.Nanotag;
+            if (!supported)
+                return $"{d.DeviceType} {d.SerialNumber}: clock calibration is available for KOL, Vesper, Pipistrelle and Nanotag only.";
+            string text = $"{d.DeviceType} {d.SerialNumber} — firmware {d.FwId} — device clock in {(deviceUtc ? "UTC" : "local time")}";
+            if (d.DeviceType == DeviceTypes.Nanotag)
+            {
+                if (d.FirmwareVersion != null && d.FirmwareVersion < LoggerDevice.NanotagRtcCalFirmware)
+                    text += $" — needs Nanotag firmware {LoggerDevice.NanotagRtcCalFirmware} or later";
+                text += " (sets whole seconds only: the sub-second offset is measured and kept)";
+            }
+            return text + (d.IsConnected ? "" : " (press Connect Device first)");
         }
 
         private void DescribeDevice()
         {
-            LoggerDevice? d = _main?.SelectedLoggerDevice;
-            DeviceText = d == null
-                ? "Select a connected KOL, Vesper or Pipistrelle in the device list."
-                : !d.IsConsoleLogger
-                    ? $"{d.DeviceType} {d.SerialNumber}: clock calibration is available for KOL, Vesper and Pipistrelle only."
-                    : $"{d.DeviceType} {d.SerialNumber} — firmware {d.FwId} — device clock in {(DeviceUtc ? "UTC" : "local time")}"
-                      + (d.IsConnected ? "" : " (press Connect Device first)");
+            DeviceText = Describe(_main?.SelectedLoggerDevice, DeviceUtc);
         }
 
         private async Task Run(string busy, Func<Task> action)
@@ -141,8 +160,29 @@ namespace VesperApp.ViewModels
             return _rc;
         }
 
-        private void ShowStatus(RtcCalStatus st)
+        private void ShowStatus(RtcCalStatus st) => ShowStatus(st, IsNanotag);
+
+        /// <summary>Status texts from an RTC_CAL reply. Nanotag: [15..16] is FREQCORR (bit 7 sign, bits 0-6 steps of
+        /// ~1.0006 ppm), flag 0x80 = loaded from its EEPROM, no legacy cdrift.</summary>
+        internal void ShowStatus(RtcCalStatus st, bool nanotag)
         {
+            if (nanotag)
+            {
+                TemperatureText = (st.Flags & RtcCalFlags.TemperatureFault) != 0
+                    ? "unavailable: no factory temperature log, an ADC timeout or a reading out of range - temperature compensation cannot work on this unit"
+                    : st.TemperatureC.HasValue
+                    ? $"{st.TemperatureC:0.0} °C (internal sensor, {(st.TemperatureAgeSeconds >= 0 ? st.TemperatureAgeSeconds + " s ago" : "age unknown")})"
+                    : "not measured yet";
+                CorrectionText = $"{st.AppliedPpb / 1000.0:+0.000;-0.000} ppm (RTC FREQCORR {FreqCorrSteps(st.Calr):+0;-0;0} steps, dithered)";
+                CalibrationText = st.HasUnitCalibration
+                    ? $"crystal {st.StoredErrorPpb / 1000.0:+0.000;-0.000} ppm at {(st.ReferenceTemperatureC.HasValue ? st.ReferenceTemperatureC.Value.ToString("0.0") + " °C" : "unknown temperature")}" +
+                      ((st.Flags & RtcCalFlags.FromDisk) != 0 ? " (loaded from the tag's EEPROM at boot)" : " (stored in the tag's EEPROM)")
+                    : "none on the unit — no correction";
+                TempCompText = st.TemperatureCompensation
+                    ? $"on: −{st.CurvaturePpbPerC2} ppb/°C² around {st.TurnoverC:0.0} °C, every {st.PeriodSeconds} s (config \"tcomp\", uploaded with the configuration)"
+                    : "off (enable \"Temperature compensation\" in the Configuration editor and upload the configuration)";
+                return;
+            }
             TemperatureText = (st.Flags & RtcCalFlags.TemperatureFault) != 0
                 ? "unavailable: the unit's ADC has no usable reference voltage, even from the internal buffer - temperature compensation cannot work on this unit"
                 : st.TemperatureC.HasValue
@@ -169,12 +209,14 @@ namespace VesperApp.ViewModels
             RtcCalStatus? st = await dev.CalAsync(new byte[] { 0 });
             if (st == null)
             {
-                StatusText = "The device does not support RTC calibration (needs KOL firmware 1.8 / Vesper firmware 1.22 or later).";
+                StatusText = IsNanotag
+                    ? $"The tag does not answer RTC_CAL (needs Nanotag firmware {LoggerDevice.NanotagRtcCalFirmware} or later)."
+                    : "The device does not support RTC calibration (needs KOL firmware 1.8 / Vesper firmware 1.22 or later).";
                 return;
             }
             ShowStatus(st);
             StoredCalibration? master = _store.Get(dev.UnitKey).Calibration;
-            StatusText = (!st.HasUnitCalibration && master != null)
+            StatusText = (!st.HasUnitCalibration && master != null && !dev.StoresCalibration)
                 ? $"The unit has lost its calibration (no {UnitDisk.CalibrationFile} on its disk and the RTC was reset); the stored value {master.ErrorPpb / 1000.0:+0.000;-0.000} ppm is re-applied on the next Sync."
                 : "";
         }
@@ -235,7 +277,9 @@ namespace VesperApp.ViewModels
             CalibrationEstimate est = _estimate;
             RtcCalStatus? st = await RtcSyncService.ApplyAsync(dev, est, _store);
             if (st == null || !st.HasUnitCalibration) { StatusText = "The device did not accept the calibration."; return; }
-            string disk = await Task.Run(() => RtcSyncService.PersistToDisk(dev.UnitKey, est, st));
+            string disk = dev.StoresCalibration
+                ? "The tag keeps it in its EEPROM (survives power loss)."
+                : await Task.Run(() => RtcSyncService.PersistToDisk(dev.UnitKey, est, st));
             ShowStatus(st);
             _estimate = null;
             HasEstimate = false;
@@ -250,7 +294,7 @@ namespace VesperApp.ViewModels
             if (st != null) ShowStatus(st);
             StatusText = st == null
                 ? "The device did not answer."
-                : "Calibration cleared on the unit and here. " + await Task.Run(() => RtcSyncService.RemoveFromDisk(dev.UnitKey));
+                : "Calibration cleared on the unit and here. " + (dev.StoresCalibration ? "" : await Task.Run(() => RtcSyncService.RemoveFromDisk(dev.UnitKey)));
         }
 
         private async Task MeasureTemperatureAsync()
@@ -264,7 +308,11 @@ namespace VesperApp.ViewModels
             StatusText = "";
         }
 
+        /// <summary>Nanotag FREQCORR register: bit 7 = sign (1 = slower), bits 0-6 = steps of ~1.0006 ppm.</summary>
+        internal static int FreqCorrSteps(ushort reg) => (reg & 0x7F) * ((reg & 0x80) != 0 ? -1 : 1);
+
         private void ShowHistory()
+
         {
             History.Clear();
             string? key = _main?.SelectedLoggerDevice?.SerialNumber?.Trim();

@@ -1,6 +1,6 @@
 # Clock Calibration
 
-KOL, Vesper and Pipistrelle loggers keep time with a 32.768 kHz crystal. Every crystal is a little fast or slow (typically ±20–30 ppm, about ±2–3 seconds a day, but on some boards much more: KOL units measured about −200 ppm, 17 seconds a day slow), and outdoors it also runs slow when it is colder or warmer than about 25 °C. The **Clock** page sets a unit's clock to internet time with millisecond accuracy, measures how fast or slow that particular unit's crystal is, and stores a correction on the unit.
+KOL, Vesper, Pipistrelle and Nanotag loggers keep time with a 32.768 kHz crystal. Every crystal is a little fast or slow (typically ±20–30 ppm, about ±2–3 seconds a day, but on some boards much more: KOL units measured about −200 ppm, 17 seconds a day slow), and outdoors it also runs slow when it is colder or warmer than about 25 °C. The **Clock** page sets a unit's clock to internet time with millisecond accuracy, measures how fast or slow that particular unit's crystal is, and stores a correction on the unit.
 
 This needs firmware with the time-sync commands (KOL 1.8 / Vesper 1.22 or later). Older firmware still gets a plain whole-second **Set Time**.
 
@@ -42,3 +42,13 @@ Enable **RTC temperature compensation** in the [Configuration Editor](Configurat
 | Calibration + temperature compensation | about ±2–5 ppm across field temperatures, limited by the sensor and the crystal's real curve |
 
 The **Clock** page shows the unit's current temperature, the correction it applies and whether temperature compensation is on.
+
+## Nanotag
+
+A Nanotag with firmware 1.37 or later works on the same page over its USB connection (select it and press **Connect Device**): measuring, calibrating, applying, clearing and temperature readings are the same. Two differences:
+
+- **Sync sets whole seconds only.** The Nanotag's clock cannot be moved by a fraction of a second, so after **Sync clock** it can still be up to half a second off. The page measures that offset to the millisecond and keeps it in the unit's history; subtract it from the tag's timestamps when you need millisecond accuracy.
+- **The calibration is stored in the tag itself** (its EEPROM), so it survives a flat battery; there is no file on a disk. The correction is applied in steps of about 1 ppm (shown as FREQCORR steps) and dithered, so on average it follows the calibration exactly.
+
+Temperature compensation is set in the Configuration Editor and reaches the tag with the configuration upload.
+
