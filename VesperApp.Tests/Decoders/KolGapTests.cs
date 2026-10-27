@@ -72,6 +72,27 @@ public class KolGapTests
     }
 
     [Fact]
+    public async Task UnclosedFile_AllDataExtracted_AndMarkedUnclosed()
+    {
+        using var dir = new TempDir();
+        var header = Raw.FileHeader("KOL", 48000, 0, 0, 0, 0, 0);
+        var pad = Enumerable.Repeat((byte)0xFF, 512 - header.Length - 16).ToArray();
+        string raw = dir.File("7U1.BIN");
+        File.WriteAllBytes(raw, Raw.Concat(header, pad, Raw.Block(BinHeader.PreambleHeader, Start),
+            Node(3), Sync(1), Gap(KolGapWriter.ReasonOverrun, 1, 0), Node(4), Sync(2)));   // reset: no summary, no FOOTER
+
+        await BinaryParser.StripSplitEx(raw, '1', dir.Path, 0);
+
+        string ubn = Assert.Single(Directory.GetFiles(dir.Path, "*.UBN"));
+        Assert.Contains("-0000_00_00_00_00_00.000", ubn);
+        var expect = Node(3).Concat(new byte[NodeSamples * 2]).Concat(Node(4)).ToArray();
+        Assert.Equal(expect, File.ReadAllBytes(ubn));
+        var lines = File.ReadAllLines(ubn + ".txt");
+        Assert.Contains(lines, l => l.StartsWith("Unclosed:"));
+        Assert.Contains(lines, l => l.StartsWith("Gap:") && l.EndsWith(":lost (1 nodes, mic 2)"));
+    }
+
+    [Fact]
     public async Task NoGapBlocks_OutputUnchanged_AndNoGapLines()
     {
         using var dir = new TempDir();

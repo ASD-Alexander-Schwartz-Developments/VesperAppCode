@@ -405,6 +405,10 @@ namespace VesperApp.Services
                                             metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy hh:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
                                         }
                                     }
+                                    // No FOOTER: the unit stopped without closing the file (reset - watchdog, low
+                                    // supply - or power loss). Everything in the file is extracted; what was recorded
+                                    // after its last write is not on the card (kol-recording-format.md "Reset while recording").
+                                    metadata += ("Unclosed:no FOOTER - recording ended by a reset or power loss; data up to the end of the file" + Environment.NewLine);
 
                                     File.WriteAllText(metadata_filename, metadata, Encoding.UTF8);
                                 }
