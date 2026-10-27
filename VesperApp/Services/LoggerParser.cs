@@ -109,6 +109,8 @@ namespace VesperApp.Services
             [0x0106] = "Reset: illegal low-power entry",
             [0x0107] = "Error handler ran since the previous boot",
             [0x0108] = "Log records dropped (buffer full)",
+            [0x0109] = "Reset: option bytes loaded (one-time setup)",
+            [0x010A] = "Watchdog not running (option bytes not set)",
             [0x0201] = "Data file could not be created / opened",
             [0x0202] = "Write to a data file failed",
             [0x0203] = "Storage full",
@@ -141,9 +143,19 @@ namespace VesperApp.Services
             [0x0704] = "Sensor reading failed",
         };
 
-        /// <summary>Readable event name; 0x08xx = configured sensor not found, low byte = driver type.</summary>
+        /// <summary>Readable event name; 0x08xx = configured sensor not found, low byte = driver type;
+        /// 0x09xx = watchdog supervisor reset, low byte = what stalled (KOL kol_wdg.h).</summary>
         public static string CodeName(ushort code, byte deviceType = 1)
         {
+            if ((code & 0xFF00) == 0x0900)
+            {
+                int c = code & 0xFF;
+                return c switch
+                {
+                    0x0F => "Reset after a CPU fault (HardFault)",
+                    _ => "Reset by the watchdog supervisor: " + (c < WdgClients.Length ? WdgClients[c] : $"client {c}") + " stalled",
+                };
+            }
             if ((code & 0xFF00) == 0x0800)
             {
                 string[] names = SensorTable(deviceType);
@@ -152,6 +164,9 @@ namespace VesperApp.Services
             }
             return Codes.TryGetValue(code, out string? s) ? s : "unknown";
         }
+
+        // Watchdog supervisor clients (KOL kol_wdg.h KOL_WDG_*).
+        private static readonly string[] WdgClients = { "main loop", "audio recorder", "LOGGER", "IMU", "TPRH" };
 
         // Bit = firmware driver type (SENSOR_Typedef), which differs per firmware family.
         private static readonly string[] KolSensors =

@@ -147,7 +147,15 @@ public class LoggerDecoderTests
     [InlineData((ushort)0x0840, (byte)3, "Configured sensor not found: type 64")]
     [InlineData((ushort)0x0104, (byte)3, "Reset: software")]
     [InlineData((ushort)0x0405, (byte)1, "RTC synchronised by the host")]
-    [InlineData((ushort)0x0999, (byte)3, "unknown")]
+    [InlineData((ushort)0x0A99, (byte)3, "unknown")]
+    // KOL watchdog (kol_wdg.h): option-byte reset, IWDG off, supervisor resets per client, HardFault
+    [InlineData((ushort)0x0109, (byte)3, "Reset: option bytes loaded (one-time setup)")]
+    [InlineData((ushort)0x010A, (byte)3, "Watchdog not running (option bytes not set)")]
+    [InlineData((ushort)0x0900, (byte)3, "Reset by the watchdog supervisor: main loop stalled")]
+    [InlineData((ushort)0x0901, (byte)3, "Reset by the watchdog supervisor: audio recorder stalled")]
+    [InlineData((ushort)0x0904, (byte)3, "Reset by the watchdog supervisor: TPRH stalled")]
+    [InlineData((ushort)0x0907, (byte)3, "Reset by the watchdog supervisor: client 7 stalled")]
+    [InlineData((ushort)0x090F, (byte)3, "Reset after a CPU fault (HardFault)")]
     // codes added after the first catalogue (Nanotag NAND, VesperU5 1.22)
     [InlineData((ushort)0x0205, (byte)0, "NAND page read uncorrectable (ECC)")]
     [InlineData((ushort)0x0206, (byte)0, "NAND page read corrected at/above the ECC threshold")]
