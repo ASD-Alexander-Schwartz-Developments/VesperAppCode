@@ -318,23 +318,26 @@ namespace VesperApp.Services
 
                                         using (FileStream fs = File.OpenWrite(wn))
                                         {
+                                            var gw = new KolGapWriter(databuffer, fs);
                                             if (timestamp.SyncTimestamps == null || timestamp.SyncTimestamps.Count == 0)
                                             {
-                                                fs.Write(databuffer, timestamp.StartHeader.StartPosition, timestamp.EndHeader.StartPosition - timestamp.StartHeader.StartPosition);
+                                                gw.Write(timestamp.StartHeader.StartPosition, timestamp.EndHeader.StartPosition - timestamp.StartHeader.StartPosition);
                                             }
                                             else
                                             {
-                                                fs.Write(databuffer, timestamp.StartHeader.StartPosition, timestamp.SyncTimestamps[0].StartPosition - timestamp.StartHeader.StartPosition);
+                                                gw.Write(timestamp.StartHeader.StartPosition, timestamp.SyncTimestamps[0].StartPosition - timestamp.StartHeader.StartPosition);
 
                                                 for (int i = 0; i < timestamp.SyncTimestamps.Count - 1; i++)
                                                 {
-                                                    fs.Write(databuffer, timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.SyncTimestamps[i + 1].StartPosition - (timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                                    gw.Write(timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.SyncTimestamps[i + 1].StartPosition - (timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
                                                 }
 
-                                                fs.Write(databuffer, timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.EndHeader.StartPosition - (timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                                gw.Write(timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.EndHeader.StartPosition - (timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
                                             }
 
                                             fs.Close();
+                                            if (gw.Notes.Count > 0 && File.Exists(metadata_filename))
+                                                File.AppendAllText(metadata_filename, string.Join(Environment.NewLine, gw.Notes) + Environment.NewLine, Encoding.UTF8);
                                         }
 
                                     }
@@ -408,21 +411,24 @@ namespace VesperApp.Services
 
                                 using (FileStream fs = File.OpenWrite(wn))
                                 {
+                                    var gw = new KolGapWriter(databuffer, fs);
                                     if (activeTimestamp.SyncTimestamps == null || activeTimestamp.SyncTimestamps.Count == 0)
                                     {
-                                        fs.Write(databuffer, activeTimestamp.StartHeader.StartPosition, databuffer.Length - activeTimestamp.StartHeader.StartPosition);
+                                        gw.Write(activeTimestamp.StartHeader.StartPosition, databuffer.Length - activeTimestamp.StartHeader.StartPosition);
                                     }
                                     else
                                     {
-                                        fs.Write(databuffer, activeTimestamp.StartHeader.StartPosition, activeTimestamp.SyncTimestamps[0].StartPosition - activeTimestamp.StartHeader.StartPosition);
+                                        gw.Write(activeTimestamp.StartHeader.StartPosition, activeTimestamp.SyncTimestamps[0].StartPosition - activeTimestamp.StartHeader.StartPosition);
 
                                         for (int i = 0; i < activeTimestamp.SyncTimestamps.Count - 1; i++)
                                         {
-                                            fs.Write(databuffer, activeTimestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, activeTimestamp.SyncTimestamps[i + 1].StartPosition - (activeTimestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                            gw.Write(activeTimestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, activeTimestamp.SyncTimestamps[i + 1].StartPosition - (activeTimestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
                                         }
-                                        fs.Write(databuffer, activeTimestamp.SyncTimestamps[activeTimestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, databuffer.Length - (activeTimestamp.SyncTimestamps[activeTimestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
+                                        gw.Write(activeTimestamp.SyncTimestamps[activeTimestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, databuffer.Length - (activeTimestamp.SyncTimestamps[activeTimestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
                                     }
                                     fs.Close();
+                                    if (gw.Notes.Count > 0 && File.Exists(metadata_filename))
+                                        File.AppendAllText(metadata_filename, string.Join(Environment.NewLine, gw.Notes) + Environment.NewLine, Encoding.UTF8);
                                 }
                             }
                         }
