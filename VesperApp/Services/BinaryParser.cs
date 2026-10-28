@@ -309,7 +309,7 @@ namespace VesperApp.Services
                                             {
                                                 foreach (BinHeader binh in timestamp.SyncTimestamps)
                                                 {
-                                                    metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy hh:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
+                                                    metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy HH:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
                                                 }
                                             }
 
@@ -402,7 +402,7 @@ namespace VesperApp.Services
                                     {
                                         foreach (BinHeader binh in activeTimestamp.SyncTimestamps)
                                         {
-                                            metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy hh:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
+                                            metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy HH:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
                                         }
                                     }
                                     // No FOOTER: the unit stopped without closing the file (reset - watchdog, low

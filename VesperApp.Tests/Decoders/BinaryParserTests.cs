@@ -85,6 +85,23 @@ public class BinaryParserTests
     }
 
     [Fact]
+    public async Task StripSplit_SyncLine_Uses24HourClock()
+    {
+        using var dir = new TempDir();
+        DateTime pm = Start.AddHours(5);                                       // 15:00 was written "03:00"
+        string raw = dir.File("8E.BIN");
+        File.WriteAllBytes(raw, Raw.Concat(Raw.FileHeader("EXG48", 250, 0, 0, 0, 0, 0),
+            Raw.Block(BinHeader.PreambleHeader, pm), new byte[8],
+            Raw.Block(BinHeader.PreambleSync, pm, 255, 127), new byte[8],
+            Raw.Block(BinHeader.PreambleFooter, pm.AddSeconds(2))));
+
+        await BinaryParser.StripSplit(raw, dir.Path, 0);
+
+        string ebn = Assert.Single(Directory.GetFiles(dir.Path, "*.EBN"));
+        Assert.Contains("15:00:00.5", Assert.Single(File.ReadAllLines(ebn + ".txt"), l => l.StartsWith("Sync:")));
+    }
+
+    [Fact]
     public async Task StripSplit_NoFooter_WritesPartialIntermediateWithOnlyThePayload()
     {
         using var dir = new TempDir();
