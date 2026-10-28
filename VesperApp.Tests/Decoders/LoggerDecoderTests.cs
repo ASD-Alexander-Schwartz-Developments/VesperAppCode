@@ -33,6 +33,29 @@ public class LoggerDecoderTests
     }
 
     [Fact]
+    public void BatteryColumn_AboveRange_NoReading_AndValue()
+    {
+        using var dir = new TempDir();
+        static byte[] Sample(uint secs, int battery)
+        {
+            var r = new byte[12];
+            r[0] = 0x01; r[1] = 12; BitConverter.GetBytes((ushort)0x1).CopyTo(r, 2);   // battery field only
+            BitConverter.GetBytes(secs).CopyTo(r, 4);
+            BitConverter.GetBytes(battery).CopyTo(r, 8);
+            return r;
+        }
+        byte[] data = Sample(60, 1862).Concat(Sample(120, LoggerParser.BatteryAboveRange)).Concat(Sample(180, -1)).ToArray();
+        string name = Path.Combine(dir.Path, "H.HBN");
+
+        using (var p = new LoggerParser(name, data, 0x301)) { p.WriteFile(); }
+
+        string[] lines = File.ReadAllLines(name + ".csv");
+        Assert.Equal("2000-01-01 00:01:00,1862,,,", lines[1]);
+        Assert.Equal("2000-01-01 00:02:00,above range,,,", lines[2]);   // KOL: node above ~3.9 V, a reading
+        Assert.Equal("2000-01-01 00:03:00,,,,", lines[3]);              // -1: no reading
+    }
+
+    [Fact]
     public async Task AutoDecode_RawLoggerFile_ProducesHealthIntermediateSamplesAndEvents()
     {
         using var dir = new TempDir();

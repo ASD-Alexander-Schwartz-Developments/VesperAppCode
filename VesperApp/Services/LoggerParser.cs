@@ -21,6 +21,8 @@ namespace VesperApp.Services
         public const byte RecSample = 0x01;
         public const byte RecLog = 0x10;
         public const int TempNone = unchecked((int)0x80000000);
+        /// <summary>KOL 1.8 battery value above what its ADC measures (node above ~3.9 V, e.g. on USB); -1 = no reading.</summary>
+        public const int BatteryAboveRange = -2;
 
         private static readonly DateTime Epoch = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
@@ -72,7 +74,7 @@ namespace VesperApp.Services
                         p += 4;
                         col[bit] = bit switch
                         {
-                            0 => v < 0 ? "" : v.ToString(),
+                            0 => v == BatteryAboveRange ? "above range" : v < 0 ? "" : v.ToString(),
                             1 => v == TempNone ? "" : (v / 100.0).ToString("F2"),
                             2 => v.ToString(),
                             _ => SensorNames(deviceType, (uint)v),
