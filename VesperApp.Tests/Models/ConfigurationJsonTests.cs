@@ -276,7 +276,7 @@ public class ConfigurationJsonTests
     [Fact]
     public void SupportedDrivers_PerProduct()
     {
-        Assert.Equal(new[] { "KOL", "TPRH31", "IMU10", "IMU10HT", "LOGGER" }, Kol.SupportedDeviceDrivers.Select(d => d.Name).ToArray());
+        Assert.Equal(new[] { "KOL", "TPRH31", "IMU10", "IMU10HT", "ALS3001D", "LOGGER" }, Kol.SupportedDeviceDrivers.Select(d => d.Name).ToArray());
         Assert.Contains(Vesper.SupportedDeviceDrivers, d => d is ConfigLoggerDriver);
         Assert.Contains(Pipistrelle.SupportedDeviceDrivers, d => d is ConfigLoggerDriver);
         Assert.Equal(Vesper.SupportedDeviceDrivers.Count, Vesper.SupportedDeviceDrivers.Select(d => d.Name).Distinct().Count());

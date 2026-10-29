@@ -27,6 +27,7 @@ namespace VesperApp.Models
             { new ConfigTPRH31Driver() },           // P2 add-ons (KOL firmware 1.8): I2C3 / SPI1
             { new ConfigIMU10Driver() },
             { new ConfigIMU10HTDriver() },
+            { new ConfigALS3001DDriver() },         // KOL firmware 1.8+ (2026-10-29): I2C3, same addresses as TPRH31 - strap one to 0x45
             { new ConfigLoggerDriver() },
 		};
 

@@ -168,7 +168,7 @@ namespace VesperApp.Services
         }
 
         // Watchdog supervisor clients (KOL kol_wdg.h KOL_WDG_*).
-        private static readonly string[] WdgClients = { "main loop", "audio recorder", "LOGGER", "IMU", "TPRH" };
+        private static readonly string[] WdgClients = { "main loop", "audio recorder", "LOGGER", "IMU", "TPRH", "ALS" };
 
         // Bit = firmware driver type (SENSOR_Typedef), which differs per firmware family.
         private static readonly string[] KolSensors =
