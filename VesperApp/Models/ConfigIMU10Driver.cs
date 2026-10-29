@@ -26,8 +26,12 @@ namespace VesperApp.Models
         {
             this.imu_range = 0;
 
-            this.FileSize = 512 * 1024;
+            this.FileSize = MinFileSize;
         }
+
+        /// <summary>params.c: IMU_BUFFER_SIZE (8 KiB) x 256. It used to default to 512 KiB, which the firmware raised.</summary>
+        [Browsable(false), System.Text.Json.Serialization.JsonIgnore]
+        public override UInt32 MinFileSize => 2 * 1024 * 1024;
         public override void Load(ConfigurationDeviceDriver ldrv)
         {
             if (ldrv is not null)

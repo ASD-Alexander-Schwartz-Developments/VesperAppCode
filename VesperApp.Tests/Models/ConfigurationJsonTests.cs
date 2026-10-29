@@ -290,4 +290,24 @@ public class ConfigurationJsonTests
     [InlineData(8u * 1024 * 1024, 8u * 1024 * 1024)]
     public void FileSize_RoundsToWholeBuffers(uint value, uint expected)
         => Assert.Equal(expected, ConfigurationDeviceDriver.RoundFileSize(value));
+
+    [Fact]
+    public void FileSize_RaisedToTheFirmwareMinimum()
+    {
+        // params.c raises smaller sizes: IMU 2 MiB, microphones 8 MiB; 0 (= firmware minimum) stays 0
+        var imu = new ConfigIMU10Driver();
+        Assert.Equal(2u * 1024 * 1024, imu.FileSize);
+        imu.FileSize = 512 * 1024;
+        Assert.Equal(2u * 1024 * 1024, imu.FileSize);
+        imu.FileSize = 4u * 1024 * 1024;
+        Assert.Equal(4u * 1024 * 1024, imu.FileSize);
+        imu.FileSize = 0;
+        Assert.Equal(0u, imu.FileSize);
+        var ht = new ConfigIMU10HTDriver { FileSize = 65536 };
+        Assert.Equal(2u * 1024 * 1024, ht.FileSize);
+        var kol = new ConfigKOLDriver { FileSize = 1024 * 1024 };
+        Assert.Equal(8u * 1024 * 1024, kol.FileSize);
+        var tprh = new ConfigTPRH31Driver { FileSize = 65536 };
+        Assert.Equal(65536u, tprh.FileSize);
+    }
 }

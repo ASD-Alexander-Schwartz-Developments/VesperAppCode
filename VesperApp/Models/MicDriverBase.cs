@@ -21,8 +21,12 @@ namespace VesperApp.Models
 
         protected MicDriverBase(string name, string description) : base(name, description)
         {
-            FileSize = 8 * 1024 * 1024;
+            FileSize = MinFileSize;
         }
+
+        /// <summary>params.c: the microphones' files are at least 8 MiB (VesperU5 and KOL).</summary>
+        [JsonIgnore, Browsable(false)]
+        public override UInt32 MinFileSize => 8 * 1024 * 1024;
 
         /// <summary>Product the driver configures (firmware version, DMA ring for the pre-trigger).</summary>
         [JsonIgnore, Browsable(false)]

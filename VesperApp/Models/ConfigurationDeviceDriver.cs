@@ -237,7 +237,8 @@ namespace VesperApp.Models
         [CategoryAttribute("Advanced configuration"),
         DescriptionAttribute("Size of each recording file in bytes; when it is reached the file is closed and a new one is started. "
             + "Always a multiple of 64 KB (65,536 bytes) - the largest RAM buffer the firmware writes and a whole number of "
-            + "allocation clusters - so every file ends on a full buffer; other values are rounded. 0 = the firmware's minimum for the sensor."),
+            + "allocation clusters - so every file ends on a full buffer; other values are rounded. 0 = the firmware's minimum for the sensor. "
+            + "Smaller values are raised to that minimum, as the firmware does: microphones 8 MB, IMU 2 MB."),
         DisplayName("File Size")]
         public virtual UInt32 FileSize
         {
@@ -245,9 +246,15 @@ namespace VesperApp.Models
             set
             {
                 this.file_size = RoundFileSize(value);
+                if (this.file_size != 0 && this.file_size < MinFileSize) this.file_size = MinFileSize;
                 OnPropertyChanged();
             }
         }
+
+        /// <summary>The firmware's smallest file for this sensor (VesperU5 / Kol <c>params.c</c>); a smaller
+        /// configured size is raised to it there, so the editor shows what will be recorded. 0 = none.</summary>
+        [Browsable(false), JsonIgnore]
+        public virtual UInt32 MinFileSize => 0;
 
         public const UInt32 FileSizeUnit = 64 * 1024;
 
