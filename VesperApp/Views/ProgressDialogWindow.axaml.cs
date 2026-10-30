@@ -14,8 +14,8 @@ public partial class ProgressDialogWindow : Window
     {
         _progressStatus = ps ?? throw new ArgumentNullException(nameof(ps));
         DataContext = ps;
-        Title = progressWindowTitle;
         InitializeComponent();
+        Title = progressWindowTitle;   // after InitializeComponent: the XAML must not reset it
         Closing += ProgressDialogWindow_Closing;
         Owner = owner;
     }

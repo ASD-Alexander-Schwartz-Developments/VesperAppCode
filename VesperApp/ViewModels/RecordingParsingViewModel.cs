@@ -2088,7 +2088,7 @@ namespace VesperApp.ViewModels
                 curn = 0;
                 Task _cp = CopyTo(sourceDirectoryInfo, destinationDirectoryInfo, progressStatus);  // TODO: Add progress bar
 
-                ProgressDialogWindow progressDialogW = new ProgressDialogWindow("Copy Progress", progressStatus, App.MainWindow);
+                ProgressDialogWindow progressDialogW = new ProgressDialogWindow("Importing recordings from the device", progressStatus, App.MainWindow);
                 Task progressWindowTask = progressDialogW.ShowDialog(App.MainWindow);
 
                 Dispatcher.UIThread.Post(async () =>
