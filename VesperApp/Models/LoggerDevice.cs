@@ -1323,6 +1323,14 @@ namespace VesperApp.Models
             });
         }
 
+        /// <summary>GET_BBT (Nanotag 1.39+): the bad-block and to-retire bitmaps, 2 x 256 B for 2048 blocks.</summary>
+        public async Task<byte[]?> GetBlockMapsAsync()
+        {
+            if (!IsNanotagVendor) return null;
+            return await Task.Run(() =>
+                WriteRead(Nanotag.VND_CMD_GET_BBT, new byte[0], out byte[] resp, 512) == 0 ? resp : null);
+        }
+
         /// <summary>The three config rows as the tag holds them (GET_CFGCHUNK_GEN / _DEV / _SCH, 256 B each);
         /// null when a read fails.</summary>
         public async Task<(byte[] General, byte[] Devices, byte[] Schedule)?> ReadNanotagConfigAsync()

@@ -19,6 +19,25 @@
 						<TextBlock Text="Disk health" FontWeight="SemiBold" VerticalAlignment="Center"/>
 					</DockPanel>
 					<SelectableTextBlock Text="{Binding HealthText}" TextWrapping="Wrap"/>
+
+					<!-- Block map (GET_BBT, firmware 1.39): one cell per block, 64 a row, block 0 top left -->
+					<StackPanel Spacing="6" IsVisible="{Binding BlockMapImage, Converter={x:Static ObjectConverters.IsNotNull}}">
+						<TextBlock Text="Block map (block 0 top left, 64 blocks a row)" Opacity="0.8"/>
+						<Border HorizontalAlignment="Left" BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="1">
+							<Image Source="{Binding BlockMapImage}" Width="384" Height="192" Stretch="Fill"
+								   RenderOptions.BitmapInterpolationMode="None"
+								   ToolTip.Tip="Each cell is one 256 KB block of the 0.5 GB NAND"/>
+						</Border>
+						<WrapPanel Orientation="Horizontal">
+							<StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,0"><Border Width="10" Height="10" Background="#3B82C4"/><TextBlock Text="data" FontSize="12"/></StackPanel>
+							<StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,0"><Border Width="10" Height="10" Background="#D9DEE3"/><TextBlock Text="free" FontSize="12"/></StackPanel>
+							<StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,0"><Border Width="10" Height="10" Background="#D64545"/><TextBlock Text="bad" FontSize="12"/></StackPanel>
+							<StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,0"><Border Width="10" Height="10" Background="#F0A030"/><TextBlock Text="to retire at the next format" FontSize="12"/></StackPanel>
+							<StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,0"><Border Width="10" Height="10" Background="#8A5CC2"/><TextBlock Text="bad-block table" FontSize="12"/></StackPanel>
+							<StackPanel Orientation="Horizontal" Spacing="4"><Border Width="10" Height="10" Background="#2BA39A"/><TextBlock Text="LOGGER log" FontSize="12"/></StackPanel>
+						</WrapPanel>
+						<SelectableTextBlock Text="{Binding BlockMapText}" TextWrapping="Wrap" FontSize="12"/>
+					</StackPanel>
 				</StackPanel>
 			</Border>
 

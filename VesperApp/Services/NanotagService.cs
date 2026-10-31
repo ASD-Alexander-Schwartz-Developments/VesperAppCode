@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
 using VesperApp.Models;
@@ -184,6 +185,62 @@ namespace VesperApp.Services
                 PackedKind.Daily => $"{h:00}:{m:00}:{s:00}",
                 _ => $"{2020 + y:0000}-{mo:00}-{d:00} {h:00}:{m:00}:{s:00}",
             };
+        }
+    }
+
+    /// <summary>What a block of the Nanotag's NAND holds, for the block map.</summary>
+    public enum NanotagBlockKind : byte { Free, Used, Bad, ToRetire, Table, Log }
+
+    /// <summary>
+    /// The block map from GET_BBT 0x0E (firmware 1.39): two bitmaps of n = blocks / 8 bytes, 1 bit per block
+    /// (LSB of byte 0 = block 0), 0 = bad / to retire; with the disk health for the areas (bad-block table
+    /// blocks 0..3, data up to the write pointer, log area from DataEndPage).
+    /// </summary>
+    public sealed class NanotagBlockMap
+    {
+        public const int TableBlocks = 4;
+        public NanotagBlockKind[] Blocks { get; }
+        public IReadOnlyList<int> Bad { get; }
+        public IReadOnlyList<int> ToRetire { get; }
+
+        private NanotagBlockMap(NanotagBlockKind[] blocks, List<int> bad, List<int> toRetire)
+        {
+            Blocks = blocks; Bad = bad; ToRetire = toRetire;
+        }
+
+        public int Count(NanotagBlockKind k) => Blocks.Count(b => b == k);
+
+        public static NanotagBlockMap? Parse(byte[]? maps, NanotagDiskHealth? health, int pagesPerBlock = 64)
+        {
+            if (maps == null || maps.Length < 2 || (maps.Length % 2) != 0) return null;
+            int n = maps.Length / 2, blocks = n * 8;
+            bool Bit(int offset, int b) => ((maps[offset + b / 8] >> (b % 8)) & 1) != 0;
+            uint used = health != null ? (health.WritePage + (uint)pagesPerBlock - 1) / (uint)pagesPerBlock : 0;
+            uint log = health != null ? health.DataEndPage / (uint)pagesPerBlock : (uint)blocks;
+
+            var kinds = new NanotagBlockKind[blocks];
+            var bad = new List<int>();
+            var retire = new List<int>();
+            for (int b = 0; b < blocks; b++)
+            {
+                if (!Bit(0, b)) { kinds[b] = NanotagBlockKind.Bad; bad.Add(b); }
+                else if (!Bit(n, b)) { kinds[b] = NanotagBlockKind.ToRetire; retire.Add(b); }
+                else if (b < TableBlocks) kinds[b] = NanotagBlockKind.Table;
+                else if (b >= log) kinds[b] = NanotagBlockKind.Log;
+                else if (b < used) kinds[b] = NanotagBlockKind.Used;
+                else kinds[b] = NanotagBlockKind.Free;
+            }
+            return new NanotagBlockMap(kinds, bad, retire);
+        }
+
+        /// <summary>"Bad blocks (5): 1, 5, 100, 1999, 2040" and the to-retire line when there are any.</summary>
+        public string Summary()
+        {
+            var sb = new StringBuilder();
+            sb.Append($"Bad blocks ({Bad.Count}): {(Bad.Count == 0 ? "none" : string.Join(", ", Bad))}");
+            if (ToRetire.Count > 0)
+                sb.Append(Environment.NewLine).Append($"To retire at the next format ({ToRetire.Count}): {string.Join(", ", ToRetire)}");
+            return sb.ToString();
         }
     }
 

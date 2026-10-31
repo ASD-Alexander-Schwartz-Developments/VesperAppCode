@@ -100,11 +100,11 @@ A miniature tracking tag with a snapshot-GNSS receiver. It connects through the 
 
 The **Nanotag** page (left menu) has three parts:
 
-- **Disk health** (firmware 1.39 or later): good, bad and to-be-retired blocks, pages written and free space, and the pages read since the tag started that needed ECC correction or could not be read. It also shows a format in progress. After a download, the pages that did not read cleanly are listed in `download-read-status.txt` in the download folder.
+- **Disk health** (firmware 1.39 or later): good, bad and to-be-retired blocks, pages written and free space, and the pages read since the tag started that needed ECC correction or could not be read. It also shows a format in progress, and a **block map**: one cell per 256 KB block (64 a row, block 0 top left) coloured as data, free, bad, to retire at the next format, bad-block table or LOGGER log, with the numbers of the bad blocks. After a download, the pages that did not read cleanly, or whose data CRC does not match, are listed in `download-read-status.txt` in the download folder.
 - **Configuration on the tag**: **Read** shows what the tag holds (general settings, driver slots, schedule), to check an upload. **Save…** keeps it as a JSON report; that report is not a file to upload again.
 - **Console**: the tag's text console (the `help`, `ver`, `disk`, `config` … commands). The tag's serial port is listed first; **Open** connects. Up and Down recall earlier commands. The console can stay open while VesperApp talks to the tag.
 
-**Format** on a Nanotag (firmware 1.39 or later) answers at once and erases in the background, about 10 s; the LED blinks fast until it is done.
+**Format** on a Nanotag (firmware 1.39 or later) answers at once and erases in the background: about 1 s on an empty tag, longer with more data; the LED blinks fast until it is done. The status line follows the progress and then reports the bad blocks, and whether the format added any (it should not, unless a block failed). The Nanotag page shows the block map after it.
 
 ## Sensor data types
 

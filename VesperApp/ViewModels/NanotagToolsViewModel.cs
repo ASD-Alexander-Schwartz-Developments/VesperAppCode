@@ -1,3 +1,6 @@
+using Avalonia;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using ReactiveUI;
@@ -7,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -107,6 +111,57 @@ namespace VesperApp.ViewModels
                 HealthText += Environment.NewLine + $"Last download: {dev.DownloadPagesCorrected} pages ECC-corrected, " +
                               $"{dev.DownloadPagesUncorrectable} uncorrectable, {dev.DownloadPagesReadErrors} read errors, " +
                               $"{dev.DownloadPagesCrcErrors} CRC mismatches (list in download-read-status.txt).";
+
+            NanotagBlockMap? map = NanotagBlockMap.Parse(await dev.GetBlockMapsAsync(), h);
+            BlockMap = map;
+            BlockMapImage = map == null ? null : RenderBlockMap(map);
+            BlockMapText = map == null ? "No block map." : map.Summary();
+        }
+
+        /// <summary>Disk health and block map again (after a format from the toolbar).</summary>
+        public Task RefreshAsync() => RefreshHealthAsync();
+
+        // ───────────────────────── block map ─────────────────────────
+
+        public const int MapColumns = 64;
+
+        private NanotagBlockMap? _blockMap;
+        public NanotagBlockMap? BlockMap { get => _blockMap; set => this.RaiseAndSetIfChanged(ref _blockMap, value); }
+
+        private WriteableBitmap? _blockMapImage;
+        public WriteableBitmap? BlockMapImage { get => _blockMapImage; set => this.RaiseAndSetIfChanged(ref _blockMapImage, value); }
+
+        private string _blockMapText = string.Empty;
+        public string BlockMapText { get => _blockMapText; set => this.RaiseAndSetIfChanged(ref _blockMapText, value); }
+
+        /// <summary>Block colours (ARGB), also used by the legend.</summary>
+        public static uint BlockColor(NanotagBlockKind k) => k switch
+        {
+            NanotagBlockKind.Used => 0xFF3B82C4,      // blue: data
+            NanotagBlockKind.Bad => 0xFFD64545,       // red
+            NanotagBlockKind.ToRetire => 0xFFF0A030,  // orange
+            NanotagBlockKind.Table => 0xFF8A5CC2,     // purple: bad-block table
+            NanotagBlockKind.Log => 0xFF2BA39A,       // teal: LOGGER log area
+            _ => 0xFFD9DEE3,                          // light grey: free
+        };
+
+        /// <summary>One pixel per block, 64 blocks a row (2048 blocks = 64 x 32); the view scales it up without smoothing.</summary>
+        private static WriteableBitmap RenderBlockMap(NanotagBlockMap map)
+        {
+            int rows = (map.Blocks.Length + MapColumns - 1) / MapColumns;
+            var bmp = new WriteableBitmap(new PixelSize(MapColumns, rows), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
+            using ILockedFramebuffer fb = bmp.Lock();
+            var row = new int[MapColumns];
+            for (int y = 0; y < rows; y++)
+            {
+                for (int x = 0; x < MapColumns; x++)
+                {
+                    int b = y * MapColumns + x;
+                    row[x] = unchecked((int)(b < map.Blocks.Length ? BlockColor(map.Blocks[b]) : 0x00000000u));
+                }
+                Marshal.Copy(row, 0, fb.Address + y * fb.RowBytes, MapColumns);
+            }
+            return bmp;
         }
 
         // ───────────────────────── config read-back ─────────────────────────

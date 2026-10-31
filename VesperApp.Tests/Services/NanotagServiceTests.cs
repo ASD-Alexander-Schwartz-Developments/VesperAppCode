@@ -101,6 +101,40 @@ public class NanotagServiceTests
     }
 
     [Fact]
+    public void BlockMap_KindsAndSummary()
+    {
+        var maps = new byte[512];
+        Array.Fill(maps, (byte)0xFF);
+        void Clear(int offset, int b) => maps[offset + b / 8] &= (byte)~(1 << (b % 8));
+        foreach (int b in new[] { 1, 5, 100, 1999, 2040 }) Clear(0, b);      // bad
+        Clear(256, 7);                                                       // to retire
+        // write pointer: block 10 page 3; log area from block 1982
+        NanotagDiskHealth h = NanotagDiskHealth.Parse(Health(5, 2043, 1, 0, 0, 0, 256, 10 * 64 + 3, 1982 * 64))!;
+
+        NanotagBlockMap map = NanotagBlockMap.Parse(maps, h)!;
+        Assert.Equal(2048, map.Blocks.Length);
+        Assert.Equal(NanotagBlockKind.Table, map.Blocks[0]);
+        Assert.Equal(NanotagBlockKind.Bad, map.Blocks[1]);                   // bad wins over the table area
+        Assert.Equal(NanotagBlockKind.Table, map.Blocks[3]);
+        Assert.Equal(NanotagBlockKind.Used, map.Blocks[4]);
+        Assert.Equal(NanotagBlockKind.Bad, map.Blocks[5]);
+        Assert.Equal(NanotagBlockKind.ToRetire, map.Blocks[7]);
+        Assert.Equal(NanotagBlockKind.Used, map.Blocks[10]);                 // partly written
+        Assert.Equal(NanotagBlockKind.Free, map.Blocks[11]);
+        Assert.Equal(NanotagBlockKind.Bad, map.Blocks[100]);
+        Assert.Equal(NanotagBlockKind.Log, map.Blocks[1982]);
+        Assert.Equal(NanotagBlockKind.Bad, map.Blocks[2040]);
+        Assert.Equal(new[] { 1, 5, 100, 1999, 2040 }, map.Bad);
+        Assert.Equal(new[] { 7 }, map.ToRetire);
+        Assert.Equal(5, map.Count(NanotagBlockKind.Bad));
+        Assert.Equal("Bad blocks (5): 1, 5, 100, 1999, 2040" + Environment.NewLine + "To retire at the next format (1): 7", map.Summary());
+
+        Assert.Null(NanotagBlockMap.Parse(null, h));
+        Assert.Null(NanotagBlockMap.Parse(new byte[3], h));
+        Assert.Equal("Bad blocks (0): none", NanotagBlockMap.Parse(Enumerable.Repeat((byte)0xFF, 512).ToArray(), null)!.Summary());
+    }
+
+    [Fact]
     public void Crc32_MatchesTheFirmware()
     {
         Assert.Equal(0xCBF43926u, NanotagService.Crc32(Encoding.ASCII.GetBytes("123456789")));   // IEEE check value

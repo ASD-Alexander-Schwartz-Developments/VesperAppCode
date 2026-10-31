@@ -529,10 +529,14 @@ namespace VesperApp.ViewModels
 
             FormatDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
-                if (SelectedLoggerDevice != null)
+                LoggerDevice? dev = SelectedLoggerDevice;
+                if (dev == null) return;
+                if (dev.IsNanotagVendor && dev.FirmwareVersion != null && dev.FirmwareVersion >= LoggerDevice.NanotagDiskHealthFirmware)
                 {
-                    await SelectedLoggerDevice.FormatDisk();
+                    await FormatNanotagAsync(dev);
+                    return;
                 }
+                await dev.FormatDisk();
             });
             #endregion
 
@@ -547,6 +551,52 @@ namespace VesperApp.ViewModels
 
 
         /// <summary>Set the device clock (Set Time, and before a KOL starts recording).</summary>
+        /// <summary>Format a Nanotag (firmware 1.39+): it answers at once and erases in steps, so follow the progress
+        /// (GET_DISKHEALTH), then report the bad blocks against the count before the format - a format must not
+        /// change it unless a block failed - and show the block map on the Nanotag page.</summary>
+        private async Task FormatNanotagAsync(LoggerDevice dev)
+        {
+            NanotagDiskHealth? before = await dev.GetDiskHealthAsync();
+            if (!await dev.FormatDisk())
+            {
+                RunOnUi(() => TextMessageBottom = "The Nanotag did not accept the format command.");
+                return;
+            }
+
+            NanotagDiskHealth? h = null;
+            bool seenRunning = false;
+            var sw = Stopwatch.StartNew();
+            while (sw.Elapsed < TimeSpan.FromSeconds(120))
+            {
+                await Task.Delay(500);
+                h = await dev.GetDiskHealthAsync();
+                if (h == null) continue;
+                if (h.Formatting)
+                {
+                    seenRunning = true;
+                    int pct = h.FormatPercent;
+                    RunOnUi(() => TextMessageBottom = $"Formatting the Nanotag… {pct} %");
+                    continue;
+                }
+                if (seenRunning || sw.Elapsed > TimeSpan.FromSeconds(3)) break;   // done (a short format may finish between polls)
+            }
+
+            string message;
+            if (h == null || h.Formatting)
+                message = "The format did not report completion; check the Nanotag page.";
+            else
+            {
+                long added = before != null ? (long)h.BadBlocks - before.BadBlocks : 0;
+                message = $"Format done: {h.BadBlocks} bad blocks" +
+                          (before == null ? "." : added == 0 ? " (unchanged)." : $" ({added:+#;-#} since before the format).");
+            }
+            RunOnUi(() => TextMessageBottom = message);
+
+            Category? page = Categories.OfType<Category>().FirstOrDefault(c => c.DataContext is NanotagToolsViewModel);
+            if (page?.DataContext is NanotagToolsViewModel nvm)
+                await Dispatcher.UIThread.InvokeAsync(nvm.RefreshAsync);
+        }
+
         /// <summary>Upload Config: a Nanotag gets the config over USB (binary rows); a Vesper / Pipistrelle /
         /// KOL gets it as config.json on its drive (DeviceDiskTransfer), and a KOL with the operating states
         /// is told to re-read it.</summary>
