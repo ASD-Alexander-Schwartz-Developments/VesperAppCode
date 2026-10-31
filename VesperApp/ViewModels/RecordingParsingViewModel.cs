@@ -201,7 +201,7 @@ namespace VesperApp.ViewModels
             _main = main;
 
             #region Parser Commands
-            AutoImporterCommand = ReactiveCommand.CreateFromTask(RunDataImporter);
+            AutoImporterCommand = ReactiveCommand.CreateFromTask(() => RunDataImporter());
 
             BinaryFilesExtractor = ReactiveCommand.CreateFromTask(
                 () => DecodeJobManager.Instance.Track("Parse binaries", RunBinaryParser));
@@ -2040,7 +2040,11 @@ namespace VesperApp.ViewModels
             }
         }
 
-        private async Task<bool> RunDataImporter()
+        /// <summary>Download Data on a connected Vesper / Pipistrelle / KOL: the guided import with the unit's
+        /// drive pre-selected (<paramref name="unitRoot"/>; null = the most likely device drive).</summary>
+        public Task<bool> ImportFromDeviceAsync(string? unitRoot) => RunDataImporter(unitRoot);
+
+        private async Task<bool> RunDataImporter(string? preferredRoot = null)
         {
             bool result = false;
             DirectoryInfo? sourceDirectoryInfo = null;
@@ -2053,7 +2057,7 @@ namespace VesperApp.ViewModels
             // pre-filled structured target (<working dir>/<device id>/<recording date>).
             // Everything on the drive is copied, incl. config + UID.txt (self-documenting).
             ImportDeviceWindow importDialog = new();
-            importDialog.DataContext = new ImportDeviceWindowViewModel();
+            importDialog.DataContext = new ImportDeviceWindowViewModel(preferredRoot);
             ImportDeviceRequest? request = await importDialog.ShowDialog<ImportDeviceRequest?>(App.MainWindow);
 
             if (request == null)

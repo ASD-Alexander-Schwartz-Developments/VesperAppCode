@@ -152,8 +152,10 @@
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Format" Command="{Binding FormatDeviceCommand}" IsEnabled="{Binding CanUseDeviceDisk}"
 								ToolTip.Tip="Format the device's storage (unavailable while a KOL is in Live Audio - no disk is exposed in that mode)"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Set Time" Command="{Binding SetDateTimeDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Upload" Command="{Binding UploadDeviceConfig}" IsEnabled="{Binding IsDeviceConnected}"/>
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Download" Command="{Binding DownloadDeviceData}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Upload Config" Command="{Binding UploadDeviceConfig}" IsEnabled="{Binding CanUseDeviceDisk}"
+								ToolTip.Tip="Send a configuration file to the device: over USB to a Nanotag, as config.json on the drive of a Vesper, Pipistrelle or KOL"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Download Data" Command="{Binding DownloadDeviceData}" IsEnabled="{Binding CanUseDeviceDisk}"
+								ToolTip.Tip="Get all recorded data: every page of a Nanotag, or the recorded files from the drive of a Vesper, Pipistrelle or KOL (guided import)"/>
 						<Button Classes="toolbar" Margin="0,2,0,2" Content="Upgrade Firmware" Command="{Binding BootloaderDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
 
 						<!-- USB operational modes (KOL; Vesper / Pipistrelle firmware 1.22+). Idle = disk + console;

@@ -6,6 +6,7 @@ using System.Reactive.Linq;
 using System.Windows.Input;
 using VesperApp.Views;
 using VesperApp.Services;
+using VesperApp.Services.Time;
 using VesperApp.Models;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
@@ -359,6 +360,11 @@ namespace VesperApp.ViewModels
 
             DownloadDeviceData = ReactiveCommand.CreateFromTask(async () =>
             {
+                if (SelectedLoggerDevice != null && !SelectedLoggerDevice.IsNanotagVendor)
+                {
+                    await DownloadFromUnitDiskAsync(SelectedLoggerDevice);   // Vesper / Pipistrelle / KOL: copy the drive
+                    return;
+                }
                 if (SelectedLoggerDevice != null)
                 {
                     FolderPickerOpenOptions foptions = new()
@@ -480,7 +486,7 @@ namespace VesperApp.ViewModels
                                     jsonString = string.Empty;
                                 }
 
-                                await SelectedLoggerDevice!.UploadConfigFile(jsonString);
+                                await UploadConfigAsync(SelectedLoggerDevice!, jsonString);
                             }
                         }
                     }
@@ -540,6 +546,53 @@ namespace VesperApp.ViewModels
 
 
         /// <summary>Set the device clock (Set Time, and before a KOL starts recording).</summary>
+        /// <summary>Upload Config: a Nanotag gets the config over USB (binary rows); a Vesper / Pipistrelle /
+        /// KOL gets it as config.json on its drive (DeviceDiskTransfer), and a KOL with the operating states
+        /// is told to re-read it.</summary>
+        private async Task UploadConfigAsync(LoggerDevice dev, string json)
+        {
+            string message;
+
+            if (dev.IsNanotagVendor)
+            {
+                bool ok = await dev.UploadConfigFile(json);
+                message = ok ? "Configuration uploaded to the Nanotag." : "Configuration upload to the Nanotag failed.";
+            }
+            else
+            {
+                string uid = dev.SerialNumber ?? string.Empty;
+                DeviceDiskTransfer.Result r = await Task.Run(() =>
+                    DeviceDiskTransfer.WriteConfig(UnitDisk.FindRoot(uid), json));
+                message = r.Message;
+                if (r.Ok && dev.IsKol)
+                {
+                    await dev.GetUsbModeAsync(rereadConfig: true);
+                    message += " (KOL re-read it)";
+                }
+            }
+            RunOnUi(() => TextMessageBottom = message);
+        }
+
+        /// <summary>Download Data on a Vesper / Pipistrelle / KOL: the guided import (Recordings page) with the
+        /// unit's drive pre-selected, which copies the recorded files and auto-decodes them per Settings.</summary>
+        private async Task DownloadFromUnitDiskAsync(LoggerDevice dev)
+        {
+            string uid = dev.SerialNumber ?? string.Empty;
+            string? root = await Task.Run(() => UnitDisk.FindRoot(uid));
+            if (root == null)
+            {
+                RunOnUi(() => TextMessageBottom = DeviceDiskTransfer.DriveNotFound);
+                return;
+            }
+            Category? rec = Categories.OfType<Category>().FirstOrDefault(c => c.DataContext is RecordingParsingViewModel);
+            if (rec?.DataContext is not RecordingParsingViewModel rvm) return;
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                SelectedCategory = rec;
+                await rvm.ImportFromDeviceAsync(root);
+            });
+        }
+
         private async Task SetDeviceClockAsync(LoggerDevice dev)
         {
             /* True time from NTP: the PC clock alone can be seconds off (bench 2026-10-21:

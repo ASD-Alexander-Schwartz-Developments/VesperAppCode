@@ -54,8 +54,14 @@ namespace VesperApp.ViewModels
 
         public ObservableCollection<ImportDriveInfo> Drives { get; } = new();
 
-        public ImportDeviceWindowViewModel()
+        /// <summary>Drive to pre-select when it is found (Download Data on a connected unit); null = the most
+        /// likely device drive.</summary>
+        private readonly string? _preferredRoot;
+
+        public ImportDeviceWindowViewModel(string? preferredRoot = null)
         {
+            _preferredRoot = preferredRoot;
+
             BrowseSourceCommand = ReactiveCommand.CreateFromTask(BrowseSource);
             BrowseTargetCommand = ReactiveCommand.CreateFromTask(BrowseTarget);
 
@@ -144,9 +150,11 @@ namespace VesperApp.ViewModels
                         if (found.All(x => x.RootPath != d.RootPath))
                             Drives.Remove(d);
 
-                    // Zero-click default: pre-select the most likely device drive.
+                    // Zero-click default: pre-select the connected unit's drive, else the most likely device drive.
                     if (SelectedDrive == null || Drives.All(x => x.RootPath != SelectedDrive.RootPath))
-                        SelectedDrive = Drives.FirstOrDefault();
+                        SelectedDrive = Drives.FirstOrDefault(x => _preferredRoot != null
+                                            && string.Equals(x.RootPath, _preferredRoot, StringComparison.OrdinalIgnoreCase))
+                                        ?? Drives.FirstOrDefault();
                 });
             }
             catch { /* drive may vanish mid-scan; next tick recovers */ }

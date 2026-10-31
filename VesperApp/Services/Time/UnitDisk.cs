@@ -39,13 +39,22 @@ namespace VesperApp.Services.Time
                     if (!d.IsReady || d.DriveType == DriveType.Network || d.DriveType == DriveType.CDRom) continue;
                     string? file = FindFile(d.RootDirectory.FullName, UidFile);
                     if (file == null) continue;
-                    string line = File.ReadLines(file).FirstOrDefault(l => l.Trim().Length > 0)?.Trim() ?? "";
-                    if (string.Equals(line, uid.Trim(), StringComparison.OrdinalIgnoreCase))
+                    string line = File.ReadLines(file).FirstOrDefault(l => l.Trim().Length > 0) ?? "";
+                    if (UidMatches(line, uid))
                         return d.RootDirectory.FullName;
                 }
                 catch { /* drive vanished or unreadable */ }
             }
             return null;
+        }
+
+        /// <summary>The first line of UID.TXT names <paramref name="uid"/>: the value alone or <c>key=value</c>
+        /// (as the import dialog reads the same file), case and surrounding blanks ignored.</summary>
+        public static bool UidMatches(string uidFileLine, string uid)
+        {
+            string line = uidFileLine.Trim();
+            if (line.Contains('=')) line = line.Split('=', 2)[1].Trim();
+            return line.Length > 0 && string.Equals(line, uid.Trim(), StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>The calibration in RTCCAL.TXT when it belongs to <paramref name="uid"/>.</summary>
