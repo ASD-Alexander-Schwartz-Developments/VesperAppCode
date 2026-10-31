@@ -8,6 +8,7 @@
 
 **Working with data**
 - [Recordings](Recordings)
+- [Log Codes](Log-Codes)
 - [GNSS Decoding](GNSS-Decoding)
 - [Live View](Live-View)
 

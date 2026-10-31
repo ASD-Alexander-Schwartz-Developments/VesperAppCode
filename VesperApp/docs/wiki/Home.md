@@ -32,6 +32,7 @@ From one application you can:
 | Update device firmware | [Firmware Updates](Firmware-Updates) |
 | Update the app or plugins | [Software Updates and Plugins](Software-Updates-and-Plugins) |
 | Change app preferences | [Settings](Settings) |
+| Read a device's health log | [Log Codes](Log-Codes) |
 | Fix a problem | [Troubleshooting and FAQ](Troubleshooting-and-FAQ) |
 
 ## About this documentation

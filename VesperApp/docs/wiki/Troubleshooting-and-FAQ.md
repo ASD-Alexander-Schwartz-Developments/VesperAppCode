@@ -44,6 +44,8 @@
 
 ## Where to find logs
 
+A device with the **LOGGER** sensor enabled keeps its own health log next to its recordings; [Log Codes](Log-Codes) explains every event in it (for example why a recording stopped early).
+
 The **app data folder** is `%LOCALAPPDATA%\VesperApp` on Windows, `~/Library/Application Support/VesperApp` on macOS and `~/.local/share/VesperApp` on Linux.
 
 | What | Where |
