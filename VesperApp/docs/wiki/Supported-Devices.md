@@ -71,7 +71,7 @@ A connected KOL has three **USB modes**, shown and switched from the device cons
 |---|---|---|
 | **Idle** | Console + USB disk | Configuration, downloading recordings, firmware updates. The default when the device is not armed. |
 | **Live Audio** | Console + a standard USB microphone: **4 channels on a KOL** (16-bit; 8, 16, 32, 48 or 96 kHz selectable in the OS), **1 channel on a Vesper or Pipistrelle** (16-bit; 8, 16, 32, 48, 96 or 192 kHz; appears as "Vesper Wildlife Logger") | Listening to or recording the microphones live with any audio application, and the app's own [Live View](Live-View) tab (scope, spectrum, spectrogram, live microphone parameters). No disk is exposed in this mode. |
-| **Sampling** | Nothing — the device leaves USB | Running the recording schedule. On a Vesper or Pipistrelle (and a KOL with firmware older than 1.8), **Start Sampling** arms the device and it disconnects; reconnect it later (or use the magnet) to return to Idle. On a KOL with firmware 1.8 or later this is **Start Recording** (above). |
+| **Sampling** | Nothing — the device leaves USB | Running the recording schedule. On a Vesper or Pipistrelle (and a KOL with firmware older than 1.8), **Start Sampling** arms the device and it disconnects; reconnect it later (or use the magnet) to return to Idle; with firmware 1.22 or later it also stops by itself when its battery runs low or its storage is full (files closed, reason in the LOGGER, then it sleeps). On a KOL with firmware 1.8 or later this is **Start Recording** (above). |
 
 Switching between Idle and Live Audio makes the device briefly disappear and re-appear on USB; the app reconnects it automatically. On Windows the first switch may take a few extra seconds while the microphone driver is installed.
 

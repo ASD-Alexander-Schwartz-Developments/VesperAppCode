@@ -29,7 +29,7 @@ The codes are **one catalogue shared by every device**: a code means the same on
 |---|---|---|---|---|
 | 0x0201 | Data file could not be created / opened | error | KOL, Vesper, Pipistrelle | Check the card (or storage) with a computer; reformat it if it shows errors. |
 | 0x0202 | Write to a data file failed | error | All | Data may be missing at this time. On a KOL, use a card from the tested list (see the datasheet). |
-| 0x0203 | Storage full | error | All | The storage is full. A KOL (1.8) stops recording before its card is full: all files are closed normally, then it sleeps. A Nanotag stops storing data. Download the recordings and free up space. |
+| 0x0203 | Storage full | error | All | The storage is full. A KOL (1.8), Vesper or Pipistrelle (1.22) stops recording before its storage is full: all files are closed normally, then it sleeps and does not resume. A Nanotag stops storing data. Download the recordings and free up space. |
 | 0x0204 | Storage flush failed | warning | KOL, Vesper, Pipistrelle | Data may not have reached the card at this time. Check the card. |
 | 0x0205 | NAND page read uncorrectable (ECC) | error | Nanotag | A page of the memory could not be read correctly. |
 | 0x0206 | NAND page read corrected at/above the ECC threshold | warning | Nanotag | A memory block is wearing out; the device retires it when needed. |
