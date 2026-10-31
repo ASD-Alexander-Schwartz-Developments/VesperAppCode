@@ -34,6 +34,42 @@ namespace VesperApp.Services
         /// <summary>GET_DATACHUNK reply byte 1 (firmware 1.39): the read status of the page.</summary>
         public const byte PageOk = 0, PageCorrected = 1, PageCorrectedHigh = 2, PageUncorrectable = 3, PageReadError = 0xEE;
 
+        /// <summary>Offset of metadata.checksumData in a page (4096 data bytes, then FSGenericMetaData_t:
+        /// preamble 4, metaDataLength 2, pageType 1, pageSubType 1, pageRevision 2, battLevel 2, dataLength 4,
+        /// checksumMetaData 4, checksumData 4).</summary>
+        public const int PageCrcOffset = 4096 + 20;
+
+        private static readonly uint[] CrcTable = BuildCrcTable();
+
+        private static uint[] BuildCrcTable()
+        {
+            var t = new uint[256];
+            for (uint i = 0; i < 256; i++)
+            {
+                uint c = i;
+                for (int k = 0; k < 8; k++) c = (c & 1) != 0 ? (c >> 1) ^ 0xEDB88320u : c >> 1;
+                t[i] = c;
+            }
+            return t;
+        }
+
+        /// <summary>CRC-32 IEEE, as the firmware's CgFSCrc32 ("123456789" = 0xCBF43926).</summary>
+        public static uint Crc32(ReadOnlySpan<byte> data)
+        {
+            uint crc = 0xFFFFFFFFu;
+            foreach (byte b in data) crc = (crc >> 8) ^ CrcTable[(crc ^ b) & 0xFF];
+            return crc ^ 0xFFFFFFFFu;
+        }
+
+        /// <summary>A downloaded page (data + OOB) against the CRC the firmware wrote (1.39+): true = matches or
+        /// the page carries no CRC (0: older firmware, or not a data page).</summary>
+        public static bool PageCrcOk(byte[] page)
+        {
+            if (page.Length < PageCrcOffset + 4) return true;
+            uint stored = BitConverter.ToUInt32(page, PageCrcOffset);
+            return stored == 0 || stored == Crc32(page.AsSpan(0, 4096));
+        }
+
         public static string PageStatusName(byte s) => s switch
         {
             PageOk => "OK",

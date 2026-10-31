@@ -103,10 +103,10 @@ namespace VesperApp.ViewModels
             }
             NanotagDiskHealth? h = await dev.GetDiskHealthAsync();
             HealthText = h == null ? "No reply to the disk health request." : NanotagService.Describe(h);
-            if (dev.DownloadPagesCorrected + dev.DownloadPagesUncorrectable + dev.DownloadPagesReadErrors > 0)
+            if (dev.DownloadPagesCorrected + dev.DownloadPagesUncorrectable + dev.DownloadPagesReadErrors + dev.DownloadPagesCrcErrors > 0)
                 HealthText += Environment.NewLine + $"Last download: {dev.DownloadPagesCorrected} pages ECC-corrected, " +
-                              $"{dev.DownloadPagesUncorrectable} uncorrectable, {dev.DownloadPagesReadErrors} read errors " +
-                              "(list in download-read-status.txt).";
+                              $"{dev.DownloadPagesUncorrectable} uncorrectable, {dev.DownloadPagesReadErrors} read errors, " +
+                              $"{dev.DownloadPagesCrcErrors} CRC mismatches (list in download-read-status.txt).";
         }
 
         // ───────────────────────── config read-back ─────────────────────────

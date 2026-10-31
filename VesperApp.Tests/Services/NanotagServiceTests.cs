@@ -101,6 +101,25 @@ public class NanotagServiceTests
     }
 
     [Fact]
+    public void Crc32_MatchesTheFirmware()
+    {
+        Assert.Equal(0xCBF43926u, NanotagService.Crc32(Encoding.ASCII.GetBytes("123456789")));   // IEEE check value
+        Assert.Equal(0u, NanotagService.Crc32(ReadOnlySpan<byte>.Empty));
+    }
+
+    [Fact]
+    public void PageCrc_CheckedWhenPresent()
+    {
+        var page = new byte[4096 + 128];
+        for (int i = 0; i < 4096; i++) page[i] = (byte)(i * 7);
+        Assert.True(NanotagService.PageCrcOk(page));                          // 0: no CRC (older firmware)
+        BitConverter.GetBytes(NanotagService.Crc32(page.AsSpan(0, 4096))).CopyTo(page, NanotagService.PageCrcOffset);
+        Assert.True(NanotagService.PageCrcOk(page));
+        page[100] ^= 0x01;
+        Assert.False(NanotagService.PageCrcOk(page));
+    }
+
+    [Fact]
     public void PackedTimes()
     {
         uint t = (6u << 26) | (11u << 22) | (1u << 17) | (18u << 12) | (30u << 6) | 5u;

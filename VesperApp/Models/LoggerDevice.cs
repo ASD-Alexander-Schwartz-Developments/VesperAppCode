@@ -1208,7 +1208,7 @@ namespace VesperApp.Models
                             //Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
                             var addons = new NanotagAddonCollector();       // TPRH31 / ALS3001D / ProxTit pages (firmware 1.36+)
                             var readStatus = new List<string>();            // pages that did not read cleanly (firmware 1.39+)
-                            DownloadPagesCorrected = DownloadPagesUncorrectable = DownloadPagesReadErrors = 0;
+                            DownloadPagesCorrected = DownloadPagesUncorrectable = DownloadPagesReadErrors = DownloadPagesCrcErrors = 0;
 
                             for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
                             {
@@ -1227,6 +1227,11 @@ namespace VesperApp.Models
                                     Debug.Write(" - OK ");
                                     if (FirmwareVersion != null && FirmwareVersion >= NanotagDiskHealthFirmware)
                                         CountPageStatus(i, _lastReplyByte1, readStatus);
+                                    if (!NanotagService.PageCrcOk(dpageresponse))         // firmware 1.39+ data pages
+                                    {
+                                        DownloadPagesCrcErrors++;
+                                        readStatus.Add($"page {i}: data CRC mismatch");
+                                    }
 
                                     NanotagPage? np = NanotagPage.TryParse(dpageresponse);
                                     if (np == null || !addons.Add(np))
@@ -1305,6 +1310,7 @@ namespace VesperApp.Models
         public int DownloadPagesCorrected { get; private set; }
         public int DownloadPagesUncorrectable { get; private set; }
         public int DownloadPagesReadErrors { get; private set; }
+        public int DownloadPagesCrcErrors { get; private set; }
 
         /// <summary>GET_DISKHEALTH (Nanotag 1.39+): block counts, ECC counters since boot, write pointer, format state.</summary>
         public async Task<NanotagDiskHealth?> GetDiskHealthAsync()
