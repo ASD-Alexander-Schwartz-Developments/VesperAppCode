@@ -64,7 +64,9 @@ namespace VesperApp.Services
             if (string.IsNullOrWhiteSpace(entry.Asset))
                 throw new InvalidOperationException("Release entry has no asset path.");
 
+            // Only http(s) counts as absolute: on Linux / macOS "/abs/x.bin" parses as file:///abs/x.bin.
             Uri assetUri = Uri.TryCreate(entry.Asset, UriKind.Absolute, out Uri? abs)
+                           && (abs.Scheme == Uri.UriSchemeHttps || abs.Scheme == Uri.UriSchemeHttp)
                 ? abs
                 : new Uri(_indexUrl, entry.Asset);
 
