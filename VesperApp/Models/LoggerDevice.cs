@@ -569,6 +569,7 @@ namespace VesperApp.Models
 
             if (readBuffer[0] != (cmd | 0x80)) return -4;
 
+            _lastReplyByte1 = readBuffer[1];        // Nanotag 1.39 GET_DATACHUNK: the page's read status
             data2recv = new byte[bytes2recv];
             Array.Copy(readBuffer, 4, data2recv, 0, bytes2recv);
 
@@ -1116,6 +1117,19 @@ namespace VesperApp.Models
         }
 
 
+        private void CountPageStatus(uint page, byte status, List<string> log)
+        {
+            switch (status)
+            {
+                case NanotagService.PageOk: return;
+                case NanotagService.PageCorrected: DownloadPagesCorrected++; return;     // normal for NAND: not listed
+                case NanotagService.PageCorrectedHigh: DownloadPagesCorrected++; break;
+                case NanotagService.PageUncorrectable: DownloadPagesUncorrectable++; break;
+                default: DownloadPagesReadErrors++; break;
+            }
+            log.Add($"page {page}: {NanotagService.PageStatusName(status)}");
+        }
+
         public async Task<bool> DownloadPages(string ? path = "")
         {
             bool r = false;
@@ -1193,6 +1207,8 @@ namespace VesperApp.Models
 
                             //Debug.WriteLine("Got disk data usage info: First Page = " + first_page.ToString() + ", Last Page = " + last_page.ToString());
                             var addons = new NanotagAddonCollector();       // TPRH31 / ALS3001D / ProxTit pages (firmware 1.36+)
+                            var readStatus = new List<string>();            // pages that did not read cleanly (firmware 1.39+)
+                            DownloadPagesCorrected = DownloadPagesUncorrectable = DownloadPagesReadErrors = 0;
 
                             for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
                             {
@@ -1209,6 +1225,8 @@ namespace VesperApp.Models
                                 if (getpageresult == 0)
                                 {
                                     Debug.Write(" - OK ");
+                                    if (FirmwareVersion != null && FirmwareVersion >= NanotagDiskHealthFirmware)
+                                        CountPageStatus(i, _lastReplyByte1, readStatus);
 
                                     NanotagPage? np = NanotagPage.TryParse(dpageresponse);
                                     if (np == null || !addons.Add(np))
@@ -1223,6 +1241,11 @@ namespace VesperApp.Models
                             }
                             try { addons.WriteAll(path, _serialnumber); }
                             catch (Exception ex) { Debug.WriteLine("Add-on output failed: " + ex.Message); }
+                            if (readStatus.Count > 0)
+                            {
+                                try { File.WriteAllLines(Path.Combine(path, "download-read-status.txt"), readStatus); }
+                                catch (Exception ex) { Debug.WriteLine("Read status file failed: " + ex.Message); }
+                            }
 
                             // LOGGER log area (firmware 1.35+): its own ring of pages, read after the data
                             if (FirmwareVersion == null || FirmwareVersion >= NanotagLoggerFirmware)
@@ -1270,6 +1293,43 @@ namespace VesperApp.Models
 
         /// <summary>First Nanotag release with the LOGGER log area (GET_LOGNPAGES / GET_LOGCHUNK).</summary>
         public static readonly Version NanotagLoggerFirmware = new(1, 35);
+
+        /// <summary>Firmware 1.39: GET_DATACHUNK reports each page's read status (reply byte 1),
+        /// GET_DISKHEALTH 0x0D, format state in GET_DISKINFO.</summary>
+        public static readonly Version NanotagDiskHealthFirmware = new(1, 39);
+
+        private byte _lastReplyByte1;
+
+        /// <summary>Pages of the last Nanotag download that read with ECC corrected / uncorrectable / a read error
+        /// (firmware 1.39+; always 0 before). Shown in the status line and written to download-read-status.txt.</summary>
+        public int DownloadPagesCorrected { get; private set; }
+        public int DownloadPagesUncorrectable { get; private set; }
+        public int DownloadPagesReadErrors { get; private set; }
+
+        /// <summary>GET_DISKHEALTH (Nanotag 1.39+): block counts, ECC counters since boot, write pointer, format state.</summary>
+        public async Task<NanotagDiskHealth?> GetDiskHealthAsync()
+        {
+            if (!IsNanotagVendor) return null;
+            return await Task.Run(() =>
+            {
+                int rc = WriteRead(Nanotag.VND_CMD_GET_DISKHEALTH, new byte[0], out byte[] resp, NanotagDiskHealth.Length);
+                return rc == 0 ? NanotagDiskHealth.Parse(resp) : null;
+            });
+        }
+
+        /// <summary>The three config rows as the tag holds them (GET_CFGCHUNK_GEN / _DEV / _SCH, 256 B each);
+        /// null when a read fails.</summary>
+        public async Task<(byte[] General, byte[] Devices, byte[] Schedule)?> ReadNanotagConfigAsync()
+        {
+            if (!IsNanotagVendor) return null;
+            return await Task.Run<(byte[], byte[], byte[])?>(() =>
+            {
+                if (WriteRead(Nanotag.VND_CMD_GET_CFGCHUNK_GEN, new byte[0], out byte[] g, Nanotag.CONFIG_CHUNK_SIZE) != 0) return null;
+                if (WriteRead(Nanotag.VND_CMD_GET_CFGCHUNK_DEV, new byte[0], out byte[] d, Nanotag.CONFIG_CHUNK_SIZE) != 0) return null;
+                if (WriteRead(Nanotag.VND_CMD_GET_CFGCHUNK_SCH, new byte[0], out byte[] sc, Nanotag.CONFIG_CHUNK_SIZE) != 0) return null;
+                return (g, d, sc);
+            });
+        }
 
         /// <summary>
         /// Read the Nanotag LOGGER log area (oldest to newest page, wrapping; a bad block is skipped) and write

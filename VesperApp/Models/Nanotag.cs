@@ -30,6 +30,7 @@ namespace VesperApp.Models
         public const byte VND_CMD_GET_CFGCHUNK_GEN = 0x0A;
         public const byte VND_CMD_GET_CFGCHUNK_SCH = 0x0B;
         public const byte VND_CMD_GET_CFGCHUNK_DEV = 0x0C;
+        public const byte VND_CMD_GET_DISKHEALTH = 0x0D;     // firmware 1.39+: 40 B (NanotagDiskHealth)
         public const byte VND_CMD_SET_CFGCHUNK_GEN = 0x1A;
         public const byte VND_CMD_SET_CFGCHUNK_SCH = 0x1B;
         public const byte VND_CMD_SET_CFGCHUNK_DEV = 0x1C;

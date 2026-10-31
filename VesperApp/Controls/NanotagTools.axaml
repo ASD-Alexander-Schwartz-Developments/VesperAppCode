@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="VesperApp.Controls.NanotagTools">
+
+	<HeaderedContentControl Header="Nanotag" UseLayoutRounding="True">
+		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,*">
+
+			<!-- Disk health (firmware 1.39) -->
+			<Border Grid.Row="0" Grid.Column="0" Margin="20,12,10,0" Padding="16,12" CornerRadius="6"
+					BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="1">
+				<StackPanel Spacing="8">
+					<DockPanel>
+						<Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshHealthCommand}"
+								ToolTip.Tip="Read the bad blocks, ECC counters and free space of the connected Nanotag (firmware 1.39 or later)"/>
+						<TextBlock Text="Disk health" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					</DockPanel>
+					<SelectableTextBlock Text="{Binding HealthText}" TextWrapping="Wrap"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Config on the tag -->
+			<Border Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Margin="10,12,20,0" Padding="16,12" CornerRadius="6"
+					BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="1">
+				<DockPanel>
+					<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+						<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+							<Button Content="Read" Command="{Binding ReadConfigCommand}"
+									ToolTip.Tip="Read back the configuration the tag holds, to check an upload"/>
+							<Button Content="Save…" Command="{Binding SaveConfigCommand}"
+									ToolTip.Tip="Save what was read as a JSON report (not a config file to upload)"/>
+						</StackPanel>
+						<TextBlock Text="Configuration on the tag" FontWeight="SemiBold" VerticalAlignment="Center"/>
+					</DockPanel>
+					<ScrollViewer MaxHeight="260">
+						<SelectableTextBlock Text="{Binding ConfigText}" FontFamily="Consolas,Menlo,monospace" FontSize="12" TextWrapping="Wrap"/>
+					</ScrollViewer>
+				</DockPanel>
+			</Border>
+
+			<!-- Console -->
+			<Border Grid.Row="2" Grid.ColumnSpan="2" Margin="20,12,20,0" Padding="16,12" CornerRadius="6"
+					BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="1">
+				<DockPanel>
+					<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+						<TextBlock DockPanel.Dock="Left" Text="Console" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+						<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+							<Button Content="↻" Command="{Binding RefreshPortsCommand}" ToolTip.Tip="List the serial ports again"/>
+							<Button Content="{Binding ConsoleButtonText}" Command="{Binding ToggleConsoleCommand}"/>
+							<Button Content="Clear" Command="{Binding ClearConsoleCommand}"/>
+						</StackPanel>
+						<ComboBox ItemsSource="{Binding Ports}" SelectedItem="{Binding SelectedPort}" HorizontalAlignment="Stretch"
+								  IsEnabled="{Binding !IsConsoleOpen}"
+								  ToolTip.Tip="The Nanotag's serial port (USB 04D8:FE57) is listed first"/>
+					</DockPanel>
+					<DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+						<Button DockPanel.Dock="Right" Content="Send" Command="{Binding SendCommand}" IsDefault="True" Margin="6,0,0,0"/>
+						<TextBox x:Name="InputBox" Text="{Binding InputLine}" Watermark="command (e.g. help, ver, disk, config) — ↑ / ↓ history"
+								 FontFamily="Consolas,Menlo,monospace" IsEnabled="{Binding IsConsoleOpen}" KeyDown="OnInputKeyDown"/>
+					</DockPanel>
+					<TextBox x:Name="ConsoleBox" Text="{Binding ConsoleText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+							 FontFamily="Consolas,Menlo,monospace" FontSize="12" MinHeight="160"
+							 ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+				</DockPanel>
+			</Border>
+
+			<TextBlock Grid.Row="3" Grid.ColumnSpan="2" Margin="20,8,20,12" Text="{Binding StatusText}" TextWrapping="Wrap" Opacity="0.8"/>
+		</Grid>
+	</HeaderedContentControl>
+</UserControl>

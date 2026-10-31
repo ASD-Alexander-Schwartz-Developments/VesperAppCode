@@ -11,6 +11,17 @@ VesperApp works with the ASD logger and tag product family:
 
 The VT04-family loggers are card-edge boards: the gold edge connector slides into the docking station's LOGGER slot (match the **TOP** silkscreen marking with the slot's TOP side).
 
+## Upload Config and Download Data
+
+The two toolbar buttons work with every device:
+
+| Button | Nanotag | Vesper, Pipistrelle, KOL |
+|---|---|---|
+| **Upload Config** | Sends the chosen configuration file to the tag over USB | Copies the chosen file to the unit's USB disk as `config.json` (a KOL is told to read it again) |
+| **Download Data** | Downloads every page of the tag (data, add-on pages, the LOGGER log) into a folder you choose | Opens the import on the [Recordings](Recordings) page with the unit's disk already selected, and copies the recorded files |
+
+The unit's disk is found by the `UID.TXT` the firmware writes on it. Both buttons need the disk: they are disabled while a KOL is in Live Audio.
+
 ## VT04-VESPER
 
 ![The VT04-VESPER logger board](images/vesper.jpg)
@@ -85,7 +96,15 @@ Firmware updates need no dock on the KOL, nor on a Vesper or Pipistrelle that al
 
 *The Nanotag board (shown without antenna), with its Aclys snapshot-GNSS receiver.*
 
-A miniature tracking tag with a snapshot-GNSS receiver that connects **directly over USB** (no docking station). It has no microphone; its data and firmware path differ from the VT04 family — firmware updates use a USB-HID bootloader rather than the dock-driven DFU flow (see [Firmware Updates](Firmware-Updates)).
+A miniature tracking tag with a snapshot-GNSS receiver. It connects through the docking station, like Vesper and Pipistrelle. It has no microphone; its data and firmware path differ from the VT04 family: it has no USB disk (configuration and data go over USB commands), and firmware updates use a USB-HID bootloader rather than the dock-driven DFU flow (see [Firmware Updates](Firmware-Updates)).
+
+The **Nanotag** page (left menu) has three parts:
+
+- **Disk health** (firmware 1.39 or later): good, bad and to-be-retired blocks, pages written and free space, and the pages read since the tag started that needed ECC correction or could not be read. It also shows a format in progress. After a download, the pages that did not read cleanly are listed in `download-read-status.txt` in the download folder.
+- **Configuration on the tag**: **Read** shows what the tag holds (general settings, driver slots, schedule), to check an upload. **Save…** keeps it as a JSON report; that report is not a file to upload again.
+- **Console**: the tag's text console (the `help`, `ver`, `disk`, `config` … commands). The tag's serial port is listed first; **Open** connects. Up and Down recall earlier commands. The console can stay open while VesperApp talks to the tag.
+
+**Format** on a Nanotag (firmware 1.39 or later) answers at once and erases in the background, about 10 s; the LED blinks fast until it is done.
 
 ## Sensor data types
 
