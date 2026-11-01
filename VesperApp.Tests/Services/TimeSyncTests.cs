@@ -33,7 +33,7 @@ public class TimeSyncTests
             return Task.FromResult<RtcExchange?>(new RtcExchange(seq, t1, t4, rx, rx + Processing, 24.5, 3, -205000, RtcCalFlags.UnitCalibration));
         }
 
-        public Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000) => Task.FromResult(true);
+        public Task<bool> SetRtcAsync(DateTime deviceTime, DeviceClockBase clockBase, int timeoutMs = 2000) => Task.FromResult(true);
         public Task<bool> ShiftAsync(int microseconds, int timeoutMs = 2000) => Task.FromResult(true);
         public Task<RtcCalStatus?> CalAsync(byte[] payload, int timeoutMs = 2000) => Task.FromResult<RtcCalStatus?>(null);
     }

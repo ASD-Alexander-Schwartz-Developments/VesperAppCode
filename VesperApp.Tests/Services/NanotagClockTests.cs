@@ -34,7 +34,7 @@ public class NanotagClockTests
             return Task.FromResult<RtcExchange?>(new RtcExchange(seq, t1, t1 + 2 * one, rx, rx, 22.0, 5, 1000, RtcCalFlags.UnitCalibration));
         }
 
-        public Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000)
+        public Task<bool> SetRtcAsync(DateTime deviceTime, DeviceClockBase clockBase, int timeoutMs = 2000)
         {
             Sets++;
             double t = TrueNow() + OneWay;

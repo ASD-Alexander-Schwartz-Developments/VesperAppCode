@@ -48,7 +48,7 @@ internal sealed class FakeRtcDevice : IRtcDevice
         return Task.FromResult<RtcExchange?>(new RtcExchange(seq, t1, t4, rx, rx + Processing, TemperatureC, 3, AppliedPpb, ExchangeFlags));
     }
 
-    public Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000)
+    public Task<bool> SetRtcAsync(DateTime deviceTime, DeviceClockBase clockBase, int timeoutMs = 2000)
     {
         Calls.Add("set");
         /* The request arrives one way later. KOL / Vesper restart the sub-second counter at deviceTime;

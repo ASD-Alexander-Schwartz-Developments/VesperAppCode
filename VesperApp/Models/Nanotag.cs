@@ -26,6 +26,7 @@ namespace VesperApp.Models
         public const byte VND_CMD_RTC_CAL = 0x09;           // firmware 1.37+: [4] op, [5..] args -> 23 B (message 78 layout, FREQCORR at 15)
 
         public const byte VND_CMD_SET_BOOT = 0x0F;
+        public const byte VND_CMD_GET_CLOCK = 0x10;          // firmware 1.39+: clock base, zone, RTC (8 B) - nanotag-usb-vendor.md
 
         public const byte VND_CMD_GET_CFGCHUNK_GEN = 0x0A;
         public const byte VND_CMD_GET_CFGCHUNK_SCH = 0x0B;

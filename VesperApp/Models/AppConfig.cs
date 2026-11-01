@@ -52,6 +52,10 @@ namespace VesperApp.Models
         /// Collapsing it gives the working area (editor, Help, …) the full window height;
         /// it re-expands automatically when a dock connects.</summary>
         public bool DeviceConsoleExpanded { get; set; } = true;
+
+        /// <summary>"Logger clock": true = loggers keep UTC (default; GNSS needs UTC), false = this PC's local time.
+        /// The logger stores the choice with its clock, so the data says which it is on any PC.</summary>
+        public bool LoggerClockUtc { get; set; } = true;
     }
 
     /// <summary>Defaults for the recordings parse/decode pipeline.</summary>

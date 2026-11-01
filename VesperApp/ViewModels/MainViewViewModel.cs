@@ -109,10 +109,23 @@ namespace VesperApp.ViewModels
 
         private bool _isDeviceBoot0Mode = false;
 
+        /// <summary>"Logger clock": loggers are set to UTC (default, needed for GNSS) or to this PC's local time.
+        /// Saved; the logger keeps the choice with its clock and stamps it into its data.</summary>
         public bool IsClockUTC
         {
             get => _isClockUTC;
-            set => this.RaiseAndSetIfChanged(ref _isClockUTC, value);
+            set
+            {
+                if (_isClockUTC == value) return;
+                this.RaiseAndSetIfChanged(ref _isClockUTC, value);
+
+                var cfg = SettingsService.Current;
+                if (cfg.Ui.LoggerClockUtc != value)
+                {
+                    cfg.Ui.LoggerClockUtc = value;
+                    SettingsService.Instance.Save();
+                }
+            }
         }
 
         private bool _isClockUTC = true;
@@ -213,6 +226,7 @@ namespace VesperApp.ViewModels
 
             var settings = SettingsService.Current;
             _isDeviceConsoleExpanded = settings.Ui.DeviceConsoleExpanded;
+            _isClockUTC = settings.Ui.LoggerClockUtc;
 
             // Ensure the working directory exists on every launch (first run creates
             // ~/Documents/MyVesperData) — imports and decodes land there, so it must exist.
@@ -647,26 +661,32 @@ namespace VesperApp.ViewModels
         private async Task SetDeviceClockAsync(LoggerDevice dev)
         {
             /* True time from NTP: the PC clock alone can be seconds off (bench 2026-10-21:
-               2.5 s fast). Console loggers with the time-sync firmware get the precise
-               path (millisecond sync, recorded for the per-unit calibration on the Clock
-               page); everything else gets a plain set with NTP-corrected time. */
+               2.5 s fast). Loggers with the time-sync firmware (KOL / VesperU5, Nanotag 1.37+)
+               get the precise path (as the Clock page: recorded for the per-unit calibration);
+               the rest a plain set with NTP-corrected time. Either way the clock base (UTC /
+               local, from the "Logger clock" setting) goes with it: the logger keeps it. */
             TextMessageBottom = "Setting the device clock…";
             var rc = await VesperApp.Services.Time.ReferenceClock.CreateAsync();
-            if (dev.IsConsoleLogger)
+            var clockBase = VesperApp.Services.Time.DeviceClockBase.For(IsClockUTC, rc.TrueUtcNow());
+            VesperApp.Services.Time.IRtcDevice? precise =
+                dev.IsConsoleLogger ? new VesperApp.Services.Time.LoggerRtcDevice(dev)
+                : dev.DeviceType == DeviceTypes.Nanotag ? new VesperApp.Services.Time.NanotagRtcDevice(dev) : null;
+            if (precise != null)
             {
-                var r = await VesperApp.Services.Time.RtcSyncService.SyncAsync(
-                    new VesperApp.Services.Time.LoggerRtcDevice(dev), rc, IsClockUTC,
+                var r = await VesperApp.Services.Time.RtcSyncService.SyncAsync(precise, rc, IsClockUTC,
                     VesperApp.Services.Time.RtcCalibrationStore.Default);
-                if (r.Before != null)
+                if (r.Before != null)                               // the unit time-syncs (KOL / VesperU5, Nanotag 1.37+)
                 {
-                    TextMessageBottom = r.Message;
+                    TextMessageBottom = $"Device clock in {clockBase.Describe()}. {r.Message}";
                     return;
                 }
             }
             DateTime trueUtc = rc.TrueUtcNow();
             DateTime sdt = IsClockUTC ? trueUtc : trueUtc.ToLocalTime();
-            await dev.SetDateTime(sdt);
-            TextMessageBottom = $"Device clock set to {sdt:yyyy-MM-dd HH:mm:ss} ({(rc.IsNtp ? "NTP" : "PC clock, NTP not reachable")}; whole seconds).";
+            bool ok = await dev.SetDateTime(sdt, clockBase);
+            TextMessageBottom = ok
+                ? $"Device clock set to {sdt:yyyy-MM-dd HH:mm:ss} {clockBase.Describe()} ({(rc.IsNtp ? "NTP" : "PC clock, NTP not reachable")}; whole seconds)."
+                : "Setting the device clock failed: reconnect the logger and try again.";
         }
 
         private void _globalDockAdapter_ConnectionEvent(object? sender, DockConnectionEventArgs e)

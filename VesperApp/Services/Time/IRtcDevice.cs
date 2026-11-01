@@ -15,7 +15,9 @@ namespace VesperApp.Services.Time
         string UnitKey { get; }
 
         Task<RtcExchange?> TimeSyncAsync(uint seq, int timeoutMs = 1000);
-        Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000);
+        /// <summary>Set the clock to <paramref name="deviceTime"/>, kept in <paramref name="clockBase"/> (UTC / local),
+        /// which loggers that support it store with the clock and stamp into their data.</summary>
+        Task<bool> SetRtcAsync(DateTime deviceTime, DeviceClockBase clockBase, int timeoutMs = 2000);
         Task<bool> ShiftAsync(int microseconds, int timeoutMs = 2000);
         Task<RtcCalStatus?> CalAsync(byte[] payload, int timeoutMs = 2000);
 

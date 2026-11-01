@@ -109,7 +109,8 @@
 							<TextBlock x:Name="textDateTime" Classes="mono" VerticalAlignment="Center"
 									   FontSize="14" Text="{Binding TextDateTimeNow}"/>
 							<CheckBox x:Name="chkIsUTC" VerticalAlignment="Center" MinWidth="0"
-									  IsChecked="{Binding IsClockUTC}" Content="UTC"/>
+									  IsChecked="{Binding IsClockUTC}" Content="UTC"
+									  ToolTip.Tip="Logger clock: ticked = Set Time puts loggers on UTC (recommended; GNSS positions need UTC). Unticked = this PC's local time. The logger keeps the choice with its clock and marks its data with it, so it decodes correctly on any PC. Saved."/>
 						</StackPanel>
 					</Border>
 				</StackPanel>

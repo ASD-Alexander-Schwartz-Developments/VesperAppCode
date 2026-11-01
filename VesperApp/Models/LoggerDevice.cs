@@ -720,7 +720,9 @@ namespace VesperApp.Models
 
 
 
-        public async Task<bool> SetDateTime(DateTime ldt)
+        /// <summary>Set the clock to <paramref name="ldt"/> (device time). On a Nanotag the clock base (UTC / local and
+        /// its offset) goes with it; firmware 1.39+ keeps it and stamps it into the data (nanotag-usb-vendor.md).</summary>
+        public async Task<bool> SetDateTime(DateTime ldt, VesperApp.Services.Time.DeviceClockBase clockBase = default)
         {
             bool r = false;
 
@@ -730,11 +732,15 @@ namespace VesperApp.Models
 
                 UInt32 ts = Nanotag.ToTimestamp(ldt);
 
-                byte[] buffer = new byte[4];
+                byte[] buffer = new byte[8];
                 buffer[0] = (byte)(ts & 0xFF);
                 buffer[1] = (byte)(ts >> 8);
                 buffer[2] = (byte)(ts >> 16);
                 buffer[3] = (byte)(ts >> 24);
+                buffer[4] = (byte)clockBase.Kind;                   // 0 unknown, 1 UTC, 2 local
+                buffer[5] = 0;
+                buffer[6] = (byte)(clockBase.ZoneMinutes & 0xFF);   // minutes east of UTC, i16 LE
+                buffer[7] = (byte)((ushort)clockBase.ZoneMinutes >> 8);
 
                 int retb = WriteRead(Nanotag.VND_CMD_SET_DATETIME, buffer, out response, 0);
 
@@ -746,9 +752,54 @@ namespace VesperApp.Models
                 byte[] data = SerialMessage.DateTimeToBytes(ldt);
                 moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_SET_RTC, (byte)data.Length, data, 0);
                 this._comport.SendMessage(moea);
+                r = true;                                           // sent (this legacy path is not acknowledged)
             }
 
             return await Task.FromResult(r);
+        }
+
+        /// <summary>Data pages of the current download per clock base (DeviceClockBase.Describe()).</summary>
+        private readonly Dictionary<string, int> _downloadClockBases = new();
+
+        /// <summary>CLOCK.txt in the download folder: which time the files are in, from the tag's own page metadata
+        /// (firmware 1.39+), so the folder decodes correctly on any PC.</summary>
+        private void WriteClockFile(string path)
+        {
+            var lines = new List<string>
+            {
+                $"Nanotag {_serialnumber?.Trim()}, downloaded {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC",
+                "",
+                "Clock of the recorded pages (stored by the tag with each page, firmware 1.39+):",
+            };
+            foreach (var kv in _downloadClockBases)
+                lines.Add($"  {kv.Key}: {kv.Value} pages");
+            if (_downloadClockBases.Count == 0)
+                lines.Add("  no data pages");
+            lines.Add("");
+            lines.Add("GPS\\snap.*_GC0.dat names: UTC where the page's clock is known (GNSS decoding needs UTC),");
+            lines.Add("  otherwise the tag's own time. ACC, SNS, add-on and LOGGER files: the tag's own time.");
+            if (_downloadClockBases.ContainsKey(VesperApp.Services.Time.DeviceClockBase.Unknown.Describe()))
+                lines.Add("  'Not known' pages: older firmware, or a clock set without UTC / local (old VesperApp, console).");
+            var now = GetClockAsync().GetAwaiter().GetResult();
+            lines.Add("");
+            lines.Add(now == null ? "Tag clock now: not reported (firmware before 1.39)."
+                                  : $"Tag clock now: {now.Value.DeviceTime:yyyy-MM-dd HH:mm:ss} {now.Value.Base.Describe()}.");
+            File.WriteAllLines(Path.Combine(path, "CLOCK.txt"), lines);
+        }
+
+        /// <summary>Nanotag GET_CLOCK 0x10 (firmware 1.39+): the clock base and the device time, or null (older firmware
+        /// does not answer the code).</summary>
+        public Task<(VesperApp.Services.Time.DeviceClockBase Base, DateTime DeviceTime)?> GetClockAsync()
+        {
+            (VesperApp.Services.Time.DeviceClockBase, DateTime)? result = null;
+            if (this.USBDevice != null && this._usbEndpointReader != null && this._usbEndpointWriter != null &&
+                WriteRead(Nanotag.VND_CMD_GET_CLOCK, new byte[0], out byte[] resp, 8) == 0 && resp.Length >= 8)
+            {
+                var b = VesperApp.Services.Time.DeviceClockBase.FromWire(resp[0], (short)(resp[2] | (resp[3] << 8)));
+                uint ts = (uint)(resp[4] | (resp[5] << 8) | (resp[6] << 16) | (resp[7] << 24));
+                result = (b, Nanotag.FromTimestamp(ts, 0));
+            }
+            return Task.FromResult(result);
         }
 
 
@@ -1209,6 +1260,7 @@ namespace VesperApp.Models
                             var addons = new NanotagAddonCollector();       // TPRH31 / ALS3001D / ProxTit pages (firmware 1.36+)
                             var readStatus = new List<string>();            // pages that did not read cleanly (firmware 1.39+)
                             DownloadPagesCorrected = DownloadPagesUncorrectable = DownloadPagesReadErrors = DownloadPagesCrcErrors = 0;
+                            _downloadClockBases.Clear();
 
                             for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
                             {
@@ -1251,6 +1303,8 @@ namespace VesperApp.Models
                                 try { File.WriteAllLines(Path.Combine(path, "download-read-status.txt"), readStatus); }
                                 catch (Exception ex) { Debug.WriteLine("Read status file failed: " + ex.Message); }
                             }
+                            try { WriteClockFile(path); }
+                            catch (Exception ex) { Debug.WriteLine("CLOCK.txt failed: " + ex.Message); }
 
                             // LOGGER log area (firmware 1.35+): its own ring of pages, read after the data
                             if (FirmwareVersion == null || FirmwareVersion >= NanotagLoggerFirmware)
@@ -1486,6 +1540,17 @@ namespace VesperApp.Models
 
                         Debug.WriteLine("- Its a " + snapType.ToString() + " ");
 
+                        // Clock base of the page (firmware 1.39+, spare 58..61; nanotag-usb-vendor.md § Clock base).
+                        var pageClock = VesperApp.Services.Time.DeviceClockBase.Unknown;
+                        if (MetadataLength >= 62 && bytes.Length >= 4096 + 62)
+                            pageClock = VesperApp.Services.Time.DeviceClockBase.FromWire(bytes[4096 + 58],
+                                (short)(bytes[4096 + 60] | (bytes[4096 + 61] << 8)));
+                        if (f_preamble == preamnle_ok)
+                        {
+                            string key = pageClock.Describe();
+                            _downloadClockBases[key] = _downloadClockBases.TryGetValue(key, out int n) ? n + 1 : 1;
+                        }
+
                         if (f_preamble == preamnle_ok &&
                             page_type == NAND_FS_SNAP_PAGE_TYPE &&
                             snapType == 'G' &&
@@ -1502,7 +1567,10 @@ namespace VesperApp.Models
                                             //                    new object[] {
                                             //                    outfolder, "G"+snapID.ToString("D6")});
 
+                            // GNSS decoders take the snapshot time from the name and need UTC: a page whose clock base is
+                            // known is named in UTC; an unknown base keeps the device time (CLOCK.txt says so).
                             DateTime dt = Nanotag.FromTimestamp(snapTimestamp, snapSubsecond);
+                            dt = pageClock.ToUtc(dt) ?? dt;
 
                             filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}_GC0.dat",
                                 new object[] {
@@ -1546,6 +1614,7 @@ namespace VesperApp.Models
                             metadata += "SNAP: " + snapID.ToString() + "[" + snapIndex.ToString() + "/" + snapPagesInSnap.ToString() + "]" + Environment.NewLine;
                             metadata += "ODBA: " + o.ToString() + Environment.NewLine;
                             metadata += "VEDBA: " + v.ToString() + Environment.NewLine;
+                            metadata += "CLOCK: " + pageClock.Describe() + (pageClock.IsKnown ? " (file name in UTC)" : " (file name in device time)") + Environment.NewLine;
 
                             File.WriteAllText(filename + "_" + snapIndex.ToString() + ".txt", metadata);
                         }

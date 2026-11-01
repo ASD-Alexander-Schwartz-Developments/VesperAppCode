@@ -21,7 +21,7 @@ namespace VesperApp.Services.Time
         public bool StoresCalibration => true;
 
         public Task<RtcExchange?> TimeSyncAsync(uint seq, int timeoutMs = 1000) => _dev.NanotagTimeSyncAsync(seq);
-        public Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000) => _dev.SetDateTime(deviceTime);
+        public Task<bool> SetRtcAsync(DateTime deviceTime, DeviceClockBase clockBase, int timeoutMs = 2000) => _dev.SetDateTime(deviceTime, clockBase);
         public Task<bool> ShiftAsync(int microseconds, int timeoutMs = 2000) => Task.FromResult(false);
         public Task<RtcCalStatus?> CalAsync(byte[] payload, int timeoutMs = 2000) => _dev.NanotagRtcCalAsync(payload);
     }

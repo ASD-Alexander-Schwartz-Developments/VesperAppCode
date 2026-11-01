@@ -101,7 +101,7 @@ namespace VesperApp.Services.Time
                 if (remain > 0.03) await Task.Delay(TimeSpan.FromSeconds(remain - 0.02), ct).ConfigureAwait(false);
                 else Thread.SpinWait(200);
             }
-            await dev.SetRtcAsync(DeviceEpoch.FromSeconds(target)).ConfigureAwait(false);
+            await dev.SetRtcAsync(DeviceEpoch.FromSeconds(target), DeviceClockBase.For(deviceUtc, rc.TrueUtcNow())).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace VesperApp.Services.Time
                 if (remain > 0.03) await Task.Delay(TimeSpan.FromSeconds(remain - 0.02), ct).ConfigureAwait(false);
                 else Thread.SpinWait(200);
             }
-            await dev.SetRtcAsync(DeviceEpoch.FromSeconds(plan.SetSeconds)).ConfigureAwait(false);
+            await dev.SetRtcAsync(DeviceEpoch.FromSeconds(plan.SetSeconds), DeviceClockBase.For(deviceUtc, rc.TrueUtcNow())).ConfigureAwait(false);
         }
 
         public static async Task<SyncResult> SyncAsync(
