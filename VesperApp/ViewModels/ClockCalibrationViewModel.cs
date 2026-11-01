@@ -317,10 +317,18 @@ namespace VesperApp.ViewModels
             IRtcDevice? dev = Device();
             if (dev == null) { StatusText = DeviceText; return; }
             await dev.CalAsync(new byte[] { 3 });
-            await Task.Delay(400);
-            RtcCalStatus? st = await dev.CalAsync(new byte[] { 0 });
+            // The unit measures at its next battery reading, when its ADC is free (Nanotag: within a minute).
+            StatusText = "Measuring the device temperature… (the unit takes it at its next battery reading, up to a minute)";
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            RtcCalStatus? st = null;
+            while (sw.Elapsed.TotalSeconds < 70)
+            {
+                await Task.Delay(1000);
+                st = await dev.CalAsync(new byte[] { 0 });
+                if (st == null || (st.Flags & RtcCalFlags.TemperaturePending) == 0) break;
+            }
             if (st != null) ShowStatus(st);
-            StatusText = "";
+            StatusText = st != null && st.TemperatureC == null ? "The unit could not measure its temperature." : "";
         }
 
         /// <summary>Nanotag FREQCORR register: bit 7 = sign (1 = slower), bits 0-6 = steps of ~1.0006 ppm.</summary>
