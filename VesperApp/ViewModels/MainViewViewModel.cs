@@ -535,10 +535,26 @@ namespace VesperApp.ViewModels
 
             ArmSleepDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
-                if (SelectedLoggerDevice != null)
+                LoggerDevice? dev = SelectedLoggerDevice;
+                if (dev == null) return;
+                if (dev.IsNanotagVendor && dev.FirmwareVersion != null && dev.FirmwareVersion >= LoggerDevice.NanotagDiskHealthFirmware)
                 {
-                    await SelectedLoggerDevice.Sleep(true);
+                    // A deployment starts from a formatted tag: the tag appends and never erases while recording.
+                    var health = await dev.GetDiskHealthAsync();
+                    if (health != null && health.PagesWritten > 0 &&
+                        !await ConfirmAsync("Arm", $"The tag still holds {health.PagesWritten} pages from an earlier deployment.",
+                            "A new deployment should start from a formatted tag: Download Data, then Format. " +
+                            "Arm anyway? The new data is added after the old."))
+                        return;
+
+                    // The clock base travels with the data (UTC / local); an unknown base cannot be decoded to UTC.
+                    var clock = await dev.GetClockAsync();
+                    if (clock != null && !clock.Value.Base.IsKnown &&
+                        await ConfirmAsync("Arm", "The tag's clock was not set by VesperApp (UTC or local is not known).",
+                            $"Set the clock now ({(IsClockUTC ? "UTC" : "this PC's local time")}, network time) before arming?"))
+                        await SetDeviceClockAsync(dev);
                 }
+                await dev.Sleep(true);
             });
 
             FormatDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
