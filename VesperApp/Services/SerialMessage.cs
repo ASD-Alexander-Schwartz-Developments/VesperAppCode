@@ -721,7 +721,7 @@ namespace VesperApp.Services
         {
             int year = buf[5] + (int)(buf[6] << 8);
 
-            DateTime dt = new DateTime(year, buf[4], buf[3], buf[2], buf[1], buf[0], (byte)DateTimeKind.Utc);
+            DateTime dt = new DateTime(year, buf[4], buf[3], buf[2], buf[1], buf[0], DateTimeKind.Unspecified);   // device time (was: Kind.Utc passed as milliseconds)
 
             return dt;
         }

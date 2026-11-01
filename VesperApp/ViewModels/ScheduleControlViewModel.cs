@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using VesperApp.Models;
+using VesperApp.Services;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
@@ -129,12 +130,14 @@ namespace VesperApp.ViewModels
                 }
                 else
                 {
-                    int Year = DateTime.Now.Year;
+                    // "today" in the logger's clock (UTC unless the UTC switch is off), not the PC's local date
+                    DateTime today = SettingsService.Current.Ui.LoggerClockUtc ? DateTime.UtcNow : DateTime.Now;
+                    int Year = today.Year;
 
                     if (selectedScheduleType == ScheduleTypes.Daily)
                         Year = 2000;
 
-                    nitem.Alarm = new DateTime(Year, DateTime.Now.Month, DateTime.Now.Day, 0, 0, 0, DateTimeKind.Unspecified);
+                    nitem.Alarm = new DateTime(Year, today.Month, today.Day, 0, 0, 0, DateTimeKind.Unspecified);
                 }
 
                 if (SelectedTime != null && selectedScheduleType != ScheduleTypes.Relative)

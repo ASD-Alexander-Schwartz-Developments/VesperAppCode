@@ -108,6 +108,7 @@ namespace VesperApp.ViewModels
             if (_main?.SelectedLoggerDeviceModel != null)
                 _main.SelectedLoggerDeviceModel.SelectionChanged += (s, e) =>
                     Dispatcher.UIThread.Post(() => { _estimate = null; HasEstimate = false; ShowHistory(); DescribeDevice(); });
+            _main?.WhenAnyValue(m => m.IsClockUTC).Subscribe(_ => DescribeDevice());     // the UTC switch changes the text
             DescribeDevice();
         }
 

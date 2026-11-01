@@ -2,7 +2,15 @@
 
 KOL, Vesper, Pipistrelle and Nanotag loggers keep time with a 32.768 kHz crystal. Every crystal is a little fast or slow (typically ±20–30 ppm, about ±2–3 seconds a day, but on some boards much more: KOL units measured about −200 ppm, 17 seconds a day slow), and outdoors it also runs slow when it is colder or warmer than about 25 °C. The **Clock** page sets a unit's clock to internet time with millisecond accuracy, measures how fast or slow that particular unit's crystal is, and stores a correction on the unit.
 
-This needs firmware with the time-sync commands (KOL 1.8 / Vesper 1.22 or later). Older firmware still gets a plain whole-second **Set Time**.
+This needs firmware with the time-sync commands (KOL 1.8 / Vesper 1.22 / Nanotag 1.37 or later). Older firmware still gets a plain whole-second **Set Time**.
+
+## UTC or local time
+
+Loggers keep **UTC** by default — GNSS positions need it. Untick the **UTC** switch in the top bar to set loggers to this PC's local time instead; the choice is saved. Every clock set (Set Time, Sync clock) tells the logger which one it gets, together with the local time's offset. The logger keeps that with its clock and marks its data with it, so the data decodes to the right time on any PC, also on one that did not set the clock (Nanotag 1.39 or later; KOL and Vesper / Pipistrelle follow).
+
+- A logger set to local time keeps the offset it was set with (for example UTC+02:00) for the whole deployment; it does not follow daylight-saving changes.
+- The device list shows the logger's time and, on a Nanotag 1.39+, `UTC` or `local time (UTC+02:00)`. "UTC or local not known" means the clock was set by an older VesperApp or from the console: press **Set Time** before deploying (**Arm** offers it).
+- A Nanotag download names its GNSS snapshot files in UTC and writes `CLOCK.txt` saying which time the files are in.
 
 ![The Clock tab](images/tab-clock.png)
 
@@ -14,7 +22,7 @@ The app asks internet time servers (NTP) for the true time; the PC's own clock i
 
 ## Sync clock
 
-**Sync clock** (also what **Set Time** in the device panel does for these loggers) measures the unit's clock about 30 times over USB, removes the USB delay, sets the whole seconds if needed and then nudges the clock by the remaining fraction of a second. The result — typically within about one millisecond — is shown and recorded in the unit's history. Whether the unit keeps UTC or local time follows the **UTC** switch in the top bar.
+**Sync clock** (also what **Set Time** in the device panel does for these loggers, the Nanotag included) measures the unit's clock about 30 times over USB, removes the USB delay, sets the whole seconds if needed and then nudges the clock by the remaining fraction of a second. The result — typically within about one millisecond — is shown and recorded in the unit's history. UTC or local time: see above.
 
 ## Calibrating a unit
 

@@ -85,7 +85,7 @@ namespace VesperApp.Models
 			}
 			catch (Exception ex)
 			{
-				dt = DateTime.Now;
+				dt = DeviceEpoch.Epoch2000;     // invalid stamp: shows as 2000-01-01, never as a plausible PC time
 			}
 
 			return dt;

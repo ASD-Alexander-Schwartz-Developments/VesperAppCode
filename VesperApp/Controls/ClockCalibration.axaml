@@ -13,7 +13,7 @@
 			<ui:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
 				<ui:CommandBar.PrimaryCommands>
 					<ui:CommandBarButton Command="{Binding SyncCommand}" IconSource="Clock" Label="Sync clock"
-										 ToolTip.Tip="Set the device clock to NTP time with millisecond accuracy (coarse set + sub-second shift) and record the result"/>
+										 ToolTip.Tip="Set the device clock to NTP time and record the result: millisecond accuracy on KOL / Vesper / Pipistrelle; whole seconds on a Nanotag (its sub-second offset is measured and kept). The clock is set to UTC, or to this PC's local time if the UTC switch is off; the logger keeps that choice."/>
 					<ui:CommandBarButton Command="{Binding MeasureCommand}" IconSource="Find" Label="Measure"
 										 ToolTip.Tip="Measure how far the device clock is from NTP time without changing it, and record the result"/>
 					<ui:CommandBarSeparator/>
@@ -61,7 +61,7 @@
 				<dg:DataGrid Grid.Row="1" ItemsSource="{Binding History}" AutoGenerateColumns="False" IsReadOnly="True"
 							 HeadersVisibility="Column" GridLinesVisibility="None" CanUserResizeColumns="True">
 					<dg:DataGrid.Columns>
-						<dg:DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="160"/>
+						<dg:DataGridTextColumn Header="Time (this PC)" Binding="{Binding Time}" Width="160"/>
 						<dg:DataGridTextColumn Header="Offset (ms)" Binding="{Binding Offset}" Width="115"/>
 						<dg:DataGridTextColumn Header="Uncertainty (ms)" Binding="{Binding Uncertainty}" Width="135"/>
 						<dg:DataGridTextColumn Header="Temp (°C)" Binding="{Binding Temperature}" Width="100"/>

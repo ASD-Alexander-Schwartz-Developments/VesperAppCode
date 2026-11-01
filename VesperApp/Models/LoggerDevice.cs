@@ -632,6 +632,12 @@ namespace VesperApp.Models
                     DateTime dateTime = Nanotag.FromTimestamp(ts, 0);
 
                     this.LocalDateTime = dateTime.ToString("G");
+                    if (FirmwareVersion != null && FirmwareVersion >= NanotagDiskHealthFirmware)
+                    {
+                        var clk = GetClockAsync().GetAwaiter().GetResult();     // 1.39+: which time the tag keeps
+                        if (clk != null)
+                            this.LocalDateTime = dateTime.ToString("G") + "  " + clk.Value.Base.Describe();
+                    }
 
                     res = true;
                 }

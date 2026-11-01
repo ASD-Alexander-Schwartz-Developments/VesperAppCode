@@ -394,7 +394,7 @@ namespace VesperApp.Services
                 }
             }
             catch { }
-            return DateTime.Now;
+            return VesperApp.Models.DeviceEpoch.Epoch2000;   // no time in the name: 2000-01-01, not the PC clock
         }
     }
 }

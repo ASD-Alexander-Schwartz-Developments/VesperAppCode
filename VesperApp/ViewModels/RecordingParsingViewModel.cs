@@ -1362,7 +1362,7 @@ namespace VesperApp.ViewModels
 
                                             byte[] data = File.ReadAllBytes(lp);
 
-                                            DateTime dtStart = DateTime.Now;
+                                            DateTime dtStart = DeviceEpoch.Epoch2000;   // set from the file name below; 2000-01-01 if it has none
 
                                             ArrayList arrayList = Utils.scan(currentFilename, "M%d_%d_%d_%d_%d_%d_%d");
 
@@ -1438,7 +1438,7 @@ namespace VesperApp.ViewModels
 
                                             byte[] data = File.ReadAllBytes(lp);
 
-                                            DateTime dtStart = DateTime.Now;
+                                            DateTime dtStart = DeviceEpoch.Epoch2000;   // set from the file name below; 2000-01-01 if it has none
 
                                             ArrayList arrayList = Utils.scan(currentFilename, "NACC.%d_%d_%d_%d_%d_%d_%d.ABN");
 
@@ -1571,7 +1571,7 @@ namespace VesperApp.ViewModels
 
                                         byte[] data = File.ReadAllBytes(lp);
 
-                                        DateTime dtStart = DateTime.Now;
+                                        DateTime dtStart = DeviceEpoch.Epoch2000;   // set from the file name below; 2000-01-01 if it has none
 
                                         ArrayList arrayList = Utils.scan(currentFilename, "L%d_%d_%d_%d_%d_%d_%d");
 
@@ -1698,7 +1698,7 @@ namespace VesperApp.ViewModels
 
                                         byte[] data = File.ReadAllBytes(lp);
 
-                                        DateTime dtStart = DateTime.Now;
+                                        DateTime dtStart = DeviceEpoch.Epoch2000;   // set from the file name below; 2000-01-01 if it has none
 
                                         ArrayList arrayList = Utils.scan(currentFilename, "R%d_%d_%d_%d_%d_%d_%d");
 
@@ -1826,7 +1826,7 @@ namespace VesperApp.ViewModels
 
                                         byte[] data = File.ReadAllBytes(lp);
 
-                                        DateTime dtStart = DateTime.Now;
+                                        DateTime dtStart = DeviceEpoch.Epoch2000;   // set from the file name below; 2000-01-01 if it has none
 
                                         ArrayList arrayList = Utils.scan(currentFilename, "E%d_%d_%d_%d_%d_%d_%d");
 
@@ -1981,7 +1981,7 @@ namespace VesperApp.ViewModels
 
                                         byte[] data = File.ReadAllBytes(lp);
 
-                                        DateTime dtStart = DateTime.Now;
+                                        DateTime dtStart = DeviceEpoch.Epoch2000;   // set from the file name below; 2000-01-01 if it has none
 
                                         ArrayList arrayList = Utils.scan(currentFilename, "E%d_%d_%d_%d_%d_%d_%d");
 
