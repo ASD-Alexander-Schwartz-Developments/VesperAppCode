@@ -755,7 +755,7 @@ namespace VesperApp.Models
             else if(this._comport != null && this._comport.IsRunning == true)
             {
                 MessageOutEventArgs moea = new MessageOutEventArgs();
-                byte[] data = SerialMessage.DateTimeToBytes(ldt);
+                byte[] data = SerialMessage.DateTimeToBytes(ldt, clockBase);
                 moea.MessageData = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_SET_RTC, (byte)data.Length, data, 0);
                 this._comport.SendMessage(moea);
                 r = true;                                           // sent (this legacy path is not acknowledged)
@@ -793,10 +793,16 @@ namespace VesperApp.Models
             File.WriteAllLines(Path.Combine(path, "CLOCK.txt"), lines);
         }
 
-        /// <summary>Nanotag GET_CLOCK 0x10 (firmware 1.39+): the clock base and the device time, or null (older firmware
-        /// does not answer the code).</summary>
-        public Task<(VesperApp.Services.Time.DeviceClockBase Base, DateTime DeviceTime)?> GetClockAsync()
+        /// <summary>Clock base: Nanotag GET_CLOCK 0x10 (firmware 1.39+, with the device time); Vesper / Pipistrelle
+        /// VESPER_GET_CLOCK 83 (base only, DeviceTime = 2000-01-01). Null when the firmware does not answer.</summary>
+        public async Task<(VesperApp.Services.Time.DeviceClockBase Base, DateTime DeviceTime)?> GetClockAsync()
         {
+            if (IsConsoleLogger)                                    // VesperU5 (KOL to follow): VESPER_GET_CLOCK 83
+            {
+                byte[]? r = await SendCommandAsync(MessageTypes.VESPER_GET_CLOCK, Array.Empty<byte>(), 1500);
+                if (r == null || r.Length < 4) return null;
+                return (VesperApp.Services.Time.DeviceClockBase.FromWire(r[0], (short)(r[2] | (r[3] << 8))), DeviceEpoch.Epoch2000);   // no time in this reply (GET_RTC has it)
+            }
             (VesperApp.Services.Time.DeviceClockBase, DateTime)? result = null;
             if (this.USBDevice != null && this._usbEndpointReader != null && this._usbEndpointWriter != null &&
                 WriteRead(Nanotag.VND_CMD_GET_CLOCK, new byte[0], out byte[] resp, 8) == 0 && resp.Length >= 8)
@@ -805,7 +811,7 @@ namespace VesperApp.Models
                 uint ts = (uint)(resp[4] | (resp[5] << 8) | (resp[6] << 16) | (resp[7] << 24));
                 result = (b, Nanotag.FromTimestamp(ts, 0));
             }
-            return Task.FromResult(result);
+            return result;
         }
 
 
@@ -1073,10 +1079,10 @@ namespace VesperApp.Models
 
         /// <summary>Set the device RTC (whole seconds; the device restarts its sub-second counter)
         /// and wait for the ACK.</summary>
-        public async Task<bool> SetRtcAsync(DateTime deviceTime, int timeoutMs = 2000)
+        public async Task<bool> SetRtcAsync(DateTime deviceTime, VesperApp.Services.Time.DeviceClockBase clockBase = default, int timeoutMs = 2000)
         {
             if (!IsConsoleLogger) return false;
-            return await SendAckCommandAsync(MessageTypes.VESPER_SET_RTC, SerialMessage.DateTimeToBytes(deviceTime), timeoutMs);
+            return await SendAckCommandAsync(MessageTypes.VESPER_SET_RTC, SerialMessage.DateTimeToBytes(deviceTime, clockBase), timeoutMs);
         }
 
         /// <summary>Shift the device RTC by less than one second (VESPER_RTC_SHIFT, + advances).</summary>

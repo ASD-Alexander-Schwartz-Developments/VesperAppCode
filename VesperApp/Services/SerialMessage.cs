@@ -103,6 +103,7 @@ namespace VesperApp.Services
         // Contract: asd-interfaces interfaces/rtc-time-sync.md. Older firmware NACKs them.
         VESPER_TIME_SYNC = 76,          // payload: u32 seq; reply 26 B (seq, t2, t3, temp, age, correction, flags)
         VESPER_RTC_SHIFT = 77,          // payload: int32 microseconds (+ advances), |us| < 1 s; ACK/NACK
+        VESPER_GET_CLOCK = 83,          // clock base: reply 4 B base, 0, zone i16 LE (VesperU5; KOL to follow)
         VESPER_RTC_CAL = 78,            // payload: [0] op (0 get, 1 set, 2 clear, 3 measure temp) [+ i32 ppb, i16 tref]; reply 23 B
 
         // Sound trigger live state + per-channel levels (Models/MicLevels.cs; Kol docs/sound-trigger.md).
@@ -700,6 +701,27 @@ namespace VesperApp.Services
             }
         }
 
+
+        /// <summary>VESPER_SET_RTC payload, 12-byte form (rtc-time-sync.md § Clock base): time, base, 0, weekday
+        /// (STM32: Monday 1 .. Sunday 7), zone i16 LE. Firmware without the clock base reads the time and the weekday.</summary>
+        public static byte[] DateTimeToBytes(DateTime dt, VesperApp.Services.Time.DeviceClockBase clockBase)
+        {
+            byte[] bt = new byte[12];
+
+            bt[0] = (byte)dt.Second;
+            bt[1] = (byte)dt.Minute;
+            bt[2] = (byte)dt.Hour;
+            bt[3] = (byte)dt.Day;
+            bt[4] = (byte)dt.Month;
+            bt[5] = (byte)(dt.Year & 0xFF);
+            bt[6] = (byte)((dt.Year >> 8) & 0xFF);
+            bt[7] = (byte)clockBase.Kind;
+            bt[8] = 0;
+            bt[9] = (byte)(dt.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)dt.DayOfWeek);
+            bt[10] = (byte)(clockBase.ZoneMinutes & 0xFF);
+            bt[11] = (byte)((ushort)clockBase.ZoneMinutes >> 8);
+            return bt;
+        }
 
         public static byte[] DateTimeToBytes(DateTime dt)
         {

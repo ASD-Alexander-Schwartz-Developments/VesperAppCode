@@ -185,7 +185,7 @@ namespace VesperApp.Services
                 return p;
             }
 
-            if (name.Contains("G.BIN")) await BinaryParser.ExtractVesperSnap(rawPath, Sub("DAT"), TimeSpan.Zero);
+            if (name.Contains("G.BIN")) await BinaryParser.ExtractVesperSnap(rawPath, Sub("DAT"), TimeSpan.Zero, VesperApp.Services.Time.ClockFile.FindFor(rawPath));
             else if (name.Contains("U0.BIN")) await BinaryParser.StripSplitEx(rawPath, '0', Sub("KOL-AUD"), 0);
             else if (name.Contains("U1.BIN")) await BinaryParser.StripSplitEx(rawPath, '1', Sub("KOL-AUD"), 0);
             else if (name.Contains("U2.BIN")) await BinaryParser.StripSplitEx(rawPath, '2', Sub("KOL-AUD"), 0);

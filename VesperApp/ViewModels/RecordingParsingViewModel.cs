@@ -1015,7 +1015,7 @@ namespace VesperApp.ViewModels
                                                 Directory.CreateDirectory(fullPathOnly);
                                             }
 
-                                            await BinaryParser.ExtractVesperSnap(lp, fullPathOnly, new TimeSpan(0, 0, 0));
+                                            await BinaryParser.ExtractVesperSnap(lp, fullPathOnly, new TimeSpan(0, 0, 0), VesperApp.Services.Time.ClockFile.FindFor(lp));
                                         }
                                         else if (currentFilename.Contains("U.BIN"))
                                         {

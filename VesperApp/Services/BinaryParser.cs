@@ -14,7 +14,10 @@ namespace VesperApp.Services
 {
     public class BinaryParser
     {
-        public static Task<int> ExtractVesperSnap(String BinaryFileName, String OutputFolder, TimeSpan gpsTimeOffset)
+        /// <summary>Snapshot files from a G.BIN. With <paramref name="clock"/> (CLOCK.TXT of the unit) a snapshot whose
+        /// clock base is known is named in UTC (GNSS decoding needs it); otherwise in the unit's own time.</summary>
+        public static Task<int> ExtractVesperSnap(String BinaryFileName, String OutputFolder, TimeSpan gpsTimeOffset,
+                                                  VesperApp.Services.Time.ClockFile? clock = null)
         {
             int result;
             byte lastbyte = 0;
@@ -50,6 +53,8 @@ namespace VesperApp.Services
                 else
                 {
                     DateTime timestamp = binHeader.HeaderTimestamp;
+                    if (clock != null)
+                        timestamp = clock.BaseAt(timestamp).ToUtc(timestamp) ?? timestamp;
                     timestamp += gpsTimeOffset;
 
                     string wn = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}_GC0.dat",
