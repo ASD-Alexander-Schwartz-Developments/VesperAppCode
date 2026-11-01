@@ -143,6 +143,7 @@ namespace VesperApp.Services
             [0x0702] = "Sensor stopped",
             [0x0703] = "Configured sensor not found",          // superseded by 0x08xx
             [0x0704] = "Sensor reading failed",
+            [0x0705] = "Sensor data lost (page saved too late)",
         };
 
         /// <summary>Readable event name; 0x08xx = configured sensor not found, low byte = driver type;
