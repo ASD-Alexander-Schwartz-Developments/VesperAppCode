@@ -151,7 +151,11 @@ namespace VesperApp.Services
                 if (crcReply.Length < 3)
                     throw new IOException("Short reply to the bootloader CRC request.");
                 ushort deviceCrc = (ushort)(crcReply[1] | (crcReply[2] << 8));
-                ushort hostCrc = Crc16(image.Bytes, (int)(vStart - image.BaseAddress), (int)vLen);
+                // The region starts at AppStart even when the image does not (a gap reads 0xFF on the device).
+                byte[] region = new byte[vLen];
+                Array.Fill(region, (byte)0xFF);
+                Array.Copy(image.Bytes, 0, region, image.BaseAddress - vStart, image.Bytes.Length);
+                ushort hostCrc = Crc16(region, 0, (int)vLen);
                 if (deviceCrc != hostCrc)
                     throw new IOException(
                         $"Verification failed: device CRC 0x{deviceCrc:X4} differs from image CRC 0x{hostCrc:X4} " +
