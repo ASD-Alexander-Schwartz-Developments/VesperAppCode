@@ -81,13 +81,7 @@ namespace VesperApp.Services
             if (!Path.GetExtension(hexPath).Equals(".hex", StringComparison.OrdinalIgnoreCase))
                 throw new NotSupportedException("Nanotag firmware must be an Intel HEX (.hex) file.");
 
-            HexImage image = HexImage.Load(hexPath);
-            if (image.Records.Count == 0 || image.Bytes.Length == 0)
-                throw new InvalidDataException("No Intel HEX data records found in the firmware file.");
-            if (image.FirstAddress < AppStart || image.LastAddressExclusive > FlashEnd)
-                throw new InvalidDataException(
-                    $"Firmware image spans 0x{image.FirstAddress:X}..0x{image.LastAddressExclusive - 1:X}, outside the " +
-                    $"Nanotag application region 0x{AppStart:X}..0x{FlashEnd - 1:X}.");
+            HexImage image = LoadChecked(hexPath);
 
             if (runtime != null)
             {
@@ -98,6 +92,36 @@ namespace VesperApp.Services
 
             // 2. Drive the HID flash sequence off the UI thread.
             return await Task.Run(() => FlashCore(image, progress, ct), ct);
+        }
+
+        /// <summary>App-valid word the Nanotag image carries at FlashEnd - 4 (bootloader MAGIC_WORD).</summary>
+        public const uint AppValidWord = 0x5AAABBA5;
+
+        /// <summary>Throws <see cref="InvalidDataException"/> when the file is not a complete Nanotag
+        /// application image; nothing is sent to the tag.</summary>
+        internal static void ValidateImage(string hexPath) => LoadChecked(hexPath);
+
+        // A complete image ends with the End-Of-File record and carries AppValidWord at FlashEnd - 4 (the last
+        // data record of every Nanotag build). A truncated file has neither: flashed, it verified (the CRC only
+        // covers what was sent) and the jump made the bootloader mark the half image valid, so the tag started
+        // it, faulted and needed a debugger (bench 2026-11-01, check B-11).
+        private static HexImage LoadChecked(string hexPath)
+        {
+            HexImage image = HexImage.Load(hexPath);
+            if (image.Records.Count == 0 || image.Bytes.Length == 0)
+                throw new InvalidDataException("No Intel HEX data records found in the firmware file.");
+            if (image.FirstAddress < AppStart || image.LastAddressExclusive > FlashEnd)
+                throw new InvalidDataException(
+                    $"Firmware image spans 0x{image.FirstAddress:X}..0x{image.LastAddressExclusive - 1:X}, outside the " +
+                    $"Nanotag application region 0x{AppStart:X}..0x{FlashEnd - 1:X}.");
+            if (!image.HasEofRecord)
+                throw new InvalidDataException("The firmware file has no End-Of-File record: it is incomplete (truncated download?).");
+            if (image.LastAddressExclusive != FlashEnd ||
+                BitConverter.ToUInt32(image.Bytes, (int)(FlashEnd - 4 - image.BaseAddress)) != AppValidWord)
+                throw new InvalidDataException(
+                    $"The firmware file has no app-valid word (0x{AppValidWord:X8} at 0x{FlashEnd - 4:X}): it is incomplete " +
+                    "or not a Nanotag application image.");
+            return image;
         }
 
         private static bool FlashCore(HexImage image, IProgress<FlashProgress>? progress, CancellationToken ct)
@@ -279,6 +303,8 @@ namespace VesperApp.Services
             public uint BaseAddress { get; private set; }
             public uint FirstAddress { get; private set; } = uint.MaxValue;
             public uint LastAddressExclusive { get; private set; }
+            /// <summary>The file itself ends with an End-Of-File record (one is appended for sending if not).</summary>
+            public bool HasEofRecord { get; private set; }
 
             public static HexImage Load(string path)
             {
@@ -326,6 +352,7 @@ namespace VesperApp.Services
                     }
                 }
 
+                img.HasEofRecord = img.Records.Count > 0 && img.Records[^1][3] == 0x01;
                 if (img.Records.Count > 0 && img.Records[^1][3] != 0x01)
                     img.Records.Add(new byte[] { 0x00, 0x00, 0x00, 0x01, 0xFF });   // ensure an EOF record
 
