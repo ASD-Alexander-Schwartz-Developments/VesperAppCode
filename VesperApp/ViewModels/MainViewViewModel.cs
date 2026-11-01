@@ -389,40 +389,28 @@ namespace VesperApp.ViewModels
                     };
 
 
-                    Task<IReadOnlyList<IStorageFolder>> dialog = RootTopLevel!.StorageProvider!.OpenFolderPickerAsync(foptions);
+                    // Awaited, not .Result: a synchronous wait here held the UI thread.
+                    IReadOnlyList<IStorageFolder> folders = await RootTopLevel!.StorageProvider!.OpenFolderPickerAsync(foptions);
+                    LoggerDevice dev = SelectedLoggerDevice;
 
-                    if (dialog.Result.Count > 0)
+                    if (folders.Count > 0)
                     {
-                        await dialog.ContinueWith(async delegate (Task<IReadOnlyList<IStorageFolder>> dialogs)
+                        __downloading_nanotag_data = true;
+                        try
                         {
-                            __downloading_nanotag_data = true;
-
-                            try
-                            {
-                                IReadOnlyList<IStorageFolder> folders = dialog.Result;
-                                string? path = null;
-
-                                if (folders.Count > 0)
-                                {
-                                    path = folders[0].TryGetLocalPath();
-                                }
-
-                                bool ok = await SelectedLoggerDevice.DownloadPages(path);
-
-                                if (!ok)
-                                {
-                                    ///// show error
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-
-                            }
-                            finally
-                            {
-                                __downloading_nanotag_data = false;
-                            }
-                        });
+                            string? path = folders[0].TryGetLocalPath();
+                            // The whole download off the UI thread (its first USB transfer ran on the caller's thread).
+                            bool ok = await Task.Run(() => dev.DownloadPages(path));
+                            TextMessageBottom = ok ? $"Download finished: {path}" : "Download failed: reconnect the tag and try again.";
+                        }
+                        catch (Exception ex)
+                        {
+                            TextMessageBottom = "Download failed: " + ex.Message;
+                        }
+                        finally
+                        {
+                            __downloading_nanotag_data = false;
+                        }
                     }
                 }
             });

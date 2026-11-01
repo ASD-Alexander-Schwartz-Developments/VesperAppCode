@@ -1273,6 +1273,7 @@ namespace VesperApp.Models
                             var readStatus = new List<string>();            // pages that did not read cleanly (firmware 1.39+)
                             DownloadPagesCorrected = DownloadPagesUncorrectable = DownloadPagesReadErrors = DownloadPagesCrcErrors = 0;
                             _downloadClockBases.Clear();
+                            var progressClock = Stopwatch.StartNew();
 
                             for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
                             {
@@ -1306,8 +1307,15 @@ namespace VesperApp.Models
                                     Debug.WriteLine(" - BAD Block");
                                     i += 63;    // the 64th will be inside for loop
                                 }
-                                await Dispatcher.UIThread.InvokeAsync(() => UpdateDiskStatus());
+                                // Progress at most 5 times a second, posted: awaiting the UI thread for every page tied the
+                                // download speed to the UI and flooded it (the app froze during a long download).
+                                if (progressClock.ElapsedMilliseconds >= 200)
+                                {
+                                    progressClock.Restart();
+                                    Dispatcher.UIThread.Post(UpdateDiskStatus);
+                                }
                             }
+                            Dispatcher.UIThread.Post(UpdateDiskStatus);
                             try { addons.WriteAll(path, _serialnumber); }
                             catch (Exception ex) { Debug.WriteLine("Add-on output failed: " + ex.Message); }
                             if (readStatus.Count > 0)
