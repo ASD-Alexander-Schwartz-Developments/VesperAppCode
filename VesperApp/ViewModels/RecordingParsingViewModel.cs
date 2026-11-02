@@ -53,7 +53,7 @@ namespace VesperApp.ViewModels
         public ICommand? ShowInExplorerCommand { get; }
         public ICommand? DeleteSelectedCommand { get; }
 
-        public ObservableCollection<RecordingDataNode> ImportedData { get; } = new();
+        public BulkObservableCollection<RecordingDataNode> ImportedData { get; } = new();
 
         // ───────────────────────── browser column sorting ─────────────────────────
         // Click a column header to sort (toggle asc/desc). Folders always sort before
@@ -251,7 +251,7 @@ namespace VesperApp.ViewModels
 
             // Live view: filesystem events are debounced into a rescan, so the browser
             // follows imports, decodes and external changes without a manual refresh.
-            _fsDebounce.Elapsed += (_, _) => LoadDataFolder(CurrentDataFolder);
+            _fsDebounce.Elapsed += (_, _) => OnRescanDue();
 
             // Re-scan the current folder when settings change (e.g. the "hide intermediate
             // files" toggle) so the browser reflects the new preference immediately.
@@ -360,8 +360,7 @@ namespace VesperApp.ViewModels
                 }
                 else
                 {
-                    ImportedData.Clear();
-                    foreach (RecordingDataNode n in nodes) ImportedData.Add(n);
+                    ImportedData.ReplaceAll(nodes);
                 }
                 CurrentDataFolder = folder;
                 HasData = ImportedData.Count > 0;
@@ -376,6 +375,35 @@ namespace VesperApp.ViewModels
 
         private FileSystemWatcher? _watcher;
         private readonly System.Timers.Timer _fsDebounce = new(600) { AutoReset = false };
+
+        // A rescan walks the whole working directory (tens of thousands of files after a Nanotag
+        // GNSS download), and a decode writes into it for minutes: one scan at a time, at least
+        // RescanMinGap apart, so the scans cannot pile up behind each other.
+        private static readonly TimeSpan RescanMinGap = TimeSpan.FromSeconds(3);
+        private readonly object _rescanLock = new();
+        private bool _rescanRunning;
+        private DateTime _lastRescanEnd = DateTime.MinValue;
+
+        private void OnRescanDue()
+        {
+            lock (_rescanLock)
+            {
+                TimeSpan wait = _lastRescanEnd + RescanMinGap - DateTime.UtcNow;
+                if (_rescanRunning || wait > TimeSpan.Zero)
+                {
+                    _fsDebounce.Interval = Math.Max(600, wait.TotalMilliseconds);
+                    _fsDebounce.Start();
+                    return;
+                }
+                _rescanRunning = true;
+                _fsDebounce.Interval = 600;
+            }
+            try { LoadDataFolder(CurrentDataFolder); }
+            finally
+            {
+                lock (_rescanLock) { _rescanRunning = false; _lastRescanEnd = DateTime.UtcNow; }
+            }
+        }
 
         /// <summary>(Re)attach the recursive watcher to the browsed folder. Any filesystem
         /// event just restarts the debounce timer; a quiet 600 ms triggers one rescan.</summary>
@@ -412,24 +440,24 @@ namespace VesperApp.ViewModels
             _fsDebounce.Start();
         }
 
+        // More added + removed nodes than this in one folder: swap the folder's list in one Reset
+        // instead of one notification per node (a GNSS download adds thousands at once).
+        private const int SyncIncrementalMax = 64;
+
         /// <summary>Merge a freshly scanned node list into the displayed one, keyed by path:
-        /// update details in place, add what appeared, drop what disappeared, keep order.</summary>
-        private static void SyncNodes(ObservableCollection<RecordingDataNode> current, IList<RecordingDataNode> fresh)
+        /// update details in place, add what appeared, drop what disappeared, keep order.
+        /// Kept nodes stay the same instances, so their expansion state survives.
+        /// Linear in the folder size (was quadratic: a 60 000-file GNSS folder froze the UI).</summary>
+        internal static void SyncNodes(BulkObservableCollection<RecordingDataNode> current, IList<RecordingDataNode> fresh)
         {
-            for (int i = current.Count - 1; i >= 0; i--)
-                if (!fresh.Any(f => SameNode(f, current[i])))
-                    current.RemoveAt(i);
+            var byKey = new Dictionary<string, RecordingDataNode>(current.Count, StringComparer.OrdinalIgnoreCase);
+            foreach (RecordingDataNode c in current) byKey.TryAdd(NodeKey(c), c);
 
-            for (int i = 0; i < fresh.Count; i++)
+            var target = new List<RecordingDataNode>(fresh.Count);
+            var added = new HashSet<RecordingDataNode>(ReferenceEqualityComparer.Instance);
+            foreach (RecordingDataNode f in fresh)
             {
-                RecordingDataNode f = fresh[i];
-                RecordingDataNode? existing = current.FirstOrDefault(c => SameNode(f, c));
-
-                if (existing == null)
-                {
-                    current.Insert(Math.Min(i, current.Count), f);
-                }
-                else
+                if (byKey.Remove(NodeKey(f), out RecordingDataNode? existing))
                 {
                     existing.Name = f.Name;
                     existing.Kind = f.Kind;
@@ -438,16 +466,46 @@ namespace VesperApp.ViewModels
                     existing.Modified = f.Modified;
                     existing.Icon = f.Icon;
                     SyncNodes(existing.Children, f.Children);
+                    target.Add(existing);
+                }
+                else
+                {
+                    target.Add(f);
+                    added.Add(f);
+                }
+            }
+            // what is left in byKey has disappeared
 
-                    int ci = current.IndexOf(existing);
-                    if (ci != i && i < current.Count) current.Move(ci, i);
+            if (added.Count + byKey.Count > SyncIncrementalMax)
+            {
+                current.ReplaceAll(target);
+                return;
+            }
+
+            if (byKey.Count > 0)
+            {
+                var gone = new HashSet<RecordingDataNode>(byKey.Values, ReferenceEqualityComparer.Instance);
+                for (int i = current.Count - 1; i >= 0; i--)
+                    if (gone.Contains(current[i])) current.RemoveAt(i);
+            }
+
+            for (int i = 0; i < target.Count; i++)
+            {
+                RecordingDataNode t = target[i];
+                if (i < current.Count && ReferenceEquals(current[i], t)) continue;
+                if (added.Contains(t))
+                {
+                    current.Insert(i, t);
+                }
+                else
+                {
+                    int ci = current.IndexOf(t);
+                    if (ci >= 0 && ci != i) current.Move(ci, i);
                 }
             }
         }
 
-        private static bool SameNode(RecordingDataNode a, RecordingDataNode b) =>
-            a.IsFile == b.IsFile &&
-            string.Equals(a.FullPath, b.FullPath, StringComparison.OrdinalIgnoreCase);
+        private static string NodeKey(RecordingDataNode n) => (n.IsFile ? "f|" : "d|") + n.FullPath;
 
         // Friendly category per known sensor subfolder the parse phase produces.
         private static readonly (string sub, string label, Symbol icon)[] DataCategories =

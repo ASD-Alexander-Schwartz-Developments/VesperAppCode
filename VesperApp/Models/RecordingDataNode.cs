@@ -75,6 +75,6 @@ namespace VesperApp.Models
         }
         private bool _isExpanded;
 
-        public ObservableCollection<RecordingDataNode> Children { get; } = new();
+        public BulkObservableCollection<RecordingDataNode> Children { get; } = new();
     }
 }
