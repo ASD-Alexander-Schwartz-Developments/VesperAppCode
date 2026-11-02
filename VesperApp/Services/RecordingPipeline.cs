@@ -164,8 +164,33 @@ namespace VesperApp.Services
             return n.EndsWith(".BIN") && !n.EndsWith("BN.BIN");
         }
 
-        private static bool IsSnapFolder(string folder) =>
-            string.Equals(Path.GetFileName(folder), "DAT", StringComparison.OrdinalIgnoreCase);
+        // A Vesper parse writes snapshots to "DAT"; a Nanotag download to "GPS". Any folder holding snapshot
+        // files is a snapshot set, whatever its name (right-click Decode skipped a Nanotag GPS folder).
+        private static bool IsSnapFolder(string folder)
+        {
+            if (string.Equals(Path.GetFileName(folder), "DAT", StringComparison.OrdinalIgnoreCase)) return true;
+            try
+            {
+                return Directory.Exists(folder) &&
+                       Directory.EnumerateFiles(folder, "snap.*_GC0.dat", new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive }).Any();
+            }
+            catch { return false; }
+        }
+
+        /// <summary>Decode a Nanotag download (VesperApp rebuilt the files from the tag's pages, so there are no
+        /// raw .bin to parse): the GNSS snapshot folder and the accelerometer pages not decoded yet. Add-ons and
+        /// the log are decoded during the download already.</summary>
+        public static Task<DecodeSummary> DecodeNanotagSessionAsync(string sessionFolder, IProgress<int>? progress = null)
+        {
+            var targets = new List<string>();
+            string acc = Path.Combine(sessionFolder, "ACC");
+            if (Directory.Exists(acc))
+                targets.AddRange(Directory.EnumerateFiles(acc, "*.abn", new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive })
+                    .Where(f => !File.Exists(f + ".csv")));
+            string gps = Path.Combine(sessionFolder, "GPS");
+            if (IsSnapFolder(gps)) targets.Add(gps);
+            return DecodeFilesAsync(targets, progress);
+        }
 
         // ───────────────────────── phase 1: parse ─────────────────────────
 

@@ -107,8 +107,10 @@ namespace VesperApp.Services
                 }
                 else
                 {
-                    GnssDecodeResult res = await decoder.DecodeAsync(
-                        new GnssDecodeRequest(src, outPath), job.Log, job.Token).ConfigureAwait(false);
+                    // On a pool thread: the plugin's synchronous parts (file scan, process start) and any
+                    // continuation it does not ConfigureAwait must not run on the caller's (UI) thread.
+                    GnssDecodeResult res = await Task.Run(() => decoder.DecodeAsync(
+                        new GnssDecodeRequest(src, outPath), job.Log, job.Token)).ConfigureAwait(false);
                     outcome = new DecodeOutcome(res.Succeeded, res.Message ?? (res.Succeeded ? "Done." : "Decode failed."));
                 }
             }

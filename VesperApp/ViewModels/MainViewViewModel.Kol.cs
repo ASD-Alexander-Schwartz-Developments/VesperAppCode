@@ -117,7 +117,7 @@ namespace VesperApp.ViewModels
         /// <summary>Disk-dependent actions (Format) are meaningless while a KOL is in
         /// Live Audio — the medium belongs to the firmware and no MSC is exposed — or when
         /// a KOL reports no readable card.</summary>
-        public bool CanUseDeviceDisk => IsDeviceConnected
+        public bool CanUseDeviceDisk => IsDeviceConnected && !IsNanotagDownloading
             && !(IsUsbModesSelected && !KolUsbModeInfo.HasDisk(_kolUsbMode))
             && !(IsKolStatesSelected && !KolFlags.HasFlag(KolStatusFlags.CardMounted));
 

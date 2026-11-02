@@ -148,16 +148,16 @@
 						</Button>
 						<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,4"/>
 						<!-- Hidden for a KOL with the operating states: it sleeps by itself when unplugged and records through Start Recording. -->
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Sleep" Command="{Binding SleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}" IsVisible="{Binding ShowSleepCommands}"/>
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Arm Sleep" Command="{Binding ArmSleepDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}" IsVisible="{Binding ShowSleepCommands}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Sleep" Command="{Binding SleepDeviceCommand}" IsEnabled="{Binding IsDeviceIdle}" IsVisible="{Binding ShowSleepCommands}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Arm Sleep" Command="{Binding ArmSleepDeviceCommand}" IsEnabled="{Binding IsDeviceIdle}" IsVisible="{Binding ShowSleepCommands}"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Format" Command="{Binding FormatDeviceCommand}" IsEnabled="{Binding CanUseDeviceDisk}"
 								ToolTip.Tip="Format the device's storage (unavailable while a KOL is in Live Audio - no disk is exposed in that mode)"/>
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Set Time" Command="{Binding SetDateTimeDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Set Time" Command="{Binding SetDateTimeDeviceCommand}" IsEnabled="{Binding IsDeviceIdle}"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Upload Config" Command="{Binding UploadDeviceConfig}" IsEnabled="{Binding CanUseDeviceDisk}"
 								ToolTip.Tip="Send a configuration file to the device: over USB to a Nanotag, as config.json on the drive of a Vesper, Pipistrelle or KOL"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Download Data" Command="{Binding DownloadDeviceData}" IsEnabled="{Binding CanUseDeviceDisk}"
 								ToolTip.Tip="Get all recorded data: every page of a Nanotag, or the recorded files from the drive of a Vesper, Pipistrelle or KOL (guided import)"/>
-						<Button Classes="toolbar" Margin="0,2,0,2" Content="Upgrade Firmware" Command="{Binding BootloaderDeviceCommand}" IsEnabled="{Binding IsDeviceConnected}"/>
+						<Button Classes="toolbar" Margin="0,2,0,2" Content="Upgrade Firmware" Command="{Binding BootloaderDeviceCommand}" IsEnabled="{Binding IsDeviceIdle}"/>
 
 						<!-- USB operational modes (KOL; Vesper / Pipistrelle firmware 1.22+). Idle = disk + console;
 						     Live Audio = USB microphone (4 channels on KOL, 1 on Vesper), no disk; Sampling = off USB, running its schedule. -->

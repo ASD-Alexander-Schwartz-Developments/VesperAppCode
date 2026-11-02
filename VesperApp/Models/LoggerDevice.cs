@@ -492,9 +492,6 @@ namespace VesperApp.Models
 
             if (bytes2recv < 0) bytes2recv = 0;
 
-            Console.WriteLine("Write endpoint " + _usbEndpointWriter?.EpNum.ToString() + " Max Size: " + _usbEndpointWriter?.EndpointInfo.MaxPacketSize.ToString());
-            Console.WriteLine("Read endpoint " + _usbEndpointReader?.EpNum.ToString() + " Max Size: " + _usbEndpointReader?.EndpointInfo.MaxPacketSize.ToString());
-
             //Create a buffer with some data in it
             if (data2send == null) data2send = new byte[0];
 
@@ -1193,6 +1190,45 @@ namespace VesperApp.Models
             log.Add($"page {page}: {NanotagService.PageStatusName(status)}");
         }
 
+        /// <summary>Time of the oldest record on the tag (its first data page), in UTC when the page carries the
+        /// clock base (firmware 1.39+), else device time. Null for an empty tag or a read failure. Names the
+        /// download folder like a Vesper import (working folder / tag ID / recording date).</summary>
+        public DateTime? ReadFirstRecordTime(out long pages)
+        {
+            pages = 0;
+            if (WriteRead(Nanotag.VND_CMD_GET_DATANPAGES, Array.Empty<byte>(), out byte[] n, 8) != 0 || n.Length < 8)
+                return null;
+            uint first = BitConverter.ToUInt32(n, 0), last = BitConverter.ToUInt32(n, 4);
+            if (last <= first) return null;
+            pages = last - first;
+            if (WriteRead(Nanotag.VND_CMD_GET_DATACHUNK, BitConverter.GetBytes(first), out byte[] page, 128 + 4096) != 0
+                || page.Length < 4096 + 62)
+                return null;
+
+            const int spare = 4096;
+            uint ts = BitConverter.ToUInt32(page, spare + 30);         // FSGenericMetaData: snap timestamp
+            ushort sub = BitConverter.ToUInt16(page, spare + 34);
+            if (ts == 0 || ts == 0xFFFFFFFF) return null;
+            DateTime dt = Nanotag.FromTimestamp(ts, sub);
+            ushort metaLen = BitConverter.ToUInt16(page, spare + 4);
+            if (metaLen >= 62)
+                dt = VesperApp.Services.Time.DeviceClockBase.FromWire(page[spare + 58], BitConverter.ToInt16(page, spare + 60)).ToUtc(dt) ?? dt;
+            return dt;
+        }
+
+        /// <summary>Last download: pages it should have read (data area), pages it read, and why it stopped early
+        /// (null when it read every page). A stopped download keeps what it read.</summary>
+        public long DownloadPagesTotal { get; private set; }
+        public long DownloadPagesDone { get; private set; }
+        public string? DownloadStopReason { get; private set; }
+
+        // A page read that fails this many times in a row (no reply, not a bad block) means the tag is gone.
+        private const int DownloadMaxConsecutiveFailures = 16;
+
+        // GPS/snapshots.csv: one row per snapshot page (snapshot file, time, clock, ODBA, VeDBA), in place of
+        // one .txt per page (16 files a 256 ms snapshot: 60 000 files after one night).
+        private StreamWriter? _snapCsv;
+
         public async Task<bool> DownloadPages(string ? path = "")
         {
             bool r = false;
@@ -1212,18 +1248,14 @@ namespace VesperApp.Models
                         if (path == null || path.Length == 0)
                             path = Directory.GetCurrentDirectory();
 
-                        if (path.EndsWith("\\") == false)
-                            path += "\\";
-
                         bool foldersok = false;
                         string error = string.Empty;
                         string etype = string.Empty;
 
                         try
                         {
-                            Directory.CreateDirectory(path + "GPS");
-                            Directory.CreateDirectory(path + "ACC");
-                            Directory.CreateDirectory(path + "SNS");
+                            Directory.CreateDirectory(Path.Combine(path, "GPS"));
+                            Directory.CreateDirectory(Path.Combine(path, "ACC"));
                             foldersok = true;
                         }
                         catch (ArgumentNullException anex)
@@ -1272,24 +1304,29 @@ namespace VesperApp.Models
                             var addons = new NanotagAddonCollector();       // TPRH31 / ALS3001D / ProxTit pages (firmware 1.36+)
                             var readStatus = new List<string>();            // pages that did not read cleanly (firmware 1.39+)
                             DownloadPagesCorrected = DownloadPagesUncorrectable = DownloadPagesReadErrors = DownloadPagesCrcErrors = 0;
+                            DownloadPagesTotal = last_page > first_page ? last_page - first_page : 0;
+                            DownloadPagesDone = 0;
+                            DownloadStopReason = null;
                             _downloadClockBases.Clear();
                             var progressClock = Stopwatch.StartNew();
+                            int failedInRow = 0;
 
+                            try
+                            {
                             for (UInt32 i = first_page; i < last_page; i++, DownloadProgress = (double)((double)i / (double)last_page) * 100.0)
                             {
-                                //Console.WriteLine(("\r" + i.ToString()).PadLeft(Console.WindowWidth - Console.CursorLeft - 1));
                                 byte[] addr = new byte[4];
                                 addr[0] = (byte)(i & 0xFF);
                                 addr[1] = (byte)(i >> 8);
                                 addr[2] = (byte)(i >> 16);
                                 addr[3] = (byte)(i >> 24);
                                 var dpageresponse = new byte[0];
-                                Debug.Write("Trying to download page = " + i.ToString());
                                 int getpageresult = WriteRead(Nanotag.VND_CMD_GET_DATACHUNK, addr, out dpageresponse, (128 + 4096));
 
                                 if (getpageresult == 0)
                                 {
-                                    Debug.Write(" - OK ");
+                                    failedInRow = 0;
+                                    DownloadPagesDone++;
                                     if (FirmwareVersion != null && FirmwareVersion >= NanotagDiskHealthFirmware)
                                         CountPageStatus(i, _lastReplyByte1, readStatus);
                                     if (!NanotagService.PageCrcOk(dpageresponse))         // firmware 1.39+ data pages
@@ -1304,8 +1341,24 @@ namespace VesperApp.Models
                                 }
                                 else if (getpageresult == -200)
                                 {
-                                    Debug.WriteLine(" - BAD Block");
-                                    i += 63;    // the 64th will be inside for loop
+                                    failedInRow = 0;
+                                    i += 63;    // bad block: the 64th will be inside for loop
+                                    DownloadPagesDone += 64;
+                                }
+                                else if (getpageresult == -999)                      // USB gone (unplugged)
+                                {
+                                    DownloadStopReason = $"the tag was disconnected after {DownloadPagesDone} of {DownloadPagesTotal} pages";
+                                    break;
+                                }
+                                else
+                                {
+                                    DownloadPagesReadErrors++;
+                                    readStatus.Add($"page {i}: not read (code {getpageresult})");
+                                    if (++failedInRow >= DownloadMaxConsecutiveFailures)
+                                    {
+                                        DownloadStopReason = $"the tag stopped answering after {DownloadPagesDone} of {DownloadPagesTotal} pages";
+                                        break;
+                                    }
                                 }
                                 // Progress at most 5 times a second, posted: awaiting the UI thread for every page tied the
                                 // download speed to the UI and flooded it (the app froze during a long download).
@@ -1314,6 +1367,12 @@ namespace VesperApp.Models
                                     progressClock.Restart();
                                     Dispatcher.UIThread.Post(UpdateDiskStatus);
                                 }
+                            }
+                            }
+                            finally
+                            {
+                                _snapCsv?.Dispose();
+                                _snapCsv = null;
                             }
                             Dispatcher.UIThread.Post(UpdateDiskStatus);
                             try { addons.WriteAll(path, _serialnumber); }
@@ -1327,15 +1386,15 @@ namespace VesperApp.Models
                             catch (Exception ex) { Debug.WriteLine("CLOCK.txt failed: " + ex.Message); }
 
                             // LOGGER log area (firmware 1.35+): its own ring of pages, read after the data
-                            if (FirmwareVersion == null || FirmwareVersion >= NanotagLoggerFirmware)
+                            if (DownloadStopReason == null && (FirmwareVersion == null || FirmwareVersion >= NanotagLoggerFirmware))
                             {
                                 try { DownloadLogArea(path); }
                                 catch (Exception ex) { Debug.WriteLine("Log download failed: " + ex.Message); }
                             }
 
-                            DownloadProgress = 100.0;
-                            UpdateDiskStatus();
-                            r = true;
+                            if (DownloadStopReason == null) DownloadProgress = 100.0;
+                            Dispatcher.UIThread.Post(UpdateDiskStatus);
+                            r = DownloadStopReason == null;     // false: incomplete, what was read is saved
                         }
                         else
                         {
@@ -1558,8 +1617,6 @@ namespace VesperApp.Models
                         VEDBA += (UInt32)(bytes[ij++] << 16);
                         VEDBA += (UInt32)(bytes[ij++] << 24);
 
-                        Debug.WriteLine("- Its a " + snapType.ToString() + " ");
-
                         // Clock base of the page (firmware 1.39+, spare 58..61; nanotag-usb-vendor.md § Clock base).
                         var pageClock = VesperApp.Services.Time.DeviceClockBase.Unknown;
                         if (MetadataLength >= 62 && bytes.Length >= 4096 + 62)
@@ -1576,27 +1633,15 @@ namespace VesperApp.Models
                             snapType == 'G' &&
                             snapIndex < snapPagesInSnap)
                         {
-                            //string outfolder = this.textOutputFolder.Text;
-                            string outfolder = path + "GPS\\";
-                            
-
-                            //                        if (outfolder.EndsWith("\\") == false)
-                            //outfolder += "\\";
-
-                            string filename;//= String.Format("{0}\\{1}.bin",
-                                            //                    new object[] {
-                                            //                    outfolder, "G"+snapID.ToString("D6")});
+                            string outfolder = Path.Combine(path, "GPS");
 
                             // GNSS decoders take the snapshot time from the name and need UTC: a page whose clock base is
                             // known is named in UTC; an unknown base keeps the device time (CLOCK.txt says so).
                             DateTime dt = Nanotag.FromTimestamp(snapTimestamp, snapSubsecond);
                             dt = pageClock.ToUtc(dt) ?? dt;
 
-                            filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}_GC0.dat",
-                                new object[] {
-                                    outfolder, "snap.", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second});
-
-                            Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);
+                            string filename = Path.Combine(outfolder, String.Format("snap.{0,4:D4}_{1,2:D2}_{2,2:D2}_{3,2:D2}_{4,2:D2}_{5,2:D2}_GC0.dat",
+                                dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second));
 
 
                             for (int si = 0; si < bytes.Length; si += 4)
@@ -1628,35 +1673,25 @@ namespace VesperApp.Models
                                 file.Close();
                             }
 
-                            string metadata = string.Empty;
-                            double o = Math.Sqrt((double)ODBA);
-                            double v = Math.Sqrt((double)VEDBA);
-                            metadata += "SNAP: " + snapID.ToString() + "[" + snapIndex.ToString() + "/" + snapPagesInSnap.ToString() + "]" + Environment.NewLine;
-                            metadata += "ODBA: " + o.ToString() + Environment.NewLine;
-                            metadata += "VEDBA: " + v.ToString() + Environment.NewLine;
-                            metadata += "CLOCK: " + pageClock.Describe() + (pageClock.IsKnown ? " (file name in UTC)" : " (file name in device time)") + Environment.NewLine;
-
-                            File.WriteAllText(filename + "_" + snapIndex.ToString() + ".txt", metadata);
+                            if (_snapCsv == null)
+                            {
+                                string csvPath = Path.Combine(outfolder, "snapshots.csv");
+                                bool fresh = !File.Exists(csvPath);
+                                _snapCsv = new StreamWriter(csvPath, append: true);
+                                if (fresh) _snapCsv.WriteLine(SnapshotCsvHeader);
+                            }
+                            _snapCsv.WriteLine(SnapshotCsvRow(Path.GetFileName(filename), dt, pageClock, snapID, snapIndex, snapPagesInSnap, ODBA, VEDBA));
                         }
                         else if (f_preamble == preamnle_ok &&
                             page_type == NAND_FS_SNAP_PAGE_TYPE &&
                             snapType == 'A')
                         {
-                            string outfolder = path + "ACC\\";
-
-                            //                        if (outfolder.EndsWith("\\") == false)
-                            //outfolder += "\\";
-
-                            string filename;//= String.Format("{0}\\{1}.bin",
-                                            //                    new object[] {
-                                            //                    outfolder, "G"+snapID.ToString("D6")});
+                            string outfolder = Path.Combine(path, "ACC");
 
                             DateTime dt = Nanotag.FromTimestamp(snapTimestamp, snapSubsecond);
 
-                            filename = String.Format("{0}{1}{2,4:D4}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,2:D2}_{7,2:D2}_{8,3:D3}.abn",
-                                new object[] {
-                                    outfolder, "NACC.", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, 
-                                    dt.Second, dt.Millisecond});
+                            string filename = Path.Combine(outfolder, String.Format("NACC.{0,4:D4}_{1,2:D2}_{2,2:D2}_{3,2:D2}_{4,2:D2}_{5,2:D2}_{6,3:D3}.abn",
+                                dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second, dt.Millisecond));
                             string mname = filename + ".txt";
 
                             //Debug.WriteLine("Get good page index=" + snapIndex.ToString() + " out of " + snapPagesInSnap.ToString() + " to be saved into " + filename);
@@ -1704,9 +1739,25 @@ namespace VesperApp.Models
             return (true);
         }
 
+        public const string SnapshotCsvHeader = "file,time,clock,snap_id,page,pages,odba,vedba";
 
-
-
+        /// <summary>One GPS/snapshots.csv row for a snapshot page: the snapshot file it went to, the snapshot time
+        /// (as in the file name: UTC when the clock base is known), the clock base, page k of n (1-based),
+        /// and the tag's ODBA / VeDBA (square roots of the stored sums, as the per-page .txt had them).</summary>
+        public static string SnapshotCsvRow(string file, DateTime time, VesperApp.Services.Time.DeviceClockBase clock,
+            uint snapId, uint pageIndex, uint pages, uint odba, uint vedba)
+        {
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            return string.Join(",",
+                file,
+                time.ToString("yyyy-MM-dd HH:mm:ss.fff", inv),
+                (clock.IsKnown ? clock.Describe() : "device time").Replace(',', ' '),
+                snapId.ToString(inv),
+                (pageIndex + 1).ToString(inv),
+                pages.ToString(inv),
+                Math.Sqrt(odba).ToString("0.###", inv),
+                Math.Sqrt(vedba).ToString("0.###", inv));
+        }
 
         public bool Equals(LoggerDevice? ld)
         {

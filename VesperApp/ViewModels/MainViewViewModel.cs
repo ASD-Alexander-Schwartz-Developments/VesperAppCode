@@ -60,10 +60,31 @@ namespace VesperApp.ViewModels
         public bool IsDeviceConnected
         {
             get => _isDeviceConnected;
-            set => this.RaiseAndSetIfChanged(ref _isDeviceConnected, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isDeviceConnected, value);
+                this.RaisePropertyChanged(nameof(IsDeviceIdle));
+            }
         }
 
         private bool _isDeviceConnected = false;
+
+        /// <summary>A Nanotag download is reading the tag: Format, Arm, Upload, Set Time, Upgrade and a second
+        /// Download would talk to the same tag mid-transfer (Format would erase what is being read).</summary>
+        public bool IsNanotagDownloading
+        {
+            get => _isNanotagDownloading;
+            private set
+            {
+                this.RaiseAndSetIfChanged(ref _isNanotagDownloading, value);
+                this.RaisePropertyChanged(nameof(IsDeviceIdle));
+                this.RaisePropertyChanged(nameof(CanUseDeviceDisk));
+            }
+        }
+        private bool _isNanotagDownloading;
+
+        /// <summary>Device connected and not busy with a download: enables the device actions.</summary>
+        public bool IsDeviceIdle => IsDeviceConnected && !IsNanotagDownloading;
 
         /// <summary>
         /// Whether the Logger Devices console (list + device actions) is shown. Collapsed, the
@@ -173,8 +194,6 @@ namespace VesperApp.ViewModels
 
         public SelectionModel<LoggerDevice>? SelectedLoggerDeviceModel { get; }
 
-
-        private bool __downloading_nanotag_data = false;
 
         public MainViewViewModel()
         {
@@ -381,38 +400,7 @@ namespace VesperApp.ViewModels
                     return;
                 }
                 if (SelectedLoggerDevice != null)
-                {
-                    FolderPickerOpenOptions foptions = new()
-                    {
-                        Title = "Selec Folder to download data into ...",
-                        AllowMultiple = false,
-                    };
-
-
-                    // Awaited, not .Result: a synchronous wait here held the UI thread.
-                    IReadOnlyList<IStorageFolder> folders = await RootTopLevel!.StorageProvider!.OpenFolderPickerAsync(foptions);
-                    LoggerDevice dev = SelectedLoggerDevice;
-
-                    if (folders.Count > 0)
-                    {
-                        __downloading_nanotag_data = true;
-                        try
-                        {
-                            string? path = folders[0].TryGetLocalPath();
-                            // The whole download off the UI thread (its first USB transfer ran on the caller's thread).
-                            bool ok = await Task.Run(() => dev.DownloadPages(path));
-                            TextMessageBottom = ok ? $"Download finished: {path}" : "Download failed: reconnect the tag and try again.";
-                        }
-                        catch (Exception ex)
-                        {
-                            TextMessageBottom = "Download failed: " + ex.Message;
-                        }
-                        finally
-                        {
-                            __downloading_nanotag_data = false;
-                        }
-                    }
-                }
+                    await DownloadNanotagAsync(SelectedLoggerDevice);
             });
 
             BootloaderDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -642,6 +630,103 @@ namespace VesperApp.ViewModels
             RunOnUi(() => TextMessageBottom = message);
         }
 
+        /// <summary>Download Data on a Nanotag, finishing like a Vesper import: target suggested as
+        /// working folder / tag ID / first record date, the device actions locked while the tag is read, an
+        /// incomplete read reported as such, then the session opened on the Recordings page and decoded
+        /// (Settings → Auto Decode).</summary>
+        private async Task DownloadNanotagAsync(LoggerDevice dev)
+        {
+            IsNanotagDownloading = true;
+            bool unlocked = false;
+            try
+            {
+                long pages = 0;
+                DateTime? firstRecord = await Task.Run(() => dev.ReadFirstRecordTime(out pages));
+                string id = string.IsNullOrWhiteSpace(dev.SerialNumber) ? "Nanotag" : dev.SerialNumber!;
+                string suggested = Path.Combine(SettingsService.Instance.ResolveWorkingDirectory(), id,
+                    (firstRecord ?? DateTime.Now).ToString("yyyy-MM-dd_HH-mm-ss"));
+
+                string? path = await ChooseNanotagTargetAsync(id, pages, firstRecord, suggested);
+                if (path == null) return;
+                Directory.CreateDirectory(path);
+
+                TextMessageBottom = $"Downloading Nanotag {id} to {path}. Keep the tag in the dock until it has finished.";
+                // The whole download off the UI thread (its first USB transfer ran on the caller's thread).
+                bool ok = await Task.Run(() => dev.DownloadPages(path));
+
+                string attention = File.Exists(Path.Combine(path, "download-read-status.txt"))
+                    ? " Some pages need attention: see download-read-status.txt." : string.Empty;
+                if (ok)
+                    TextMessageBottom = $"Downloaded {dev.DownloadPagesDone} pages to {path}.{attention}";
+                else if (dev.DownloadStopReason != null)
+                    TextMessageBottom = $"Download incomplete: {dev.DownloadStopReason}. What was read is in {path}; dock the tag and download again.";
+                else
+                    TextMessageBottom = "Download failed: reconnect the tag and try again.";
+
+                IsNanotagDownloading = false;
+                unlocked = true;
+
+                if (dev.DownloadPagesDone > 0)
+                {
+                    Category? rec = Categories.OfType<Category>().FirstOrDefault(c => c.DataContext is RecordingParsingViewModel);
+                    if (rec?.DataContext is RecordingParsingViewModel rvm)
+                    {
+                        SelectedCategory = rec;
+                        if (ok) _ = rvm.FinishNanotagDownloadAsync(path);    // decode runs as a job; the toolbar is free
+                        else rvm.LoadDataFolder(path);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TextMessageBottom = "Download failed: " + ex.Message;
+            }
+            finally
+            {
+                if (!unlocked) IsNanotagDownloading = false;
+            }
+        }
+
+        /// <summary>Where a Nanotag download goes: the suggested session folder, or one the user picks.
+        /// Null when cancelled.</summary>
+        private async Task<string?> ChooseNanotagTargetAsync(string id, long pages, DateTime? firstRecord, string suggested)
+        {
+            string what = pages > 0
+                ? $"Nanotag {id} · {pages:N0} pages ({pages * 4096 / 1_000_000.0:N1} MB)" +
+                  (firstRecord is DateTime f ? $" · first record {f:yyyy-MM-dd HH:mm}" : string.Empty)
+                : $"Nanotag {id} · no recorded data found";
+
+            var box = MessageBoxManager.GetMessageBoxCustom(new MessageBoxCustomParams
+            {
+                ButtonDefinitions = new List<ButtonDefinition>
+                {
+                    new() { Name = "Download", IsDefault = true },
+                    new() { Name = "Choose folder…" },
+                    new() { Name = "Cancel", IsCancel = true },
+                },
+                ContentTitle = "Download Nanotag data",
+                ContentHeader = what,
+                ContentMessage = "Download to:" + Environment.NewLine + suggested + Environment.NewLine + Environment.NewLine +
+                                 "Keep the tag in the dock until the download has finished. The tag is not erased.",
+                Icon = Icon.Question,
+                WindowIcon = App.MainWindow?.Icon,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                CanResize = false,
+            });
+            string answer = App.MainWindow != null ? await box.ShowWindowDialogAsync(App.MainWindow) : await box.ShowAsync();
+
+            if (answer == "Download") return suggested;
+            if (answer != "Choose folder…") return null;
+
+            IReadOnlyList<IStorageFolder> folders = await RootTopLevel!.StorageProvider!.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Download Nanotag data to…",
+                AllowMultiple = false,
+            });
+            return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+        }
+
         /// <summary>Download Data on a Vesper / Pipistrelle / KOL: the guided import (Recordings page) with the
         /// unit's drive pre-selected, which copies the recorded files and auto-decodes them per Settings.</summary>
         private async Task DownloadFromUnitDiskAsync(LoggerDevice dev)
@@ -794,7 +879,7 @@ namespace VesperApp.ViewModels
 
         private void _timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            if (IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false && __downloading_nanotag_data == false)
+            if (IsDeviceConnected == false && _deviceUsbAdapter != null && IsClosing == false && !IsNanotagDownloading)
             {
                     var scan_nano = Task.Run(async () => await ScanFor(Nanotag.VendorId, Nanotag.ProductId));
                     var scan_comport = Task.Run(async () => await ScanForComport());
@@ -808,7 +893,7 @@ namespace VesperApp.ViewModels
             else
                 TextDateTimeNow = DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToLongTimeString();
 
-            if (IsDeviceConnected == true && SelectedLoggerDevice != null && __downloading_nanotag_data == false)
+            if (IsDeviceConnected == true && SelectedLoggerDevice != null && !IsNanotagDownloading)
             {
                 var ping_device = Task.Run(async () =>
                 {

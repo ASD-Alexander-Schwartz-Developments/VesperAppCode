@@ -324,6 +324,27 @@ namespace VesperApp.ViewModels
             return outcome;
         }
 
+        /// <summary>After a Nanotag download, the same finish as a Vesper Auto Import: the session in the browser,
+        /// and (Settings → Auto Decode) the GNSS snapshots and accelerometer pages decoded as a job.</summary>
+        public async Task FinishNanotagDownloadAsync(string sessionFolder)
+        {
+            LoadDataFolder(sessionFolder);
+            if (!SettingsService.Current.Recordings.AutoDecodeOnImport) return;
+
+            LastSummary = string.Empty;
+            DecodeJob job = DecodeJobManager.Instance.Run(
+                "Auto decode (Nanotag " + Path.GetFileName(Path.GetDirectoryName(sessionFolder.TrimEnd('\\', '/')) ?? "") + ")",
+                async (log, pct, ct) =>
+                {
+                    var progress = new Progress<int>(p => pct.Report(p));
+                    DecodeSummary summary = await RecordingPipeline.DecodeNanotagSessionAsync(sessionFolder, progress);
+                    log.Report(summary.ToString());
+                    return new DecodeOutcome(summary.Failed == 0, summary.ToString());
+                });
+            DecodeOutcome outcome = await job.Completion;
+            LastSummary = outcome.Message;
+        }
+
         // ───────────────────────── data browser ─────────────────────────
 
         private async Task<bool> BrowseDataFolder()
@@ -518,6 +539,8 @@ namespace VesperApp.ViewModels
             ("ALS", "Light", Symbol.WeatherSunnyLow),
             ("THCAM", "Camera", Symbol.Camera),
             ("DAT", "GNSS", Symbol.Globe),
+            ("GPS", "GNSS (Nanotag)", Symbol.Globe),
+            ("ACC", "Accelerometer (Nanotag)", Symbol.Directions),
             ("HEALTH", "Health log", Symbol.Document),
         };
 
