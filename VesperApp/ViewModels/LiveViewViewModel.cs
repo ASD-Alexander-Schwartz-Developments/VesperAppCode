@@ -87,11 +87,9 @@ namespace VesperApp.ViewModels
         public string? AudioBackendProblem => AudioCaptureService.UnavailableReason;
 
         // ------------------------------------------------------------------ unit microphone parameters
-        private static readonly int[] KolRates = { 8000, 16000, 32000, 48000, 96000 };
-        private static readonly int[] VesperRates = { 8000, 16000, 32000, 48000, 96000, 192000 };
-
-        /// <summary>Live Audio rates of the selected unit's product (Vesper / Pipistrelle add 192 kHz).</summary>
-        public int[] SampleRates => UnitType is DeviceTypes.Vesper or DeviceTypes.Pipistrelle ? VesperRates : KolRates;
+        /// <summary>Live Audio rates of the unit's product (<see cref="DeviceCapabilities.LiveAudioRates"/>):
+        /// KOL up to 96 kHz, Vesper / Pipistrelle up to 200 kHz incl. 100 kHz.</summary>
+        public IReadOnlyList<int> SampleRates => DeviceCapabilities.LiveAudioRates(UnitType);
         private int _selectedSampleRate = 48000;
         public int SelectedSampleRate { get => _selectedSampleRate; set { this.RaiseAndSetIfChanged(ref _selectedSampleRate, value); this.RaisePropertyChanged(nameof(RateNoteText)); } }
 
@@ -317,9 +315,17 @@ namespace VesperApp.ViewModels
             get { LoggerDevice? d = _main?.SelectedLoggerDevice; return d?.SupportsUsbModes == true && d.IsConnected ? d : null; }
         }
 
-        /// <summary>Product the unit source refers to: the selected unit's family, else KOL.</summary>
-        private DeviceTypes UnitType =>
-            _main?.SelectedLoggerDevice?.DeviceType is DeviceTypes t && DeviceCapabilities.HasUsbModes(t) ? t : DeviceTypes.Kol;
+        /// <summary>Product the unit source refers to: the selected unit's family; while no unit is selected
+        /// (a mode switch re-enumerates it) the last one seen, so the rate list does not flip to KOL's; else KOL.</summary>
+        private DeviceTypes UnitType
+        {
+            get
+            {
+                if (_main?.SelectedLoggerDevice?.DeviceType is DeviceTypes t && DeviceCapabilities.HasUsbModes(t)) _lastUnitType = t;
+                return _lastUnitType;
+            }
+        }
+        private DeviceTypes _lastUnitType = DeviceTypes.Kol;
 
         public string UnitName => DeviceCapabilities.DisplayName(UnitType);
 

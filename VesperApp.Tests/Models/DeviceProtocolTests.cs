@@ -174,6 +174,19 @@ public class DeviceCapabilitiesTests
     }
 
     [Fact]
+    public void LiveAudioRates()
+    {
+        Assert.Equal(new[] { 8000, 16000, 32000, 48000, 96000 }, DeviceCapabilities.LiveAudioRates(DeviceTypes.Kol));
+        int[] vesper = { 8000, 16000, 32000, 48000, 96000, 100000, 192000, 200000 };
+        Assert.Equal(vesper, DeviceCapabilities.LiveAudioRates(DeviceTypes.Vesper));
+        Assert.Equal(vesper, DeviceCapabilities.LiveAudioRates(DeviceTypes.Pipistrelle));
+        Assert.Empty(DeviceCapabilities.LiveAudioRates(DeviceTypes.Nanotag));
+        Assert.Empty(DeviceCapabilities.LiveAudioRates(null));
+        // VesperU5 solves every offered rate exactly from the 4.8 MHz PDM clock (mic_chain).
+        Assert.All(vesper, r => Assert.Equal(0, 4_800_000 % r));
+    }
+
+    [Fact]
     public void Misc()
     {
         Assert.False(DeviceCapabilities.HasAddonSensors(null));

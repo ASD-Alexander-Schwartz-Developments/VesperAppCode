@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace VesperApp.Models
 {
@@ -108,6 +109,21 @@ namespace VesperApp.Models
 
         /// <summary>Live Audio channels the unit streams as a USB microphone (one per microphone).</summary>
         public static int LiveAudioChannels(DeviceTypes? product) => MicCount(product);
+
+        private static readonly int[] KolLiveAudioRates = { 8000, 16000, 32000, 48000, 96000 };
+        private static readonly int[] VesperLiveAudioRates = { 8000, 16000, 32000, 48000, 96000, 100000, 192000, 200000 };
+
+        /// <summary>
+        /// Sample rates the unit's Live Audio microphone offers (its UAC2 clock source list), ascending.
+        /// KOL: 4 channels, up to 96 kHz (USB Full-Speed packet). Vesper / Pipistrelle (VesperU5 1.22,
+        /// d928164): 1 channel, up to 200 kHz incl. the recordings' 100 kHz, all exact from the 4.8 MHz PDM clock.
+        /// </summary>
+        public static IReadOnlyList<int> LiveAudioRates(DeviceTypes? product) => product switch
+        {
+            DeviceTypes.Vesper or DeviceTypes.Pipistrelle => VesperLiveAudioRates,
+            DeviceTypes.Kol => KolLiveAudioRates,
+            _ => Array.Empty<int>(),
+        };
 
         /// <summary>Name the unit's Live Audio microphone has on the host (USB product string).</summary>
         public static string LiveAudioDeviceName(DeviceTypes? product) => product switch
