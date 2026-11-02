@@ -72,6 +72,22 @@ namespace VesperApp.Models
         }
         private string? localDateTime;
 
+        /// <summary>Which time the logger's clock keeps ("UTC", "Local UTC+02:00", "Unknown"); empty when the
+        /// firmware does not report it (Nanotag before 1.39, other loggers).</summary>
+        public string? ClockBaseText
+        {
+            get => clockBaseText;
+            set => this.RaiseAndSetIfChanged(ref clockBaseText, value);
+        }
+        private string? clockBaseText;
+
+        public string? ClockBaseToolTip
+        {
+            get => clockBaseToolTip;
+            set => this.RaiseAndSetIfChanged(ref clockBaseToolTip, value);
+        }
+        private string? clockBaseToolTip = "Not reported by this logger's firmware (Nanotag 1.39+ reports it).";
+
         public double? DiskSize { get; set; }
         public double? DiskOccupancy { get; set; }
 
@@ -240,7 +256,7 @@ namespace VesperApp.Models
 //                        vd.isarmed = (data[24] == 0) ? "Armed" : "Not Armed";
                         byte[] dtarray = { data[25], data[26], data[27], data[28], data[29], data[30], data[31] };
                         DateTime dtt = SerialMessage.BytesToDateTime(dtarray);
-                        this.LocalDateTime = dtt.ToString();
+                        this.LocalDateTime = DisplayFormat.DateTime(dtt);
 
                         UInt32 voltage = (UInt32)((UInt32)data[32] + (UInt32)(data[33] << 8));
                         this.BatteryChargePercent = voltage.ToString();
@@ -435,10 +451,8 @@ namespace VesperApp.Models
 
         private void UpdateDiskStatus()
         {
-            DiskStatus = DownloadProgress?.ToString("N2") + "%" + Environment.NewLine +
-                            DiskOccupancy?.ToString("N2") + "%" + Environment.NewLine +
-                            DiskSize?.ToString("N2") + "GB";
-
+            // DiskOccupancy holds the Nanotag's free-pages percent (VND_CMD_GET_DISKINFO)
+            DiskStatus = DisplayFormat.Disk(DiskSize ?? 0, DiskOccupancy, DownloadProgress);
         }
 
         public bool IsConnected => (this.USBDevice == null) ? ((this._comport == null) ? false : this._comport.IsRunning)  : this.USBDevice.IsOpen == true;
@@ -618,7 +632,7 @@ namespace VesperApp.Models
                             if (charge > 100.0) charge = 100.0;
                             else if (charge < 0.0) charge = 0.0;
 
-                            BatteryChargePercent = charge.ToString("N2") + "%";
+                            BatteryChargePercent = charge.ToString("0") + "%";
                         }
                     }
 
@@ -628,12 +642,15 @@ namespace VesperApp.Models
 
                     DateTime dateTime = Nanotag.FromTimestamp(ts, 0);
 
-                    this.LocalDateTime = dateTime.ToString("G");
+                    this.LocalDateTime = DisplayFormat.DateTime(dateTime);
                     if (FirmwareVersion != null && FirmwareVersion >= NanotagDiskHealthFirmware)
                     {
                         var clk = GetClockAsync().GetAwaiter().GetResult();     // 1.39+: which time the tag keeps
                         if (clk != null)
-                            this.LocalDateTime = dateTime.ToString("G") + "  " + clk.Value.Base.Describe();
+                        {
+                            this.ClockBaseText = DisplayFormat.ClockBase(clk.Value.Base);
+                            this.ClockBaseToolTip = "The tag's clock keeps " + clk.Value.Base.Describe() + ".";
+                        }
                     }
 
                     res = true;

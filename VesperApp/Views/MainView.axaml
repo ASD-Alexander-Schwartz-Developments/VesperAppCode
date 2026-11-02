@@ -6,6 +6,7 @@
 		xmlns:m="using:VesperApp.Models"
 		xmlns:ui="using:FluentAvalonia.UI.Controls"
 		xmlns:Controls="using:VesperApp.Controls"
+		xmlns:conv="using:Avalonia.Data.Converters"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
 		MinWidth="860"
 		MinHeight="480"
@@ -104,13 +105,19 @@
 						</StackPanel>
 					</Button>
 
-					<Border Classes="statusPill" VerticalAlignment="Center">
-						<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-							<TextBlock x:Name="textDateTime" Classes="mono" VerticalAlignment="Center"
-									   FontSize="14" Text="{Binding TextDateTimeNow}"/>
-							<CheckBox x:Name="chkIsUTC" VerticalAlignment="Center" MinWidth="0"
-									  IsChecked="{Binding IsClockUTC}" Content="UTC"
-									  ToolTip.Tip="Logger clock: ticked = Set Time puts loggers on UTC (recommended; GNSS positions need UTC). Unticked = this PC's local time. The logger keeps the choice with its clock and marks its data with it, so it decodes correctly on any PC. Saved."/>
+					<!-- Logger clock: the time Set Time writes, and which time (UTC or this PC's local) -->
+					<Border Classes="statusPill" VerticalAlignment="Center" Padding="14,3,4,3"
+							ToolTip.Tip="Logger clock: the time Set Time puts on loggers. UTC is recommended (GNSS positions need UTC); Local uses this PC's time zone. The logger keeps the choice with its clock and marks its data with it, so it decodes correctly on any PC. Saved.">
+						<StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+							<StackPanel VerticalAlignment="Center">
+								<TextBlock Classes="caption" FontSize="11" Text="Logger clock"/>
+								<TextBlock x:Name="textDateTime" Classes="mono" FontSize="14" Text="{Binding TextDateTimeNow}"/>
+							</StackPanel>
+							<ComboBox x:Name="comboLoggerClock" VerticalAlignment="Center" MinWidth="0"
+									  SelectedIndex="{Binding LoggerClockIndex}">
+								<ComboBoxItem Content="UTC"/>
+								<ComboBoxItem Content="{Binding LoggerClockLocalText}"/>
+							</ComboBox>
 						</StackPanel>
 					</Border>
 				</StackPanel>
@@ -208,35 +215,49 @@
 								<Border DockPanel.Dock="Top" Background="{DynamicResource HeaderBackgroundBrush}"
 										BorderBrush="{DynamicResource HeaderBorderBrush}" BorderThickness="0,0,0,1"
 										CornerRadius="6,6,0,0" Padding="10,8">
-									<Grid ColumnDefinitions="1.4*,*,*,0.7*,0.7*,1.4*,0.9*,0.6*">
-										<TextBlock Grid.Column="0" Classes="colHeader" Text="Serial Number"/>
-										<TextBlock Grid.Column="1" Classes="colHeader" Text="Name"/>
+									<Grid ColumnDefinitions="1.2*,*,*,0.6*,0.6*,175,135,1.2*,70" ColumnSpacing="12">
+										<TextBlock Grid.Column="0" Classes="colHeader" Text="Serial number"/>
+										<TextBlock Grid.Column="1" Classes="colHeader" Text="Type"/>
 										<TextBlock Grid.Column="2" Classes="colHeader" Text="Nickname"/>
-										<TextBlock Grid.Column="3" Classes="colHeader" Text="HwId"/>
-										<TextBlock Grid.Column="4" Classes="colHeader" Text="FwId"/>
+										<TextBlock Grid.Column="3" Classes="colHeader" Text="Hardware"/>
+										<TextBlock Grid.Column="4" Classes="colHeader" Text="Firmware"/>
 										<TextBlock Grid.Column="5" Classes="colHeader" Text="Device time"
-												   ToolTip.Tip="The logger's own clock. Nanotag 1.39+ also shows whether it keeps UTC or local time."/>
-										<TextBlock Grid.Column="6" Classes="colHeader" Text="Disk"/>
-										<TextBlock Grid.Column="7" Classes="colHeader" Text="Batt"/>
+												   ToolTip.Tip="The logger's own clock, as it reads now"/>
+										<TextBlock Grid.Column="6" Classes="colHeader" Text="Clock"
+												   ToolTip.Tip="Which time the logger's clock keeps: UTC or local time (Nanotag 1.39+ reports it)"/>
+										<TextBlock Grid.Column="7" Classes="colHeader" Text="Storage"/>
+										<TextBlock Grid.Column="8" Classes="colHeader" Text="Battery"/>
 									</Grid>
 								</Border>
-								<ScrollViewer x:Name="PART_ScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-									<ItemsPresenter/>
-								</ScrollViewer>
+								<Panel>
+									<ScrollViewer x:Name="PART_ScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+										<ItemsPresenter/>
+									</ScrollViewer>
+									<TextBlock Classes="subtle" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12"
+											   TextAlignment="Center" TextWrapping="Wrap"
+											   IsVisible="{Binding !LoggerDevices.Count}"
+											   Text="No loggers connected. Plug a logger into USB, or connect its dock, and it appears here."/>
+								</Panel>
 							</DockPanel>
 						</ControlTemplate>
 					</ListBox.Template>
 					<ListBox.ItemTemplate>
 						<DataTemplate DataType="m:LoggerDevice">
-							<Grid ColumnDefinitions="1.4*,*,*,0.7*,0.7*,1.4*,0.9*,0.6*" VerticalAlignment="Center">
+							<Grid ColumnDefinitions="1.2*,*,*,0.6*,0.6*,175,135,1.2*,70" ColumnSpacing="12" VerticalAlignment="Center" MinHeight="28">
 								<TextBlock Grid.Column="0" Classes="mono" Text="{Binding SerialNumber}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 								<TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 								<TextBlock Grid.Column="2" Text="{Binding Nickname}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 								<TextBlock Grid.Column="3" Text="{Binding HwId}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 								<TextBlock Grid.Column="4" Text="{Binding FwId}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 								<TextBlock Grid.Column="5" Classes="mono" Text="{Binding LocalDateTime}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-								<TextBlock Grid.Column="6" Text="{Binding DiskStatus}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-								<TextBlock Grid.Column="7" Text="{Binding BatteryChargePercent}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+								<Border Grid.Column="6" Classes="statusPill" HorizontalAlignment="Left" Padding="8,1"
+										IsVisible="{Binding ClockBaseText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+										ToolTip.Tip="{Binding ClockBaseToolTip}">
+									<TextBlock Text="{Binding ClockBaseText}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+								</Border>
+								<TextBlock Grid.Column="7" Text="{Binding DiskStatus}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+										   ToolTip.Tip="{Binding DiskStatus}"/>
+								<TextBlock Grid.Column="8" Text="{Binding BatteryChargePercent}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
 							</Grid>
 						</DataTemplate>
 					</ListBox.ItemTemplate>

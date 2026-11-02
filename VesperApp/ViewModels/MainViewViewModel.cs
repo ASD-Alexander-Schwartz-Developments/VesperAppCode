@@ -139,6 +139,8 @@ namespace VesperApp.ViewModels
             {
                 if (_isClockUTC == value) return;
                 this.RaiseAndSetIfChanged(ref _isClockUTC, value);
+                this.RaisePropertyChanged(nameof(LoggerClockIndex));
+                TextDateTimeNow = ClockNowText();
 
                 var cfg = SettingsService.Current;
                 if (cfg.Ui.LoggerClockUtc != value)
@@ -151,6 +153,19 @@ namespace VesperApp.ViewModels
 
         private bool _isClockUTC = true;
 
+        /// <summary>The "Logger clock" selector in the header: 0 = UTC, 1 = this PC's local time.</summary>
+        public int LoggerClockIndex
+        {
+            get => IsClockUTC ? 0 : 1;
+            set { if (value >= 0) IsClockUTC = value == 0; }
+        }
+
+        /// <summary>Local item of the selector, with this PC's current offset ("Local (UTC+02:00)").</summary>
+        public string LoggerClockLocalText =>
+            "Local (" + DisplayFormat.UtcOffset((int)Math.Round(TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow).TotalMinutes)) + ")";
+
+        /// <summary>The time Set Time would write now, in the selected logger clock.</summary>
+        private string ClockNowText() => DisplayFormat.DateTime(IsClockUTC ? DateTime.UtcNow : DateTime.Now);
 
         public string TextDateTimeNow
         {
@@ -158,7 +173,7 @@ namespace VesperApp.ViewModels
             set => this.RaiseAndSetIfChanged(ref _textDateTimeNow, value);
         }
 
-        private string _textDateTimeNow = (DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToLongTimeString());
+        private string _textDateTimeNow = DisplayFormat.DateTime(DateTime.UtcNow);
 
         /// <summary>
         /// The device highlighted in the list. Change notification is dispatched to the
@@ -888,10 +903,7 @@ namespace VesperApp.ViewModels
 
         private void _timerClock_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            if (IsClockUTC == false)
-                TextDateTimeNow = DateTime.Now.ToShortDateString() + " " + DateTime.Now.ToLongTimeString();
-            else
-                TextDateTimeNow = DateTime.UtcNow.ToShortDateString() + " " + DateTime.UtcNow.ToLongTimeString();
+            TextDateTimeNow = ClockNowText();
 
             if (IsDeviceConnected == true && SelectedLoggerDevice != null && !IsNanotagDownloading)
             {

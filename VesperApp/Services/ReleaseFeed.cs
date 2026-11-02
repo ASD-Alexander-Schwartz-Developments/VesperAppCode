@@ -33,6 +33,10 @@ namespace VesperApp.Services
         /// <summary>Publish timestamp (ISO-8601).</summary>
         public string? Published { get; set; }
 
+        /// <summary><see cref="Published"/> as shown in the release lists ("2026-11-02 15:12", local time).</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string PublishedText => VesperApp.Models.DisplayFormat.Published(Published);
+
         /// <summary>Target key the entry is for: device type (firmware) or os-arch (plugin pack).</summary>
         public string? Target { get; set; }
 
