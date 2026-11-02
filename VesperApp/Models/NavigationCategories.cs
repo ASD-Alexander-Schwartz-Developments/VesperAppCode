@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace VesperApp.Models
 {
-    public abstract class CategoryBase { }
+    public abstract class CategoryBase : ReactiveUI.ReactiveObject { }
 
     public class Category : CategoryBase
     {
@@ -17,6 +17,14 @@ namespace VesperApp.Models
         public Symbol Icon { get; set; }
         public Type Page { get; set; }
         public object? DataContext { get; set; }
+
+        /// <summary>Shown in the navigation menu (e.g. Nanotag Console only while a Nanotag is connected).</summary>
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set => ReactiveUI.IReactiveObjectExtensions.RaiseAndSetIfChanged(this, ref _isVisible, value);
+        }
+        private bool _isVisible = true;
     }
 
     public class Separator : CategoryBase

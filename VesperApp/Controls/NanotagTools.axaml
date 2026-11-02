@@ -6,7 +6,7 @@
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
              x:Class="VesperApp.Controls.NanotagTools">
 
-	<HeaderedContentControl Header="Nanotag" UseLayoutRounding="True">
+	<HeaderedContentControl Header="Nanotag Console" UseLayoutRounding="True">
 		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,*">
 
 			<!-- Disk health (firmware 1.39) -->

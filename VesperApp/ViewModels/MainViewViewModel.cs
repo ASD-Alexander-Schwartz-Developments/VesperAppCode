@@ -190,6 +190,7 @@ namespace VesperApp.ViewModels
                 RunOnUi(() =>
                 {
                     this.RaisePropertyChanged(nameof(SelectedLoggerDevice));
+                    this.RaisePropertyChanged(nameof(IsNanotagSelected));
                     OnSelectedLoggerDeviceChanged();
                 });
             }
@@ -236,7 +237,10 @@ namespace VesperApp.ViewModels
             Categories.Add(new Category { Name = "Device Tests", Page = typeof(DeviceTests), DataContext = new DeviceTestsViewModel(this), Icon = Symbol.Repair, ToolTip = "Per-sensor test validations (microphones, GNSS/RF, …)" });
             Categories.Add(new Category { Name = "Live View", Page = typeof(LiveView), DataContext = new LiveViewViewModel(this), Icon = Symbol.Audio, ToolTip = "Real-time microphone view: scope, spectrum, spectrogram, PDM and sound recognition (KOL 4-ch USB stream or PC microphone)" });
             Categories.Add(new Category { Name = "Clock", Page = typeof(ClockCalibration), DataContext = new ClockCalibrationViewModel(this), Icon = Symbol.Clock, ToolTip = "Precise clock sync against NTP and per-unit crystal calibration (KOL, Vesper, Pipistrelle, Nanotag)" });
-            Categories.Add(new Category { Name = "Nanotag", Page = typeof(NanotagTools), DataContext = new NanotagToolsViewModel(this), Icon = Symbol.Tag, ToolTip = "Nanotag disk health, the configuration on the tag, and its console" });
+            var nanotagTools = new NanotagToolsViewModel(this);
+            _nanotagConsoleCategory = new Category { Name = "Nanotag Console", Page = typeof(NanotagTools), DataContext = nanotagTools, Icon = Symbol.Tag, ToolTip = "Nanotag disk health, the configuration on the tag, and its serial console (shown while a Nanotag is connected)", IsVisible = false };
+            Categories.Add(_nanotagConsoleCategory);
+            nanotagTools.WhenAnyValue(t => t.IsConsoleOpen).Subscribe(_ => UpdateNanotagConsoleVisibility());
             Categories.Add(new VesperApp.Models.Separator());
             Categories.Add(new Category { Name = "Software Upgrades", Page = typeof(UpdateChecker), DataContext = new UpdateCheckerViewModel(), Icon = Symbol.New, ToolTip = "Software Upgrades" });
             Categories.Add(new Category { Name = "Firmware Upgrades", Page = typeof(FirmwareUpgrades), DataContext = new FirmwareUpgradesViewModel(this), Icon = Symbol.Upload, ToolTip = "Firmware Upgrades" });
@@ -562,7 +566,13 @@ namespace VesperApp.ViewModels
             #endregion
 
             LoggerDevices = new ObservableCollection<LoggerDevice>();
+            LoggerDevices.CollectionChanged += (_, _) => RunOnUi(UpdateNanotagConsoleVisibility);
             SelectedLoggerDevice = null;
+            OpenNanotagConsoleCommand = ReactiveCommand.Create(() =>
+            {
+                _nanotagConsoleCategory.IsVisible = true;
+                SelectedCategory = _nanotagConsoleCategory;
+            });
             
             _timer.Start();
             _timerClock.Start();
@@ -604,7 +614,7 @@ namespace VesperApp.ViewModels
 
             string message;
             if (h == null || h.Formatting)
-                message = "The format did not report completion; check the Nanotag page.";
+                message = "The format did not report completion; check the Nanotag Console.";
             else
             {
                 long added = before != null ? (long)h.BadBlocks - before.BadBlocks : 0;
@@ -950,6 +960,26 @@ namespace VesperApp.ViewModels
 
         public List<CategoryBase> Categories { get; }
 
+        private readonly Category _nanotagConsoleCategory;
+
+        public ICommand OpenNanotagConsoleCommand { get; }
+
+        /// <summary>The device list's selection is a Nanotag: the device actions offer the Nanotag Console.</summary>
+        public bool IsNanotagSelected => SelectedLoggerDevice?.DeviceType == DeviceTypes.Nanotag;
+
+        /// <summary>
+        /// The Nanotag Console is in the menu while a Nanotag is connected. It also stays while it is the open page
+        /// or its serial console is open, so a tag that reboots or drops off USB does not take the page away.
+        /// </summary>
+        private void UpdateNanotagConsoleVisibility()
+        {
+            if (_nanotagConsoleCategory == null) return;     // during construction
+            _nanotagConsoleCategory.IsVisible =
+                LoggerDevices?.Any(d => d.DeviceType == DeviceTypes.Nanotag) == true
+                || ReferenceEquals(SelectedCategory, _nanotagConsoleCategory)
+                || (_nanotagConsoleCategory.DataContext as NanotagToolsViewModel)?.IsConsoleOpen == true;
+        }
+
         public object SelectedCategory
         {
             get => _selectedCategory;
@@ -957,6 +987,7 @@ namespace VesperApp.ViewModels
             {
                 this.RaiseAndSetIfChanged(ref _selectedCategory, value);
                 SetCurrentPage();
+                UpdateNanotagConsoleVisibility();
             }
         }
         public Control CurrentPage

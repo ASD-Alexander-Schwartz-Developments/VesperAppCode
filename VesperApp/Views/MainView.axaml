@@ -165,6 +165,9 @@
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Download Data" Command="{Binding DownloadDeviceData}" IsEnabled="{Binding CanUseDeviceDisk}"
 								ToolTip.Tip="Get all recorded data: every page of a Nanotag, or the recorded files from the drive of a Vesper, Pipistrelle or KOL (guided import)"/>
 						<Button Classes="toolbar" Margin="0,2,0,2" Content="Upgrade Firmware" Command="{Binding BootloaderDeviceCommand}" IsEnabled="{Binding IsDeviceIdle}"/>
+						<Button Classes="toolbar" Margin="6,2,0,2" Content="Nanotag Console" Command="{Binding OpenNanotagConsoleCommand}"
+								IsVisible="{Binding IsNanotagSelected}"
+								ToolTip.Tip="Disk health, the configuration on the tag and its serial console"/>
 
 						<!-- USB operational modes (KOL; Vesper / Pipistrelle firmware 1.22+). Idle = disk + console;
 						     Live Audio = USB microphone (4 channels on KOL, 1 on Vesper), no disk; Sampling = off USB, running its schedule. -->
@@ -276,7 +279,7 @@
 				<ui:NavigationView.MenuItemTemplateSelector>
 					<m:MenuItemTemplateSelector>
 						<DataTemplate DataType="{x:Type m:Category}">
-							<ui:NavigationViewItem Content="{Binding Name}" IconSource="{Binding Icon}" ToolTip.Tip="{Binding ToolTip}" />
+							<ui:NavigationViewItem Content="{Binding Name}" IconSource="{Binding Icon}" ToolTip.Tip="{Binding ToolTip}" IsVisible="{Binding IsVisible}" />
 						</DataTemplate>
 						<m:MenuItemTemplateSelector.SeparatorTemplate>
 							<DataTemplate DataType="{x:Type m:Separator}">

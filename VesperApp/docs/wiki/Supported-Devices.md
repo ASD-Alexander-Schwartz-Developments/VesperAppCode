@@ -98,13 +98,13 @@ Firmware updates need no dock on the KOL, nor on a Vesper or Pipistrelle that al
 
 A miniature tracking tag with a snapshot-GNSS receiver. It connects through the docking station, like Vesper and Pipistrelle. It has no microphone; its data and firmware path differ from the VT04 family: it has no USB disk (configuration and data go over USB commands), and firmware updates use a USB-HID bootloader rather than the dock-driven DFU flow (see [Firmware Updates](Firmware-Updates)).
 
-The **Nanotag** page (left menu) has three parts:
+The **Nanotag Console** page (left menu, shown while a Nanotag is connected; also the **Nanotag Console** button in the device actions when a Nanotag is selected) has three parts:
 
 - **Disk health** (firmware 1.39 or later): good, bad and to-be-retired blocks, pages written and free space, and the pages read since the tag started that needed ECC correction or could not be read. It also shows a format in progress, and a **block map**: one cell per 256 KB block (64 a row, block 0 top left) coloured as data, free, bad, to retire at the next format, bad-block table or LOGGER log, with the numbers of the bad blocks. After a download, the pages that did not read cleanly, or whose data CRC does not match, are listed in `download-read-status.txt` in the download folder.
 - **Configuration on the tag**: **Read** shows what the tag holds (general settings, driver slots, schedule), to check an upload. **Save…** keeps it as a JSON report; that report is not a file to upload again.
 - **Console**: the tag's text console (the `help`, `ver`, `disk`, `config` … commands). The tag's serial port is listed first; **Open** connects. Up and Down recall earlier commands. The console can stay open while VesperApp talks to the tag.
 
-**Format** on a Nanotag (firmware 1.39 or later) answers at once and erases in the background: about 1 s on an empty tag, longer with more data; the LED blinks fast until it is done. The status line follows the progress and then reports the bad blocks, and whether the format added any (it should not, unless a block failed). The Nanotag page shows the block map after it.
+**Format** on a Nanotag (firmware 1.39 or later) answers at once and erases in the background: about 1 s on an empty tag, longer with more data; the LED blinks fast until it is done. The status line follows the progress and then reports the bad blocks, and whether the format added any (it should not, unless a block failed). The Nanotag Console shows the block map after it.
 
 ## Sensor data types
 
