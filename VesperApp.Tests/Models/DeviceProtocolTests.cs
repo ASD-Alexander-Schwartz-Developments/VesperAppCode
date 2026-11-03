@@ -124,7 +124,7 @@ public class SensorBenchTestTests
     public void Describe_Exg_ShowsVariantAndExpectedId()
     {
         var (_, _, detail) = SensorBenchTest.Describe(MessageTypes.VESPER_TEST_EEG, SensorBenchTest.ParseResponse(Reply(0, 3, 0xD2, 0xD2, 0, 0, 0)));
-        Assert.Equal("ADS1298 (EXG48), device id 0xD2 (expected 0xD2)", detail);
+        Assert.Equal("EEG4 (ADS1298, 8 channels, R part), device id 0xD2 (expected 0xD2)", detail);
     }
 }
 

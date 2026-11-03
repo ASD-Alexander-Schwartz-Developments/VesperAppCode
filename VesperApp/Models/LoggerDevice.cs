@@ -259,10 +259,72 @@ namespace VesperApp.Models
                         this.LocalDateTime = DisplayFormat.DateTime(dtt);
 
                         UInt32 voltage = (UInt32)((UInt32)data[32] + (UInt32)(data[33] << 8));
-                        this.BatteryChargePercent = voltage.ToString();
+                        // cell mV (KOL; VesperU5 from 345fd07 - it sent 0 before); 0 = no reading yet
+                        this.BatteryChargePercent = voltage > 0
+                            ? (voltage / 1000.0).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " V"
+                            : "—";
+
+                        RefreshConsoleClockBase();
+                        RefreshUnitDisk();
                     }
                     break;
             }
+        }
+
+        private int _diskPolls;
+        private int _diskQuery;
+
+        /// <summary>Storage column for Vesper / Pipistrelle / KOL (their disk is the USB drive the PC mounts): size
+        /// and free space of the drive whose UID.TXT names this unit, after the first GETFLAGS reply and every 15th
+        /// after it. Empty while the drive is not mounted (Live Audio, or still enumerating).</summary>
+        private void RefreshUnitDisk()
+        {
+            if (string.IsNullOrEmpty(_serialnumber)) return;
+            if (DiskSize != null && (++_diskPolls % 15) != 0) return;
+            if (System.Threading.Interlocked.Exchange(ref _diskQuery, 1) == 1) return;
+            string uid = _serialnumber;
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    string? root = VesperApp.Services.Time.UnitDisk.FindRoot(uid);
+                    if (root == null) return;
+                    var d = new DriveInfo(root);
+                    if (!d.IsReady || d.TotalSize <= 0) return;
+                    DiskSize = d.TotalSize / (1024.0 * 1024 * 1024);
+                    DiskOccupancy = 100.0 * d.AvailableFreeSpace / d.TotalSize;   // free percent, as the Nanotag's
+                    UpdateDiskStatus();
+                }
+                catch { /* drive vanished */ }
+                finally { System.Threading.Interlocked.Exchange(ref _diskQuery, 0); }
+            });
+        }
+
+        private int _clockPolls;
+        private int _clockQuery;
+
+        /// <summary>UTC / Local pill for Vesper / Pipistrelle 1.22+ (VESPER_GET_CLOCK 83): asked after the first
+        /// GETFLAGS reply and every 15th after it, so a Set Time shows up. Not awaited here - the reply comes back
+        /// through this receive handler.</summary>
+        private void RefreshConsoleClockBase()
+        {
+            if (!DeviceCapabilities.SupportsUsbModes(_type, FirmwareVersion)) return;
+            if (ClockBaseText != null && (++_clockPolls % 15) != 0) return;
+            if (System.Threading.Interlocked.Exchange(ref _clockQuery, 1) == 1) return;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var clk = await GetClockAsync();
+                    if (clk != null)
+                    {
+                        ClockBaseText = DisplayFormat.ClockBase(clk.Value.Base);
+                        ClockBaseToolTip = "The logger's clock keeps " + clk.Value.Base.Describe() + ".";
+                    }
+                }
+                catch { /* unit gone */ }
+                finally { System.Threading.Interlocked.Exchange(ref _clockQuery, 0); }
+            });
         }
 
         private void _comport_ErrorEvent(object? sender, Services.ErrorEventArgs e)

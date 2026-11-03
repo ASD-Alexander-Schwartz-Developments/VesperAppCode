@@ -39,8 +39,8 @@ namespace VesperApp.Services.Time
                     if (!d.IsReady || d.DriveType == DriveType.Network || d.DriveType == DriveType.CDRom) continue;
                     string? file = FindFile(d.RootDirectory.FullName, UidFile);
                     if (file == null) continue;
-                    string line = File.ReadLines(file).FirstOrDefault(l => l.Trim().Length > 0) ?? "";
-                    if (UidMatches(line, uid))
+                    // line 1 the label, line 2 (VesperU5 345fd07+) HW_UID=<24 hex>: either names the unit
+                    if (File.ReadLines(file).Take(4).Any(l => UidMatches(l, uid)))
                         return d.RootDirectory.FullName;
                 }
                 catch { /* drive vanished or unreadable */ }

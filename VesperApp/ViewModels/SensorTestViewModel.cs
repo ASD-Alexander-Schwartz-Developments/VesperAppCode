@@ -72,7 +72,8 @@ namespace VesperApp.ViewModels
             if (dev.DeviceType != DeviceTypes.Kol)
             {
                 Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_ALS, "Light (ALS3001D)", ""));
-                Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_EEG, "Biopotential (EXG)", ""));
+                Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_EEG, "Biopotential (EEG4 / EXG2 / EEG2-EMG2-ECG2)", ""));
+                Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_LEPTON, "Thermal camera (Lepton)", "Takes a few seconds to boot"));
             }
             IsSupported = true;
             Summary = $"{DeviceCapabilities.DisplayName(dev.DeviceType)}: fit the add-on board(s), keep the unit still and not recording, then run the test.";
@@ -94,10 +95,28 @@ namespace VesperApp.ViewModels
                 foreach (SensorTestRow row in Rows)
                 {
                     await Dispatcher.UIThread.InvokeAsync(() => { row.Status = "Testing…"; row.StatusBrush = Brushes.Gray; row.Detail = ""; });
-                    byte[]? resp = await dev.SendCommandAsync(row.Test, SensorBenchTest.BuildRequest(0), 5000);
-                    SensorBenchResult? r = SensorBenchTest.ParseResponse(resp);
-                    var (status, brush, detail) = SensorBenchTest.Describe(row.Test, r);
-                    if (r != null && r.Status != SensorBenchTest.StatusIdFail && r.Status != SensorBenchTest.StatusNotPresent) found++;
+                    string status, detail;
+                    IBrush brush;
+                    if (row.Test == MessageTypes.VESPER_TEST_LEPTON)
+                    {
+                        // power-up, boot (up to 1.5 s), temperatures; then power the camera down again
+                        byte[]? cam = await dev.SendCommandAsync(row.Test, SensorBenchTest.LeptonRequest(SensorBenchTest.LeptonOpStatus), 8000);
+                        (status, brush, detail) = SensorBenchTest.DescribeLepton(cam);
+                        if (cam != null && cam.Length > 0 && cam[0] != SensorBenchTest.StatusNotPresent)
+                        {
+                            found++;
+                            await dev.SendCommandAsync(row.Test, SensorBenchTest.LeptonRequest(SensorBenchTest.LeptonOpPowerOff), 3000);
+                        }
+                    }
+                    else
+                    {
+                        // biopotential: the unit tries three chip families in turn (VesperU5 6247146: < 3 s; older ~6 s)
+                        int timeout = row.Test == MessageTypes.VESPER_TEST_EEG ? 10000 : 5000;
+                        byte[]? resp = await dev.SendCommandAsync(row.Test, SensorBenchTest.BuildRequest(0), timeout);
+                        SensorBenchResult? r = SensorBenchTest.ParseResponse(resp);
+                        (status, brush, detail) = SensorBenchTest.Describe(row.Test, r);
+                        if (r != null && r.Status != SensorBenchTest.StatusIdFail && r.Status != SensorBenchTest.StatusNotPresent) found++;
+                    }
                     await Dispatcher.UIThread.InvokeAsync(() => { row.Status = status; row.StatusBrush = brush; row.Detail = detail; });
                 }
                 await Dispatcher.UIThread.InvokeAsync(() =>

@@ -94,6 +94,7 @@ namespace VesperApp.Services
         // Live add-on sensor test (Models/SensorBenchTest.cs; asd-interfaces interfaces/sensor-test.md).
         // Payload: op, arg0 = variant (0 probe each), arg1, reserved; reply 20 B. Idle only (NACK while recording).
         // KOL answers 71 and 73; Vesper / Pipistrelle all four.
+        VESPER_TEST_LEPTON = 70,        // Vesper / Pipistrelle thermal camera, op-based (SensorBenchTest.Lepton*); 10 B reply
         VESPER_TEST_IMU = 71,
         VESPER_TEST_EEG = 72,
         VESPER_TEST_TPRH = 73,
