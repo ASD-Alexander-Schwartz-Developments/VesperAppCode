@@ -15,10 +15,12 @@ namespace VesperApp.Services
     /// <item>OVERRUN (1): the exact number of missing samples is inserted as zeros, so the output keeps
     /// the sample timeline;</item>
     /// <item>INVALID (2): of the last <c>span</c> nodes written before the block, the oldest <c>nodes</c>
-    /// were overwritten while the firmware wrote them: they are set to zero in the output;</item>
+    /// were overwritten while the firmware wrote them: they are set to zero in the output. <c>span</c> 0
+    /// (VesperU5): the last <c>nodes × node_samples</c> samples before the block;</item>
     /// <item>SUMMARY (3): counts for the file, compared with what was found.</item>
     /// </list>
-    /// Every event is listed in <see cref="Notes"/> for the .txt metadata.
+    /// KOL writes its blocks next to a SYNC / FOOTER; VesperU5 also between the two halves of its buffer, where no
+    /// SYNC is, so a block is found anywhere in a segment. Every event is listed in <see cref="Notes"/> for the .txt metadata.
     /// </summary>
     public sealed class KolGapWriter
     {
@@ -50,31 +52,40 @@ namespace VesperApp.Services
                     (int)BitConverter.ToUInt32(d, pos + 24), (int)BitConverter.ToUInt32(d, pos + 28), BinHeader.ExtractDateTime(d, pos + 4));
         }
 
-        private bool IsGap(int pos) => pos >= 0 && pos + BlockLength <= _buf.Length && BitConverter.ToUInt32(_buf, pos) == PreambleGap;
+        /// <summary>A whole GAP block: magic, a valid RTC stamp, a known reason and the 0xFF fill - PCM that happens
+        /// to hold the magic is not one.</summary>
+        private bool IsGap(int pos)
+        {
+            if (pos < 0 || pos + BlockLength > _buf.Length || BitConverter.ToUInt32(_buf, pos) != PreambleGap) return false;
+            int reason = BitConverter.ToUInt16(_buf, pos + 16);
+            if (reason < ReasonOverrun || reason > ReasonSummary || !BinHeader.IsValidStamp(_buf, pos + 4)) return false;
+            for (int k = pos + 32; k < pos + BlockLength; k++)
+                if (_buf[k] != 0xFF) return false;
+            return true;
+        }
 
-        /// <summary>Writes the segment [start, start + length) of the file: GAP blocks at its start and end
-        /// are handled, the PCM in between is copied.</summary>
+        /// <summary>Writes the segment [start, start + length) of the file: the PCM is copied, GAP blocks in it
+        /// (2-byte aligned, as samples) are handled where they are.</summary>
         public void Write(int start, int length)
         {
             int end = start + length;
-            while (end - start >= BlockLength && IsGap(start))
+            int pcm = start;
+            for (int p = start; p + BlockLength <= end; p += 2)
             {
-                Handle(start);
-                start += BlockLength;
+                if (BitConverter.ToUInt32(_buf, p) != PreambleGap || !IsGap(p)) continue;
+                Copy(pcm, p);
+                Handle(p);
+                pcm = p + BlockLength;
+                p = pcm - 2;
             }
-            var trailing = new List<int>();
-            int tail = end;
-            while (tail - start >= BlockLength && IsGap(tail - BlockLength))
-            {
-                tail -= BlockLength;
-                trailing.Insert(0, tail);
-            }
-            if (tail > start)
-            {
-                _nodes.Add((_out.Position, tail - start));
-                _out.Write(_buf, start, tail - start);
-            }
-            foreach (int t in trailing) Handle(t);
+            Copy(pcm, end);
+        }
+
+        private void Copy(int from, int to)
+        {
+            if (to <= from) return;
+            _nodes.Add((_out.Position, to - from));
+            _out.Write(_buf, from, to - from);
         }
 
         private void Handle(int pos)
@@ -94,6 +105,17 @@ namespace VesperApp.Services
                     LostNodes += nodes;
                     LostSamples += samples;
                     Notes.Add($"Gap:{time:dd/MM/yyyy HH:mm:ss.FFF}:{at}:{samples}:lost ({nodes} nodes, mic {mic})");
+                    break;
+                }
+                case ReasonInvalid when span == 0:
+                {
+                    long end = _out.Position;
+                    long bytes = Math.Min((long)nodes * ns * 2, end);
+                    _out.Position = end - bytes;
+                    _out.Write(new byte[bytes], 0, (int)bytes);
+                    InvalidNodes += nodes;
+                    InvalidSamples += bytes / 2;
+                    Notes.Add($"Gap:{time:dd/MM/yyyy HH:mm:ss.FFF}:{(end - bytes) / 2}:{bytes / 2}:unreliable, set to zero ({nodes} nodes, mic {mic})");
                     break;
                 }
                 case ReasonInvalid:

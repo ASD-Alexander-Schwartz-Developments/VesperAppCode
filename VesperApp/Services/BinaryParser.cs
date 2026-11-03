@@ -223,6 +223,11 @@ namespace VesperApp.Services
                     {
                         lastbyte = databuffer[idx];
                         word = (UInt32)(((UInt32)word >> 8) + ((UInt32)lastbyte << 24));
+                        if ((word == BinHeader.PreambleHeader || word == BinHeader.PreambleFooter || word == BinHeader.PreambleSync)
+                            && !BinHeader.IsValidStamp(databuffer, idx + 1))
+                        {
+                            continue;       // the magic's bytes in PCM, not a block (one used to drop the whole file)
+                        }
                         if (word == BinHeader.PreambleHeader)
                         {
                             if(isFinished == false && activeTimestamp != null)

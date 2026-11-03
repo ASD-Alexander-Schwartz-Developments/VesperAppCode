@@ -85,6 +85,23 @@ namespace VesperApp.Models
         }
 
 
+        /// <summary>True when the 12 timestamp bytes at <paramref name="offset"/> (the bytes after a block's magic)
+        /// are a real RTC stamp: BCD digits, hour / minute / second / month / day in range. A magic found in
+        /// PCM is followed by sample bytes, which almost never pass; such a match is data, not a block.</summary>
+        public static bool IsValidStamp(byte[] buffer, int offset)
+        {
+            if (offset < 0 || offset + 12 > buffer.Length) return false;
+            foreach (int k in new[] { 0, 1, 2, 5, 6, 7 })
+            {
+                byte b = buffer[offset + k];
+                if ((b >> 4) > 9 || (b & 0x0F) > 9) return false;
+            }
+            int hh = BCD2BIN(buffer[offset]), mm = BCD2BIN(buffer[offset + 1]), ss = BCD2BIN(buffer[offset + 2]);
+            int m = BCD2BIN(buffer[offset + 5]), d = BCD2BIN(buffer[offset + 6]), y = 2000 + BCD2BIN(buffer[offset + 7]);
+            return hh < 24 && mm < 60 && ss < 60 && m >= 1 && m <= 12 && d >= 1 && d <= DateTime.DaysInMonth(y, m);
+        }
+
+
         /// <summary>Extracts a DateTime from the buffer using the BIN header timestamp format.</summary>
         /// <param name="buffer">Source buffer that contains timestamp fields.</param>
         /// <param name="offset">Offset into the buffer where timestamp begins.</param>
