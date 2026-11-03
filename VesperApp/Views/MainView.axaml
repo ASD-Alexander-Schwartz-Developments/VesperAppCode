@@ -34,9 +34,10 @@
 					</StackPanel>
 				</StackPanel>
 
-				<!-- Dock connection + controls -->
-				<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
-							HorizontalAlignment="Center" VerticalAlignment="Center">
+				<!-- Dock connection + controls: wraps onto a second line in a narrow window (a StackPanel
+				     wider than its column ran under the Devices toggle) -->
+				<WrapPanel Grid.Column="1" Orientation="Horizontal" ItemSpacing="8" LineSpacing="4" Margin="8,0"
+						   HorizontalAlignment="Center" VerticalAlignment="Center">
 
 					<Border Classes="statusPill success" IsVisible="{Binding IsConnected}">
 						<StackPanel Orientation="Horizontal" Spacing="7">
@@ -62,8 +63,8 @@
 
 					<Border Width="1" Background="{DynamicResource AppStrokeBrush}" Margin="4,3" IsVisible="{Binding IsConnected}"/>
 
-					<StackPanel x:Name="spDockControls" Orientation="Horizontal" Spacing="6"
-								IsEnabled="{Binding IsConnected}" IsVisible="{Binding IsConnected}">
+					<WrapPanel x:Name="spDockControls" Orientation="Horizontal" ItemSpacing="6" LineSpacing="4"
+							   IsEnabled="{Binding IsConnected}" IsVisible="{Binding IsConnected}">
 						<Button Classes="toolbar" Command="{Binding EnableDeviceDockCommand}" x:Name="DockEnableDeviceToggle">
 							<StackPanel Orientation="Horizontal" Spacing="7">
 								<Ellipse Classes="statusDot" Fill="{DynamicResource DangerBrush}" IsVisible="{Binding !IsDeviceEnabled}"/>
@@ -80,8 +81,8 @@
 								<TextBlock VerticalAlignment="Center" Text="Exit Boot" IsVisible="{Binding IsDeviceBoot0Mode}"/>
 							</StackPanel>
 						</Button>
-					</StackPanel>
-				</StackPanel>
+					</WrapPanel>
+				</WrapPanel>
 
 				<!-- Devices console toggle + clock -->
 				<StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
