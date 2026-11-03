@@ -23,6 +23,11 @@
 									  SelectedItem="{Binding MicCount}"/>
 						</StackPanel>
 					</ui:CommandBarElementContainer>
+					<ui:CommandBarElementContainer>
+						<CheckBox Content="Play test tones on this PC" IsChecked="{Binding PlayTones}" VerticalAlignment="Center" Margin="10,0"
+								  IsVisible="{Binding IsSupported}"
+								  ToolTip.Tip="1 kHz + 4 kHz from this computer's speaker while the check runs. Hold the device close to the speaker with the volume up, or untick and play the tones from a phone."/>
+					</ui:CommandBarElementContainer>
 					<ui:CommandBarButton Command="{Binding RunCommand}" IconSource="Audio" Label="Run Check"
 										 ToolTip.Tip="Capture each microphone and report its health"/>
 					<ui:CommandBarElementContainer>
@@ -34,7 +39,7 @@
 
 			<StackPanel Grid.Row="1" Margin="20,6,20,0" Spacing="2">
 				<TextBlock Text="{Binding Summary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-				<TextBlock Text="Tip: play a steady test tone close to the device so each microphone has something to hear."
+				<TextBlock Text="The check needs a 1 kHz + 4 kHz tone at the microphone: this PC plays it (hold the device near the speaker, volume up), or untick and use a phone about 10 cm away. Without it a working microphone shows as Weak."
 						   Opacity="0.7" TextWrapping="Wrap"/>
 			</StackPanel>
 

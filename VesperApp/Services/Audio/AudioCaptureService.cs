@@ -133,9 +133,17 @@ namespace VesperApp.Services.Audio
     /// </summary>
     public sealed class AudioCaptureService : IDisposable
     {
-        private static readonly object PaLock = new();
+        internal static readonly object PaLock = new();     // also TonePlayer: one PortAudio for the app
         private static bool _paReady;
         private static string? _paError;
+
+        /// <summary>PortAudio initialised (once for the app); else the reason in <paramref name="error"/>.</summary>
+        internal static bool TryInit(out string? error)
+        {
+            EnsureInit();
+            error = _paError;
+            return _paReady;
+        }
 
         private PortAudioSharp.Stream? _stream;
         private short[] _i16 = new short[0];

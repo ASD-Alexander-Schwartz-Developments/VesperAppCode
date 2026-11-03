@@ -40,6 +40,10 @@ namespace VesperApp.ViewModels
         private bool _isRunning;
         public bool IsRunning { get => _isRunning; set => this.RaiseAndSetIfChanged(ref _isRunning, value); }
 
+        // The stimulus from this PC's speaker (on by default): with no tone a healthy microphone is "Weak".
+        private bool _playTones = true;
+        public bool PlayTones { get => _playTones; set => this.RaiseAndSetIfChanged(ref _playTones, value); }
+
         private string _summary = "Connect your device over USB, then start the check.";
         public string Summary { get => _summary; set => this.RaiseAndSetIfChanged(ref _summary, value); }
 
@@ -125,13 +129,24 @@ namespace VesperApp.ViewModels
             for (int i = 0; i < micsToTest; i++)
                 Results.Add(new MicHealthResult(i) { Status = "Testing…", StatusBrush = Brushes.Gray });
 
-            Summary = "Keep the test tones playing near the device while the check runs…";
-
             var q = _spec.Request;
             var replies = new System.Collections.Generic.List<AudioBenchResult?>();
             int healthy = 0;
+            string? toneNote = null;
+            using var tones = new Services.Audio.TonePlayer();
             try
             {
+                if (PlayTones && await Task.Run(() => tones.Start(q.TonesHz)))
+                {
+                    Summary = $"Playing the test tones on {tones.DeviceName} - hold the device close to the speaker, volume up…";
+                    await Task.Delay(400);                     // output latency + fade-in before the first capture
+                }
+                else
+                {
+                    if (PlayTones) toneNote = $" (The test tones could not be played here: {tones.LastError} Play them from a phone instead.)";
+                    Summary = "Keep the test tones playing near the device while the check runs…";
+                }
+
                 for (int i = 0; i < micsToTest; i++)
                 {
                     MicHealthResult row = Results[i];
@@ -147,11 +162,12 @@ namespace VesperApp.ViewModels
 
                 string? spread = AudioSelftestEvaluator.SpreadWarning(replies, _spec.Pass);
                 await Dispatcher.UIThread.InvokeAsync(() =>
-                    Summary = $"{healthy} of {micsToTest} microphone(s) healthy." + (spread != null ? " " + spread : "") +
+                    Summary = $"{healthy} of {micsToTest} microphone(s) healthy." + (spread != null ? " " + spread : "") + toneNote +
                               (_spec.Validated ? "" : " (Thresholds not yet validated on hardware.)"));
             }
             finally
             {
+                tones.Stop();
                 IsRunning = false;
             }
         }
