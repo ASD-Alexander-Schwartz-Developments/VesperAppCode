@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows.Input;
+using Avalonia.Threading;
 
 namespace VesperApp.Controls
 {
@@ -47,8 +48,8 @@ namespace VesperApp.Controls
                 _progressPercent = 100;
                 RaisePropertyChanged();
                 RaisePropertyChanged(nameof(ProgressPercent));
-                ((RelayCommand)CancelCommand).OnCanExecuteChanged();
-                Finished?.Invoke(this);
+                OnUi(() => ((RelayCommand)CancelCommand).OnCanExecuteChanged());
+                OnUi(() => Finished?.Invoke(this));
             }
         }
 
@@ -112,7 +113,7 @@ namespace VesperApp.Controls
                 IsFinished = true;
             }
             ProgressPercent = progressPercent;
-            ProgressUpdated?.Invoke(this);
+            OnUi(() => ProgressUpdated?.Invoke(this));
         }
 
         private void Cancel()
@@ -127,7 +128,15 @@ namespace VesperApp.Controls
 
         private void RaisePropertyChanged([CallerMemberName] String propertyName = "")
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            OnUi(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+        }
+
+        /// <summary>The task may report from a worker thread (the device import copies off the UI thread);
+        /// bindings, the Cancel button and the event handlers run on the UI thread.</summary>
+        private static void OnUi(Action a)
+        {
+            if (Dispatcher.UIThread.CheckAccess()) a();
+            else Dispatcher.UIThread.Post(a);
         }
     }
 

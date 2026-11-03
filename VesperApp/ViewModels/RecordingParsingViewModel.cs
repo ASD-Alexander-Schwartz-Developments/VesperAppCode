@@ -2171,7 +2171,10 @@ namespace VesperApp.ViewModels
                 totalc = 0;
                 curc = 0;
                 curn = 0;
-                Task _cp = CopyTo(sourceDirectoryInfo, destinationDirectoryInfo, progressStatus);  // TODO: Add progress bar
+                // Off the UI thread: a recording is ~8 MiB over USB Full Speed (~10 s), and the copy
+                // used to run on the UI thread between awaits, freezing the window (user 2026-11-03).
+                DirectoryInfo src = sourceDirectoryInfo, dst = destinationDirectoryInfo;
+                Task _cp = Task.Run(() => CopyTo(src, dst, progressStatus));
 
                 ProgressDialogWindow progressDialogW = new ProgressDialogWindow("Importing recordings from the device", progressStatus, App.MainWindow);
                 Task progressWindowTask = progressDialogW.ShowDialog(App.MainWindow);
@@ -2273,6 +2276,9 @@ namespace VesperApp.ViewModels
         private void HandleProgessUpdatedEvent(IProgressStatus progressStatus) => ProgressUpdatedEventLast = DateTime.Now.ToString();
         #endregion
 
+        /// <summary>Whole percent of done / total (the copy progress used integer division: 0 until the end).</summary>
+        private static int Percent(int done, int total) => total <= 0 ? 100 : Math.Min(100, done * 100 / total);
+
         /// <summary>A purely numeric folder name — the device's auto-incrementing
         /// 256-file chunk folders that are flattened away on import.</summary>
         private static bool IsChunkFolder(string name) =>
@@ -2367,22 +2373,23 @@ namespace VesperApp.ViewModels
                             return false;
                         }
 
-                        progressStatus.Update("File Copy " + to, (int)((curc / curn) * 100.0), (int)((totalc / totaln) * 100.0));
+                        progressStatus.Update("File Copy " + to, Percent(curc, curn), Percent(totalc, totaln));
+                        progressStatus.Ct.ThrowIfCancellationRequested();
 
                         try
                         {
                             fileInfo.CopyTo(to, overwrite || overwriteall);
                         }
-                        catch (IOException ioecx)
+                        catch (IOException)
                         {
-                            if (overwrite = !false)
+                            // "No" to an existing file: CopyTo refuses it - skip that file. Any other copy
+                            // error ends the import. (The test was an assignment, so every error ended it.)
+                            if (overwrite || overwriteall)
                             {
                                 progressStatus.IsFinished = true;
                                 return false;
                             }
                         }
-
-                        await Task.Delay(100);
                     }
 
                     foreach (DirectoryInfo drs in source.GetDirectories())
@@ -2404,7 +2411,7 @@ namespace VesperApp.ViewModels
                     }
                 }
 
-                progressStatus.Update("File Copy Done", (int)((curc / curn) * 100.0), (int)((totalc / totaln) * 100.0));
+                progressStatus.Update("File Copy Done", Percent(curc, curn), Percent(totalc, totaln));
                 await Task.Delay(3000);
                 progressStatus.Ct.ThrowIfCancellationRequested();
                 progressStatus.IsFinished = true;
