@@ -45,6 +45,50 @@ namespace VesperApp.Services.Audio
     }
 
     /// <summary>
+    /// Whether test tones are in a recording: each tone's level (Goertzel, Hann window) against the median
+    /// level a little below and above it (±8…20 %), in dB. A steady room noise or hum raises both alike;
+    /// only a played tone stands out. Pure, unit-tested.
+    /// </summary>
+    public static class ToneDetector
+    {
+        public const double HeardMinDb = 12;
+
+        public static double[] SnrDb(ReadOnlySpan<float> x, int sampleRate, int[] tonesHz)
+        {
+            var r = new double[tonesHz.Length];
+            for (int t = 0; t < tonesHz.Length; t++)
+            {
+                double f = tonesHz[t];
+                double tone = Level(x, sampleRate, f);
+                var side = new System.Collections.Generic.List<double>();
+                foreach (double k in new[] { 0.08, 0.12, 0.16, 0.20 })
+                {
+                    side.Add(Level(x, sampleRate, f * (1 - k)));
+                    side.Add(Level(x, sampleRate, f * (1 + k)));
+                }
+                side.Sort();
+                double floor = Math.Max(1e-9, (side[3] + side[4]) / 2);
+                r[t] = 20 * Math.Log10(Math.Max(1e-12, tone) / floor);
+            }
+            return r;
+        }
+
+        public static bool Heard(double[] snrDb) => snrDb.Length > 0 && Array.TrueForAll(snrDb, s => s >= HeardMinDb);
+
+        private static double Level(ReadOnlySpan<float> x, int rate, double f)
+        {
+            int n = x.Length;
+            double w = 2 * Math.PI * f / rate, c = 2 * Math.Cos(w), s1 = 0, s2 = 0;
+            for (int i = 0; i < n; i++)
+            {
+                double h = 0.5 - 0.5 * Math.Cos(2 * Math.PI * i / (n - 1));
+                double s0 = x[i] * h + c * s1 - s2; s2 = s1; s1 = s0;
+            }
+            return Math.Sqrt(Math.Max(0, s1 * s1 + s2 * s2 - c * s1 * s2));
+        }
+    }
+
+    /// <summary>
     /// Plays the microphone check's test tones on this computer's default output (PortAudio, shared with
     /// <see cref="AudioCaptureService"/>), so the check needs no phone or tone app: without a tone the
     /// unit's microphone is healthy but always judged "Weak" (no tone SNR).
@@ -105,6 +149,44 @@ namespace VesperApp.Services.Audio
             }
             LastError = null;
             return true;
+        }
+
+        /// <summary>Result of <see cref="CheckHeard"/>: the tones' SNR on this PC's microphone, or null when
+        /// the PC has no microphone of its own to listen with.</summary>
+        public sealed record HeardResult(bool Heard, double[]? SnrDb, string? Microphone);
+
+        /// <summary>While the tones play: listen on this PC's default microphone for half a second and tell
+        /// whether they are really coming out (no speaker, muted, volume at 0 → not heard). A unit's own Live
+        /// Audio microphone is not the PC's, so it does not count.</summary>
+        public static HeardResult CheckHeard(int[] tonesHz)
+        {
+            if (!AudioCaptureService.TryInit(out _)) return new HeardResult(false, null, null);
+            AudioInputDevice? mic = null;
+            lock (AudioCaptureService.PaLock)
+            {
+                try
+                {
+                    int i = PortAudio.DefaultInputDevice;
+                    if (i >= 0)
+                    {
+                        DeviceInfo d = PortAudio.GetDeviceInfo(i);
+                        if (d.maxInputChannels > 0)
+                            mic = new AudioInputDevice(i, d.name ?? $"device {i}", d.maxInputChannels, d.defaultSampleRate, d.hostApi);
+                    }
+                }
+                catch { mic = null; }
+            }
+            if (mic == null || AudioCaptureService.IsUnitMicrophone(mic)) return new HeardResult(false, null, null);
+
+            int sampleRate = mic.DefaultSampleRate >= 16000 ? (int)mic.DefaultSampleRate : 48000;   // the PC mic's own rate
+            using var cap = new AudioCaptureService();
+            if (!cap.Start(mic, 1, sampleRate, historySeconds: 2)) return new HeardResult(false, null, null);
+            System.Threading.Thread.Sleep(700);
+            var x = new float[sampleRate / 2];
+            cap.Buffer!.CopyLatest(0, x);
+            cap.Stop();
+            double[] snr = ToneDetector.SnrDb(x, sampleRate, tonesHz);
+            return new HeardResult(ToneDetector.Heard(snr), snr, mic.Name);
         }
 
         public void Stop()
