@@ -51,6 +51,14 @@ public class ToneDetectorTests
     }
 
     [Fact]
+    public void MutedMicrophone_IsSilent_RoomNoiseIsNot()
+    {
+        Assert.True(ToneDetector.IsSilent(new float[24000]));
+        Assert.True(ToneDetector.IsSilent(Signal(48000, 0, 1e-5)));       // −100 dBFS dither: muted
+        Assert.False(ToneDetector.IsSilent(Signal(48000, 0, 1e-3)));      // a quiet room, about −65 dBFS
+    }
+
+    [Fact]
     public void OnlyOneTone_NotHeard()
     {
         var x = new float[24000];

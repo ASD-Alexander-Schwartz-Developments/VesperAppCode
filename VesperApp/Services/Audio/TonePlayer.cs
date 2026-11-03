@@ -75,6 +75,16 @@ namespace VesperApp.Services.Audio
 
         public static bool Heard(double[] snrDb) => snrDb.Length > 0 && Array.TrueForAll(snrDb, s => s >= HeardMinDb);
 
+        /// <summary>A microphone that records digital silence (below −90 dBFS RMS) is muted or switched off
+        /// (bench 2026-11-03: a ThinkPad array with its mute on read −97 / −125 dBFS on every path); a live
+        /// one never gets that quiet.</summary>
+        public static bool IsSilent(ReadOnlySpan<float> x)
+        {
+            double sum = 0;
+            foreach (float v in x) sum += (double)v * v;
+            return x.Length == 0 || Math.Sqrt(sum / x.Length) < 3.16e-5;   // −90 dBFS
+        }
+
         private static double Level(ReadOnlySpan<float> x, int rate, double f)
         {
             int n = x.Length;
@@ -153,7 +163,7 @@ namespace VesperApp.Services.Audio
 
         /// <summary>Result of <see cref="CheckHeard"/>: the tones' SNR on this PC's microphone, or null when
         /// the PC has no microphone of its own to listen with.</summary>
-        public sealed record HeardResult(bool Heard, double[]? SnrDb, string? Microphone);
+        public sealed record HeardResult(bool Heard, double[]? SnrDb, string? Microphone, bool MicSilent = false);
 
         /// <summary>While the tones play: listen on this PC's default microphone for half a second and tell
         /// whether they are really coming out (no speaker, muted, volume at 0 → not heard). A unit's own Live
@@ -186,7 +196,7 @@ namespace VesperApp.Services.Audio
             cap.Buffer!.CopyLatest(0, x);
             cap.Stop();
             double[] snr = ToneDetector.SnrDb(x, sampleRate, tonesHz);
-            return new HeardResult(ToneDetector.Heard(snr), snr, mic.Name);
+            return new HeardResult(ToneDetector.Heard(snr), snr, mic.Name, ToneDetector.IsSilent(x));
         }
 
         public void Stop()

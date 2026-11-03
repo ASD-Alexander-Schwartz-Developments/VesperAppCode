@@ -171,7 +171,9 @@ namespace VesperApp.ViewModels
                     {
                         string why = heard.Microphone == null
                             ? "This computer has no microphone of its own to confirm that the sound is playing."
-                            : "This computer's microphone could not confirm the sound (it may filter out steady tones).";
+                            : heard.MicSilent
+                                ? $"This computer's microphone ({heard.Microphone}) is muted or switched off - it records silence - so it cannot confirm the sound."
+                                : "This computer's microphone could not confirm the sound (it may filter out steady tones).";
                         if (!await AskAsync("Do you hear the test sound now?",
                                 why + "\n\nYes: run the check. No: stop - make sure the speaker is on, not muted, volume 50–80 %."))
                         {
