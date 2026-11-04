@@ -35,6 +35,7 @@ namespace VesperApp.Models
             { new ConfigIMU10HTDriver() },
             { new ConfigTPRH31Driver() },
 			{ new ConfigALS3001DDriver() },
+            { new ConfigADS1115Driver() },          // VT01-DAQ24, VesperU5 1.22-pre.21+ (ads1115.c)
             { new ConfigEXG48Driver() },
             { new ConfigEXG2Driver() },
             { new ConfigProxtitDriver() },

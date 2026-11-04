@@ -9,7 +9,7 @@ namespace VesperApp.Models
 
     public class ConfigADS1115Driver : ConfigurationDeviceDriver
     {
-        public ConfigADS1115Driver() : base("ADS1115", "Low datarate analog to digital converter")
+        public ConfigADS1115Driver() : base("ADS1115", "DAQ24 board: 4-input 16-bit ADC (ADS1115), 0 - 4.096 V, every enabled input once per sample")
         {
             this.FileSize = 1 * 1024 * 1024;
         }

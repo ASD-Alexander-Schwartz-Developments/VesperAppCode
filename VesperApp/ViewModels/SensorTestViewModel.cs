@@ -72,6 +72,7 @@ namespace VesperApp.ViewModels
             if (dev.DeviceType != DeviceTypes.Kol)
             {
                 Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_ALS, "Light (ALS3001D)", ""));
+                Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_DAQ, "Analog inputs (DAQ24)", ""));
                 Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_EEG, "Biopotential (EEG4 / EXG2 / EEG2-EMG2-ECG2)", ""));
                 Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_LEPTON, "Thermal camera (Lepton)", "Takes a few seconds to boot"));
             }

@@ -99,6 +99,7 @@ namespace VesperApp.Services
         VESPER_TEST_EEG = 72,
         VESPER_TEST_TPRH = 73,
         VESPER_TEST_ALS = 74,
+        VESPER_TEST_DAQ = 84,           // DAQ24 (ADS1115): idFound = I2C address, sample0 = AIN1:AIN0, sample1 = AIN3:AIN2 codes, sample2 = uV/code
 
         // RTC time sync + crystal calibration - KOL and VesperU5 (Vesper, Pipistrelle), same ids.
         // Contract: asd-interfaces interfaces/rtc-time-sync.md. Older firmware NACKs them.

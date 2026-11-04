@@ -223,7 +223,7 @@ namespace VesperApp.Services
             else if (name.Contains("C.BIN")) await BinaryParser.StripSplit(rawPath, Sub("THCAM"), 0);
             else if (name.Contains("X.BIN")) await BinaryParser.StripSplit(rawPath, Sub("PRX"), 0);
             else if (name.Contains("O.BIN")) await BinaryParser.StripSplit(rawPath, Sub("LOG"), 0);
-            else if (name.Contains("S.BIN")) await BinaryParser.StripSplit(rawPath, Sub("SNS"), 0);
+            else if (name.Contains("S.BIN")) await BinaryParser.StripSplit(rawPath, Sub("DAQ"), 0);
             else if (name.Contains("H.BIN")) await BinaryParser.StripSplit(rawPath, Sub("HEALTH"), 0);
 
             return touched;
@@ -265,6 +265,12 @@ namespace VesperApp.Services
                     case ".LBN":
                         using (var ip = new ALSParser(path, data, StartTime(name, "L"), 1023, MetaUint(path, "SampleRate")))
                             ip.WriteFile();
+                        sum.Csv++;
+                        break;
+
+                    case ".SBN":                                    // DAQ24 (ADS1115) analog inputs
+                        using (var dp = new DAQ24Parser(path, data, 1023))
+                            dp.WriteFile();
                         sum.Csv++;
                         break;
 

@@ -73,6 +73,18 @@ namespace VesperApp.Models
                 : ("Check", Brushes.Goldenrod, "Found, but it did not report a plausible temperature (it may still be booting - run again): " + part);
         }
 
+        /// <summary>DAQ24: the four input voltages (AIN1:AIN0 in Sample0, AIN3:AIN2 in Sample1, int16 codes;
+        /// Sample2 µV per code), "-" for an input whose conversion did not finish (SubStatus bit clear).</summary>
+        public static string DaqPart(SensorBenchResult r)
+        {
+            double uv = r.Sample2 != 0 ? r.Sample2 : 125;
+            short[] code = { (short)(r.Sample0 & 0xFFFF), (short)(r.Sample0 >> 16), (short)(r.Sample1 & 0xFFFF), (short)(r.Sample1 >> 16) };
+            var parts = new string[4];
+            for (int i = 0; i < 4; i++)
+                parts[i] = $"AIN{i} " + ((r.SubStatus & (1 << i)) != 0 ? $"{code[i] * uv / 1e6:F3} V" : "-");
+            return string.Join(", ", parts) + (r.IdFound != 0 ? $" (ADS1115 at 0x{r.IdFound:X2})" : "");
+        }
+
         /// <summary>Verdict and a readable detail line for one sensor.</summary>
         public static (string status, IBrush brush, string detail) Describe(MessageTypes test, SensorBenchResult? r)
         {
@@ -84,6 +96,7 @@ namespace VesperApp.Models
                 MessageTypes.VESPER_TEST_IMU => $"{ImuPart(r.IdFound)}, acceleration {r.Sample0 / 1000.0:F2} g (about 1 g at rest)",
                 MessageTypes.VESPER_TEST_TPRH => $"{r.Sample0 / 100.0:F2} °C, {r.Sample1 / 100.0:F1} %RH" + (r.Sample2 == 0 ? ", checksum error" : ""),
                 MessageTypes.VESPER_TEST_ALS => $"{r.Sample0 / 100.0:F2} lux (device id 0x{r.IdFound:X4})",
+                MessageTypes.VESPER_TEST_DAQ => DaqPart(r),
                 MessageTypes.VESPER_TEST_EEG => $"{ExgPart(r.SubStatus, r.IdFound)}, device id 0x{r.IdFound:X2}" + (r.IdExpected != 0 ? $" (expected 0x{r.IdExpected:X2})" : ""),
                 _ => "",
             };
