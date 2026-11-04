@@ -116,9 +116,8 @@ namespace VesperApp.ViewModels
                 {
                     dev.ThermalFrameReceived -= OnFrame;
                     _dev = null;
-                    Summary = r == null ? "No answer - this firmware has no live thermal view (needs VesperU5 with Lepton live, 2026-11-04 or later)."
+                    Summary = r == null ? "No answer - the unit is recording (armed), or its firmware has no live thermal view (VesperU5 2026-11-04 or later)."
                             : r[0] == 0xFF ? "No thermal camera found - check the Lepton board."
-                            : r[0] == 0xFE ? "The unit is armed - stop the recording first."
                             : $"The unit refused the live view (status 0x{r[0]:X2}).";
                     return;
                 }
