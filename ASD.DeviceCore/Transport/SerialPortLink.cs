@@ -24,6 +24,9 @@ namespace ASD.DeviceCore.Transport
                 // CDC firmware may hold TX until the host asserts DTR (visible on
                 // Linux cdc_acm; Windows drivers often mask it).
                 DtrEnable = true,
+                // Lepton live view: ~330 KB/s of frames; a deeper driver queue keeps the
+                // unit's USB writes flowing between reads (Windows only, ignored elsewhere)
+                ReadBufferSize = 1 << 20,
             };
         }
 

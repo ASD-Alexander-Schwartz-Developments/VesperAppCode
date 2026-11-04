@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VesperApp.ViewModels"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="600"
+             x:DataType="vm:LiveThermalViewModel"
+             x:Class="VesperApp.Controls.LiveThermal">
+
+	<HeaderedContentControl Header="Thermal Camera - Live View" UseLayoutRounding="True">
+		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" RowDefinitions="60,Auto,*">
+
+			<ui:CommandBar DefaultLabelPosition="Right" Grid.Row="0">
+				<ui:CommandBar.PrimaryCommands>
+					<ui:CommandBarButton Command="{Binding StartCommand}" IconSource="Play" Label="Start"
+										 ToolTip.Tip="Power the camera up and stream its image over USB"/>
+					<ui:CommandBarButton Command="{Binding StopCommand}" IconSource="Stop" Label="Stop"
+										 ToolTip.Tip="End the stream and power the camera down"/>
+					<ui:CommandBarButton Command="{Binding FfcCommand}" IconSource="Refresh" Label="FFC"
+										 ToolTip.Tip="Flat-field correction (the shutter closes briefly)"/>
+					<ui:CommandBarButton Command="{Binding SnapshotCommand}" IconSource="Camera" Label="Snapshot"
+										 ToolTip.Tip="Save the image (PNG) and its pixel values (CSV) under the working folder, Thermal"/>
+					<ui:CommandBarElementContainer>
+						<ui:ProgressRing IsVisible="{Binding IsBusy}" IsActive="{Binding IsBusy}" Width="22" Height="22" Margin="10,0"/>
+					</ui:CommandBarElementContainer>
+				</ui:CommandBar.PrimaryCommands>
+			</ui:CommandBar>
+
+			<StackPanel Grid.Row="1" Margin="20,6,20,0" Spacing="2">
+				<TextBlock Text="{Binding Summary}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+				<TextBlock Text="{Binding Camera}" Opacity="0.7"/>
+			</StackPanel>
+
+			<Grid Grid.Row="2" Margin="20,10,20,20" ColumnDefinitions="*,240">
+				<Border Grid.Column="0" Background="Black" CornerRadius="6" ClipToBounds="True">
+					<Image x:Name="ThermalImage" Source="{Binding Image}" Stretch="Uniform"
+						   RenderOptions.BitmapInterpolationMode="None"
+						   PointerMoved="OnImagePointerMoved" PointerExited="OnImagePointerExited"/>
+				</Border>
+				<StackPanel Grid.Column="1" Margin="16,0,0,0" Spacing="10">
+					<StackPanel Spacing="2">
+						<TextBlock Text="Palette" Opacity="0.7"/>
+						<ComboBox ItemsSource="{Binding Palettes}" SelectedItem="{Binding Palette}" HorizontalAlignment="Stretch"/>
+					</StackPanel>
+					<StackPanel Spacing="2">
+						<TextBlock Text="Hottest" Opacity="0.7"/>
+						<TextBlock Text="{Binding MaxText}" FontWeight="Bold" FontSize="18"/>
+					</StackPanel>
+					<StackPanel Spacing="2">
+						<TextBlock Text="Coldest" Opacity="0.7"/>
+						<TextBlock Text="{Binding MinText}" FontWeight="Bold" FontSize="18"/>
+					</StackPanel>
+					<StackPanel Spacing="2">
+						<TextBlock Text="Centre" Opacity="0.7"/>
+						<TextBlock Text="{Binding CentreText}" FontWeight="Bold" FontSize="18"/>
+					</StackPanel>
+					<StackPanel Spacing="2">
+						<TextBlock Text="Pointer" Opacity="0.7"/>
+						<TextBlock Text="{Binding HoverText}"/>
+					</StackPanel>
+					<StackPanel Spacing="2">
+						<TextBlock Text="Camera sensor" Opacity="0.7"/>
+						<TextBlock Text="{Binding SensorText}" TextWrapping="Wrap"/>
+					</StackPanel>
+					<StackPanel Spacing="2">
+						<TextBlock Text="Rate" Opacity="0.7"/>
+						<TextBlock Text="{Binding RateText}"/>
+					</StackPanel>
+				</StackPanel>
+			</Grid>
+		</Grid>
+	</HeaderedContentControl>
+</UserControl>

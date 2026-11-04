@@ -140,6 +140,7 @@ namespace VesperApp.Models
 
             this._comport.ErrorEvent += _comport_ErrorEvent;
             this._comport.MessageEvent += _comport_MessageEvent;
+            this._comport.ThermalFrameReceived += f => ThermalFrameReceived?.Invoke(this, f);
             memoryStreamPage = new MemoryStream();
         }
 
@@ -899,6 +900,10 @@ namespace VesperApp.Models
         /// stripped), or null on timeout or when this is not a running comport
         /// device. Used by the microphone health check (VESPER_TEST_AUDIO).
         /// </summary>
+        /// <summary>Live thermal frames from the Lepton add-on (VESPER_TEST_LEPTON op 9), raised on the
+        /// console reader task.</summary>
+        public event EventHandler<ASD.DeviceCore.Protocol.ThermalFrame>? ThermalFrameReceived;
+
         public async Task<byte[]?> SendCommandAsync(MessageTypes type, byte[] payload, int timeoutMs = 8000)
         {
             if (this._comport == null || this._comport.IsRunning == false)

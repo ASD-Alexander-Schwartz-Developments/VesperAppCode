@@ -16,6 +16,9 @@
 			<TabItem Header="Sensors">
 				<controls:SensorTest DataContext="{Binding Sensors}"/>
 			</TabItem>
+			<TabItem Header="Thermal Camera">
+				<controls:LiveThermal DataContext="{Binding Thermal}"/>
+			</TabItem>
 			<TabItem Header="GNSS / RF">
 				<controls:GnssRfTest DataContext="{Binding Gnss}"/>
 			</TabItem>

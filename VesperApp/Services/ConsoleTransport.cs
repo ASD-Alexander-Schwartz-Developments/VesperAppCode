@@ -33,6 +33,9 @@ namespace VesperApp.Services
         public event EventHandler<MessageEventArgs>? MessageEvent;
         public event EventHandler<ErrorEventArgs>? ErrorEvent;
 
+        /// <summary>Live thermal frames (Lepton live view), raised on the reader task.</summary>
+        public event Action<ThermalFrame>? ThermalFrameReceived;
+
         public void Start()
         {
             if (_running) return;
@@ -41,6 +44,7 @@ namespace VesperApp.Services
                 var link = new SerialPortLink(_port, _baud);
                 var client = new AsdConsoleClient(link);
                 client.MessageReceived += OnMessage;
+                client.ThermalFrameReceived += OnThermalFrame;
                 client.Start();
                 _client = client;
                 _running = true;
@@ -64,6 +68,7 @@ namespace VesperApp.Services
             if (client != null)
             {
                 client.MessageReceived -= OnMessage;
+                client.ThermalFrameReceived -= OnThermalFrame;
                 _ = client.DisposeAsync(); // cancels the read loop + closes the port
             }
         }
@@ -85,6 +90,8 @@ namespace VesperApp.Services
                 : mo.MessageData.AsMemory(mo.offset);
             _ = _client?.SendRawAsync(frame);
         }
+
+        private void OnThermalFrame(ThermalFrame f) => ThermalFrameReceived?.Invoke(f);
 
         private void OnMessage(AsdMessage m)
         {

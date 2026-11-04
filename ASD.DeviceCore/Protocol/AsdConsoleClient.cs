@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ASD.DeviceCore.Transport;
@@ -21,6 +22,7 @@ namespace ASD.DeviceCore.Protocol
         private readonly ISerialLink _link;
         private readonly ILogger _log;
         private readonly AsdFrameParser _parser = new();
+        private readonly ThermalFrameDemux _thermal = new();
         private readonly ConcurrentDictionary<byte, TaskCompletionSource<AsdMessage>> _waiters = new();
 
         private CancellationTokenSource? _cts;
@@ -35,6 +37,13 @@ namespace ASD.DeviceCore.Protocol
         /// <summary>Raised for every decoded message (including ones also satisfying a
         /// pending <see cref="RequestAsync"/>). Marshal to the UI thread in the handler.</summary>
         public event Action<AsdMessage>? MessageReceived;
+
+        /// <summary>Raised for every live thermal frame (Lepton live stream, VESPER_TEST_LEPTON op 9),
+        /// on the reader task. Marshal to the UI thread in the handler.</summary>
+        public event Action<ThermalFrame>? ThermalFrameReceived;
+
+        /// <summary>Thermal frames dropped (bad size / CRC) since the start.</summary>
+        public int ThermalFramesDropped => _thermal.Dropped;
 
         public bool IsRunning => _reader is { IsCompleted: false };
 
@@ -84,7 +93,9 @@ namespace ASD.DeviceCore.Protocol
 
         private async Task ReadLoopAsync(CancellationToken ct)
         {
-            var buffer = new byte[512];
+            // 64 KB: a live thermal frame is 38 KB and arrives at ~9 Hz
+            var buffer = new byte[65536];
+            var parsedList = new List<AsdMessage>();
             try
             {
                 while (!ct.IsCancellationRequested)
@@ -92,7 +103,27 @@ namespace ASD.DeviceCore.Protocol
                     int n = await _link.ReadAsync(buffer.AsMemory(), ct).ConfigureAwait(false);
                     long rxTs = System.Diagnostics.Stopwatch.GetTimestamp();
                     if (n <= 0) continue;
-                    foreach (AsdMessage parsed in _parser.Push(buffer.AsMemory(0, n)))
+                    parsedList.Clear();
+                    int i = 0;
+                    while (i < n)
+                    {
+                        // a raw LVF1 frame starts only between console messages, with 'L'
+                        if (_thermal.Active || (_parser.IsIdle && buffer[i] == ThermalFrameDemux.Magic0))
+                        {
+                            i += _thermal.Feed(buffer.AsSpan(i, n - i), out ThermalFrame? frame);
+                            if (frame != null)
+                            {
+                                try { ThermalFrameReceived?.Invoke(frame); }
+                                catch (Exception ex) { _log.LogWarning(ex, "Thermal frame handler threw."); }
+                            }
+                        }
+                        else
+                        {
+                            _parser.PushByte(buffer[i], parsedList);
+                            i++;
+                        }
+                    }
+                    foreach (AsdMessage parsed in parsedList)
                     {
                         AsdMessage msg = parsed with { RxTimestamp = rxTs };
                         if (_waiters.TryRemove(msg.Type, out var tcs))

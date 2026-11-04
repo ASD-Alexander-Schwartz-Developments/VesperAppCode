@@ -61,6 +61,12 @@ namespace ASD.DeviceCore.Protocol
         private byte _id, _type, _len, _checksum, _count;
         private byte[] _data = Array.Empty<byte>();
 
+        /// <summary>True between messages (waiting for SOH): where a raw LVF1 thermal frame may start.</summary>
+        public bool IsIdle => _state == S.Soh;
+
+        /// <summary>Feed one byte; adds a message to <paramref name="outList"/> when one completes.</summary>
+        public void PushByte(byte b, List<AsdMessage> outList) => Step(b, outList);
+
         /// <summary>Feed received bytes; returns any complete messages decoded.</summary>
         public IEnumerable<AsdMessage> Push(ReadOnlyMemory<byte> bytes)
         {
