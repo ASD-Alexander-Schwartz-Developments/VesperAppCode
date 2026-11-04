@@ -2,7 +2,15 @@
 
 KOL, Vesper, Pipistrelle and Nanotag loggers keep time with a 32.768 kHz crystal. Every crystal is a little fast or slow (typically ±20–30 ppm, about ±2–3 seconds a day, but on some boards much more: KOL units measured about −200 ppm, 17 seconds a day slow), and outdoors it also runs slow when it is colder or warmer than about 25 °C. The **Clock** page sets a unit's clock to internet time with millisecond accuracy, measures how fast or slow that particular unit's crystal is, and stores a correction on the unit.
 
-This needs firmware with the time-sync commands (KOL 1.8 / Vesper 1.22 / Nanotag 1.37 or later). Older firmware still gets a plain whole-second **Set Time**.
+**Available from:**
+
+| Logger | Firmware | VesperApp | Where the calibration is kept |
+|---|---|---|---|
+| KOL | 1.8 or later | 1.2.0 or later | on the unit and in `RTCCAL.TXT` on its card |
+| Vesper, Pipistrelle | 1.22 or later | 1.2.0 or later | on the unit and in `RTCCAL.TXT` on its disk |
+| Nanotag | 1.37 or later | 1.2.0 or later | in the tag (EEPROM) |
+
+Older firmware still gets a plain whole-second **Set Time**.
 
 ## UTC or local time
 
@@ -26,15 +34,24 @@ The app asks internet time servers (NTP) for the true time; the PC's own clock i
 
 ## Calibrating a unit
 
-1. Connect the unit and press **Sync clock**.
-2. Leave it at a **stable room temperature for 12–24 hours** (it can be unplugged; the longer, the more precise).
-3. Connect it again and press **Sync clock** (or **Measure**, which does not change the clock).
-4. Press **Compute calibration**. The page shows the crystal error in ppm and in seconds per day, its uncertainty, the measurement span and the temperature, plus a note if something was not ideal (short span, changing temperature, PC clock used as reference).
+1. Connect the unit in **Idle** mode so its disk appears on the PC (Vesper and Pipistrelle in the docking station, KOL with its USB cable), select it and press **Connect Device**, then press **Sync clock**.
+2. Leave it at a **stable room temperature for at least 1 hour, better 12–24 hours** (the longer, the more precise). It may be unplugged and may record meanwhile, but it must **stay powered**: a flat or removed battery stops its clock and the measurement has to start again. Do not press **Sync clock** in between.
+3. Connect it again and press **Measure** (or **Sync clock**; both close the measurement).
+4. Press **Compute calibration** (it needs two measurements at least 1 hour apart in the same period). The page shows the crystal error in ppm and in seconds per day, its uncertainty, the measurement span and the temperature, plus a note if something was not ideal (short span, changing temperature, PC clock used as reference).
 5. Connect the unit in **Idle** mode (so its disk appears on the PC) and press **Apply**. The correction takes effect on the unit at once, is kept on this PC as the master copy, and is saved on the unit's own disk so it survives switching the unit off:
    - `RTCCAL.TXT` next to `UID.TXT` — read by the unit at every start (KOL 1.8 / Vesper 1.22 or later). It names the unit's serial, so it is ignored if the disk's files are copied onto another unit.
    - the *Clock Drift* (`cdrift`) value in the unit's `config.json` — the same correction for units with older firmware.
 
    If the disk is not found, the page says so; the correction then only lasts until the unit loses power — connect it in Idle mode and press **Apply** again.
+
+### Check that the calibration is active
+
+On the **Clock** page, with the unit connected, **Unit calibration** must show the crystal error, for example `crystal −244.000 ppm at 24.5 °C`, and after the unit has restarted once `(loaded from RTCCAL.TXT on the unit's disk)`. If it says **none on the unit — the legacy config.json "cdrift" value applies**, the unit is not calibrated: it only uses the configuration file's *Clock Drift*. Also check that `RTCCAL.TXT` is in the root of the unit's disk. A recording's health log (LOGGER) shows the correction in use in every sample.
+
+Common reasons it is not active:
+- **Apply** was never pressed, or the unit's disk was not mounted then (the correction was lost with the next power loss).
+- The unit lost power during the measurement, or **Sync clock** was pressed in between: **Compute calibration** finds no period of at least 1 hour.
+- `RTCCAL.TXT` was deleted when the disk was cleared.
 
 Copying a new deployment `config.json` onto a unit replaces its *Clock Drift* value but not `RTCCAL.TXT`, so units with current firmware keep their calibration. **Clear unit calibration** (in the ··· menu) removes it from the unit and deletes `RTCCAL.TXT`; the unit then uses the configuration file's *Clock Drift* value, which still holds the calibrated value until a new configuration is copied on.
 
