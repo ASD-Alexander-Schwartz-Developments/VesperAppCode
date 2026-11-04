@@ -9,6 +9,10 @@ namespace VesperApp.Models
 
     public class ConfigADS1115Driver : ConfigurationDeviceDriver
     {
+        // Sample Rate unit as the firmware reads it (2026-11-04).
+        protected override RateKind SampleRateKind => RateKind.PeriodMs;
+        protected override string SampleRateNote => "time between records, 10 ms or more; every enabled input is read each time (0 = off).";
+
         public ConfigADS1115Driver() : base("ADS1115", "DAQ24 board: 4-input 16-bit ADC (ADS1115), 0 - 4.096 V, every enabled input once per sample")
         {
             this.FileSize = 1 * 1024 * 1024;
@@ -24,10 +28,10 @@ namespace VesperApp.Models
             set { this.channels = value; }
         }
 
-        [DisplayName("Enable Ch.1"),
+        [DisplayName("Enable AIN0"),
         TypeConverter(typeof(bool)),
-        CategoryAttribute("Ext. ADC specific Settings"),
-        DescriptionAttribute("Enables ADS115 ADC board channel 1. Note sampling frequency divided between all enabled channels")]
+        CategoryAttribute("DAQ24 inputs"),
+        DescriptionAttribute("Input AIN0 (TP1), 0 V to VDDA. None enabled = all four.")]
         [JsonIgnore]
         public bool EnableCh1
         {
@@ -47,10 +51,10 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("Enable Ch.2"),
+        [DisplayName("Enable AIN1"),
         TypeConverter(typeof(bool)),
-        CategoryAttribute("Ext. ADC specific Settings"),
-        DescriptionAttribute("Enables ADS115 ADC board channel 2. Note sampling frequency divided between all enabled channels")]
+        CategoryAttribute("DAQ24 inputs"),
+        DescriptionAttribute("Input AIN1 (TP2), 0 V to VDDA. None enabled = all four.")]
         [JsonIgnore]
         public bool EnableCh2
         {
@@ -70,10 +74,10 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("Enable Ch.3"),
+        [DisplayName("Enable AIN2"),
         TypeConverter(typeof(bool)),
-        CategoryAttribute("Ext. ADC specific Settings"),
-        DescriptionAttribute("Enables ADS115 ADC board channel 3. Note sampling frequency divided between all enabled channels")]
+        CategoryAttribute("DAQ24 inputs"),
+        DescriptionAttribute("Input AIN2 (TP3), 0 V to VDDA. None enabled = all four.")]
         [JsonIgnore]
         public bool EnableCh3
         {
@@ -94,10 +98,10 @@ namespace VesperApp.Models
         }
 
 
-        [DisplayName("Enable Ch.4"),
+        [DisplayName("Enable AIN3"),
         TypeConverter(typeof(bool)),
-        CategoryAttribute("Ext. ADC specific Settings"),
-        DescriptionAttribute("Enables ADS115 ADC board channel 4. Note sampling frequency divided between all enabled channels")]
+        CategoryAttribute("DAQ24 inputs"),
+        DescriptionAttribute("Input AIN3 (TP4), 0 V to VDDA. None enabled = all four.")]
         [JsonIgnore]
         public bool EnableCh4
         {

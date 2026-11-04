@@ -93,7 +93,7 @@ namespace VesperApp.Models
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(string), "vesper"),
         DisplayName("Device Name"),
-        DescriptionAttribute("Name of the device model that should use this configuration")]
+        DescriptionAttribute("Device model this configuration is for.")]
         public string Name
         {
             get { return this.name; }
@@ -103,8 +103,8 @@ namespace VesperApp.Models
         [JsonPropertyName("cdrift"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(2)]
         [CategoryAttribute("Clock Drift compensation"),
         DefaultValueAttribute(typeof(UInt32?), null),
-        DisplayName("Clock Drift"),
-        DescriptionAttribute("Clock drift constant")]
+        DisplayName("Clock Drift (RTC CALR)"),
+        DescriptionAttribute("Legacy RTC calibration register value (bit 15 = +512 pulses, bits 0-8 = -0.954 ppm each), used only when the unit has no calibration from VesperApp. 0 = none.")]
         public UInt32? CDrift
         {
             get { return this.clock_drift; }
@@ -132,7 +132,7 @@ namespace VesperApp.Models
         [JsonPropertyName("scheduleType"), JsonPropertyOrder(3)]
         [CategoryAttribute("General configuration"),
         DisplayName("Schedule Type"),
-        DescriptionAttribute("Sampling schedule type - Daily/Weekly/Continues/Custom. Details in Schedule.")]
+        DescriptionAttribute("Continuous, daily, dated or relative; entries under Schedule.")]
         public ScheduleTypes ScheduleType
         {
             get 
@@ -149,8 +149,7 @@ namespace VesperApp.Models
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(bool), "true"),
         DisplayName("Allow Magnet Turn-Off"),
-        DescriptionAttribute("Should the device turn off sampling (transition to sleep) on magnet detection." +
-            " If set to false, device will follow only scheduler, no manual deactiviation is possible")]
+        DescriptionAttribute("A held magnet stops recording and puts the unit to sleep. Off: only the schedule stops it.")]
         public bool IsMagnetOffEnabled
         {
             get { return this.is_magnet_off_enabled; }
@@ -160,8 +159,8 @@ namespace VesperApp.Models
         [JsonPropertyName("minhw"), JsonPropertyOrder(1)]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(string), "4.0"),
-        DisplayName("Minimal Version"),
-        DescriptionAttribute("Allows restricting the configuration to any firmware version above (including) the specified")]
+        DisplayName("Minimum hardware"),
+        DescriptionAttribute("Informational: Vesper, Pipistrelle and KOL firmware do not check it.")]
         public string MinimumSupportedHardware
         {
             get { return this.minimum_supported_hw; }
@@ -171,8 +170,8 @@ namespace VesperApp.Models
         [JsonPropertyName("battery"), JsonPropertyOrder(5)]
         [CategoryAttribute("General configuration"),
         DefaultValueAttribute(typeof(UInt32), "60"),
-        DisplayName("Battery Capacity"),
-        DescriptionAttribute("Nominal capacity of the battery in use with the Vesper (note, this is only informational - will not affect operation)")]
+        DisplayName("Battery Capacity (mAh)"),
+        DescriptionAttribute("Informational only: the firmware does not use it.")]
         public UInt32 BatteryCapacity
         {
             get { return this.battery_capacity; }
@@ -182,8 +181,8 @@ namespace VesperApp.Models
         [JsonPropertyOrder(6)]
         [JsonPropertyName("poweron")]
         [CategoryAttribute("General configuration"),
-        DisplayName("Device Power on time"),
-        DescriptionAttribute("Name of the device model that should use this configuration")]
+        DisplayName("Power-on time"),
+        DescriptionAttribute("Delay after arming (relative) or a fixed start time, 2 s resolution; the unit sleeps until then.")]
         public PowerOnTime PowerOn
         {
             get { return this.wake_up_time; }
@@ -193,7 +192,7 @@ namespace VesperApp.Models
 
         [CategoryAttribute("General configuration"),
         DisplayName("Schedule"),
-        DescriptionAttribute("Plan sampling schedule details"), JsonPropertyOrder(7)]
+        DescriptionAttribute("Schedule entries."), JsonPropertyOrder(7)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [JsonPropertyName("schedule")]
         public List<ConfigScheduleJSONItem> Schedule
@@ -204,7 +203,7 @@ namespace VesperApp.Models
 
         [CategoryAttribute("General configuration"),
         DisplayName("Sensors"),
-        DescriptionAttribute("Control and configure which sensors will be active"), JsonPropertyOrder(8)]
+        DescriptionAttribute("Sensors to record and their settings."), JsonPropertyOrder(8)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         [JsonPropertyName("devices")]
         public List<ConfigurationDeviceDriver> DeviceDrivers
@@ -220,6 +219,8 @@ namespace VesperApp.Models
             public bool IsRelative { get; set; }
 
             [JsonIgnore]
+        [DisplayName("Power-on time")]
+        [Description("Delay after arming (relative) or a fixed start time, 2 s resolution; the unit sleeps until then.")]
             public string PowerOn
             {
                 get

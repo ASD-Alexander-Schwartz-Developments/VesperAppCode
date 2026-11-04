@@ -74,6 +74,13 @@ namespace VesperApp.ViewModels
             }
 
 
+            // Per-sensor labels (units differ between drivers for the same field, e.g. Sample Rate in Hz or ms).
+            if (o is VesperApp.Models.ConfigurationDeviceDriver drv && drv.EditorLabel(property.Name) is { } lbl)
+            {
+                if (lbl.Name != null) Name = lbl.Name;
+                if (lbl.Description != null) Description = lbl.Description;
+            }
+
             TypeConverterAttribute? converterAttr = property.GetCustomAttribute<TypeConverterAttribute>(true);
             if(converterAttr != null)
             {

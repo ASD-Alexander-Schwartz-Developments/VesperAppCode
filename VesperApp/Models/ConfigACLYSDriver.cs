@@ -11,6 +11,11 @@ namespace VesperApp.Models
 
     public class ConfigACLYSDriver : ConfigurationDeviceDriver
     {
+        // Sample Rate unit as the firmware reads it (2026-11-04).
+        protected override RateKind SampleRateKind => RateKind.PeriodMs;
+        protected override string SampleRateNote => "time between snapshot starts (0 = off); above 5000 ms the receiver sleeps between snapshots.";
+        protected override bool FileSizeIgnored => true;
+
         public const UInt32 BITMASK_ACC_GPSTRIGGER = 0x1000;
 
         public ConfigACLYSDriver() : base("ACLYS", "Snap GPS receiver") // GPS
@@ -30,10 +35,10 @@ namespace VesperApp.Models
             //set { this.name = value; }
         }
 
-        [DisplayName("Enable GPS Trigger"),
+        [DisplayName("Motion-triggered snapshots"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Enables Acc to be used as GPS trigger on motion detection where available"),
+        DescriptionAttribute("Nanotag: take snapshots when the accelerometer detects motion; Window Length = snapshots per trigger."),
         Browsable(true)]
         [JsonIgnore]
         public bool EnableGPSTrigger
@@ -55,8 +60,8 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("ACLYS specific Settings"),
-        DisplayName("Snap Size"),
-        DescriptionAttribute("Size (in ms) of a single GPS snap. The longer the snap - the better the positioning in expense of power consumption")]
+        DisplayName("Snapshot Length"),
+        DescriptionAttribute("Length of one GNSS snapshot: longer fixes better but costs more power.")]
         [JsonIgnore]
         [Browsable(true)]
         public AclysSnapLength SnapSize

@@ -12,6 +12,10 @@ namespace VesperApp.Models
     
     public class ConfigIMU10Driver : ConfigurationDeviceDriver
     {
+        // Sample Rate unit as the firmware reads it (2026-11-04).
+        protected override RateKind SampleRateKind => RateKind.Hz;
+        protected override string SampleRateNote => "rounded up to the next supported rate, 12.5 to 6667 Hz (0 = off).";
+
         public const UInt32 BITMASK_ACC_ON = 0x01;
         public const UInt32 BITMASK_GYRO_ON = 0x02;
         public const UInt32 BITMASK_MAG_ON = 0x04;
@@ -59,7 +63,7 @@ namespace VesperApp.Models
         [Browsable(true)]
         [JsonIgnore]
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Should LED indicate activity is this driver"),
+        DescriptionAttribute("Flash the LED on every IMU save."),
         DisplayName("LED Activity")]
         public override bool IsLEDActive
         {
@@ -76,10 +80,10 @@ namespace VesperApp.Models
         }
 
 
-        [DisplayName("Enable BAR"),
+        [DisplayName("Enable barometer"),
         Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
-        DescriptionAttribute("Enable Barometer sensor inside IMU10 module")]
+        DescriptionAttribute("Barometer in the IMU10 module.")]
         [JsonIgnore]
         public bool BarON
         {
@@ -102,10 +106,10 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("Enable ACC"),
+        [DisplayName("Enable accelerometer"),
         Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
-        DescriptionAttribute("Enable Accelerometer sensor inside IMU10 module")]
+        DescriptionAttribute("Accelerometer in the IMU10 module.")]
         [JsonIgnore]
         public bool AccON
         {
@@ -128,10 +132,10 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("Enable GYRO"),
+        [DisplayName("Enable gyroscope"),
         Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
-        DescriptionAttribute("Enable Gyro sensor inside IMU10 module")]
+        DescriptionAttribute("Gyroscope in the IMU10 module.")]
         [JsonIgnore]
         public bool GyroON
         {
@@ -154,10 +158,10 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("Enable Magnetometer"),
+        [DisplayName("Enable magnetometer"),
         Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
-        DescriptionAttribute("Enable Magnetometer sensor inside IMU10 module")]
+        DescriptionAttribute("Magnetometer in the IMU10 module.")]
         [JsonIgnore]
         public bool MagON
         {
@@ -180,10 +184,10 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("ACC Dynamic Range"),
+        [DisplayName("Accelerometer range"),
         Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
-        DescriptionAttribute("Choose dynamic range for accelerometer sensor (in G)")]
+        DescriptionAttribute("Full scale, in g.")]
         [JsonIgnore]
         public IMU10AccRanges AccRange
         {
@@ -217,10 +221,10 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("GYRO Dynamic Range"),
+        [DisplayName("Gyroscope range"),
         Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
-        DescriptionAttribute("Choose dynamic range for gyro sensor (in degrees / second)")]
+        DescriptionAttribute("Full scale, in degrees per second.")]
         [JsonIgnore]
         public IMU10GyroRanges GyroRange
         {

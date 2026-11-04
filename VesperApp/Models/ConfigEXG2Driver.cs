@@ -157,7 +157,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 1"),
         CategoryAttribute("EXG Channel 1"),
-        DescriptionAttribute("Enable Lead Off Channel 1 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 1 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff1Pos
@@ -176,7 +176,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 1"),
         CategoryAttribute("EXG Channel 1"),
-        DescriptionAttribute("Enable Lead Off Channel 1 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 1 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff1Neg
@@ -273,7 +273,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 2"),
         CategoryAttribute("EXG Channel 2"),
-        DescriptionAttribute("Enable Lead Off Channel 2 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 2 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff2Pos
@@ -292,7 +292,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 2"),
         CategoryAttribute("EXG Channel 2"),
-        DescriptionAttribute("Enable Lead Off Channel 2 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 2 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff2Neg
@@ -440,7 +440,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
+        DescriptionAttribute("Config 1 conversion rate, samples per second (0 = off)."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -458,7 +458,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
+        DescriptionAttribute("Config 2 conversion rate, samples per second (0 = off)."),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -477,7 +477,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
+        DescriptionAttribute("Config 1 conversion rate, samples per second (0 = off)."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(false)]
@@ -490,7 +490,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
+        DescriptionAttribute("Config 2 conversion rate, samples per second (0 = off)."),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
         [Browsable(false)]
@@ -501,10 +501,10 @@ namespace VesperApp.Models
         }
 
 
-        [DisplayName("EXG sensor activity LED indication"),
+        [DisplayName("LED Activity"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("EXG specific Settings"),
-        DescriptionAttribute("Enables LED to blink on EXG recording activity")]
+        DescriptionAttribute("Blink the LED while the ExG records.")]
         [JsonIgnore]
         public bool EnableLEDIndication
         {

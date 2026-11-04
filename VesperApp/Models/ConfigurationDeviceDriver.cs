@@ -17,6 +17,33 @@ namespace VesperApp.Models
         public const UInt32 BITMASK_LED = 0x02;
         public const UInt32 BITMASK_ACC_TRG = 0x1000;
 
+        /// <summary>How the logger firmware reads Sample Rate [1]/[2] for this sensor (VesperU5, KOL, Nanotag; checked
+        /// 2026-11-04): a period in ms or a rate in Hz. None keeps the generic attribute label.</summary>
+        protected enum RateKind { None, PeriodMs, Hz }
+        protected virtual RateKind SampleRateKind => RateKind.None;
+        /// <summary>Range / meaning of 0 for the Sample Rate rows, after "Config n: " ("" = keep the attribute note).</summary>
+        protected virtual string SampleRateNote => "";
+        /// <summary>The firmware ignores File Size for this sensor (GPS, Lepton size their own files).</summary>
+        protected virtual bool FileSizeIgnored => false;
+
+        /// <summary>Config editor label and note for a property, ahead of its attributes (DriverPropertyViewModel);
+        /// null, or a null part, keeps the attribute text.</summary>
+        public virtual (string? Name, string? Description)? EditorLabel(string property)
+        {
+            int cfg = property.EndsWith("2") ? 2 : 1;
+            switch (property)
+            {
+                case nameof(SampleRate1):
+                case nameof(SampleRate2):
+                    if (SampleRateKind == RateKind.None) return null;
+                    return (SampleRateKind == RateKind.PeriodMs ? $"Sample Period [{cfg}] (ms)" : $"Sample Rate [{cfg}] (Hz)",
+                            SampleRateNote.Length > 0 ? $"Config {cfg}: {SampleRateNote}" : null);
+                case nameof(FileSize):
+                    return FileSizeIgnored ? (null, "Not used: the firmware sizes these files itself.") : null;
+            }
+            return null;
+        }
+
         private string name;
         private string description;
         protected UInt32[] sample_rate;
@@ -111,7 +138,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
+        DescriptionAttribute("Config 1 sample rate; its unit depends on the sensor (0 = off)."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -126,7 +153,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
+        DescriptionAttribute("Config 2 sample rate; its unit depends on the sensor (0 = off)."),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -157,8 +184,8 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty-cycled recording in Config 1: how long each recording window lasts, in ms (0 = record continuously)."),
-        DisplayName("Window Length [1]")]
+        DescriptionAttribute("Config 1: length of each recording window (0 = record continuously)."),
+        DisplayName("Window Length [1] (ms)")]
         [JsonIgnore]
         [Browsable(true)]
         public virtual UInt32 WindowLength1
@@ -172,8 +199,8 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty-cycled recording in Config 2: how long each recording window lasts, in ms (0 = record continuously)."),
-        DisplayName("Window Length [2]")]
+        DescriptionAttribute("Config 2: length of each recording window (0 = record continuously)."),
+        DisplayName("Window Length [2] (ms)")]
         [JsonIgnore]
         [Browsable(true)]
         public virtual UInt32 WindowLength2
@@ -202,8 +229,8 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty-cycled recording in Config 1: time from the start of one window to the start of the next, in ms; must be longer than the window length (0 = record continuously)."),
-        DisplayName("Window Rate [1]")]
+        DescriptionAttribute("Config 1: start-to-start time of the windows, longer than the length (0 = record continuously)."),
+        DisplayName("Window Rate [1] (ms)")]
         [JsonIgnore]
         [Browsable(true)]
         public virtual UInt32 WindowRate1
@@ -217,8 +244,8 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Duty-cycled recording in Config 2: time from the start of one window to the start of the next, in ms; must be longer than the window length (0 = record continuously)."),
-        DisplayName("Window Rate [2]")]
+        DescriptionAttribute("Config 2: start-to-start time of the windows, longer than the length (0 = record continuously)."),
+        DisplayName("Window Rate [2] (ms)")]
         [JsonIgnore]
         [Browsable(true)]
         public virtual UInt32 WindowRate2
@@ -235,11 +262,9 @@ namespace VesperApp.Models
         [JsonPropertyName("fileSize"), JsonPropertyOrder(30)]
         [Browsable(true)]
         [CategoryAttribute("Advanced configuration"),
-        DescriptionAttribute("Size of each recording file in bytes; when it is reached the file is closed and a new one is started. "
-            + "Always a multiple of 64 KB (65,536 bytes) - the largest RAM buffer the firmware writes and a whole number of "
-            + "allocation clusters - so every file ends on a full buffer; other values are rounded. 0 = the firmware's minimum for the sensor. "
-            + "Smaller values are raised to that minimum, as the firmware does: microphones 8 MB, IMU 2 MB."),
-        DisplayName("File Size")]
+        DescriptionAttribute("A new file starts at this size; rounded to 64 KiB. 0 or below the sensor's minimum = the minimum "
+            + "(microphone 8 MiB, IMU 2 MiB, ExG 240 KiB, others 10 KiB)."),
+        DisplayName("File Size (bytes)")]
         public virtual UInt32 FileSize
         {
             get => this.file_size;

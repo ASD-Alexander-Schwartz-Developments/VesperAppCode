@@ -155,7 +155,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 1"),
         CategoryAttribute("EXG Channel 1"),
-        DescriptionAttribute("Enable Lead Off Channel 1 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 1 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff1Pos
@@ -174,7 +174,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 1"),
         CategoryAttribute("EXG Channel 1"),
-        DescriptionAttribute("Enable Lead Off Channel 1 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 1 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff1Neg
@@ -271,7 +271,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 2"),
         CategoryAttribute("EXG Channel 2"),
-        DescriptionAttribute("Enable Lead Off Channel 2 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 2 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff2Pos
@@ -290,7 +290,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 2"),
         CategoryAttribute("EXG Channel 2"),
-        DescriptionAttribute("Enable Lead Off Channel 2 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 2 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff2Neg
@@ -388,7 +388,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 3"),
         CategoryAttribute("EXG Channel 3"),
-        DescriptionAttribute("Enable Lead Off Channel 3 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 3 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff3Pos
@@ -407,7 +407,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 3"),
         CategoryAttribute("EXG Channel 3"),
-        DescriptionAttribute("Enable Lead Off Channel 3 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 3 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff3Neg
@@ -504,7 +504,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 4"),
         CategoryAttribute("EXG Channel 4"),
-        DescriptionAttribute("Enable Lead Off Channel 4 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 4 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff4Pos
@@ -523,7 +523,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 4"),
         CategoryAttribute("EXG Channel 4"),
-        DescriptionAttribute("Enable Lead Off Channel 4 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 4 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff4Neg
@@ -619,7 +619,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 5"),
         CategoryAttribute("EXG Channel 5"),
-        DescriptionAttribute("Enable Lead Off Channel 5 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 5 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff5Pos
@@ -638,7 +638,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 5"),
         CategoryAttribute("EXG Channel 5"),
-        DescriptionAttribute("Enable Lead Off Channel 5 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 5 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff5Neg
@@ -735,7 +735,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 6"),
         CategoryAttribute("EXG Channel 6"),
-        DescriptionAttribute("Enable Lead Off Channel 6 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 6 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff6Pos
@@ -754,7 +754,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 6"),
         CategoryAttribute("EXG Channel 6"),
-        DescriptionAttribute("Enable Lead Off Channel 6 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 6 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff6Neg
@@ -851,7 +851,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 7"),
         CategoryAttribute("EXG Channel 7"),
-        DescriptionAttribute("Enable Lead Off Channel 7 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 7 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff7Pos
@@ -870,7 +870,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 7"),
         CategoryAttribute("EXG Channel 7"),
-        DescriptionAttribute("Enable Lead Off Channel 7 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 7 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff7Neg
@@ -966,7 +966,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Pos 8"),
         CategoryAttribute("EXG Channel 8"),
-        DescriptionAttribute("Enable Lead Off Channel 8 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 8 positive input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff8Pos
@@ -985,7 +985,7 @@ namespace VesperApp.Models
 
         [DisplayName("LeadOff Neg 8"),
         CategoryAttribute("EXG Channel 8"),
-        DescriptionAttribute("Enable Lead Off Channel 8 positive")]
+        DescriptionAttribute("Enable lead-off detection, channel 8 negative input.")]
         [JsonIgnore]
         [Browsable(true)]
         public bool LOff8Neg
@@ -1006,7 +1006,7 @@ namespace VesperApp.Models
         [DisplayName("Enable High Performance Mode"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("EXG Specific Settings"),
-        DescriptionAttribute("Enable high power high performance mode or disable for low power mode"),
+        DescriptionAttribute("High-resolution mode (more power); off = low-power mode."),
         Browsable(true)]
         [JsonIgnore]
         public bool EnableHR
@@ -1152,7 +1152,7 @@ namespace VesperApp.Models
         [DisplayName("En RLD Measure"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("EXG Specific Settings"),
-        DescriptionAttribute("Enable RLD Electrode Measurement over selected chennel"),
+        DescriptionAttribute("Measure the RLD electrode on the selected channel."),
         Browsable(true)]
         [JsonIgnore]
         public bool EnableRLDMeasure
@@ -1418,7 +1418,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
+        DescriptionAttribute("Config 1 conversion rate, samples per second (0 = off)."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -1436,7 +1436,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
+        DescriptionAttribute("Config 2 conversion rate, samples per second (0 = off)."),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -1455,7 +1455,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config1 schedule"),
+        DescriptionAttribute("Config 1 conversion rate, samples per second (0 = off)."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(false)]
@@ -1467,7 +1467,7 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Sample Rate of the sensor operating in Config2 schedule"),
+        DescriptionAttribute("Config 2 conversion rate, samples per second (0 = off)."),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
         [Browsable(false)]
@@ -1477,10 +1477,10 @@ namespace VesperApp.Models
         }
 
 
-        [DisplayName("Mike activity LED indication"),
+        [DisplayName("LED Activity"),
         TypeConverter(typeof(bool)),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Enables LED to blink on EXG recording activity")]
+        CategoryAttribute("EXG Specific Settings"),
+        DescriptionAttribute("Blink the LED while the ExG records.")]
         [JsonIgnore]
         public bool EnableLEDIndication
         {

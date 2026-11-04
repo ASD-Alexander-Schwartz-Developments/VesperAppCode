@@ -8,16 +8,20 @@ namespace VesperApp.Models
 {
     public class ConfigNanotagAcc : ConfigurationDeviceDriver
     {
+        // Sample Rate unit as the firmware reads it (2026-11-04).
+        protected override RateKind SampleRateKind => RateKind.Hz;
+        protected override string SampleRateNote => "1 to 60 Hz; other values give 10 Hz (0 = off).";
+
         public const UInt32 BITMASK_NANOTAGACC_MOTIONIRQ = 0x2000;
         public ConfigNanotagAcc() : base("NANOACC", "Nanotag on board Accelerometer")
         {
             this.FileSize = 0;
         }
 
-        [DisplayName("Enable Motion Detection"),
+        [DisplayName("Motion trigger"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Enables Acc to be used as trigger on motion detection"),
+        DescriptionAttribute("Use the accelerometer's motion detection as a trigger."),
         Browsable(true)]
         [JsonIgnore]
         public bool EnableTrigger
@@ -48,7 +52,7 @@ namespace VesperApp.Models
         [DisplayName("Dynamic Range"),
         TypeConverter(typeof(NanoAccRanges)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Accelerometer Dynamic Range"),
+        DescriptionAttribute("Full scale, in g."),
         Browsable(true)]
         [JsonIgnore]
         public NanoAccRanges Range
@@ -87,7 +91,7 @@ namespace VesperApp.Models
         [DisplayName("Mode"),
         TypeConverter(typeof(NanoAccOpMode)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Accelerometer Operating Mode"),
+        DescriptionAttribute("Accelerometer operating mode."),
         Browsable(true)]
         [JsonIgnore]
         public NanoAccOpMode Mode
@@ -122,10 +126,10 @@ namespace VesperApp.Models
         }
 
 
-        [DisplayName("Trigger Threshold"),
+        [DisplayName("Trigger threshold (raw)"),
         TypeConverter(typeof(uint)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Accelerometer Trigger Threshold in mg"),
+        DescriptionAttribute("MC3479 any-motion threshold register, 0 to 32767, written as is (default 200)."),
         Browsable(true)]
         [JsonPropertyName("threshold"), JsonPropertyOrder(22)]
         public uint Threshold
@@ -143,10 +147,10 @@ namespace VesperApp.Models
         private uint threshold;
 
 
-        [DisplayName("Trigger Deadtime"),
+        [DisplayName("Trigger debounce (raw)"),
         TypeConverter(typeof(uint)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Accelerometer Trigger deadtime in seconds"),
+        DescriptionAttribute("MC3479 any-motion debounce register, 0 to 255, written as is (default 50)."),
         Browsable(true)]
         [JsonPropertyName("deadtime"), JsonPropertyOrder(23)]
         public UInt32 Deadtime

@@ -25,7 +25,7 @@ namespace VesperApp.Models
         TypeConverter(typeof(SPH0641Hpf)),
         Browsable(true),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Removes rumble and the microphone’s DC offset. The cut-off is a fraction of the sample rate, e.g. 0.0025 × 200 kHz = 500 Hz. Press Solve to see the cut-off of every setting at your rates.")]
+        DescriptionAttribute("Removes rumble and DC. Cut-off = fraction x sample rate (0.0025 x 200 kHz = 500 Hz); Solve lists each setting.")]
         [JsonIgnore]
         [MicSolver]
         public SPH0641Hpf HighPassFilter
@@ -47,10 +47,10 @@ namespace VesperApp.Models
             set { this.gain = (UInt16)value.Value; OnPropertyChanged(); }
         }
 
-        [DisplayName("Mike activity LED indication"),
+        [DisplayName("LED Activity"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("Ultrasonic Mike specific Settings"),
-        DescriptionAttribute("Blink the LED while the microphones record.")]
+        DescriptionAttribute("Blink the LED while the microphone records.")]
         [JsonIgnore]
         public bool EnableLEDIndication
         {

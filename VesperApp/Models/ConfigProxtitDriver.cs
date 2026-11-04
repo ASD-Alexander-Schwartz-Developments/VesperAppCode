@@ -9,6 +9,10 @@ namespace VesperApp.Models
     
     public class ConfigProxtitDriver : ConfigurationDeviceDriver
     {
+        // Sample Rate unit as the firmware reads it (2026-11-04).
+        protected override RateKind SampleRateKind => RateKind.PeriodMs;
+        protected override string SampleRateNote => "how often the logger reads the tag (0 = tag not started).";
+
         public ConfigProxtitDriver() : base("PROXTIT", "Proxtit wireless trasceiver")
         {
             this.FileSize = 0;
@@ -34,12 +38,12 @@ namespace VesperApp.Models
         private UInt16 avgSeconds;
         private Int16  rssiGate;
 
-        [DisplayName("Mode (0=off, 1=proximity logger)"),
+        [DisplayName("Mode (0 off, 1 proximity, 2 BLE modem)"),
         CategoryAttribute("Proxtit specific Settings")]
         [JsonPropertyName("prxMode"), JsonPropertyOrder(20)]
         public UInt16 ProxMode { get => proxMode; set => this.proxMode = value; }
 
-        [DisplayName("Beacon interval (ms)"),
+        [DisplayName("Beacon interval (ms, 100 to 40000)"),
         CategoryAttribute("Proxtit specific Settings")]
         [JsonPropertyName("prxBcnIval"), JsonPropertyOrder(21)]
         public UInt16 BeaconInterval { get => beaconInterval; set => this.beaconInterval = value; }
@@ -54,14 +58,16 @@ namespace VesperApp.Models
         [JsonPropertyName("prxScanWin"), JsonPropertyOrder(23)]
         public UInt16 ScanWindow { get => scanWindow; set => this.scanWindow = value; }
 
-        [DisplayName("Proximity gate (delta-RSSI)"),
+        [DisplayName("Proximity gate (dB)"),
         CategoryAttribute("Proxtit specific Settings")]
         [JsonPropertyName("prxDeltaRssi"), JsonPropertyOrder(24)]
+        [Description("An encounter opens when the tag's TX power minus the RSSI is below this.")]
         public UInt16 DeltaRssi { get => deltaRssi; set => this.deltaRssi = value; }
 
         [DisplayName("Session timeout (s)"),
         CategoryAttribute("Proxtit specific Settings")]
         [JsonPropertyName("prxAvgSec"), JsonPropertyOrder(25)]
+        [Description("An encounter ends after this long without the other tag.")]
         public UInt16 AvgSeconds { get => avgSeconds; set => this.avgSeconds = value; }
 
         /// <summary>Not a config.json key (VesperU5 1.20 does not know "prxBcnDurn"): the tag keeps its own value.</summary>

@@ -10,6 +10,11 @@ namespace VesperApp.Models
 
     public class ConfigLeptonDriver : ConfigurationDeviceDriver
     {
+        // Sample Rate unit as the firmware reads it (2026-11-04).
+        protected override RateKind SampleRateKind => RateKind.PeriodMs;
+        protected override string SampleRateNote => "time between frames (0 = off); from 10000 ms the camera is off between frames.";
+        protected override bool FileSizeIgnored => true;
+
         public const UInt32 BITMASK_LEPTON_LED = 0x02;
 
         public ConfigLeptonDriver() : base("LEPTON", "Lepton thermal camera")
@@ -19,10 +24,10 @@ namespace VesperApp.Models
 
 
 
-        [DisplayName("Lepton camera snapshot activity LED indication"),
+        [DisplayName("LED Activity"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("Lepton specific Settings"),
-        DescriptionAttribute("Enables LED to blink on camera activity")]
+        DescriptionAttribute("Flash the LED on every camera frame.")]
         [JsonIgnore]
         public bool EnableLEDIndication
         {
