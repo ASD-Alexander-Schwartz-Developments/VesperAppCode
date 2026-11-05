@@ -21,7 +21,7 @@ Older firmware is not asked: the page says which firmware the check needs.
 
 1. Connect the device over USB and select it. It must be idle (not recording, not in Live Audio).
 2. For KOL, choose how many microphones are fitted (1, 2 or 4).
-3. Play the **test tones** near the device: 1 kHz and 4 kHz together, steady, from a phone or small speaker about 10 cm away (a phone at full volume). Keep a KOL's source centred so all four microphones hear it alike.
+3. Test tones (1 kHz and 4 kHz together): with **Play test tones on this PC** ticked (the default) VesperApp plays them itself — turn the PC volume up and hold the unit close to the PC speaker. Untick it to use your own source instead: a phone or small speaker at full volume about 10 cm away. Keep a KOL's source centred so all four microphones hear it alike. A muted PC microphone is reported.
 4. Press **Run Check**. Each microphone is captured for 150 ms at 48 kHz, one after the other.
 
 **Reading the results**
@@ -49,8 +49,10 @@ Checks the add-on boards on the connector before a deployment: the unit looks fo
 |---|---|---|---|
 | Motion | IMU10 (LSM6DSM, LSM6DS3 or LSM6DSO), IMU10HT (ICM-20680) | ✓ | ✓ |
 | Temperature / humidity | TPRH31 (SHT31) | ✓ | ✓ |
-| Light | ALS3001D (OPT3001) | – | ✓ |
-| Biopotential | EXG2, EAG2, EXG48 (ADS1292, ADS1192, ADS1298) | – | ✓ |
+| Light | ALS3001D (OPT3001) | – (the KOL firmware has the test; VesperApp does not offer it yet) | ✓ |
+| Analog inputs | DAQ24 (ADS1115): the four input voltages | – | ✓ |
+| Biopotential | EEG4 (ADS1294/6/8), EXG2 (ADS1291/2), EEG2 / EMG2 / ECG2 (ADS1191/2) | – | ✓ |
+| Thermal camera | Lepton (VT03 or the older VT01 board): camera version, radiometric or not, sensor and housing °C — takes a few seconds to boot | – | ✓ |
 
 Firmware: KOL 1.8 or later; Vesper and Pipistrelle 1.22 or later.
 
@@ -61,8 +63,17 @@ Firmware: KOL 1.8 or later; Vesper and Pipistrelle 1.22 or later.
 | **Pass** | The board answered with the right id and a sensible reading (shown: the part found and the value — about 1 g at rest for motion, °C and %RH, lux). |
 | **Check** | The board answered, but the reading is out of the expected range (e.g. the unit was moving, or a checksum error). |
 | **Partial** | The motion board answered but its magnetometer or barometer did not. |
-| **Not found** | No board of that type answered — not fitted, badly seated, or another board on the same address (light and temperature boards cannot be stacked together). |
+| **Not found** | No board of that type answered — not fitted, badly seated, or another board on the same address (the light and temperature boards both default to address 0x44: strap one to 0x45 to stack them). |
 | **No answer** | The unit did not reply — it is recording, or its firmware has no sensor test. |
+
+## Thermal camera (live view)
+
+Vesper and Pipistrelle with a thermal camera add-on (Lepton, VT03 or the older VT01 board), firmware 1.22 or later, idle (an armed / recording unit does not answer). Not yet tried with every camera variant.
+
+- **Start** powers the camera up (boot takes up to 2 s) and streams its image over USB; **Stop** ends the stream and powers the camera down.
+- Pick a **Palette**; the panel shows the **Hottest**, **Coldest** and **Centre** temperature, the **Pointer** value under the mouse, the camera's own sensor temperature and the frame rate.
+- **FFC** runs a flat-field correction: the camera's shutter closes briefly.
+- **Snapshot** saves the image (PNG) and its pixel values (CSV) to `<working folder>\Thermal\<unit>`.
 
 ## GNSS / RF self-test (Vesper)
 

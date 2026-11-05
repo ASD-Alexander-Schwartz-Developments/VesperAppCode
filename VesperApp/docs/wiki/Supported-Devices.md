@@ -32,7 +32,7 @@ The flagship logger. Records audio plus a full set of environmental sensors, and
 
 - Single MEMS microphone.
 - Snapshot GNSS receiver with an in-firmware RF self-test (see [Device Tests](Device-Tests)).
-- Sensor suite (depending on configuration): inertial/motion (IMU), EXG biopotential, temperature/pressure/humidity, ambient light, thermal camera, proximity.
+- Sensor suite (depending on configuration): inertial/motion (IMU), EXG biopotential, temperature/pressure/humidity, ambient light, analog inputs (DAQ24), thermal camera, proximity.
 
 ## VT04-PP (Pipistrelle)
 
@@ -81,7 +81,7 @@ A connected KOL has three **USB modes**, shown and switched from the device cons
 | Mode | What the computer sees | Use it for |
 |---|---|---|
 | **Idle** | Console + USB disk | Configuration, downloading recordings, firmware updates. The default when the device is not armed. |
-| **Live Audio** | Console + a standard USB microphone: **4 channels on a KOL** (16-bit; 8, 16, 32, 48 or 96 kHz selectable in the OS), **1 channel on a Vesper or Pipistrelle** (16-bit; 8, 16, 32, 48, 96 or 192 kHz; appears as "Vesper Wildlife Logger") | Listening to or recording the microphones live with any audio application, and the app's own [Live View](Live-View) tab (scope, spectrum, spectrogram, live microphone parameters). No disk is exposed in this mode. |
+| **Live Audio** | Console + a standard USB microphone: **4 channels on a KOL** (16-bit; 8, 16, 32, 48 or 96 kHz selectable in the OS), **1 channel on a Vesper or Pipistrelle** (16-bit; 8, 16, 32, 48, 96, 100, 192 or 200 kHz; appears as "Vesper Wildlife Logger") | Listening to or recording the microphones live with any audio application, and the app's own [Live View](Live-View) tab (scope, spectrum, spectrogram, live microphone parameters). No disk is exposed in this mode. |
 | **Sampling** | Nothing — the device leaves USB | Running the recording schedule. On a Vesper or Pipistrelle (and a KOL with firmware older than 1.8), **Start Sampling** arms the device and it disconnects; reconnect it later (or use the magnet) to return to Idle; with firmware 1.22 or later it also stops by itself when its battery runs low or its storage is full (files closed, reason in the LOGGER, then it sleeps). On a KOL with firmware 1.8 or later this is **Start Recording** (above). |
 
 Switching between Idle and Live Audio makes the device briefly disappear and re-appear on USB; the app reconnects it automatically. On Windows the first switch may take a few extra seconds while the microphone driver is installed.
@@ -104,6 +104,8 @@ The **Nanotag Console** page (left menu, shown while a Nanotag is connected; als
 - **Configuration on the tag**: **Read** shows what the tag holds (general settings, driver slots, schedule), to check an upload. **Save…** keeps it as a JSON report; that report is not a file to upload again.
 - **Console**: the tag's text console (the `help`, `ver`, `disk`, `config` … commands). The tag's serial port is listed first; **Open** connects. Up and Down recall earlier commands. The console can stay open while VesperApp talks to the tag.
 
+**Format before every deployment** (firmware 1.39 or later): arming appends to the data already on the tag. **Arm** warns when the tag still holds data, and offers **Set Time** when the tag's clock base (UTC or local) is not known.
+
 **Format** on a Nanotag (firmware 1.39 or later) answers at once and erases in the background: about 1 s on an empty tag, longer with more data; the LED blinks fast until it is done. The status line follows the progress and then reports the bad blocks, and whether the format added any (it should not, unless a block failed). The Nanotag Console shows the block map after it.
 
 ## Sensor data types
@@ -120,4 +122,5 @@ Devices store each sensor stream as a separate raw file on internal storage. Dur
 | `C.BIN` | Thermal camera (Lepton) | JPG images |
 | `G.BIN` | GNSS snapshots (VT04-VESPER) | Position fixes via the GNSS plugin |
 | `H.BIN` | Health logger (LOGGER): battery, MCU temperature, clock correction, sampling sensors, event codes | Two CSVs: samples and events |
-| `X.BIN`, `O.BIN`, `S.BIN` | Proximity / log / auxiliary streams | Parsed and kept for analysis tools |
+| `S.BIN` | Analog inputs (DAQ24, Vesper / Pipistrelle) | CSV in volts (AIN0–AIN3) |
+| `X.BIN`, `O.BIN` | Proximity / log streams | Parsed and kept for analysis tools |

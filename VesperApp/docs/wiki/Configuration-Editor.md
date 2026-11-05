@@ -11,11 +11,11 @@ The **Configuration** tab edits the JSON configuration that tells a device *what
 | Setting | Meaning |
 |---|---|
 | **Device name** | Device name - used by the device to validate the configuration matches target device; this is autopopulted by Device pick |
-| **Minimum hardware** | The hardware revision this configuration requires (e.g. `4.0`) |
+| **Minimum hardware** | The hardware revision the configuration was made for (e.g. `4.0`). Informational: the firmware does not check it |
 | **Allow magnet turn-off** | Whether a magnet may power the device down in the field (after activation). Vesper / Pipistrelle; a KOL has no magnet and ignores it. |
 | **Battery capacity** | The fitted battery's capacity in mAh (informational, used for documentation - no real impact on execution) |
 | **Power-on time/delay** | Optional delayed start, for every schedule type: after activation (magnet on Vesper / Pipistrelle / Nanotag, **Start Recording** on a KOL) the device stays off until this time, then starts its schedule — an absolute date/time or a relative delay (at most 31 days). Relative schedule entries count from the delayed start. Nanotag: firmware 1.39 or later |
-| **Clock drift** | Fallback clock correction, the same for every unit, used only when the unit has no calibration of its own (a raw value for the clock's calibration register; the default `32999` speeds the clock up by 268 ppm, about 23 s/day). Calibrate each unit on the [Clock Calibration](Clock-Calibration) page instead; empty = no correction |
+| **Clock drift** | Fallback clock correction, the same for every unit, used only when the unit has no calibration of its own (a raw value for the clock's calibration register; the default `32999` speeds the clock up by 268 ppm, about 23 s/day). Calibrate each unit on the [Clock Calibration](Clock-Calibration) page instead; 0 = no correction |
 | **RTC temperature compensation** | KOL / Vesper / Pipistrelle: periodically read the internal temperature sensor and correct the clock crystal's temperature drift. Off unless ticked; the optional curve steepness, turnover temperature and interval default to 34 ppb/°C², 25.0 °C and 600 s — see [Clock Calibration](Clock-Calibration) |
 
 Selecting a device type pre-fills the device name and clock drift (Vesper, Pipistrelle and KOL use `32999`; Nanotag has none) — both can be adjusted before saving.
@@ -55,16 +55,28 @@ Same can be achieved with manually editing the JSON schedule array, for example:
 
 ## Sensor drivers
 
-Each sensor on the device is configured through its **driver** entry — sampling rate, gain, channel selection and other per-sensor options. The property editor renders every driver's options directly from the device's own metadata, so new sensor types appear automatically with the correct choices. Typical drivers include the audio front-end, IMU, EXG (48-channel or 2-channel 1292 variants), environmental sensors, ambient light and proximity.
+Each sensor on the device is configured through its **driver** entry — sampling rate, gain, channel selection and other per-sensor options. The property editor renders every driver's options directly from the device's own metadata, so new sensor types appear automatically with the correct choices. Typical drivers include the audio front-end, IMU, EXG (biopotential boards), environmental sensors (TPRH31), ambient light (ALS3001D), analog inputs (DAQ24), the thermal camera, proximity, the status LED and the health logger.
 
-Every driver pane has the same layout: **Standard configuration** first (sample rate, window length and rate per config, LED), then the sensor's own groups, then **Advanced configuration** (file size, reserved options).
+Every driver pane has the same layout: **Standard configuration** first (sample rate, window length and rate per config, LED), then the sensor's own groups, then **Advanced configuration** (file size, reserved options). Each number field shows its unit and a short note under it.
 
-**File Size** is always a multiple of 64 KB (65,536 bytes): the largest buffer the firmware writes at once and a whole number of allocation clusters, so every file ends on a full buffer. Other values are rounded to the nearest multiple; 0 leaves the firmware's minimum for the sensor (8 MB for the microphones).
+**Units of the sample field.** The firmware reads it differently per sensor, and the editor labels it accordingly:
+
+| Label | Unit | Drivers |
+|---|---|---|
+| *Sample Period [n] (ms)* | time between samples, in ms | GNSS (ACLYS), TPRH31, ALS3001D, DAQ24, thermal camera, ProxTit, LED, LOGGER |
+| *Sample Rate [n] (Hz)* | samples per second | IMU10, IMU10HT, Nanotag accelerometer |
+| *Sample Rate [n]* (list) | pick from the list | microphones (Hz), EXG (the board's rate codes) |
+
+**File Size** is always a multiple of 64 KB (65,536 bytes): the largest buffer the firmware writes at once and a whole number of allocation clusters, so every file ends on a full buffer. Other values are rounded to the nearest multiple. 0, or a value below the sensor's minimum, gives the minimum: 8 MB for the microphones, 2 MB for the IMU. GNSS and the thermal camera do not use it.
+
+**Analog inputs (DAQ24)** — Vesper and Pipistrelle, firmware 1.22 or later. Four inputs, 0–4.096 V; tick the inputs to record (none ticked = all four). Sample Period at least 10 ms. Files `/daq/<n>S.BIN`, decoded on import to `DAQ\*.csv` in volts.
+
+**Status LED (heartbeat)** — Vesper and Pipistrelle. With the LED driver in the configuration, the LED flashes once every *Sample Period* ms while that configuration runs, each flash *Flash Length* (window length) ms long (30 ms when 0). With Sample Period 0 the LED is on for Flash Length every Window Rate. It replaces the LED's normal activity indications for that configuration.
 
 For the KOL's microphone array, the channel configuration (1, 2 or 4 microphones) is part of the audio driver settings.
 
 **Health logger (LOGGER).** An optional driver on KOL, Vesper, Pipistrelle and Nanotag (firmware 1.35 or later; it takes one of the Nanotag's four sensor slots) that
- records the unit's own health next to the sensor data. *Sample Period [1]/[2]* is the time between samples in ms for each configuration (minimum 1 s; 0 = no samples). Tick what each sample holds — **Battery**, **MCU temperature**, **RTC correction**, **Sampling sensors** — and choose the **Log level**: *Off*, *Errors*, *Warnings* (and errors) or *Debug* (everything, including every recording window). Events are short codes (start-up and reset cause, recording start and stop, schedule changes, storage and reading failures, clock corrections), named when the file is decoded. The logger writes about one 512-byte block per 20 samples, so a one-minute period costs almost nothing in battery or storage. It does not count as a sensor: a configuration still needs a real sensor to record.
+ records the unit's own health next to the sensor data. *Sample Period [1]/[2]* is the time between samples in ms for each configuration (minimum 1 s; 0 = no samples). Tick what each sample holds — **Battery** (Vesper / Pipistrelle / Nanotag: the cell in mV; KOL: the battery-sense pin in mV, half the battery after its diode; −2 = above range, a KOL on USB), **MCU temperature**, **RTC correction**, **Sampling sensors** — and choose the **Log level**: *Off*, *Errors*, *Warnings* (and errors) or *Debug* (everything, including every recording window). Events are short codes (start-up and reset cause, recording start and stop, schedule changes, storage and reading failures, clock corrections), named when the file is decoded. The logger writes about one 512-byte block per 20 samples, so a one-minute period costs almost nothing in battery or storage. It does not count as a sensor: a configuration still needs a real sensor to record.
 
 ![The KOL sensor settings](images/config-kol-sensor.png)
 

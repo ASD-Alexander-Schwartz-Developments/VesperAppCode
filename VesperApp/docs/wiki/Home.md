@@ -27,7 +27,7 @@ From one application you can:
 | Get data off a device | [Recordings](Recordings) |
 | Decode GNSS snapshots | [GNSS Decoding](GNSS-Decoding) |
 | Configure a device's schedule | [Configuration Editor](Configuration-Editor) |
-| Check microphones or GNSS | [Device Tests](Device-Tests) |
+| Check microphones, add-on sensors, the thermal camera or GNSS | [Device Tests](Device-Tests) |
 | See and hear the microphones live | [Live View](Live-View) |
 | Update device firmware | [Firmware Updates](Firmware-Updates) |
 | Update the app or plugins | [Software Updates and Plugins](Software-Updates-and-Plugins) |

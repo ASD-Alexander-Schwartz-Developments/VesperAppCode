@@ -51,9 +51,9 @@ To release the hardware for other software, use **Disconnect**.
 | Operation | Dock required? |
 |---|---|
 | Firmware flashing of VT04-VESPER / VT04-PP | **Yes** — the DFU boot sequence is driven through the dock's control lines (the KOL enters its bootloader on command and flashes over its own USB cable; the dock remains a fallback for old KOL firmware) |
-| Recording import from device storage | Yes, for docked products |
-| Configuration read/write | Yes, for docked products |
-| Device Tests (mic health, GNSS self-test) | Yes, for docked products |
+| Recording import from device storage | Vesper / Pipistrelle firmware older than 1.22: yes. With 1.22 or later the unit's own USB cable is enough |
+| Configuration read/write | As above |
+| Device Tests (mic health, sensors, thermal camera, GNSS self-test) | As above |
 | Nanotag operations | Yes — the Nanotag sits in the dock slot (TOP side up), exactly like a Vesper or Pipistrelle |
 | App/plugin updates, decoding already-imported data | No |
 

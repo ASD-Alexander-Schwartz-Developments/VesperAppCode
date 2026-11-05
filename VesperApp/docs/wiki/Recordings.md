@@ -52,7 +52,7 @@ Several jobs can run and be monitored at once; you can keep working in other tab
 
 ## Where files go
 
-Everything lands in your **working directory** (default `Documents/MyVesperData`, configurable in [Settings](Settings)), preserving a per-session folder structure with per-sensor subfolders (`AUD`, `IMU`, `EXG`, `TPRH`, `ALS`, `THCAM`, `DAT`, …).
+Everything lands in your **working directory** (default `Documents/MyVesperData`, configurable in [Settings](Settings)), preserving a per-session folder structure with per-sensor subfolders (`AUD`, `IMU`, `EXG`, `TPRH`, `ALS`, `THCAM`, `PRX`, `LOG`, `DAQ`, `HEALTH`, `DAT`).
 
 ## The live data browser
 
@@ -128,7 +128,7 @@ The optional **LOGGER** sensor (KOL firmware 1.8, Vesper and Pipistrelle firmwar
 
 | Type | Info | Payload |
 |---|---|---|
-| `0x01` sample | fields present (bit 0 battery, 1 temperature, 2 clock correction, 3 sensors) | one 32-bit value per field: battery mV, temperature in 0.01 °C, correction in ppb, bitmap of sampling sensors |
+| `0x01` sample | fields present (bit 0 battery, 1 temperature, 2 clock correction, 3 sensors) | one 32-bit value per field: battery mV (Vesper / Pipistrelle / Nanotag: the cell; KOL: the battery-sense pin, half the battery after its diode; −1 = no reading, −2 = above range), temperature in 0.01 °C, correction in ppb, bitmap of sampling sensors |
 | `0x11` / `0x12` / `0x13` event | event code | none (error / warning / debug) |
 
 **Auto Decode** writes `<file>.csv` (one row per sample) and `<file>.log.csv` (time, level, code and a readable name per event) into the `HEALTH` folder. Every code is explained in [Log Codes](Log-Codes).
@@ -151,4 +151,4 @@ GPS `.bin` files differ: a 1024-byte metadata header followed by raw I/Q sample 
 - **Time** packs hours, minutes, seconds and a reserved byte (8-bit each).
 - **Date** packs a reserved byte, month, day and year (8-bit each).
 
-During parsing each snapshot is written out as `snap.YYYY_MM_dd_hh_mm_ss_GC0.dat` using the extracted timestamp — these are the `DAT` folders handed to the GNSS decoder plugin ([GNSS Decoding](GNSS-Decoding)).
+During parsing each snapshot is written out as `snap.YYYY_MM_dd_hh_mm_ss_GC0.dat` using the extracted timestamp, in UTC when the recording's `CLOCK.TXT` gives the unit's time base (otherwise in the unit's own time) — these are the `DAT` folders handed to the GNSS decoder plugin ([GNSS Decoding](GNSS-Decoding)).

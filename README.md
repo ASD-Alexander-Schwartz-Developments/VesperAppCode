@@ -10,7 +10,7 @@ This repository targets .NET 8 and uses Avalonia UI, Velopack for updates, and s
 - Configuration editor and schedule management
 - Live View: oscilloscope, spectrum and spectrogram of a unit streaming its microphones over USB (KOL; Vesper / Pipistrelle firmware 1.22+) or of a computer microphone
 - Clock: sync a unit's RTC to internet time to the millisecond, measure its crystal drift and store a correction (KOL 1.8 / Vesper 1.22+; older firmware gets a whole-second Set Time)
-- Device Tests: capability-driven pre-deployment checks (microphone health check; GNSS / RF self-test on VT04-VESPER)
+- Device Tests: capability-driven pre-deployment checks (microphone health check; add-on sensor test; live thermal camera; GNSS / RF self-test on VT04-VESPER)
 - Plugins: optional packs (GNSS Decoder, GNSS RF Test) installed per user from the CDN plugin feeds, ABI-gated, applied on the next launch
 - Software updates with Velopack from the CDN feed, following the ring the app was installed from (stable or beta)
 - Cross-platform UI built with Avalonia

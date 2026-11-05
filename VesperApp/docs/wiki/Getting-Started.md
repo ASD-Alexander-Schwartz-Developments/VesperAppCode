@@ -42,7 +42,7 @@ The left-hand navigation gives you the main areas of the app:
 |---|---|
 | **Recordings** | Import, parse and decode device recordings |
 | **Configuration** | Edit a recording schedule and sensor setup configuration file |
-| **Device Tests** | Per-sensor checks to validate hardware (microphones, GNSS/RF) |
+| **Device Tests** | Per-sensor checks to validate hardware: Microphones, Sensors (add-on boards), Thermal Camera, GNSS / RF |
 | **Live View** | The microphones in real time: scope, spectrum, spectrogram, live microphone settings and the sound-trigger meter |
 | **Clock** | Set a unit's clock from internet time and calibrate its crystal |
 | **Software Upgrades** | Update the VesperApp itself |
@@ -51,7 +51,7 @@ The left-hand navigation gives you the main areas of the app:
 | **Settings** | Application preferences |
 | **Help** | This documentation, fetched live from the project wiki |
 
-The tab shown at startup is configurable in [Settings](Settings).
+The tab shown at startup can be set with `Ui.StartupCategory` in the app's `config.json` (see [Settings](Settings)); there is no control for it on the Settings page.
 
 ## Connecting hardware
 

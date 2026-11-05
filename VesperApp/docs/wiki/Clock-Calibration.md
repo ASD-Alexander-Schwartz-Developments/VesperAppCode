@@ -14,11 +14,12 @@ Older firmware still gets a plain whole-second **Set Time**.
 
 ## UTC or local time
 
-Loggers keep **UTC** by default — GNSS positions need it. Untick the **UTC** switch in the top bar to set loggers to this PC's local time instead; the choice is saved. Every clock set (Set Time, Sync clock) tells the logger which one it gets, together with the local time's offset. The logger keeps that with its clock and marks its data with it, so the data decodes to the right time on any PC, also on one that did not set the clock (Nanotag 1.39 or later; KOL and Vesper / Pipistrelle follow).
+Loggers keep **UTC** by default — GNSS positions need it. Untick the **UTC** switch in the top bar to set loggers to this PC's local time instead; the choice is saved. Every clock set (Set Time, Sync clock) tells the logger which one it gets, together with the local time's offset. The logger keeps that with its clock and marks its data with it, so the data decodes to the right time on any PC, also on one that did not set the clock (Nanotag 1.39 or later, Vesper / Pipistrelle 1.22 or later with a VesperApp newer than 1.2.0; KOL follows).
 
 - A logger set to local time keeps the offset it was set with (for example UTC+02:00) for the whole deployment; it does not follow daylight-saving changes.
-- The device list shows the logger's time and, on a Nanotag 1.39+, `UTC` or `local time (UTC+02:00)`. "UTC or local not known" means the clock was set by an older VesperApp or from the console: press **Set Time** before deploying (**Arm** offers it).
+- The device list shows the logger's time and, on a Nanotag 1.39+ or a Vesper / Pipistrelle 1.22+, `UTC` or `local time (UTC+02:00)`. "UTC or local not known" means the clock was set by an older VesperApp or from the console: press **Set Time** before deploying (**Arm** offers it).
 - A Nanotag download names its GNSS snapshot files in UTC and writes `CLOCK.txt` saying which time the files are in.
+- A Vesper / Pipistrelle import names GNSS snapshot files in UTC when the recording's `CLOCK.TXT` gives the time base, otherwise in the unit's own time.
 
 ![The Clock tab](images/tab-clock.png)
 
@@ -37,7 +38,7 @@ The app asks internet time servers (NTP) for the true time; the PC's own clock i
 1. Connect the unit in **Idle** mode so its disk appears on the PC (Vesper and Pipistrelle in the docking station, KOL with its USB cable), select it and press **Connect Device**, then press **Sync clock**.
 2. Leave it at a **stable room temperature for at least 1 hour, better 12–24 hours** (the longer, the more precise). It may be unplugged and may record meanwhile, but it must **stay powered**: a flat or removed battery stops its clock and the measurement has to start again. Do not press **Sync clock** in between.
 3. Connect it again and press **Measure** (or **Sync clock**; both close the measurement).
-4. Press **Compute calibration** (it needs two measurements at least 1 hour apart in the same period). The page shows the crystal error in ppm and in seconds per day, its uncertainty, the measurement span and the temperature, plus a note if something was not ideal (short span, changing temperature, PC clock used as reference).
+4. Press **Compute calibration** (it needs two measurements at least 1 hour apart in the same period; **Apply** stays disabled until Compute has given an estimate). The page shows the crystal error in ppm and in seconds per day, its uncertainty, the measurement span and the temperature, plus a note if something was not ideal (short span, changing temperature, PC clock used as reference).
 5. Connect the unit in **Idle** mode (so its disk appears on the PC) and press **Apply**. The correction takes effect on the unit at once, is kept on this PC as the master copy, and is saved on the unit's own disk so it survives switching the unit off:
    - `RTCCAL.TXT` next to `UID.TXT` — read by the unit at every start (KOL 1.8 / Vesper 1.22 or later). It names the unit's serial, so it is ignored if the disk's files are copied onto another unit.
    - the *Clock Drift* (`cdrift`) value in the unit's `config.json` — the same correction for units with older firmware.
@@ -47,6 +48,8 @@ The app asks internet time servers (NTP) for the true time; the PC's own clock i
 ### Check that the calibration is active
 
 On the **Clock** page, with the unit connected, **Unit calibration** must show the crystal error, for example `crystal −244.000 ppm at 24.5 °C`, and after the unit has restarted once `(loaded from RTCCAL.TXT on the unit's disk)`. If it says **none on the unit — the legacy config.json "cdrift" value applies**, the unit is not calibrated: it only uses the configuration file's *Clock Drift*. Also check that `RTCCAL.TXT` is in the root of the unit's disk. A recording's health log (LOGGER) shows the correction in use in every sample.
+
+At every start the unit takes its calibration from `RTCCAL.TXT` on its disk; without one, from the calibration still held in its clock's backup memory (lost when the battery is removed); without that, from the configuration's *Clock Drift* (`32999` = +268 ppm, the legacy fallback).
 
 Common reasons it is not active:
 - **Apply** was never pressed, or the unit's disk was not mounted then (the correction was lost with the next power loss).
@@ -66,7 +69,7 @@ Enable **RTC temperature compensation** in the [Configuration Editor](Configurat
 | Calibration only | within about ±0.5 ppm at room temperature (±40 ms/day); slower when cold or hot (5 °C: about −14 ppm) |
 | Calibration + temperature compensation | about ±2–5 ppm across field temperatures, limited by the sensor and the crystal's real curve |
 
-The **Clock** page shows the unit's current temperature, the correction it applies and whether temperature compensation is on.
+The **Clock** page shows the unit's current temperature, the correction it applies and whether temperature compensation is on. **Measure temperature now** (··· menu) asks for a fresh reading; the unit takes it with its next battery reading, so it can take up to about a minute. Every **Sync clock** and **Measure** also records the temperature, with or without temperature compensation (Vesper / Pipistrelle 1.22).
 
 ## Nanotag
 

@@ -19,7 +19,7 @@ Press **Stop** to freeze the display on the last samples; **KOL → Idle** (or *
 
 These settings live **on the device** (they are the same fields as `gain`, `hpf`, `filter`, `cic4` in `config.json`, so what you see live is what a recording with those values would capture):
 
-- **Sample rate** — 8, 16, 32, 48 or 96 kHz nominal on a KOL; a Vesper or Pipistrelle adds 192 kHz. On a KOL some rates are approximate (the decimator is integer-ratio); the note next to the selector tells you the exact rate the hardware delivers (e.g. 96 kHz runs at 100 kHz). On a Vesper or Pipistrelle every offered rate is exact.
+- **Sample rate** — 8, 16, 32, 48 or 96 kHz nominal on a KOL; a Vesper or Pipistrelle adds 100, 192 and 200 kHz. On a KOL some rates are approximate (the decimator is integer-ratio); the note next to the selector tells you the exact rate the hardware delivers (e.g. 96 kHz runs at 100 kHz). On a Vesper or Pipistrelle every offered rate is exact.
 - **Gain** — in 3 dB steps from −48 to +72 dB. The deployed default is +36 dB. Too much gain shows as a flat-topped time series and a "SATURATING" flag when you press **Read**.
 - **High-pass** — off, or one of four cutoffs relative to the sample rate; removes the microphones' DC offset and rumble.
 - **Reshape filter** and **CIC filter** — the decimator's shaping stages; leave at the defaults unless you know why.

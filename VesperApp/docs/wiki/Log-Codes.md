@@ -20,8 +20,8 @@ The codes are **one catalogue shared by every device**: a code means the same on
 | 0x0106 | Reset: illegal low-power entry | warning | KOL, Vesper, Pipistrelle | Please report it with the log file. |
 | 0x0107 | Error handler ran since the previous boot | error | All | The firmware hit an internal error and restarted. The recording does not resume. Please report it with the log file. |
 | 0x0108 | Log records dropped (buffer full) | warning | All | Some events came too fast to be stored; the log is incomplete around this time. |
-| 0x0109 | Reset: option bytes loaded (one-time setup) | debug | KOL | Once, at the first start after a firmware update that sets up the watchdog. |
-| 0x010A | Watchdog not running (option bytes not set) | warning | KOL | The watchdog setup failed; the unit still records. Please report it. |
+| 0x0109 | Reset: option bytes loaded (one-time setup) | debug | KOL, Vesper, Pipistrelle (1.22) | Once, at the first start after a firmware update that sets up the watchdog. |
+| 0x010A | Watchdog not running (option bytes not set) | warning | KOL, Vesper, Pipistrelle (1.22) | The watchdog setup failed; the unit still records. Please report it. |
 
 ## Storage (0x02xx)
 
@@ -43,15 +43,15 @@ The codes are **one catalogue shared by every device**: a code means the same on
 | 0x0301 | Battery reading not possible | warning | All | The battery could not be measured for this sample. |
 | 0x0302 | USB power attached | debug | KOL | USB power appeared during a recording (a charger does not stop it). |
 | 0x0303 | USB power removed | debug | KOL | USB power went away during a recording. |
-| 0x0304 | Battery low: recording stopped | error | KOL, Vesper, Pipistrelle, Nanotag (1.39) | The battery fell below the cut-off: files closed, recording stopped, the unit sleeps and does not resume. Fit fresh batteries or charge. |
+| 0x0304 | Battery low: recording stopped | error | KOL, Vesper, Pipistrelle, Nanotag (1.39) | The battery fell below the cut-off on three readings in a row (Vesper, Pipistrelle, Nanotag: cell below 2.85 V; KOL: about 3.35 V at the battery): files closed, recording stopped, the unit sleeps and does not resume. Fit fresh batteries or charge. |
 
 ## Clock and temperature (0x04xx)
 
 | Code | Name in the log | Level | Devices | Meaning / what to do |
 |---|---|---|---|---|
 | 0x0401 | MCU temperature reading not possible | warning | All | The temperature could not be measured for this sample. |
-| 0x0402 | Microphone clock lock re-armed | warning | KOL | The microphone clock was locked to the crystal again. |
-| 0x0403 | Microphone clock trimmed | warning | KOL | The microphone clock was adjusted. |
+| 0x0402 | Microphone clock lock re-armed | warning | KOL, Vesper, Pipistrelle (1.22) | The microphone clock was locked to the crystal again. |
+| 0x0403 | Microphone clock trimmed | warning | KOL, Vesper, Pipistrelle (1.22) | The microphone clock was adjusted. |
 | 0x0404 | RTC set by the host | debug | All | The clock was set from VesperApp (or the calibration was set, on a Nanotag). |
 | 0x0405 | RTC synchronised by the host | debug | KOL | The clock was adjusted from VesperApp. |
 
@@ -63,15 +63,15 @@ The codes are **one catalogue shared by every device**: a code means the same on
 | 0x0502 | Recording session stopped | debug | All | |
 | 0x0503 | Schedule entry reached | debug | All | The schedule moved to its next entry. |
 | 0x0504 | Schedule finished | debug | KOL, Nanotag | A dated or relative schedule passed its last entry; the device sleeps. |
-| 0x0505 | config.json refused, nothing applied | error | KOL, Vesper, Pipistrelle | The configuration file is not valid for this device (another device's file, an unknown setting, a bad value or a damaged file). Create it again with the [Configuration Editor](Configuration-Editor). |
+| 0x0505 | config.json refused, nothing applied | error | KOL, Vesper, Pipistrelle | The configuration file is not valid for this device (another device's file, an unknown setting, a bad value or a damaged file). Create it again with the [Configuration Editor](Configuration-Editor). On a KOL, Start Recording is refused (reason 8) and the LED blinks at 2 Hz in Idle. |
 
-## Audio (0x06xx, KOL)
+## Audio (0x06xx)
 
 | Code | Name in the log | Level | Devices | Meaning / what to do |
 |---|---|---|---|---|
 | 0x0601 | Audio window opened | debug | KOL | A recording window started. |
 | 0x0602 | Audio window closed | debug | KOL | A recording window ended. |
-| 0x0603 | Audio samples missed (overrun) | warning | KOL | The card fell behind and some audio was lost; the gap is marked in the file and filled with silence in the WAV. Many of them: use a faster card. |
+| 0x0603 | Audio samples missed (overrun) | warning | KOL, Vesper, Pipistrelle (1.22) | The card fell behind and some audio was lost; the gap is marked in the file and filled with silence in the WAV. Many of them: use a faster card. |
 | 0x0604 | Sound trigger event | debug | KOL | A sound-triggered recording started. |
 
 ## Sensors (0x07xx, 0x08xx)
@@ -79,11 +79,12 @@ The codes are **one catalogue shared by every device**: a code means the same on
 | Code | Name in the log | Level | Devices | Meaning / what to do |
 |---|---|---|---|---|
 | 0x0704 | Sensor reading failed | warning | Nanotag | An add-on board (TPRH31, ALS3001D, ProxTit) did not answer one reading. |
+| 0x0705 | Sensor data lost (page saved too late) | warning | Nanotag (1.39) | A GNSS snapshot could not be saved in time; the snapshot has zeros where the missing pages were. Occasional ones are harmless. |
 | 0x08xx | Configured sensor not found: *sensor* | error | All | A sensor enabled in the configuration is not fitted or does not answer. The last two digits are the sensor type; the log names it. Check the add-on board and its connector. The device records without it. |
 
 Codes 0x0701, 0x0702 and 0x0703 are reserved or no longer used.
 
-## Watchdog (0x09xx, KOL)
+## Watchdog (0x09xx, KOL; Vesper and Pipistrelle 1.22)
 
 The unit restarted because one of its tasks stopped making progress. A unit that was recording resumes; the files that were open at the restart may be missing their last part. Please report it with the log file.
 
@@ -95,4 +96,5 @@ The unit restarted because one of its tasks stopped making progress. A unit that
 | 0x0903 | Reset by the watchdog supervisor: IMU stalled |
 | 0x0904 | Reset by the watchdog supervisor: TPRH stalled |
 | 0x0905 | Reset by the watchdog supervisor: ALS stalled |
+| 0x0906 | Reset by the watchdog supervisor: DAQ24 stalled (Vesper, Pipistrelle; VesperApp shows it as "client 6" for now) |
 | 0x090F | Reset after a CPU fault (HardFault) |

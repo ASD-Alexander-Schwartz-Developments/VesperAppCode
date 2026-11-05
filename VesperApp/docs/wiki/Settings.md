@@ -1,6 +1,6 @@
 # Settings
 
-The **Settings** tab holds this application (VesperApp) preferences. They are stored locally in `config.json` in the app's data folder — `%LOCALAPPDATA%\VesperApp` on Windows, `~/Library/Application Support/VesperApp` on macOS, `~/.local/share/VesperApp` on Linux — and take effect immediately or on the next launch as noted.
+The **Settings** tab holds this application (VesperApp) preferences. They are stored locally in `config.json` in the app's data folder — `%LOCALAPPDATA%\VesperApp` on Windows, `~/Library/Application Support/VesperApp` on macOS, `~/.local/share/VesperApp` on Linux — and are applied on the next launch.
 
 ![The Settings tab](images/tab-settings.png)
 
@@ -22,6 +22,6 @@ Shows the full path of the app's `config.json` and offers **Open config folder**
 
 ## Startup tab
 
-The tab the app opens on (defaults to Recordings) is remembered in the configuration and can be pointed at any main tab.
+The tab the app opens on (defaults to Recordings) is the `Ui.StartupCategory` value in `config.json`; edit the file to point it at another main tab. There is no control for it on this page.
 
 Press **Save** to persist changes.
