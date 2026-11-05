@@ -260,10 +260,7 @@ namespace VesperApp.Models
                         this.LocalDateTime = DisplayFormat.DateTime(dtt);
 
                         UInt32 voltage = (UInt32)((UInt32)data[32] + (UInt32)(data[33] << 8));
-                        // cell mV (KOL; VesperU5 from 345fd07 - it sent 0 before); 0 = no reading yet
-                        this.BatteryChargePercent = voltage > 0
-                            ? (voltage / 1000.0).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " V"
-                            : "—";
+                        this.BatteryChargePercent = BatteryText(voltage);
 
                         RefreshConsoleClockBase();
                         RefreshUnitDisk();
@@ -950,6 +947,17 @@ namespace VesperApp.Models
 
         /// <summary>Firmware id as shown in the device list: "1.7" for KOL 1.7, "1.22" for Vesper 1.22.</summary>
         internal static string FirmwareIdText(Version firmware) => $"{firmware.Major}.{firmware.Minor}";
+
+        /// <summary>GETFLAGS [32..33] battery: mV (Vesper / Pipistrelle: the cell; KOL from Kol e25f48a: the
+        /// battery node after its diode); 0 = no reading yet. Bit 15 = above the unit's measuring range, the
+        /// value is a lower bound (KOL on USB or with fresh cells: about 3.9 V or more).</summary>
+        internal static string BatteryText(uint raw)
+        {
+            uint mv = raw & 0x7FFFu;
+            if (mv == 0) return "—";
+            string v = (mv / 1000.0).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " V";
+            return (raw & 0x8000u) != 0 ? "≥ " + v : v;
+        }
 
         /// <summary>
         /// Nanotag feed / release version from a VND_CMD_GET_INFO reply ([0] MAJOR, [1] MID, [2] MINOR, [3] BLD,
