@@ -13,7 +13,7 @@ namespace VesperApp.Models
         protected override RateKind SampleRateKind => RateKind.PeriodMs;
         protected override string SampleRateNote => "time between records, 10 ms or more; every enabled input is read each time (0 = off).";
 
-        public ConfigADS1115Driver() : base("ADS1115", "DAQ24 board: 4-input 16-bit ADC (ADS1115), 0 - 4.096 V, every enabled input once per sample")
+        public ConfigADS1115Driver() : base("ADS1115", "DAQ24 board: 4-input 16-bit ADC (ADS1115), inputs 0 V to the 3.0 V supply, every enabled input once per sample")
         {
             this.FileSize = 1 * 1024 * 1024;
         }

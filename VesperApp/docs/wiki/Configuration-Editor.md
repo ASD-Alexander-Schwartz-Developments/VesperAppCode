@@ -69,7 +69,7 @@ Every driver pane has the same layout: **Standard configuration** first (sample 
 
 **File Size** is always a multiple of 64 KB (65,536 bytes): the largest buffer the firmware writes at once and a whole number of allocation clusters, so every file ends on a full buffer. Other values are rounded to the nearest multiple. 0, or a value below the sensor's minimum, gives the minimum: 8 MB for the microphones, 2 MB for the IMU. GNSS and the thermal camera do not use it.
 
-**Analog inputs (DAQ24)** — Vesper and Pipistrelle, firmware 1.22 or later. Four inputs, 0–4.096 V; tick the inputs to record (none ticked = all four). Sample Period at least 10 ms. Files `/daq/<n>S.BIN`, decoded on import to `DAQ\*.csv` in volts.
+**Analog inputs (DAQ24)** — Vesper and Pipistrelle, firmware 1.22 or later. Four inputs, 0 V to the board supply (3.0 V; the converter full scale is ±4.096 V); tick the inputs to record (none ticked = all four). Sample Period at least 10 ms. Files `/daq/<n>S.BIN`, decoded on import to `DAQ\*.csv` in volts.
 
 **Status LED (heartbeat)** — Vesper and Pipistrelle. With the LED driver in the configuration, the LED flashes once every *Sample Period* ms while that configuration runs, each flash *Flash Length* (window length) ms long (30 ms when 0). With Sample Period 0 the LED is on for Flash Length every Window Rate. It replaces the LED's normal activity indications for that configuration.
 
