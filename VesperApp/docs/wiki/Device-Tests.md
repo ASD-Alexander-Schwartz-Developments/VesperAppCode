@@ -63,7 +63,7 @@ Firmware: KOL 1.8 or later; Vesper and Pipistrelle 1.22 or later.
 | **Pass** | The board answered with the right id and a sensible reading (shown: the part found and the value — about 1 g at rest for motion, °C and %RH, lux). |
 | **Check** | The board answered, but the reading is out of the expected range (e.g. the unit was moving, or a checksum error). |
 | **Partial** | The motion board answered but its magnetometer or barometer did not. |
-| **Not found** | No board of that type answered — not fitted, badly seated, or another board on the same address (the light and temperature boards both default to address 0x44: strap one to 0x45 to stack them). |
+| **Not found** | No board of that type answered — not fitted, badly seated, or another board on the same address (the light and temperature boards use the same address 0x44 and cannot be fitted together). |
 | **No answer** | The unit did not reply — it is recording, or its firmware has no sensor test. |
 
 ## Thermal camera (live view)
