@@ -62,6 +62,8 @@ The tab shown at startup can be set with `Ui.StartupCategory` in the app's `conf
 Once connected, use Docking Station controls to manipulate the device (for example turn it on using **Device Enable**; the device appears in the device list and its battery, storage and firmware details become available.  
 ![The VesperApp Docking Station Controls](images/dock-controls.png)
 
+**Battery column.** On a Vesper or Pipistrelle it is the cell voltage. On a KOL it is the supply measured inside the unit (after its input protection, about 0.3 V below the battery connector); a KOL cannot measure above about 3.9 V, so on USB power or with fresh cells it shows **≥ 3.90 V** (an "at least" value), not the exact voltage. See [Supported Devices](Supported-Devices).
+
 
 
 ## A typical session
