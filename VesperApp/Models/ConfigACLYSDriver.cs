@@ -27,6 +27,17 @@ namespace VesperApp.Models
         //private AclysSnapLength snap_size;
 
 
+        // Window length / window rate mean nothing for the GPS (VesperU5 never reads them; Nanotag from 090bb2f
+        // neither - D-32): hidden, kept 0 in the file.
+        [Browsable(false), JsonIgnore]
+        public override UInt32 WindowLength1 { get => base.WindowLength1; set => base.WindowLength1 = value; }
+        [Browsable(false), JsonIgnore]
+        public override UInt32 WindowLength2 { get => base.WindowLength2; set => base.WindowLength2 = value; }
+        [Browsable(false), JsonIgnore]
+        public override UInt32 WindowRate1 { get => base.WindowRate1; set => base.WindowRate1 = value; }
+        [Browsable(false), JsonIgnore]
+        public override UInt32 WindowRate2 { get => base.WindowRate2; set => base.WindowRate2 = value; }
+
         [JsonPropertyName("name"), JsonPropertyOrder(0)]
         [Browsable(false)]
         public override string Name
@@ -38,7 +49,7 @@ namespace VesperApp.Models
         [DisplayName("Motion-triggered snapshots"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("NANOACC Specific Settings"),
-        DescriptionAttribute("Nanotag: take snapshots when the accelerometer detects motion; Window Length = snapshots per trigger."),
+        DescriptionAttribute("Nanotag: one snapshot per motion event, at the next sample period (so at most one per period). Firmware 1.39 and older: snapshots per trigger came from Window Length, and 0 meant no end after the first motion."),
         Browsable(true)]
         [JsonIgnore]
         public bool EnableGPSTrigger
