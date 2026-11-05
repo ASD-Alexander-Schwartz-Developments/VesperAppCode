@@ -32,8 +32,10 @@ namespace VesperApp.Services
 
     public static class NanotagService
     {
-        /// <summary>GET_DATACHUNK reply byte 1 (firmware 1.39): the read status of the page.</summary>
-        public const byte PageOk = 0, PageCorrected = 1, PageCorrectedHigh = 2, PageUncorrectable = 3, PageReadError = 0xEE;
+        /// <summary>GET_DATACHUNK reply byte 1 (firmware 1.39+): the read status of the page, the NAND driver's
+        /// DRV_FLASH_ECC_STATUS as is (Nanotag CgNandInterface.h): 0 OK, 1 corrected below the threshold,
+        /// 2 uncorrectable, 3 corrected at / above the threshold; 0xEE read error. Nanotag only.</summary>
+        public const byte PageOk = 0, PageCorrected = 1, PageUncorrectable = 2, PageCorrectedHigh = 3, PageReadError = 0xEE;
 
         /// <summary>Offset of metadata.checksumData in a page (4096 data bytes, then FSGenericMetaData_t:
         /// preamble 4, metaDataLength 2, pageType 1, pageSubType 1, pageRevision 2, battLevel 2, dataLength 4,

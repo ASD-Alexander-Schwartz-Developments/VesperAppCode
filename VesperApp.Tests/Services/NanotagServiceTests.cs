@@ -55,10 +55,22 @@ public class NanotagServiceTests
     [Theory]
     [InlineData(0, "OK")]
     [InlineData(1, "ECC corrected")]
-    [InlineData(3, "uncorrectable ECC error")]
+    [InlineData(2, "uncorrectable ECC error")]
+    [InlineData(3, "ECC corrected (at / above the threshold)")]
     [InlineData(0xEE, "read error")]
     [InlineData(0x55, "status 0x55")]
     public void PageStatusNames(byte s, string name) => Assert.Equal(name, NanotagService.PageStatusName(s));
+
+    [Fact]
+    public void PageStatusValues_AsTheFirmwareSendsThem()
+    {
+        // Nanotag CgNandInterface.h DRV_FLASH_ECC_STATUS, sent unmapped by app.c GET_DATACHUNK (1.39)
+        Assert.Equal(0, NanotagService.PageOk);
+        Assert.Equal(1, NanotagService.PageCorrected);
+        Assert.Equal(2, NanotagService.PageUncorrectable);
+        Assert.Equal(3, NanotagService.PageCorrectedHigh);
+        Assert.Equal(0xEE, NanotagService.PageReadError);
+    }
 
     [Fact]
     public void ConfigReport_FromTheConverterRows()
