@@ -130,8 +130,9 @@ public class RecordingIntegrityTests
     [Fact]
     public void KolChannelFiles_AreNotCheckedHere()
     {
-        Assert.True(RecordingIntegrity.IsMicRaw(@"C:\x\12U.BIN"));
-        Assert.False(RecordingIntegrity.IsMicRaw(@"C:\x\12U0.BIN"));
-        Assert.False(RecordingIntegrity.IsMicRaw(@"C:\x\12M.BIN"));
+        // Path.Combine: a Windows path with backslashes is one file name on Linux (CI)
+        Assert.True(RecordingIntegrity.IsMicRaw(Path.Combine("x", "12U.BIN")));
+        Assert.False(RecordingIntegrity.IsMicRaw(Path.Combine("x", "12U0.BIN")));
+        Assert.False(RecordingIntegrity.IsMicRaw(Path.Combine("x", "12M.BIN")));
     }
 }
