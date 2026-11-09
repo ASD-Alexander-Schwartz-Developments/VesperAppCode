@@ -127,6 +127,50 @@ public class RecordingIntegrityTests
         Assert.Contains("Recording check: sample clock off in 1 file(s)", sum.ToString());
     }
 
+    /// <summary>A 512-byte GAP block as the firmware writes it (MikeGapBlock): stamp, reason, mic, node_samples, nodes, span.</summary>
+    private static byte[] Gap(double t, ushort reason, uint nodeSamples)
+    {
+        var g = new byte[512];
+        Array.Fill(g, (byte)0xFF);
+        At(0xA55A3CC3, t).CopyTo(g, 0);
+        BitConverter.GetBytes(reason).CopyTo(g, 16);
+        BitConverter.GetBytes((ushort)0).CopyTo(g, 18);
+        BitConverter.GetBytes(nodeSamples).CopyTo(g, 20);
+        BitConverter.GetBytes(1u).CopyTo(g, 24);
+        BitConverter.GetBytes(0u).CopyTo(g, 28);
+        return g;
+    }
+
+    [Fact]
+    public void OverrunInsideFile_IsReportedAsLostAudio_NotAsAClockError()
+    {
+        // Bench 2026-11-09 (200 kHz): a storage write stall; the logger wrote OVERRUN blocks for the halves it lost.
+        // Here: at 20 s, 300 samples (300 ms) lost; the crystal goes on, the samples resume after the gap.
+        var parts = new List<byte[]> { Raw.FileHeader("SPH0641", Fs, 0, 0, 0, 0, 0), At(0xA55AA55A, 0) };
+        double t = 0;
+        for (int k = 0; k < 60; k++)
+        {
+            if (k == 20)
+            {
+                parts.Add(Gap(t, 1, 300));
+                t += 0.3;
+                parts.Add(new byte[2 * 700]);                    // the rest of this second after the loss
+                t += 0.7;
+            }
+            else { parts.Add(new byte[2 * Fs]); t += 1.0; }
+            parts.Add(At(k == 59 ? 0xA55A5AA5u : 0xABCDEFEFu, t));
+        }
+        var rep = Check(Raw.Concat(parts.ToArray()));
+        Assert.Equal(0, rep.ClockOffFiles);
+        Assert.Equal(0, rep.Stalls);
+        Assert.Equal(1, rep.GapBlocks);
+        Assert.Equal(59.7, rep.Files[0].AudioS, 3);
+        var f = Assert.Single(rep.Findings);
+        Assert.Contains("300 ms of audio lost inside this file", f.Text);
+        Assert.InRange(f.AtS, 19.9, 20.1);
+        Assert.Contains("300 ms lost inside files", rep.Headline());
+    }
+
     [Fact]
     public void KolChannelFiles_AreNotCheckedHere()
     {

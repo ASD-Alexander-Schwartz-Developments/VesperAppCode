@@ -36,6 +36,7 @@ namespace VesperApp.Services
 
         private const uint MagHeader = 0xA55AA55A, MagFooter = 0xA55A5AA5, MagSync = 0xABCDEFEF, MagGap = 0xA55A3CC3;
         private const int BlockLen = 16, GapLen = 512;
+        private const ushort GapOverrun = 1, GapInvalid = 2;   // GAP block reasons (kol-recording-format.md)
         private static readonly Regex MicRaw = new(@"^(\d+)U\.BIN$", RegexOptions.IgnoreCase);
 
         /// <summary>True for a Vesper / Pipistrelle microphone raw file (<c>12U.BIN</c>; not KOL's <c>U0</c>–<c>U3</c>).</summary>
@@ -67,7 +68,7 @@ namespace VesperApp.Services
             public List<FileResult> Files = new();
             public List<Finding> Findings = new();
             public int ClockOffFiles, Stalls, LostBetweenFiles, GapBlocks;
-            public double StallTotalMs, LostTotalMs;
+            public double StallTotalMs, LostTotalMs, LostInFilesMs;
             public bool AnyProblem => Findings.Count > 0;
 
             /// <summary>One line for the decode summary.</summary>
@@ -78,12 +79,13 @@ namespace VesperApp.Services
                 if (ClockOffFiles > 0) p.Add($"sample clock off in {ClockOffFiles} file(s)");
                 if (Stalls > 0) p.Add($"{Stalls} crystal stall(s), {StallTotalMs / 1000:0.00} s");
                 if (LostBetweenFiles > 0) p.Add($"{LostTotalMs:0} ms lost between files");
-                if (GapBlocks > 0) p.Add($"{GapBlocks} GAP block(s)");
+                if (LostInFilesMs > 0) p.Add($"{LostInFilesMs:0} ms lost inside files");
+                else if (GapBlocks > 0) p.Add($"{GapBlocks} GAP block(s)");
                 return "recording check: " + string.Join(", ", p);
             }
         }
 
-        private readonly record struct Block(int Pos, uint Magic, double T, ushort Reason);
+        private readonly record struct Block(int Pos, uint Magic, double T, ushort Reason, uint NodeSamples);
         private readonly record struct Point(long N, double T);
 
         /// <summary>Checks one run: the microphone raw files of one session, in file-number order.</summary>
@@ -119,7 +121,8 @@ namespace VesperApp.Services
                 if (blocks[i].Magic != MagHeader) { i++; continue; }
                 Block h = blocks[i];
                 var pts = new List<Point> { new(0, h.T) };
-                long bytes = 0; int last = h.Pos + BlockLen, gaps = 0;
+                long bytes = 0, lost = 0; int last = h.Pos + BlockLen, gaps = 0, overruns = 0, invalid = 0;
+                double? lostAt = null;
                 Block? footer = null;
                 int j = i + 1;
                 for (; j < blocks.Count; j++)
@@ -127,16 +130,23 @@ namespace VesperApp.Services
                     Block k = blocks[j];
                     if (k.Magic == MagHeader) break;
                     bytes += k.Pos - last;
-                    if (k.Magic == MagSync) { pts.Add(new(bytes / 2, k.T)); last = k.Pos + BlockLen; }
-                    else if (k.Magic == MagGap) { gaps++; last = k.Pos + GapLen; }
-                    else { footer = k; pts.Add(new(bytes / 2, k.T)); j++; break; }
+                    // Sample positions on the timeline count the samples an OVERRUN block stands for (the half the
+                    // storage write lost): the sample clock stays comparable with the crystal across the loss.
+                    if (k.Magic == MagSync) { pts.Add(new(bytes / 2 + lost, k.T)); last = k.Pos + BlockLen; }
+                    else if (k.Magic == MagGap)
+                    {
+                        gaps++; last = k.Pos + GapLen;
+                        if (k.Reason == GapOverrun) { overruns++; lost += k.NodeSamples; lostAt ??= bytes / 2.0 / rate; }
+                        else if (k.Reason == GapInvalid) invalid++;
+                    }
+                    else { footer = k; pts.Add(new(bytes / 2 + lost, k.T)); j++; break; }
                 }
                 i = j;
                 if (footer == null) continue;                      // unfinished segment (cut-off file): nothing to compare
 
                 var fr = new FileResult
                 {
-                    File = name, Rate = rate, Samples = pts[^1].N, AudioS = pts[^1].N / (double)rate,
+                    File = name, Rate = rate, Samples = bytes / 2, AudioS = bytes / 2.0 / rate,
                     ClockS = footer.Value.T - h.T, GapBlocks = gaps,
                 };
                 if (prevFooter.HasValue)
@@ -157,7 +167,13 @@ namespace VesperApp.Services
                 if (gaps > 0)
                 {
                     rep.GapBlocks += gaps;
-                    rep.Findings.Add(new Finding { File = name, AtS = 0, Text = $"{gaps} GAP block(s) written by the logger (samples lost or unreliable)" });
+                    double lostMs = lost * 1000.0 / rate;
+                    rep.LostInFilesMs += lostMs;
+                    string text = overruns > 0
+                        ? $"{lostMs:0} ms of audio lost inside this file ({overruns} buffer(s): a storage write took too long; the logger marked the place)"
+                        : $"{gaps} GAP block(s) written by the logger (samples unreliable)";
+                    if (invalid > 0) text += $", {invalid} buffer(s) next to it marked unreliable";
+                    rep.Findings.Add(new Finding { File = name, AtS = lostAt ?? 0, Text = text });
                 }
                 AnalyseClock(pts, rate, fr, rep);
                 rep.Files.Add(fr);
@@ -265,7 +281,8 @@ namespace VesperApp.Services
                 if (!BinHeader.IsValidStamp(b, o + 4)) continue;
                 double t = StampSeconds(b, o + 4);
                 ushort reason = m == MagGap && o + 18 <= b.Length ? BitConverter.ToUInt16(b, o + 16) : (ushort)0;
-                list.Add(new Block(o, m, t, reason));
+                uint nodeSamples = m == MagGap && o + 24 <= b.Length ? BitConverter.ToUInt32(b, o + 20) : 0;
+                list.Add(new Block(o, m, t, reason, nodeSamples));
                 o += (m == MagGap ? GapLen : BlockLen) - 2;
             }
             return list;
