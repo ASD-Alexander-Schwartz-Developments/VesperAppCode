@@ -126,6 +126,22 @@ namespace VesperApp.Models
             OnPropertyChanged("HighPassFilter");
         }
 
+        public void ApplyRecommendedRate()
+        {
+            uint oldRef = RefRate;
+            int level = oldRef != 0 ? MicChainSolver.LevelCdb(oldRef, MicChainSolver.GainCode(gain)) : 0;
+            bool changed = false;
+            if (MicChainSolver.RecommendedRate(SampleRate[1]) is uint r1) { Rate1 = KOLSampleRate.CreateFromValue(r1); changed = true; }
+            if (MicChainSolver.RecommendedRate(SampleRate[2]) is uint r2) { Rate2 = KOLSampleRate.CreateFromValue(r2); changed = true; }
+            if (!changed || oldRef == 0 || RefRate == oldRef) return;
+            /* the gain is the SCALE code at the reference rate: keep the loudness the user had */
+            if (MicChainSolver.Solve(RefRate, level) is { } c)
+            {
+                gain = MicChainSolver.GainValue(c.GainCode);
+                OnPropertyChanged("Gain");
+            }
+        }
+
         // ───────────────────────── sample rates ─────────────────────────
 
         [CategoryAttribute("Standard configuration"),

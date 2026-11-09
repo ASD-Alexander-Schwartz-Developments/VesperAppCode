@@ -64,6 +64,14 @@ namespace VesperApp.Models
         public bool AutoDecodeOnImport { get; set; } = true;
         public bool HideIntermediateFiles { get; set; }   // hide .UBN/.MBN, show only WAV/CSV/…
         public bool DeleteRawAfterImport { get; set; }
+
+        /// <summary>Also write a post-filtered "_EQ" WAV next to each microphone WAV: remove the board sound-port
+        /// resonance (Vesper / Pipistrelle only, not KOL). The raw WAV is always kept.</summary>
+        public bool PostFilterPortEq { get; set; }
+
+        /// <summary>Also write a post-filtered "_EQ" WAV with the 32.768 kHz RTC-crystal line (and its harmonics)
+        /// notched out, all microphone products. The raw WAV is always kept.</summary>
+        public bool PostFilterLseNotch { get; set; }
     }
 
     /// <summary>Cached identity hints for a friendlier launch. NOT a credential store —

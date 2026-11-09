@@ -1327,13 +1327,16 @@ namespace VesperApp.ViewModels
                                             metadata = File.ReadAllText(lp + ".txt", Encoding.UTF8) ?? string.Empty;
                                         }
 
+                                        string band;
                                         using (WaveFile wf = new WaveFile(lp, metadata))
                                         {
                                             byte[] databuf = File.ReadAllBytes(lp);
 
+                                            band = RecordingPipeline.ApplyUsableBand(wf);   // low-pass at the usable band
                                             wf.Open();
                                             wf.WriteWave(databuf);
                                         }
+                                        RecordingPipeline.WriteWavNote(lp, band);
                                     }
                                 }
                             }

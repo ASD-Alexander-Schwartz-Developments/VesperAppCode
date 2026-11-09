@@ -15,22 +15,36 @@ namespace VesperApp.Services
     {
         public int RawParsed;
         public int Wav;
+        public int PostFiltered;
         public int Csv;
         public int Image;
         public int GnssSets;
         public int Skipped;
         public int Failed;
+        /// <summary>Recording checks of the microphone runs in this decode (RecordingIntegrity), one per folder.</summary>
+        public List<(string Folder, RecordingIntegrity.Report Report)> Checks = new();
+
+        /// <summary>The recording-check line for the summary, or "" when no microphone run was checked.</summary>
+        public string CheckLine()
+        {
+            if (Checks.Count == 0) return "";
+            var bad = Checks.Where(c => c.Report.AnyProblem).ToList();
+            if (bad.Count == 0) return $" Recording check: no problems in {Checks.Count} run(s).";
+            if (Checks.Count == 1) return $" Recording check: {bad[0].Report.Headline().Substring("recording check: ".Length)} - see AUD\\{RecordingIntegrity.ReportName}.";
+            return $" Recording check: problems in {bad.Count} of {Checks.Count} runs - see AUD\\{RecordingIntegrity.ReportName} in each.";
+        }
 
         public override string ToString()
         {
             var parts = new List<string>();
             if (Wav > 0) parts.Add($"{Wav} WAV");
+            if (PostFiltered > 0) parts.Add($"{PostFiltered} post-filtered _EQ WAV");
             if (Csv > 0) parts.Add($"{Csv} CSV");
             if (Image > 0) parts.Add($"{Image} image" + (Image == 1 ? "" : "s"));
             if (GnssSets > 0) parts.Add($"{GnssSets} GNSS fix-set" + (GnssSets == 1 ? "" : "s"));
             string made = parts.Count > 0 ? string.Join(", ", parts) : "nothing to decode";
             string tail = Failed > 0 ? $" · {Failed} failed" : "";
-            return $"Decoded {RawParsed} raw file(s) → {made}{tail}.";
+            return $"Decoded {RawParsed} raw file(s) → {made}{tail}.{CheckLine()}";
         }
     }
 
@@ -64,6 +78,7 @@ namespace VesperApp.Services
                 catch { sum.Failed++; }
                 progress?.Report((int)(50.0 * ++done / total));
             }
+            sum.Checks = RecordingIntegrity.CheckAndWrite(rawFiles);
 
             // Phase 2: decode the produced intermediates (50..100%)
             var datFolders = touched.Where(IsSnapFolder).ToList();
@@ -107,6 +122,7 @@ namespace VesperApp.Services
                 catch { sum.Failed++; }
                 progress?.Report((int)(100.0 * ++done / total));
             }
+            sum.Checks = RecordingIntegrity.CheckAndWrite(rawFiles);
 
             progress?.Report(100);
             return sum;
@@ -242,12 +258,18 @@ namespace VesperApp.Services
                 switch (ext)
                 {
                     case ".UBN":
+                    {
+                        string band;
                         using (var wf = new WaveFile(path, ReadMetaText(path)))
                         {
+                            band = ApplyUsableBand(wf);
                             wf.Open();
                             wf.WriteWave(data);
                         }
+                        WriteWavNote(path, band);
                         sum.Wav++;
+                    }
+                        if (WritePostFiltered(path, data, PostFilterSettings())) sum.PostFiltered++;
                         break;
 
                     case ".MBN":
@@ -352,6 +374,96 @@ namespace VesperApp.Services
                 else sum.Failed++;
             }
             catch { sum.Failed++; }
+        }
+
+        // ───────────────────────── usable band (WAV low-pass + sidecar) ─────────────────────────
+
+        /// <summary>
+        /// Sets the WAV's low-pass to the microphone chain's usable band (0.44 x rate with the reshape anti-aliasing filter,
+        /// 0.33 x rate on CIC-only chains) and returns the sidecar lines that describe it ("UsableBand: …").
+        /// </summary>
+        public static string ApplyUsableBand(WaveFile wf)
+        {
+            uint fs = wf.Rate;
+            if (fs == 0) return string.Empty;
+            wf.LowPassHz = MicChainSolver.UsableBand(fs).LowPassHz;
+            return "SampleRate: " + fs + Environment.NewLine + MicChainSolver.UsableBandNote(fs);
+        }
+
+        /// <summary>Writes "&lt;base&gt;.WAV.txt" next to the WAV that <see cref="WaveFile"/> wrote for <paramref name="wavBase"/>.</summary>
+        public static void WriteWavNote(string wavBase, string band)
+        {
+            if (string.IsNullOrEmpty(band)) return;
+            try
+            {
+                File.WriteAllText(wavBase + ".WAV.txt", "Source: " + Path.GetFileName(wavBase) + Environment.NewLine + band, Encoding.UTF8);
+            }
+            catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+        }
+
+        // ───────────────────────── audio post-filters ─────────────────────────
+
+        private static PostFilterOptions PostFilterSettings()
+        {
+            var r = SettingsService.Current.Recordings;
+            return new PostFilterOptions(r.PostFilterPortEq, r.PostFilterLseNotch);
+        }
+
+        /// <summary>KOL audio (its own boards; port EQ does not apply): split into KOL-AUD, channel-tagged _U0_.._U3_.</summary>
+        public static bool IsKolAudio(string intermediatePath)
+        {
+            string p = intermediatePath.Replace('\\', '/').ToUpperInvariant();
+            string name = Path.GetFileName(p);
+            return p.Contains("/KOL-AUD/") || System.Text.RegularExpressions.Regex.IsMatch(name, @"_U[0-3]_");
+        }
+
+        /// <summary>
+        /// Writes "&lt;stem&gt;_EQ.UBN.WAV" (plus a .txt note of what was applied) next to the raw WAV when a post-filter
+        /// is enabled and changed something. The raw WAV is never touched. Returns true when a file was written.
+        /// </summary>
+        public static bool WritePostFiltered(string ubnPath, byte[] data, PostFilterOptions options)
+        {
+            if (!options.PortEq && !options.LseNotch) return false;
+            try
+            {
+                uint fs = MetaUint(ubnPath, "SampleRate");
+                if (fs == 0 || data.Length < 4) return false;
+
+                bool kol = IsKolAudio(ubnPath);
+                var eff = new PostFilterOptions(options.PortEq && !kol, options.LseNotch);
+                if (!eff.PortEq && !eff.LseNotch) return false;
+
+                var pcm = new short[data.Length / 2];
+                Buffer.BlockCopy(data, 0, pcm, 0, pcm.Length * 2);
+                short[] y = AudioPostFilter.Process(pcm, fs, eff, out PostFilterReport rep);
+                if (!rep.AnyApplied) return false;
+
+                var bytes = new byte[y.Length * 2];
+                Buffer.BlockCopy(y, 0, bytes, 0, bytes.Length);
+
+                string dir = Path.GetDirectoryName(ubnPath) ?? "";
+                string stem = Path.GetFileNameWithoutExtension(ubnPath) + "_EQ";
+                string eqBase = Path.Combine(dir, stem + Path.GetExtension(ubnPath));     // WaveFile appends .WAV
+                string band;
+                using (var wf = new WaveFile(eqBase, ReadMetaText(ubnPath)))
+                {
+                    band = ApplyUsableBand(wf);
+                    wf.Open();
+                    wf.WriteWave(bytes);
+                }
+
+                string note = "Source: " + Path.GetFileName(ubnPath) + Environment.NewLine +
+                              band +
+                              (kol && options.PortEq ? "PortEQ: skipped (KOL)" + Environment.NewLine : "") +
+                              rep.Describe() + Environment.NewLine;
+                File.WriteAllText(eqBase + ".WAV.txt", note, Encoding.UTF8);
+                return true;
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine(e);
+                return false;
+            }
         }
 
         // ───────────────────────── metadata helpers ─────────────────────────

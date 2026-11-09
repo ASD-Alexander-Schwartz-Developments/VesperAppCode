@@ -203,7 +203,8 @@ namespace VesperApp.Services
 
         /// <summary>The Solve window's content: a summary, one section per configured rate, the recommendation.</summary>
         public sealed record SolverReport(string Summary, IReadOnlyList<SolverSection> Sections, string? Recommendation, string Footer,
-                                          string? HpfRecommendation = null, IReadOnlyList<ResponseCurve>? Response = null)
+                                          string? HpfRecommendation = null, IReadOnlyList<ResponseCurve>? Response = null,
+                                          string? RateRecommendation = null)
         {
             public override string ToString()
             {
@@ -213,6 +214,7 @@ namespace VesperApp.Services
                     sb.AppendLine().AppendLine(s.Title);
                     foreach (var l in s.Lines) sb.Append("  ").AppendLine(l.Text);
                 }
+                if (RateRecommendation != null) sb.AppendLine().AppendLine(RateRecommendation);
                 if (Recommendation != null) sb.AppendLine().AppendLine(Recommendation);
                 if (HpfRecommendation != null) sb.AppendLine(HpfRecommendation);
                 return sb.AppendLine().Append(Footer).ToString();
@@ -260,9 +262,16 @@ namespace VesperApp.Services
                 }
                 else
                 {
-                    string alt = BetterRates(fs);
-                    lines.Add(new SolverLine(string.Create(ci, $"Basic filter only (this rate cannot use the full filter): {-CicDroopDb(c, 0.4 * c.ExactHz):0} dB quieter at {0.4 * c.ExactHz / 1000:0.#} kHz.") +
-                                             (alt.Length > 0 ? $" Rates with the full filter nearby: {alt}." : ""), Warning: true));
+                    string why = c.Total % 4 != 0
+                        ? string.Create(ci, $"4.8 MHz / {c.Total} is not a multiple of 4, so the full anti-aliasing filter (which divides by 4) cannot be used")
+                        : "the full anti-aliasing filter cannot reach full scale at this rate";
+                    lines.Add(new SolverLine(string.Create(ci,
+                        $"No anti-aliasing filter at this rate, only the basic filter: {why}. Sound and microphone noise above " +
+                        $"{c.ExactHz / 2000:0.#} kHz fold back into the recording, only {-AliasRejectionDb(c, 0.40):0} dB down at " +
+                        $"{0.40 * c.ExactHz / 1000:0.#} kHz and {-AliasRejectionDb(c, 0.45):0} dB at {0.45 * c.ExactHz / 1000:0.#} kHz; " +
+                        $"the top of the band is also {-CicDroopDb(c, 0.4 * c.ExactHz):0} dB quieter at {0.4 * c.ExactHz / 1000:0.#} kHz."), Warning: true));
+                    if (RecommendedRate(fs) is uint better)
+                        lines.Add(new SolverLine(string.Create(ci, $"Use {Hz(better)} instead: exact, with the full anti-aliasing filter{StorageNote(fs, better)}."), Warning: true));
                 }
                 double lv = c.LevelCdb / 100.0;
                 double clip = Math.Min(94.0 - MicSensitivityDbfs - lv, MicAopDbSpl);
@@ -294,8 +303,95 @@ namespace VesperApp.Services
                 string.Create(ci, $"Recommended gain for {Hz(refFs)}: {CodeCdb(recCode) / 100.0:+0.0;-0.0} dB — sounds up to about {94.0 - MicSensitivityDbfs - recLevel:0} dB SPL are recorded without clipping and quiet sounds are kept.");
             var response = new[] { (1, rate1), (2, rate2) }.Where(r => r.Item2 != 0)
                 .Select(r => Response(r.Item2, Math.Max(hpf, 0), $"Sample Rate [{r.Item1}] — {Hz(r.Item2)}")).ToList();
-            return new SolverReport(summary, sections, rec, footer, hpfRec, response);
+
+            var rateRecs = new List<string>();
+            foreach ((int idx, uint fs) in new[] { (1, rate1), (2, rate2) })
+                if (fs != 0 && RecommendedRate(fs) is uint better)
+                    rateRecs.Add(string.Create(ci, $"{Hz(better)} instead of {Hz(fs)} for Sample Rate [{idx}]{StorageNote(fs, better)}"));
+            string? rateRec = rateRecs.Count == 0 ? null :
+                "Recommended sample rate: " + string.Join("; ", rateRecs) +
+                " — exact, with the full anti-aliasing filter, so nothing above the band folds back into the recording.";
+            return new SolverReport(summary, sections, rec, footer, hpfRec, response, rateRec);
         }
+
+        /// <summary>
+        /// How far an image at (rate − f) is below the in-band frequency f = <paramref name="fraction"/> × rate after a
+        /// chain without the reshape filter (CIC only) — what folds back on decimation (dB, ≤ 0 means suppressed).
+        /// </summary>
+        public static double AliasRejectionDb(Chain c, double fraction)
+        {
+            double f = fraction * c.ExactHz, image = c.ExactHz - f;
+            return CicDroopDb(c, image) - CicDroopDb(c, f);
+        }
+
+        /// <summary>
+        /// For a rate that runs without the reshape (anti-aliasing) filter: the next higher listed rate that is exact and
+        /// has it (96 → 100 kHz, 192 → 200 kHz, 32 → 48 kHz), else the closest lower one (400 → 300 kHz). Null when the
+        /// rate already has the full filter or is Off. With the fixed 4.8 MHz PDM clock the reshape filter needs a total
+        /// division that is a multiple of 4 (and a CIC large enough to reach full scale).
+        /// </summary>
+        public static uint? RecommendedRate(uint fs)
+        {
+            if (fs == 0) return null;
+            Chain? c = Solve(fs, 0);
+            if (c == null || c.Reshape) return null;
+            var full = CommonRates.Where(r => r != 0 && Solve(r, 0) is { Inexact: false, Reshape: true }).ToList();
+            uint above = full.FirstOrDefault(r => r > fs);
+            if (above != 0) return above;
+            uint below = full.LastOrDefault(r => r < fs);
+            return below != 0 ? below : null;
+        }
+
+        /// <summary>The band a recording at this rate can be trusted in, and the WAV low-pass that marks it.</summary>
+        /// <param name="LowPassHz">Corner (-6 dB) of the zero-phase low-pass applied when the WAV is written.</param>
+        /// <param name="UsableHz">Upper edge of the usable band.</param>
+        /// <param name="FullFilter">The chain has the reshape (anti-aliasing) filter.</param>
+        /// <param name="AliasDbAtEdge">CIC-only chains: how far folded images are down at <paramref name="UsableHz"/>.</param>
+        public sealed record AudioBand(double LowPassHz, double UsableHz, bool FullFilter, string Chain, double? AliasDbAtEdge, uint? BetterRate);
+
+        /// <summary>Usable-band edge as a fraction of the rate: flat region of the reshape filter / where CIC images are 25-30 dB down.</summary>
+        public const double UsableFractionFull = 0.44, UsableFractionCicOnly = 0.33;
+
+        /// <summary>
+        /// With the reshape filter the band is clean to ~0.44 fs and the WAV keeps its usual low-pass (fs / 2.2). Without it
+        /// (CIC only) everything above ~0.33 fs carries folded-back images less than 25-30 dB down, so the WAV is low-passed
+        /// there (-6 dB at 0.33 fs) and the band is reported as 0.33 fs.
+        /// </summary>
+        public static AudioBand UsableBand(uint fs)
+        {
+            Chain? c = fs == 0 ? null : Solve(fs, 0);
+            if (c == null || c.Reshape)
+                return new AudioBand(fs / 2.2, UsableFractionFull * fs, true, c?.Describe() ?? "unknown", null, null);
+            return new AudioBand(UsableFractionCicOnly * fs, UsableFractionCicOnly * fs, false, c.Describe(),
+                                 AliasRejectionDb(c, UsableFractionCicOnly), RecommendedRate(fs));
+        }
+
+        /// <summary>Sidecar lines describing <see cref="UsableBand"/> for a WAV recorded at <paramref name="fs"/>.</summary>
+        public static string UsableBandNote(uint fs)
+        {
+            var ci = CultureInfo.InvariantCulture;
+            AudioBand b = UsableBand(fs);
+            var sb = new StringBuilder();
+            if (b.FullFilter)
+            {
+                sb.AppendLine(string.Create(ci, $"UsableBand: 0-{b.UsableHz:0} Hz (full anti-aliasing filter, flat to 0.44 x the rate)"));
+                sb.AppendLine(string.Create(ci, $"LowPass: {b.LowPassHz:0} Hz (-6 dB, zero phase, 4th order)"));
+                sb.AppendLine("MicChain: " + b.Chain);
+            }
+            else
+            {
+                sb.AppendLine(string.Create(ci, $"UsableBand: 0-{b.UsableHz:0} Hz (no anti-aliasing filter at this rate: above it, sound folded back from above " +
+                                                $"{fs / 2.0:0} Hz is less than {-(b.AliasDbAtEdge ?? 0):0} dB down)"));
+                sb.AppendLine(string.Create(ci, $"LowPass: {b.LowPassHz:0} Hz (-6 dB, zero phase, 4th order), marks the usable band"));
+                sb.AppendLine("MicChain: " + b.Chain + " (basic filter only)");
+                if (b.BetterRate is uint r)
+                    sb.AppendLine("Advice: record at " + Hz(r) + " for the full band with the anti-aliasing filter");
+            }
+            return sb.ToString();
+        }
+
+        private static string StorageNote(uint from, uint to) =>
+            to > from ? string.Create(CultureInfo.InvariantCulture, $" (+{(to / (double)from - 1) * 100:0} % storage)") : "";
 
         /// <summary>Gain and phase of one configured chain over frequency (log spaced up to Nyquist).</summary>
         public sealed record ResponseCurve(string Label, double[] FreqHz, double[] GainDb, double[] PhaseDeg, double DelayUs, bool ReshapeApproximate);

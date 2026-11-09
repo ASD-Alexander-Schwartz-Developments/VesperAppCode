@@ -47,6 +47,14 @@
                                   IsChecked="{Binding HideIntermediateFiles}"/>
                         <CheckBox Content="Delete raw .bin files after a successful import"
                                   IsChecked="{Binding DeleteRawAfterImport}"/>
+
+                        <TextBlock Classes="sectionHeader" Text="Audio post-filters" Margin="0,8,0,0"/>
+                        <TextBlock Classes="caption" TextWrapping="Wrap"
+                                   Text="Write an extra _EQ WAV next to each microphone WAV. The original WAV is always kept; what was applied is noted in a .txt beside the _EQ file."/>
+                        <CheckBox Content="Remove the sound-port resonance (Vesper / Pipistrelle, ~26.5 kHz; not KOL)"
+                                  IsChecked="{Binding PostFilterPortEq}"/>
+                        <CheckBox Content="Notch the 32.768 kHz clock-crystal tone (removes a ~65 Hz slice at 32.77 kHz)"
+                                  IsChecked="{Binding PostFilterLseNotch}"/>
                     </StackPanel>
                 </Border>
 

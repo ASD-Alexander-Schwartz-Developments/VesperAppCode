@@ -32,12 +32,14 @@
 	<DockPanel Margin="18">
 
 		<!-- Bottom action row -->
-		<Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,14,0,0" ColumnSpacing="8">
-			<Button Grid.Column="1" Content="Use recommended high-pass filter" MinWidth="170"
+		<Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,14,0,0" ColumnSpacing="8">
+			<Button Grid.Column="1" Content="Use recommended sample rate" MinWidth="170"
+					IsVisible="{Binding HasRateRecommendation}" Command="{Binding UseRecommendedRateCommand}"/>
+			<Button Grid.Column="2" Content="Use recommended high-pass filter" MinWidth="170"
 					IsVisible="{Binding HasHpfRecommendation}" Command="{Binding UseRecommendedHpfCommand}"/>
-			<Button Grid.Column="2" Classes="accent" Content="Use recommended gain" MinWidth="170"
+			<Button Grid.Column="3" Classes="accent" Content="Use recommended gain" MinWidth="170"
 					IsVisible="{Binding HasRecommendation}" Command="{Binding UseRecommendedCommand}"/>
-			<Button Grid.Column="3" x:Name="btnClose" Content="Close" MinWidth="90" IsDefault="True" IsCancel="True"/>
+			<Button Grid.Column="4" x:Name="btnClose" Content="Close" MinWidth="90" IsDefault="True" IsCancel="True"/>
 		</Grid>
 
 		<!-- Firmware note -->
@@ -91,6 +93,9 @@
 					</StackPanel>
 				</Border>
 
+				<Border Classes="card" Padding="14,10" IsVisible="{Binding HasRateRecommendation}">
+					<TextBlock TextWrapping="Wrap" Text="{Binding Report.RateRecommendation}"/>
+				</Border>
 				<Border Classes="card" Padding="14,10" IsVisible="{Binding HasRecommendation}">
 					<TextBlock TextWrapping="Wrap" Text="{Binding Report.Recommendation}"/>
 				</Border>

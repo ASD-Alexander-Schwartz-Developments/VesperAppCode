@@ -168,6 +168,13 @@ namespace ASDWaveLib
         }
 
 
+        /// <summary>The WAV's sample rate (from the metadata, else as constructed).</summary>
+        public UInt32 Rate => this.SampleRate;
+
+        /// <summary>Corner (-6 dB) of the zero-phase low-pass <see cref="WriteWave(byte[])"/> applies; null = rate / 2.2.
+        /// VesperApp sets it from the microphone chain's usable band.</summary>
+        public double? LowPassHz { get; set; }
+
         public void WriteWave(byte[] buffer)
         {
             if (buffer != null)
@@ -198,7 +205,7 @@ namespace ASDWaveLib
                         in_data[i] = (double)((double)((double)buf16bit[i]/* - arr_avg*/) / (double)Int16.MaxValue);
                     }
 
-                    double[] filtered_data = ButterworthFilter.Butterworth(in_data, SampleRate, SampleRate / 2.2);
+                    double[] filtered_data = ButterworthFilter.Butterworth(in_data, SampleRate, LowPassHz ?? SampleRate / 2.2);
                     
                     for (int objIndex = 0; objIndex < buf16bit.Length; objIndex++)
                     {

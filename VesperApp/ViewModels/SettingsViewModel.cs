@@ -29,6 +29,8 @@ namespace VesperApp.ViewModels
             _autoDecodeOnImport = _cfg.Recordings.AutoDecodeOnImport;
             _hideIntermediateFiles = _cfg.Recordings.HideIntermediateFiles;
             _deleteRawAfterImport = _cfg.Recordings.DeleteRawAfterImport;
+            _postFilterPortEq = _cfg.Recordings.PostFilterPortEq;
+            _postFilterLseNotch = _cfg.Recordings.PostFilterLseNotch;
 
             BrowseWorkingDirectoryCommand = ReactiveCommand.CreateFromTask(BrowseWorkingDirectory);
             SaveCommand = ReactiveCommand.Create(Save);
@@ -72,6 +74,20 @@ namespace VesperApp.ViewModels
             set => this.RaiseAndSetIfChanged(ref _deleteRawAfterImport, value);
         }
 
+        private bool _postFilterPortEq;
+        public bool PostFilterPortEq
+        {
+            get => _postFilterPortEq;
+            set => this.RaiseAndSetIfChanged(ref _postFilterPortEq, value);
+        }
+
+        private bool _postFilterLseNotch;
+        public bool PostFilterLseNotch
+        {
+            get => _postFilterLseNotch;
+            set => this.RaiseAndSetIfChanged(ref _postFilterLseNotch, value);
+        }
+
         // ── Status / info ──
         public string ConfigPath => SettingsService.ConfigPath;
 
@@ -113,6 +129,8 @@ namespace VesperApp.ViewModels
             _cfg.Recordings.AutoDecodeOnImport = AutoDecodeOnImport;
             _cfg.Recordings.HideIntermediateFiles = HideIntermediateFiles;
             _cfg.Recordings.DeleteRawAfterImport = DeleteRawAfterImport;
+            _cfg.Recordings.PostFilterPortEq = PostFilterPortEq;
+            _cfg.Recordings.PostFilterLseNotch = PostFilterLseNotch;
 
             SettingsService.Instance.Save();
             Status = "Saved. The working directory opens automatically on the next launch.";

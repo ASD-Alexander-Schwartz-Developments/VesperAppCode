@@ -22,6 +22,10 @@ namespace VesperApp.Models
 
         /// <summary>Set the high-pass filter the adviser recommends for the reference rate.</summary>
         void ApplyRecommendedHpf();
+
+        /// <summary>Move each rate that runs without the anti-aliasing (reshape) filter to the recommended rate that has it,
+        /// keeping the loudness.</summary>
+        void ApplyRecommendedRate();
     }
 
     /// <summary>A driver whose grid rows depend on its own settings (e.g. trigger rows only in sound-triggered mode).</summary>

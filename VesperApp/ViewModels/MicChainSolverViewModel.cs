@@ -29,6 +29,11 @@ namespace VesperApp.ViewModels
                 _driver.ApplyRecommendedHpf();
                 Report = _driver.MicChainReport();
             });
+            UseRecommendedRateCommand = ReactiveCommand.Create(() =>
+            {
+                _driver.ApplyRecommendedRate();
+                Report = _driver.MicChainReport();
+            });
         }
 
         public MicChainSolver.SolverReport Report
@@ -40,6 +45,7 @@ namespace VesperApp.ViewModels
                 this.RaisePropertyChanged(nameof(Sections));
                 this.RaisePropertyChanged(nameof(HasRecommendation));
                 this.RaisePropertyChanged(nameof(HasHpfRecommendation));
+                this.RaisePropertyChanged(nameof(HasRateRecommendation));
                 this.RaisePropertyChanged(nameof(Curves));
                 this.RaisePropertyChanged(nameof(HasResponse));
                 this.RaisePropertyChanged(nameof(Legend1));
@@ -52,6 +58,7 @@ namespace VesperApp.ViewModels
         public IReadOnlyList<MicChainSolver.SolverSection> Sections => _report.Sections;
         public bool HasRecommendation => _report.Recommendation != null;
         public bool HasHpfRecommendation => _report.HpfRecommendation != null;
+        public bool HasRateRecommendation => _report.RateRecommendation != null;
 
         public IReadOnlyList<MicChainSolver.ResponseCurve>? Curves => _report.Response;
         public bool HasResponse => _report.Response is { Count: > 0 };
@@ -76,5 +83,6 @@ namespace VesperApp.ViewModels
 
         public ReactiveCommand<Unit, Unit> UseRecommendedCommand { get; }
         public ReactiveCommand<Unit, Unit> UseRecommendedHpfCommand { get; }
+        public ReactiveCommand<Unit, Unit> UseRecommendedRateCommand { get; }
     }
 }

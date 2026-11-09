@@ -35,14 +35,15 @@
             double e = 1 - (2 * a) - k3;
 
             // RECURSIVE TRIGGERS - ENABLE filter is performed (first, last points constant)
+            // (runs to s = dF2 + 2, the last sample: it used to stop one short and leave that sample unfiltered)
             double[] DatYt = new double[dF2 + 4];
             DatYt[1] = DatYt[0] = indata[0];
-            for (long s = 2; s < dF2 + 2; s++)
+            for (long s = 2; s < dF2 + 3; s++)
             {
                 DatYt[s] = a * Dat2[s] + b * Dat2[s - 1] + c * Dat2[s - 2]
                            + d * DatYt[s - 1] + e * DatYt[s - 2];
             }
-            DatYt[dF2 + 3] = DatYt[dF2 + 2] = DatYt[dF2 + 1];
+            DatYt[dF2 + 3] = DatYt[dF2 + 2];
 
             // FORWARD filter
             double[] DatZt = new double[dF2 + 2];
@@ -55,7 +56,7 @@
             }
 
             // Calculated points copied for return
-            for (long p = 0; p < dF2; p++)
+            for (long p = 0; p <= dF2; p++)
             {
                 data[p] = DatZt[p];
             }
