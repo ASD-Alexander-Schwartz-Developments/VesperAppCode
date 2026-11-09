@@ -744,14 +744,49 @@ namespace VesperApp.Models
 
                 if (retb == 0) r = true;
             }
-            else if (_comport != null && _comport.IsRunning)
-            {
-               // Debug.WriteLine("Prepare Format request message");
-                byte[] buffer = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_FORMATDISK, 0, new byte[0], 0);
-                this._comport.SendToDevice(buffer, 0, buffer.Length);
-                r = true;
-            }
+            // Vesper / Pipistrelle: FormatDiskAsync (waits for the result). KOL: not offered.
             return await Task.FromResult(r);
+        }
+
+        /// <summary>eMMC size from VESPER_GETDISKSIZE (21; every VesperU5 firmware): [0..3] blocks, [4..7] block
+        /// bytes. Null when the unit does not answer.</summary>
+        public async Task<ulong?> GetDiskBytesAsync(int timeoutMs = 2000)
+        {
+            byte[]? r = await SendCommandAsync(MessageTypes.VESPER_GETDISKSIZE, new byte[0], timeoutMs);
+            return DiskFormat.ParseDiskSize(r);
+        }
+
+        /// <summary>VESPER_FORMATDISK (19) on a Vesper / Pipistrelle: request [0] file system, [1] cluster KB
+        /// (0 = 32). Firmware 1.22 formats while the call waits and answers with the 8-byte result, then
+        /// resets; older firmware answers ACK at once and formats FAT32 / 32 KB after it (whatever was asked).
+        /// A 64 GB FAT32 format takes about a minute, hence the long timeout.</summary>
+        public async Task<DiskFormatResult> FormatDiskAsync(DiskFileSystem fs, int clusterKb = 0, int timeoutMs = 180_000)
+        {
+            if (this._comport == null || this._comport.IsRunning == false)
+                return DiskFormatResult.NoAnswer;
+
+            byte[] payload = DiskFormat.BuildRequest(fs, clusterKb);
+            var tcs = new TaskCompletionSource<DiskFormatResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<MessageEventArgs> handler = (s, e) =>
+            {
+                if (e.typeOfMessage == MessageTypes.VESPER_FORMATDISK) tcs.TrySetResult(DiskFormat.ParseReply(e.MessageData));
+                else if (e.typeOfMessage == MessageTypes.ACK) tcs.TrySetResult(DiskFormatResult.LegacyStarted);
+                else if (e.typeOfMessage == MessageTypes.NACK) tcs.TrySetResult(DiskFormatResult.Refused);
+            };
+
+            this._comport.MessageEvent += handler;
+            try
+            {
+                byte[] frame = SerialMessage.PROTO_MsgBuild((byte)MessageTypes.VESPER_FORMATDISK, (byte)payload.Length, payload, 0);
+                this._comport.SendToDevice(frame, 0, frame.Length);
+                using var cts = new System.Threading.CancellationTokenSource(timeoutMs);
+                using (cts.Token.Register(() => tcs.TrySetResult(DiskFormatResult.NoAnswer)))
+                    return await tcs.Task.ConfigureAwait(false);
+            }
+            finally
+            {
+                this._comport.MessageEvent -= handler;
+            }
         }
 
 

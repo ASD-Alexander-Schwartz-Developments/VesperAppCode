@@ -158,8 +158,8 @@
 						<!-- Hidden for a KOL with the operating states: it sleeps by itself when unplugged and records through Start Recording. -->
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Sleep" Command="{Binding SleepDeviceCommand}" IsEnabled="{Binding IsDeviceIdle}" IsVisible="{Binding ShowSleepCommands}"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Arm Sleep" Command="{Binding ArmSleepDeviceCommand}" IsEnabled="{Binding IsDeviceIdle}" IsVisible="{Binding ShowSleepCommands}"/>
-						<Button Classes="toolbar" Margin="0,2,6,2" Content="Format" Command="{Binding FormatDeviceCommand}" IsEnabled="{Binding CanUseDeviceDisk}"
-								ToolTip.Tip="Format the device's storage (unavailable while a KOL is in Live Audio - no disk is exposed in that mode)"/>
+						<Button Classes="toolbar" Margin="0,2,6,2" Content="Format" Command="{Binding FormatDeviceCommand}" IsEnabled="{Binding CanFormatDevice}"
+								ToolTip.Tip="{Binding FormatToolTip}" ToolTip.ShowOnDisabled="True"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Set Time" Command="{Binding SetDateTimeDeviceCommand}" IsEnabled="{Binding IsDeviceIdle}"/>
 						<Button Classes="toolbar" Margin="0,2,6,2" Content="Upload Config" Command="{Binding UploadDeviceConfig}" IsEnabled="{Binding CanUseDeviceDisk}"
 								ToolTip.Tip="Send a configuration file to the device: over USB to a Nanotag, as config.json on the drive of a Vesper, Pipistrelle or KOL"/>

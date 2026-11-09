@@ -121,6 +121,25 @@ namespace VesperApp.ViewModels
             && !(IsUsbModesSelected && !KolUsbModeInfo.HasDisk(_kolUsbMode))
             && !(IsKolStatesSelected && !KolFlags.HasFlag(KolStatusFlags.CardMounted));
 
+        /// <summary>Format: Nanotag, Vesper and Pipistrelle; not a KOL for now (its firmware has no format -
+        /// the microSD card is formatted on a PC), and not while a format runs.</summary>
+        public bool CanFormatDevice => CanUseDeviceDisk && !IsKolSelected && !IsFormatting;
+
+        public bool IsFormatting
+        {
+            get => _isFormatting;
+            private set
+            {
+                this.RaiseAndSetIfChanged(ref _isFormatting, value);
+                this.RaisePropertyChanged(nameof(CanFormatDevice));
+            }
+        }
+        private bool _isFormatting;
+
+        public string FormatToolTip => IsKolSelected
+            ? "Not available for KOL: format the microSD card on a PC (exFAT)"
+            : "Erase the device's storage: a Nanotag's flash, or the drive of a Vesper / Pipistrelle (FAT32, or exFAT on 32 / 64 GB units)";
+
         /// <summary>One-line narration under the device actions ("switching…", "device
         /// is now sampling…"). Empty hides the line.</summary>
         public string KolStatusText
@@ -268,6 +287,8 @@ namespace VesperApp.ViewModels
             this.RaisePropertyChanged(nameof(IsKolLiveAudio));
             this.RaisePropertyChanged(nameof(KolLiveAudioButtonText));
             this.RaisePropertyChanged(nameof(CanUseDeviceDisk));
+            this.RaisePropertyChanged(nameof(CanFormatDevice));
+            this.RaisePropertyChanged(nameof(FormatToolTip));
             this.RaisePropertyChanged(nameof(IsKolStatesSelected));
             this.RaisePropertyChanged(nameof(ShowSleepCommands));
             this.RaisePropertyChanged(nameof(StartRecordingButtonText));

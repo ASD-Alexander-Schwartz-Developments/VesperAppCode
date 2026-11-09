@@ -79,6 +79,7 @@ namespace VesperApp.ViewModels
                 this.RaiseAndSetIfChanged(ref _isNanotagDownloading, value);
                 this.RaisePropertyChanged(nameof(IsDeviceIdle));
                 this.RaisePropertyChanged(nameof(CanUseDeviceDisk));
+                this.RaisePropertyChanged(nameof(CanFormatDevice));
             }
         }
         private bool _isNanotagDownloading;
@@ -555,13 +556,22 @@ namespace VesperApp.ViewModels
             FormatDeviceCommand = ReactiveCommand.CreateFromTask(async () =>
             {
                 LoggerDevice? dev = SelectedLoggerDevice;
-                if (dev == null) return;
-                if (dev.IsNanotagVendor && dev.FirmwareVersion != null && dev.FirmwareVersion >= LoggerDevice.NanotagDiskHealthFirmware)
+                if (dev == null || dev.IsKol) return;           // KOL: no format in its firmware (button disabled)
+                if (dev.IsNanotagVendor)
                 {
-                    await FormatNanotagAsync(dev);
+                    if (!await ConfirmAsync("Format", $"Erase Nanotag {dev.SerialNumber}?",
+                            "All recorded data on the tag is erased. Download Data first if you still need it."))
+                        return;
+                    if (dev.FirmwareVersion != null && dev.FirmwareVersion >= LoggerDevice.NanotagDiskHealthFirmware)
+                        await FormatNanotagAsync(dev);
+                    else
+                        TextMessageBottom = await dev.FormatDisk()
+                            ? "Format sent (Nanotag firmware before 1.39 reports no progress: wait about 15 s before the next action)."
+                            : "The Nanotag did not answer the format command in time; it may still be erasing. Wait 15 s, then check it on the Nanotag page.";
                     return;
                 }
-                await dev.FormatDisk();
+                if (dev.IsComportDevice)
+                    await FormatUnitDiskAsync(dev);
             });
             #endregion
 
@@ -580,6 +590,64 @@ namespace VesperApp.ViewModels
             TextMessageBottom = string.Empty;
 		}
 
+
+        /// <summary>Format a Vesper / Pipistrelle drive: pick the file system (exFAT only on 32 / 64 GB units with
+        /// firmware 1.22+), confirm, then wait for the unit's result (it takes the drive away from the PC while it
+        /// formats and restarts afterwards).</summary>
+        private async Task FormatUnitDiskAsync(LoggerDevice dev)
+        {
+            ulong? bytes = await dev.GetDiskBytesAsync();
+            IReadOnlyList<DiskFileSystem> choices = DiskFormat.Choices(dev.FirmwareVersion, bytes);
+            string size = bytes is ulong b ? $"{b / 1e9:0.#} GB storage" : "storage of unknown size";
+            string fw = dev.FirmwareVersion is Version v ? $"firmware {v.Major}.{v.Minor}" : "unknown firmware";
+
+            string note = choices.Count > 1
+                ? "FAT32: what the unit has always used. exFAT: no FSInfo free-space hint to go stale, a faster format; " +
+                  "Windows 10+, macOS and Linux read it. Both use 32 KB clusters (one recorder write per cluster)."
+                : (bytes is ulong b2 && b2 < DiskFormat.ExFatMinBytes)
+                    ? "FAT32 with 32 KB clusters (exFAT is offered on 32 / 64 GB units only)."
+                    : "FAT32 with 32 KB clusters (exFAT needs firmware 1.22 or later and a 32 / 64 GB unit).";
+
+            var buttons = new List<ButtonDefinition>();
+            foreach (DiskFileSystem fs in choices)
+                buttons.Add(new ButtonDefinition { Name = "Format " + DiskFormat.Name(fs), IsDefault = fs == choices[0] });
+            buttons.Add(new ButtonDefinition { Name = "Cancel", IsCancel = true });
+
+            var box = MessageBoxManager.GetMessageBoxCustom(new MessageBoxCustomParams
+            {
+                ButtonDefinitions = buttons,
+                ContentTitle = "Format",
+                ContentHeader = $"Erase {dev.DeviceType} {dev.SerialNumber}? ({size}, {fw})",
+                ContentMessage = "Every file on the unit's drive is erased: recordings, config.json, the logs and RTCCAL.TXT " +
+                                 "(the clock calibration stays in the unit). Download Data first if you still need them." +
+                                 Environment.NewLine + Environment.NewLine + note + Environment.NewLine + Environment.NewLine +
+                                 "Close any file or window open on the drive. The drive disappears while the unit formats " +
+                                 "(up to a minute on 64 GB FAT32), then the unit restarts.",
+                Icon = Icon.Warning,
+                WindowIcon = App.MainWindow?.Icon,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                CanResize = false,
+            });
+            string answer = App.MainWindow != null ? await box.ShowWindowDialogAsync(App.MainWindow) : await box.ShowAsync();
+            DiskFileSystem? chosen = null;
+            foreach (DiskFileSystem fs in choices)
+                if (answer == "Format " + DiskFormat.Name(fs)) chosen = fs;
+            if (chosen is not DiskFileSystem pick) return;
+
+            IsFormatting = true;
+            try
+            {
+                RunOnUi(() => TextMessageBottom = $"Formatting {dev.SerialNumber} as {DiskFormat.Name(pick)}… keep it docked.");
+                DiskFormatResult r = await dev.FormatDiskAsync(pick, DiskFormat.DefaultClusterKb);
+                string msg = DiskFormat.Message(r, pick);
+                RunOnUi(() => TextMessageBottom = msg);
+            }
+            finally
+            {
+                IsFormatting = false;
+            }
+        }
 
         /// <summary>Set the device clock (Set Time, and before a KOL starts recording).</summary>
         /// <summary>Format a Nanotag (firmware 1.39+): it answers at once and erases in steps, so follow the progress

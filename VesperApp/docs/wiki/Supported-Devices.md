@@ -22,6 +22,18 @@ The two toolbar buttons work with every device:
 
 The unit's disk is found by the `UID.TXT` the firmware writes on it. Both buttons need the disk: they are disabled while a KOL is in Live Audio.
 
+## Format
+
+**Format** erases the device's storage after a confirmation. Download Data first.
+
+| Device | What Format does |
+|---|---|
+| **Vesper, Pipistrelle** | Reformats the unit's drive: every file goes (recordings, `config.json`, logs, `RTCCAL.TXT`; the clock calibration stays in the unit). Choose **FAT32** or, on a 32 or 64 GB unit, **exFAT**; a 16 GB unit is always FAT32. Both use 32 KB clusters. The drive disappears from the PC while the unit formats (seconds; up to about a minute for FAT32 on 64 GB), the status line reports the result, and the unit restarts. Upload the configuration again afterwards. With firmware before 1.22 the format is always FAT32 and VesperApp gets no result: wait until the unit is back in the list. |
+| **Nanotag** | Erases the recorded data in the tag's flash (no file system); see [Nanotag](#nanotag). |
+| **KOL** | Not available: format the microSD card on a PC (exFAT). |
+
+Format is refused while a unit is armed, recording or in Live Audio.
+
 ## VT04-VESPER
 
 ![The VT04-VESPER logger board](images/vesper.jpg)
