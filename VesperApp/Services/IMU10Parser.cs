@@ -37,6 +37,36 @@ namespace VesperApp.Services
             return 4;
         }
 
+        /// <summary>
+        /// The time of one record from its own RTC stamp (minute, second, ms; the hour and date come from the
+        /// previous record, starting with the file's start time). It used to be the start time plus n times
+        /// 1000 / rate integer ms: at 26 Hz that is 38 ms instead of 38.46 ms, 1.2 % fast (bench 2026-11-10,
+        /// 2.25 s ahead after 3 min), and gaps in the data were not seen. Null for an invalid stamp (the
+        /// caller keeps the count-based time).
+        ///
+        /// Firmware up to 1.20 stamps a stale minute / second: the sampling loop read the RTC time without
+        /// the date, so the seconds stayed frozen until other code read the date (VesperU5 6deabcf). The
+        /// sub-second counter is always live. Customer files (fw 1.20, 60 Hz, 2026-06-04): the second was
+        /// refreshed every 0.68 s, a third of the rows carried the previous second (a few the one before),
+        /// about 1140 steps of 1 s back per 19.5 min file. A stale stamp is only ever behind, so a stamp up
+        /// to <see cref="StaleStampSeconds"/> behind the previous record is moved forward by whole seconds
+        /// to follow it; the ms are kept. A stamp further behind is in the next hour.
+        /// </summary>
+        internal static DateTime? StampTime(ref DateTime last, int minute, int second, int ms)
+        {
+            if (minute > 59 || second > 59 || second < 0 || ms < 0 || ms > 999) return null;
+            var t = new DateTime(last.Year, last.Month, last.Day, last.Hour, 0, 0, last.Kind)
+                .AddMinutes(minute).AddSeconds(second).AddMilliseconds(ms);
+            if (t > last.AddMinutes(59)) t = t.AddHours(-1);                  // stale stamp of the hour that just ended
+            else if (t < last.AddSeconds(-StaleStampSeconds)) t = t.AddHours(1);
+            while (t < last.AddMilliseconds(-500)) t = t.AddSeconds(1);       // stale second(s): the counter has wrapped
+            last = t;
+            return t;
+        }
+
+        /// <summary>How far behind the previous record a stamp may be and still be taken as stale seconds.</summary>
+        internal const int StaleStampSeconds = 60;
+
         private string Filename;
         private bool IsOpened;
 
@@ -55,6 +85,7 @@ namespace VesperApp.Services
 
             int index = 0;
             DateTime ts = dtStart;
+            DateTime last = dtStart;
             int baro_bytes = BaroBytesFor(filename);
 
             while(index < data.Length)
@@ -84,7 +115,14 @@ namespace VesperApp.Services
                         ms += 1000;
                         line.Second--;
                     }
-                    line.Timestamp = ts;
+                    DateTime? stamped = StampTime(ref last, (int)line.Minute, unchecked((int)line.Second), ms);
+                    line.Timestamp = stamped ?? ts;
+                    if (stamped != null)
+                    {
+                        // the Minute / Second columns follow the Time column (a stale second is corrected in both)
+                        line.Minute = (uint)stamped.Value.Minute;
+                        line.Second = (uint)stamped.Value.Second;
+                    }
                     line.Milisecond = (uint)ms;
                     index += 2;
 
