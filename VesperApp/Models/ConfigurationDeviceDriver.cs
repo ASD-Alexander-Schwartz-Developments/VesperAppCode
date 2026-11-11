@@ -513,6 +513,15 @@ namespace VesperApp.Models
                     case "EXG2":
                         baseClass = (ConfigEXG2Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigEXG2Driver));
                         break;
+                    case "EEG2":
+                        baseClass = (ConfigEEG2Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigEEG2Driver));
+                        break;
+                    case "EMG2":
+                        baseClass = (ConfigEMG2Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigEMG2Driver));
+                        break;
+                    case "ECG2":
+                        baseClass = (ConfigECG2Driver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigECG2Driver));
+                        break;
                     case "ATLAS":
                         baseClass = (ConfigATLASDriver?)JsonSerializer.Deserialize(ref reader, typeof(ConfigATLASDriver));
                         break;

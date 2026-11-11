@@ -18,6 +18,37 @@ namespace VesperApp.Models
         /// <summary>Request: op 0, arg0 = variant (IMU 1 IMU10 / 2 IMU10HT, EXG 1 ADS1192 / 2 ADS1292 / 3 ADS1298, 0 = probe each).</summary>
         public static byte[] BuildRequest(byte variant = 0) => new byte[] { 0, variant, 0, 0 };
 
+        /// <summary>Biopotential internal test signal (console 72 op 1, VesperU5 1.22): arg0 = variant (1 ADS1192,
+        /// 2 ADS1292, 3 ADS129x), arg1 = PGA code (0 = x6, the recording default).</summary>
+        public const byte ExgOpTestSignal = 1;
+        public static byte[] ExgTestSignalRequest(byte variant, byte pgaCode = 0) => new byte[] { ExgOpTestSignal, variant, pgaCode, 0 };
+
+        /// <summary>Allowed deviation of the measured test-signal step from 2 mV.</summary>
+        public const double ExgTestSignalTolerancePercent = 5.0;
+
+        /// <summary>
+        /// The test-signal reply in µV with the decoders' own scale (<see cref="ExgGain.MicroVolts"/>): the AFE's
+        /// ~1 Hz square wave of +/- VREF / 2420 (ADS1x92) or / 2400 (ADS129x) = +/- 1 mV, so the step between its
+        /// levels is 2 mV at the ADC input on every channel, whatever the PGA. Sample0 / Sample1 = smallest / largest
+        /// channel step in codes x 16; Sample2 = PGA code | flag 0x08 (no square wave) | channels << 4 | bits << 8 |
+        /// frames << 16. Null when the reply is not a test-signal reply (firmware without op 1 answers the probe).
+        /// </summary>
+        public static (bool pass, string text)? DescribeExgTestSignal(SensorBenchResult r)
+        {
+            int bits = (r.Sample2 >> 8) & 0xFF, nch = (r.Sample2 >> 4) & 0x0F, pgaCode = r.Sample2 & 0x07;
+            if (bits != 16 && bits != 24) return null;
+            double pga = EXGGainOptions.ToMultiplier((byte)pgaCode);
+            if ((r.Sample2 & 0x08) != 0)
+                return (false, $"internal test signal (PGA x{pga:0}): no square wave seen (CH1 codes {r.Sample0} … {r.Sample1})");
+            if (r.Status == StatusIdFail || r.Status == StatusNotPresent) return null;
+            double vref = r.SubStatus == 3 ? 2400000.0 : 2420000.0;
+            double lo = ExgGain.MicroVolts(r.Sample0 / 16.0, bits, vref, pga) / 1000.0;
+            double hi = ExgGain.MicroVolts(r.Sample1 / 16.0, bits, vref, pga) / 1000.0;
+            bool pass = Math.Abs(lo - 2.0) <= 2.0 * ExgTestSignalTolerancePercent / 100 && Math.Abs(hi - 2.0) <= 2.0 * ExgTestSignalTolerancePercent / 100;
+            string range = Math.Abs(hi - lo) < 0.0005 ? $"{lo:F3} mV" : $"{lo:F3} – {hi:F3} mV";
+            return (pass, $"internal test signal (PGA x{pga:0}): step {range} on {nch} channels, expected 2.000 mV ±{ExgTestSignalTolerancePercent:0} %");
+        }
+
         public static SensorBenchResult? ParseResponse(byte[]? r)
         {
             if (r == null || r.Length < 20) return null;

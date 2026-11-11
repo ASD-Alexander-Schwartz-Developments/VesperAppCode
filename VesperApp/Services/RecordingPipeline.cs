@@ -344,14 +344,26 @@ namespace VesperApp.Services
             // the gain the unit recorded with (header Config0 = eegconf1), not a fixed x1
             uint gain = ExgGain.CodeFromSidecar(path + ".txt", exg2);
 
-            if (exg2)
+            if (ExgGain.IsAds1192(sensor))
+            {
+                // EEG2 / EMG2 / ECG2 (ADS1192, 16-bit): EXG2 gain bits and rate codes, pre-amp gain from the name
+                // (a channel on an internal input, e.g. the test signal, does not pass the pre-amp)
+                uint? c0 = ExgGain.Config0FromSidecar(path + ".txt");
+                using var ap = new EXG1192Parser(path, data, start, ExgGain.CodeFromSidecar(path + ".txt", true),
+                    ExgGain.Ads1192ChannelPreampGain(sensor, c0, 1), ExgGain.Ads1192ChannelPreampGain(sensor, c0, 2),
+                    Exg1292UsPerSample(sr));
+                ap.WriteFile();
+            }
+            else if (exg2)
             {
                 using var ip = new EXG1292Parser(path, data, start, gain, Exg1292UsPerSample(sr));
                 ip.WriteFile();
             }
             else
             {
-                using var ip = new EXG48Parser(path, data, start, gain, sr > 0 ? 1000 / sr : 0);
+                // period from the ADS129x rate code + HR bit (was 1000 / code µs: 10x off at 500 SPS, item 22)
+                using var ip = new EXG48Parser(path, data, start, gain,
+                    ExgRate.Exg48UsPerSample(sr, ExgRate.Exg48HighResolutionFromSidecar(path + ".txt")));
                 ip.WriteFile();
             }
             sum.Csv++;

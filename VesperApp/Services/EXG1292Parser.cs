@@ -66,8 +66,9 @@ namespace VesperApp.Services
                     Int32 cha2_raw = Utils.FromBytesS24bitMSB(data, index);
                     index += 3;
 
-                    line.CH1 = (((cha1_raw / (double)((1 << 24) - 1)) / 256.0) * 2420000.0) / (double)__gain;
-                    line.CH2 = (((cha2_raw / (double)((1 << 24) - 1)) / 256.0) * 2420000.0) / (double)__gain;
+                    // FromBytesS24bitMSB returns the code << 8; full scale is 2.42 V / gain at 2^23
+                    line.CH1 = ExgGain.MicroVolts24(cha1_raw >> 8, 2420000.0, __gain);
+                    line.CH2 = ExgGain.MicroVolts24(cha2_raw >> 8, 2420000.0, __gain);
 
                     csv_lines.Add(line.ToString());
                 }
@@ -131,7 +132,7 @@ namespace VesperApp.Services
         public static string HeaderText()
         {
             string mysep = Utils.GetSeparator();
-            return $"Date{mysep}Time{mysep}CH1[uV]{mysep}CH1-{mysep}CH1+{mysep}CH2[uV]{mysep}CH2-{mysep}CH2+{mysep}RLD OFF";
+            return $"Date{mysep}Time{mysep}CH1[uV]{mysep}CH1+{mysep}CH1-{mysep}CH2[uV]{mysep}CH2+{mysep}CH2-{mysep}RLD OFF";
         }
 
         public override string ToString()

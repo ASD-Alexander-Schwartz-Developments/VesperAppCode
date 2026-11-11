@@ -1873,7 +1873,7 @@ namespace VesperApp.ViewModels
                                     string? currentDirectory = Path.GetDirectoryName(lp);
                                     string? currentFilename = Path.GetFileName(lp).ToUpper();
                                     string? metadata = currentFilename + ".txt";
-                                    uint us_sample = 0;
+                                    double us_sample = 0;
 
                                     if (currentDirectory != null && currentFilename != null && metadata != null)
                                     {
@@ -1899,7 +1899,7 @@ namespace VesperApp.ViewModels
                                                             uint vv = 0;
                                                             if (uint.TryParse(val, out vv))
                                                             {
-                                                                us_sample = 1000 / vv;
+                                                                us_sample = ExgRate.Exg48UsPerSample(vv, ExgRate.Exg48HighResolutionFromSidecar(lp + ".txt"));   // was 1000 / code (item 22)
                                                                 break;
                                                             }
                                                         }
@@ -2088,9 +2088,23 @@ namespace VesperApp.ViewModels
                                             }
                                         }
 
-                                        using (EXG1292Parser ip = new EXG1292Parser(lp, data, dtStart, ExgGain.CodeFromSidecar(lp + ".txt", true), us_sample))
+                                        string? exgSensor = ExgGain.SensorFromSidecar(lp + ".txt");
+                                        if (ExgGain.IsAds1192(exgSensor))
                                         {
-                                            ip.WriteFile();
+                                            // EEG2 / EMG2 / ECG2 (ADS1192): 16-bit, pre-amp gain from the sensor name
+                                            uint? exgC0 = ExgGain.Config0FromSidecar(lp + ".txt");
+                                            using (EXG1192Parser ap = new EXG1192Parser(lp, data, dtStart, ExgGain.CodeFromSidecar(lp + ".txt", true),
+                                                ExgGain.Ads1192ChannelPreampGain(exgSensor, exgC0, 1), ExgGain.Ads1192ChannelPreampGain(exgSensor, exgC0, 2), us_sample))
+                                            {
+                                                ap.WriteFile();
+                                            }
+                                        }
+                                        else
+                                        {
+                                            using (EXG1292Parser ip = new EXG1292Parser(lp, data, dtStart, ExgGain.CodeFromSidecar(lp + ".txt", true), us_sample))
+                                            {
+                                                ip.WriteFile();
+                                            }
                                         }
                                     }
                                 }

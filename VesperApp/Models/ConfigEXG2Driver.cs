@@ -28,6 +28,12 @@ namespace VesperApp.Models
             this.FileSize = 0;
         }
 
+        /// <summary>The EEG2 / EMG2 / ECG2 boards (ADS1192): same config layout and rate codes, own name.</summary>
+        protected ConfigEXG2Driver(string name, string description) : base(name, description)
+        {
+            this.FileSize = 0;
+        }
+
         public override void Load(ConfigurationDeviceDriver ldrv)
         {
             if (ldrv is not null)

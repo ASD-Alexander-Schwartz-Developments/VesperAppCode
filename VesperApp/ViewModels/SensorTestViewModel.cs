@@ -117,6 +117,22 @@ namespace VesperApp.ViewModels
                         SensorBenchResult? r = SensorBenchTest.ParseResponse(resp);
                         (status, brush, detail) = SensorBenchTest.Describe(row.Test, r);
                         if (r != null && r.Status != SensorBenchTest.StatusIdFail && r.Status != SensorBenchTest.StatusNotPresent) found++;
+
+                        // biopotential found: the AFE's internal +/- 1 mV test signal through the decoders' scale
+                        if (row.Test == MessageTypes.VESPER_TEST_EEG && r != null && r.Status == SensorBenchTest.StatusOk && r.SubStatus is >= 1 and <= 3)
+                        {
+                            await Dispatcher.UIThread.InvokeAsync(() => { row.Status = "Test signal…"; row.Detail = detail; });
+                            byte[]? ts = await dev.SendCommandAsync(row.Test, SensorBenchTest.ExgTestSignalRequest(r.SubStatus), 10000);
+                            SensorBenchResult? t = SensorBenchTest.ParseResponse(ts);
+                            var check = t != null ? SensorBenchTest.DescribeExgTestSignal(t) : null;
+                            if (check == null)
+                                detail += "; test-signal check needs newer firmware";
+                            else
+                            {
+                                detail += "; " + check.Value.text;
+                                if (!check.Value.pass) { status = "Check"; brush = Brushes.Goldenrod; }
+                            }
+                        }
                     }
                     await Dispatcher.UIThread.InvokeAsync(() => { row.Status = status; row.StatusBrush = brush; row.Detail = detail; });
                 }
