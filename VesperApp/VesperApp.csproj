@@ -16,7 +16,7 @@
 		<!-- Dev-build fallback only. Release builds get the real version injected by CI
 		     (-p:Version=<tag>, see .github/workflows/app-release.yml); AssemblyVersion and
 		     FileVersion are derived from Version by the SDK, so don't set them here. -->
-		<Version>1.1.0</Version>
+		<Version>1.2.1</Version>
 		<Company>A.S.D</Company>
 		<Product></Product>
 		<!-- Client-read CDN origin (self-update + firmware/plugin feeds + scenario assets).
