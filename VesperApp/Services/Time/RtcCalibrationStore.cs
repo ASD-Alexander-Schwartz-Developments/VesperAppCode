@@ -77,14 +77,31 @@ namespace VesperApp.Services.Time
                 if (!File.Exists(_path)) return;
                 var list = JsonSerializer.Deserialize<List<UnitClockRecord>>(File.ReadAllText(_path));
                 if (list != null)
-                    _units = list.Where(u => !string.IsNullOrWhiteSpace(u.UnitKey))
-                                 .ToDictionary(u => u.UnitKey, StringComparer.OrdinalIgnoreCase);
+                    _units = list.Select(u => { u.UnitKey = NormalizeKey(u.UnitKey); return u; })
+                                 .Where(u => u.UnitKey.Length > 0)
+                                 .GroupBy(u => u.UnitKey, StringComparer.OrdinalIgnoreCase)
+                                 .ToDictionary(g => g.Key, Merge, StringComparer.OrdinalIgnoreCase);
             }
             catch
             {
                 /* a damaged file must not stop the app: start over, keep the bad copy */
                 try { File.Copy(_path, _path + ".bad", true); } catch { }
             }
+        }
+
+        /// <summary>Unit keys without NUL / blank padding: Nanotag records up to VesperApp b2005f7 were keyed with the
+        /// tag's NUL-padded USB serial ("84F74056\0\0\0").</summary>
+        public static string NormalizeKey(string? key) => (key ?? string.Empty).Trim().TrimEnd('\0').Trim();
+
+        /// <summary>Records that normalise to the same unit: one record with all their points (oldest first), the
+        /// segment and calibration of the most recently applied one.</summary>
+        private static UnitClockRecord Merge(IGrouping<string, UnitClockRecord> g)
+        {
+            if (g.Count() == 1) return g.First();
+            UnitClockRecord latest = g.OrderBy(u => u.Calibration?.AppliedUtc ?? DateTime.MinValue)
+                                      .ThenBy(u => u.Points.Count == 0 ? DateTime.MinValue : u.Points.Max(p => p.TrueUtc)).Last();
+            latest.Points = g.SelectMany(u => u.Points).OrderBy(p => p.TrueUtc).ToList();
+            return latest;
         }
 
         private void Save()
@@ -97,6 +114,7 @@ namespace VesperApp.Services.Time
 
         public UnitClockRecord Get(string unitKey)
         {
+            unitKey = NormalizeKey(unitKey);
             lock (_lock)
             {
                 if (!_units.TryGetValue(unitKey, out var r))

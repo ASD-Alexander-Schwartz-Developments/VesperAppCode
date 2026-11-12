@@ -735,7 +735,9 @@ namespace VesperApp.ViewModels
             {
                 long pages = 0;
                 DateTime? firstRecord = await Task.Run(() => dev.ReadFirstRecordTime(out pages));
-                string id = string.IsNullOrWhiteSpace(dev.SerialNumber) ? "Nanotag" : dev.SerialNumber!;
+                // A folder name: no NULs / path characters, whatever the USB serial carries.
+                string id = new string((dev.SerialNumber ?? string.Empty).Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray()).Trim();
+                if (id.Length == 0) id = "Nanotag";
                 string suggested = Path.Combine(SettingsService.Instance.ResolveWorkingDirectory(), id,
                     (firstRecord ?? DateTime.Now).ToString("yyyy-MM-dd_HH-mm-ss"));
 

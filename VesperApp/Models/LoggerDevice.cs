@@ -464,7 +464,10 @@ namespace VesperApp.Models
             {
                 if (r == true && this.USBDevice != null && this.USBDevice.Info != null)
                 {
-                    this._serialnumber = this.USBDevice.Info.SerialNumber;
+                    /* The Nanotag pads its USB serial with NULs ("84F74056\0\0\0"): trimmed as at open (line ~337).
+                       Untrimmed, the NULs went into the Download folder name ("Null character in path": the default
+                       Download target failed silently) and into the clock-calibration key. */
+                    this._serialnumber = (this.USBDevice.Info.SerialNumber ?? string.Empty).TrimEnd(' ', '\n', '\r', '\0').ToUpper();
                     this._name = this.USBDevice.Info.Product;
 
                     byte[] response;
