@@ -7,17 +7,27 @@
              x:Class="VesperApp.Controls.NanotagTools">
 
 	<HeaderedContentControl Header="Nanotag Console" UseLayoutRounding="True">
-		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,*">
+		<!-- Rows share the height: the two top panels (disk health, config) and the console, with a splitter
+		     between them; every panel scrolls inside itself, so long text never runs into the next panel. -->
+		<Grid Background="{DynamicResource ApplicationPageBackgroundThemeBrush}" ColumnDefinitions="*,*">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="2*" MinHeight="140"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="3*" MinHeight="160"/>
+				<RowDefinition Height="Auto"/>
+			</Grid.RowDefinitions>
 
 			<!-- Disk health (firmware 1.39) -->
 			<Border Grid.Row="0" Grid.Column="0" Margin="20,12,10,0" Padding="16,12" CornerRadius="6"
 					BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="1">
-				<StackPanel Spacing="8">
-					<DockPanel>
+				<DockPanel>
+					<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
 						<Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshHealthCommand}"
 								ToolTip.Tip="Read the bad blocks, ECC counters and free space of the connected Nanotag (firmware 1.39 or later)"/>
 						<TextBlock Text="Disk health" FontWeight="SemiBold" VerticalAlignment="Center"/>
 					</DockPanel>
+					<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+				<StackPanel Spacing="8">
 					<SelectableTextBlock Text="{Binding HealthText}" TextWrapping="Wrap"/>
 
 					<!-- Block map (GET_BBT, firmware 1.39): one cell per block, 64 a row, block 0 top left -->
@@ -39,10 +49,12 @@
 						<SelectableTextBlock Text="{Binding BlockMapText}" TextWrapping="Wrap" FontSize="12"/>
 					</StackPanel>
 				</StackPanel>
+					</ScrollViewer>
+				</DockPanel>
 			</Border>
 
 			<!-- Config on the tag -->
-			<Border Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Margin="10,12,20,0" Padding="16,12" CornerRadius="6"
+			<Border Grid.Row="0" Grid.Column="1" Margin="10,12,20,0" Padding="16,12" CornerRadius="6"
 					BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="1">
 				<DockPanel>
 					<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
@@ -54,14 +66,17 @@
 						</StackPanel>
 						<TextBlock Text="Configuration on the tag" FontWeight="SemiBold" VerticalAlignment="Center"/>
 					</DockPanel>
-					<ScrollViewer MaxHeight="260">
+					<ScrollViewer x:Name="ConfigScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
 						<SelectableTextBlock Text="{Binding ConfigText}" FontFamily="Consolas,Menlo,monospace" FontSize="12" TextWrapping="Wrap"/>
 					</ScrollViewer>
 				</DockPanel>
 			</Border>
 
+			<GridSplitter Grid.Row="1" Grid.ColumnSpan="2" Height="8" Margin="20,2,20,0" ResizeDirection="Rows"
+						  Background="Transparent" ToolTip.Tip="Drag to share the height between the panels above and the console"/>
+
 			<!-- Console -->
-			<Border Grid.Row="2" Grid.ColumnSpan="2" Margin="20,12,20,0" Padding="16,12" CornerRadius="6"
+			<Border Grid.Row="2" Grid.ColumnSpan="2" Margin="20,2,20,0" Padding="16,12" CornerRadius="6"
 					BorderBrush="{DynamicResource AppStrokeBrush}" BorderThickness="1">
 				<DockPanel>
 					<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
@@ -81,7 +96,7 @@
 								 FontFamily="Consolas,Menlo,monospace" IsEnabled="{Binding IsConsoleOpen}" KeyDown="OnInputKeyDown"/>
 					</DockPanel>
 					<TextBox x:Name="ConsoleBox" Text="{Binding ConsoleText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-							 FontFamily="Consolas,Menlo,monospace" FontSize="12" MinHeight="160"
+							 FontFamily="Consolas,Menlo,monospace" FontSize="12" MinHeight="80"
 							 ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
 				</DockPanel>
 			</Border>
