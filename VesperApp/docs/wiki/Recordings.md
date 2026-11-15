@@ -2,9 +2,9 @@
 
 The **Recordings** tab is where device data becomes usable files: it imports raw recordings from a device, parses them into per-sensor streams, and decodes those streams into WAV audio, CSV tables and images.
 
-![The Recordings tab](images/tab-recordings.png)
+![The Recordings tab](images/tab-recordings-1.2.1.png)
 
-*The Recordings tab, with per-sensor decode actions (GNSS, Audio, Motion, Camera, Temp Humidity, Light, EXG) and the one-step Auto Decode/Auto Import workflow.*
+*The Recordings tab: per-sensor decode actions (GNSS, Audio, Motion, Camera, Temp Humidity, Light, EXG), the one-step Auto Decode / Auto Import workflow, and the data browser on the working directory (one folder per unit, one per recording date, then one per sensor).*
 
 ## The pipeline at a glance
 
@@ -49,6 +49,26 @@ Every parse/decode run appears as a job in the non-modal **Decoding Progress** p
 - **Cancel** while running, **Remove** when finished.
 
 Several jobs can run and be monitored at once; you can keep working in other tabs while they run.
+
+## Audio: usable band, recording check and post-filters
+
+**Usable band.** Next to every decoded WAV the decoder writes `<file>.WAV.txt` with the sample rate and the usable band of that recording: up to 0.44 × the sample rate at the rates recorded with the full anti-aliasing filter, less at the rates that run without it (the note then names the rate to record at instead). The WAV is low-pass filtered at the top of that band. To pick a rate with the full filter, press **Solve** in the [Configuration Editor](Configuration-Editor).
+
+**Recording check** (Vesper and Pipistrelle microphone recordings). Every run is checked when it is decoded, from the sample counts and time stamps the unit writes into its files. The result is one line in the decode summary and the report `AUD\RECORDING-CHECK.TXT` of that session. It reports:
+
+| Finding | Meaning |
+|---|---|
+| **Sample clock off** | From that point the microphone clock ran at a slightly wrong rate (more than 0.1 % from nominal): the audio after it plays at a slightly wrong speed and pitch. |
+| **Crystal clock fell behind** | The unit's clock slowed or stopped for a moment (for example when the board was pressed): time stamps after that point are late by the amount shown. |
+| **Audio lost between files** | The gap from the end of one file to the start of the next. A normal file change loses about 19 ms (firmware 1.22); more is reported. |
+| **Audio lost inside a file** | The unit could not write for a moment and marked the gap in the file; the report gives the length. |
+
+"No problems found" means none of these occurred. A KOL recording is not checked this way.
+
+**Post-filters** (optional, off by default; **Settings → Recordings → Audio post-filters**, see [Settings](Settings)). With one or both ticked, decoding writes an extra `<name>_EQ.UBN.WAV` next to each microphone WAV, with its own `.WAV.txt` saying what was applied. The original WAV is always kept.
+
+- **Remove the sound-port resonance** — Vesper and Pipistrelle: takes out the peak that the microphone's sound port adds around 26.5 kHz. Not applied to KOL recordings.
+- **Notch the 32.768 kHz clock-crystal tone** — removes a slice about 65 Hz wide at the tone, located in each file. When no tone stands out in a file, nothing is removed and the note says so.
 
 ## Where files go
 

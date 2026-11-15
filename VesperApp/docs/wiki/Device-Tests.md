@@ -2,9 +2,9 @@
 
 The **Device Tests** tab bundles per-sensor hardware checks you can run before a deployment. Tests are capability-driven: only the checks a connected product actually supports are offered.
 
-![The Device Tests tab](images/tab-device-tests.png)
+![The Device Tests tab](images/tab-device-tests-1.2.1.png)
 
-*The Device Tests tab. With a device connected, the microphone health check and (on VT04-VESPER) the GNSS/RF self-test become available.*
+*The Device Tests tab, one tab per check: **Microphones**, **Sensors** (add-on boards), **Thermal Camera** (live view) and **GNSS / RF**. Each runs on the unit selected in the device list.*
 
 ## Microphone health check
 
@@ -65,6 +65,8 @@ Firmware: KOL 1.8 or later; Vesper and Pipistrelle 1.22 or later.
 | **Partial** | The motion board answered but its magnetometer or barometer did not. |
 | **Not found** | No board of that type answered — not fitted, badly seated, or another board on the same address (the light board and a standard temperature board both use 0x44; they fit together only with a temperature board ordered at 0x45). |
 | **No answer** | The unit did not reply — it is recording, or its firmware has no sensor test. |
+
+**Biopotential boards:** after the board is found, the unit also switches on the board's internal 2 mV test signal and measures it. The row shows the measured step in mV and reads **Check** when it is outside 2 mV ± 5 %.
 
 ## Thermal camera (live view)
 

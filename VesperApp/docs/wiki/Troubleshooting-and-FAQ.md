@@ -30,6 +30,9 @@
 - Run **Decode** explicitly on the session folder — Auto Decode may be disabled ([Settings](Settings)).
 - Check the job's console/log in the Decoding Progress panel for the failing file.
 
+**The decode summary says "Recording check: …".**
+- A Vesper or Pipistrelle microphone run had a timing problem or lost audio. Open `AUD\RECORDING-CHECK.TXT` in that session; [Recordings](Recordings) explains each finding.
+
 **GNSS decode says the plugin is not installed.**
 - Install the GNSS decoder plugin from the **Plugins** tab, then restart the app ([Software Updates and Plugins](Software-Updates-and-Plugins)).
 

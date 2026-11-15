@@ -30,9 +30,11 @@ On first launch the app creates:
 | macOS | `~/Library/Application Support/VesperApp` |
 | Linux | `~/.local/share/VesperApp` (respects `$XDG_DATA_HOME`) |
 
-![The VesperApp main window](images/tab-recordings.png)
+![The VesperApp main window](images/tab-recordings-1.2.1.png)
 
-*The main window: docking station controls, device console and logger list on top (here with a KOL connected directly over USB), the active tab below, and the tab navigation on the left edge.*
+*The main window: docking station controls and the **Logger clock** selector on top, the logger list with the device actions under it (here a Vesper, a KOL and a Nanotag; the Vesper is selected and connected), the active tab below, and the tab navigation on the left edge.*
+
+The logger list shows, for each unit: serial number, type, nickname, hardware and firmware version, the unit's own time, whether its clock keeps UTC or local time (**Clock**, see [Clock Calibration](Clock-Calibration)), **Storage** (size and free space) and **Battery**.
 
 The **Devices** button in the top-right corner collapses the device console when you're doing offline work (editing configurations, decoding recordings, reading Help) so the working area gets the full window height. The console re-opens automatically when a docking station connects, and the choice is remembered between sessions.
 
@@ -45,6 +47,7 @@ The left-hand navigation gives you the main areas of the app:
 | **Device Tests** | Per-sensor checks to validate hardware: Microphones, Sensors (add-on boards), Thermal Camera, GNSS / RF |
 | **Live View** | The microphones in real time: scope, spectrum, spectrogram, live microphone settings and the sound-trigger meter |
 | **Clock** | Set a unit's clock from internet time and calibrate its crystal |
+| **Nanotag Console** | Disk health with a block map, the configuration on the tag and its console. Shown while a Nanotag is connected — see [Supported Devices](Supported-Devices) |
 | **Software Upgrades** | Update the VesperApp itself |
 | **Firmware Upgrades** | Download and flash device firmware |
 | **Plugins** | Manage the GNSS decoder and other plugins |
@@ -59,8 +62,10 @@ The tab shown at startup can be set with `Ui.StartupCategory` in the app's `conf
 2. Insert your device into the dock, or connect a device directly over USB where supported (see [Supported Devices](Supported-Devices)).
 3. Use the dock **Connect** button in the app. If more than one dock is attached you will be asked to pick one by serial number.
 
-Once connected, use Docking Station controls to manipulate the device (for example turn it on using **Device Enable**; the device appears in the device list and its battery, storage and firmware details become available.  
-![The VesperApp Docking Station Controls](images/dock-controls.png)
+Once connected, use the docking station controls to operate the device (for example turn it on with **Enable Device**); the device appears in the device list and its battery, storage and firmware details become available.  
+![The VesperApp Docking Station Controls](images/dock-controls-1.2.1.png)
+
+*The docking station controls (outlined) appear once the dock is connected: **Enable Device**, **Reset Device** and **Device Boot**.*
 
 **Battery column.** On a Vesper or Pipistrelle it is the cell voltage. On a KOL it is the supply measured inside the unit (after its input protection, about 0.3 V below the battery connector); a KOL cannot measure above about 3.9 V, so on USB power or with fresh cells it shows **≥ 3.90 V** (an "at least" value), not the exact voltage. See [Supported Devices](Supported-Devices).
 

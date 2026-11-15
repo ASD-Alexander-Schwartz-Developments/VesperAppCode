@@ -2,9 +2,9 @@
 
 The **Settings** tab holds this application (VesperApp) preferences. They are stored locally in `config.json` in the app's data folder — `%LOCALAPPDATA%\VesperApp` on Windows, `~/Library/Application Support/VesperApp` on macOS, `~/.local/share/VesperApp` on Linux — and are applied on the next launch.
 
-![The Settings tab](images/tab-settings.png)
+![The Settings tab](images/tab-settings-1.2.1.png)
 
-*The Settings tab: workspace, recordings pipeline options and the configuration file location.*
+*The Settings tab: workspace, recordings pipeline options, audio post-filters and the configuration file location.*
 
 ## Workspace
 
@@ -15,6 +15,13 @@ The **Settings** tab holds this application (VesperApp) preferences. They are st
 - **Auto-decode after import** — chain parsing and decoding onto every import ([Recordings](Recordings)).
 - **Hide intermediate files** — hides `.UBN` / `.MBN` and other intermediates in the data browser so you only see raw input and final output.
 - **Delete raw .bin files after a successful import** — reclaims disk space once recordings are safely parsed. Deletion is deliberately conservative: it only happens when **every** raw file of the import decoded without errors, it only touches the copies that this import brought into the working directory (never files already there, never the device drive), and it requires *Auto-decode after import* to be on. Only enable this if you don't need to re-parse originals.
+
+### Audio post-filters
+
+Both are off by default. When ticked, decoding writes an extra `_EQ` WAV next to each microphone WAV; the original WAV is always kept and a `.txt` beside the `_EQ` file says what was applied ([Recordings](Recordings)).
+
+- **Remove the sound-port resonance** — Vesper and Pipistrelle, about 26.5 kHz; not applied to KOL recordings.
+- **Notch the 32.768 kHz clock-crystal tone** — removes a slice about 65 Hz wide at 32.77 kHz.
 
 ## Configuration file
 

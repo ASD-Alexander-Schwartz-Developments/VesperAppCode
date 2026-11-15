@@ -2,9 +2,9 @@
 
 The **Configuration** tab edits the JSON configuration that tells a device *what to record and when*. You can load a configuration from a file, adjust it, and save it back. Configuration files can also be opened straight from the [Recordings](Recordings) data browser — double-click a `.json` that the app recognises as a device configuration (e.g. the config imported alongside a device's recordings) and confirm.
 
-![The Configuration tab](images/tab-configuration.png)
+![The Configuration tab](images/tab-configuration-1.2.1.png)
 
-*The Configuration tab: device type selection, general settings, the schedule editor (here a daily schedule for a KOL: 48 kHz in the evening, 250 kHz at night) and per-sensor driver settings.*
+*The Configuration tab (device console collapsed): New / Open / Save and the device type on top, then the General settings and the schedule editor — here a daily schedule for a Vesper, with the entry count (6 / 150) above the list. The per-sensor driver settings follow below.*
 
 ## General device settings
 
@@ -38,8 +38,10 @@ A configuration contains one or more **schedule blocks** marked as **config0 (Of
 Blocks define when each sensor records, so you can, for example, record audio only at night while sampling environment sensors around the clock.  
 **Continues** schedule type always uses **config1** block, while **Daily**, **Dated** and **Relative** schedule types use **config1** and **config2** blocks as needed.
 
+**Number of entries.** The count next to the list (for example `6 / 150`) shows the entries used and the most the selected device holds: 150 on a Vesper or Pipistrelle (firmware 1.22 or later), 64 on a KOL, 31 on a Nanotag. The editor adds no entry beyond that, and a configuration opened with more cannot be saved until entries are deleted.
+
 Schedule is edited in the **Schedule** tab, which shows a visual representation of the schedule blocks. The schedule consists of array of JSON objects where each object represents a change in state entry, and you can also edit the JSON directly.
-![Daily Schedule Example](images/schedule-example-daily.png)  
+![Daily Schedule Example](images/schedule-example-daily-1.2.1.png)  
 This example shows a daily schedule with two blocks: **config1** (On) from 10:15 to 18:10, and **config2** (On) from 23:00 to 06:00. The rest of the time the device is in **config0** (Off) state. Note - to defined overnight rollover, the schedule split from 23:00 to 23:59 and from 00:01 to 06:00.  
 Same can be achieved with manually editing the JSON schedule array, for example:
 ```json
@@ -55,7 +57,7 @@ Same can be achieved with manually editing the JSON schedule array, for example:
 
 ## Sensor drivers
 
-Each sensor on the device is configured through its **driver** entry — sampling rate, gain, channel selection and other per-sensor options. The property editor renders every driver's options directly from the device's own metadata, so new sensor types appear automatically with the correct choices. Typical drivers include the audio front-end, IMU, EXG (biopotential boards), environmental sensors (TPRH31), ambient light (ALS3001D), analog inputs (DAQ24), the thermal camera, proximity, the status LED and the health logger.
+Each sensor on the device is configured through its **driver** entry — sampling rate, gain, channel selection and other per-sensor options. The property editor renders every driver's options directly from the device's own metadata, so new sensor types appear automatically with the correct choices. Typical drivers include the audio front-end, IMU, the biopotential boards (EXG48, EXG2, and EEG2 / EMG2 / ECG2 — pick the entry named after the fitted board, the decoder takes the board's pre-amplifier gain from it), environmental sensors (TPRH31), ambient light (ALS3001D), analog inputs (DAQ24), the thermal camera, proximity, the status LED and the health logger.
 
 Every driver pane has the same layout: **Standard configuration** first (sample rate, window length and rate per config, LED), then the sensor's own groups, then **Advanced configuration** (file size, reserved options). Each number field shows its unit and a short note under it.
 
@@ -78,13 +80,15 @@ For the KOL's microphone array, the channel configuration (1, 2 or 4 microphones
 **Health logger (LOGGER).** An optional driver on KOL, Vesper, Pipistrelle and Nanotag (firmware 1.35 or later; it takes one of the Nanotag's four sensor slots) that
  records the unit's own health next to the sensor data. *Sample Period [1]/[2]* is the time between samples in ms for each configuration (minimum 1 s; 0 = no samples). Tick what each sample holds — **Battery** (Vesper / Pipistrelle / Nanotag: the cell in mV; KOL: the battery-sense pin in mV, half the battery after its diode; −2 = above range, a KOL on USB), **MCU temperature**, **RTC correction**, **Sampling sensors** — and choose the **Log level**: *Off*, *Errors*, *Warnings* (and errors) or *Debug* (everything, including every recording window). Events are short codes (start-up and reset cause, recording start and stop, schedule changes, storage and reading failures, clock corrections), named when the file is decoded. The logger writes about one 512-byte block per 20 samples, so a one-minute period costs almost nothing in battery or storage. It does not count as a sensor: a configuration still needs a real sensor to record.
 
-![The KOL sensor settings](images/config-kol-sensor.png)
+![The KOL sensor settings](images/config-kol-sensor-1.2.1.png)
 
 *The KOL sensor's settings: sample rate and duty cycle per configuration, number of microphones, high-pass filter and gain (each with **Solve**), the sound trigger with its **Helper**, and the file size.*
 
 **Microphone sample rate, gain and high-pass filter (KOL, Vesper, Pipistrelle).** Pick the sample rates from the list (4 kHz – 400 kHz). The unit chooses the best digital filter for each rate itself — there is no filter setting to get wrong. Most rates are exact; the 44.1 kHz family and 250 / 256 / 384 kHz run at the closest rate the 4.8 MHz microphone clock allows, shown next to the value and stored in the recording header. The **gain** applies to *Sample Rate [1]* (or [2] if [1] is off); the unit keeps the same loudness at the other rate (and, on the KOL, in Live Audio) with KOL firmware 1.8 / Vesper and Pipistrelle firmware 1.22 or later.
 
 Press **Solve** next to a rate, the gain or the high-pass filter. A window explains, for each sample rate: the exact rate, the filter, the loudest sound before clipping (dB SPL) and whether quiet sounds stay above the recording's noise floor — with better nearby rates where one is approximate. It also lists the **cut-off frequency of every high-pass setting** at your rates (the settings are fractions of the sample rate, so the same setting means 1.9 kHz at 200 kHz but 456 Hz at 48 kHz), marking the current and the recommended one: the highest cut-off up to 2 kHz for ultrasonic rates (keeps every bat call, removes wind and handling rumble) and up to 50 Hz for audio rates. **Use recommended gain** sets a full-scale sound to about +6 dBFS (clipping near 114 dB SPL); **Use recommended high-pass filter** applies the advice.
+
+**Sample-rate advice.** Some rates (32, 44.1, 96, 192, 250 and 400 kHz) run without the full anti-aliasing filter: sound above the band folds back into the recording. Solve marks them with a warning and how much the folded sound is reduced, and **Use recommended sample rate** switches to the next rate that is exact and has the full filter (48, 100, 200 or 300 kHz) at the same loudness. The usable band of each recording is also noted next to its WAV ([Recordings](Recordings)).
 
 **Sound-triggered recording.** The *Start level* row in the **Sound trigger** group is the switch: *Off* records continuously; any level records only when a sound is that much louder than the background (or louder than a fixed dB SPL). The window rows then become *Hold after sound* and *Pre-trigger* per config. Press **Helper** next to Start level to set rate, gain, high-pass filter and trigger for bats, birds, insects or soundscapes in one step. Needs KOL firmware 1.8 / Vesper and Pipistrelle firmware with sound triggering; older firmware keeps recording continuously.
 

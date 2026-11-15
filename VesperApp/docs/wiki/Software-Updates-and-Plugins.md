@@ -6,7 +6,7 @@ VesperApp keeps three things current, each on its own independent channel: the *
 
 The **Software Upgrades** tab manages the application's own updates:
 
-![The Software Upgrades tab](images/tab-software-upgrades.png)
+![The Software Upgrades tab](images/tab-software-upgrades-1.2.1.png)
 
 *The Software Upgrades tab.*
 
@@ -25,7 +25,7 @@ Some functionality ships as optional plugins that install into your per-user plu
 - **GNSS Decoder** — enables [GNSS Decoding](GNSS-Decoding) of VT04-VESPER snapshots.
 - **GNSS RF Test** — drives a bench RF generator for the GNSS tests in [Device Tests](Device-Tests) (shielded test setups only).
 
-![The Plugins tab](images/tab-plugins.png)
+![The Plugins tab](images/tab-plugins-1.2.1.png)
 
 *The Plugins tab.*
 

@@ -14,16 +14,16 @@ Older firmware still gets a plain whole-second **Set Time**.
 
 ## UTC or local time
 
-Loggers keep **UTC** by default — GNSS positions need it. Untick the **UTC** switch in the top bar to set loggers to this PC's local time instead; the choice is saved. Every clock set (Set Time, Sync clock) tells the logger which one it gets, together with the local time's offset. The logger keeps that with its clock and marks its data with it, so the data decodes to the right time on any PC, also on one that did not set the clock (Nanotag 1.39 or later, Vesper / Pipistrelle 1.22 or later with a VesperApp newer than 1.2.0; KOL follows).
+Loggers keep **UTC** by default — GNSS positions need it. To set loggers to this PC's local time instead, choose **Local (UTC+02:00)** (the offset shown is this PC's) in the **Logger clock** selector in the top bar; the choice is saved and the time shown next to it is what **Set Time** would write. Every clock set (Set Time, Sync clock) tells the logger which one it gets, together with the local time's offset. The logger keeps that with its clock and marks its data with it, so the data decodes to the right time on any PC, also on one that did not set the clock (Nanotag 1.39 or later, Vesper / Pipistrelle 1.22 or later with a VesperApp newer than 1.2.0; KOL follows).
 
 - A logger set to local time keeps the offset it was set with (for example UTC+02:00) for the whole deployment; it does not follow daylight-saving changes.
-- The device list shows the logger's time and, on a Nanotag 1.39+ or a Vesper / Pipistrelle 1.22+, `UTC` or `local time (UTC+02:00)`. "UTC or local not known" means the clock was set by an older VesperApp or from the console: press **Set Time** before deploying (**Arm** offers it).
+- The device list shows the logger's time (**Device time**) and, in the **Clock** column on a Nanotag 1.39+ or a Vesper / Pipistrelle 1.22+, `UTC`, `Local UTC+02:00` or `Unknown`. `Unknown` means the clock was set by an older VesperApp or from the console: press **Set Time** before deploying (**Arm** offers it).
 - A Nanotag download names its GNSS snapshot files in UTC and writes `CLOCK.txt` saying which time the files are in.
 - A Vesper / Pipistrelle import names GNSS snapshot files in UTC when the recording's `CLOCK.TXT` gives the time base, otherwise in the unit's own time.
 
-![The Clock tab](images/tab-clock.png)
+![The Clock tab](images/tab-clock-1.2.1.png)
 
-*The Clock tab: sync, measure and apply on the toolbar; the unit's clock against internet time, its calibration and temperature, and the history of measurements for this unit.*
+*The Clock tab with a calibrated Vesper: sync, measure, compute and apply on the toolbar; the unit's clock against internet time, its calibration, the correction applied and its temperature, and the history of measurements for this unit.*
 
 ## Where the time comes from
 

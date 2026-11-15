@@ -66,9 +66,9 @@ A multi-microphone logger with a **4-microphone array** that can be configured t
 
 The KOL is not activated with a magnet. Its USB cable decides what it does:
 
-![The device console with a KOL connected](images/device-console-kol.png)
+![The device console with a KOL connected](images/device-console-kol-1.2.1.png)
 
-*A KOL in the device console: its USB mode, **Live Audio**, **Start Recording**, whether it is ready to record (hover for card, config.json and clock) and **Check**.*
+*A KOL selected in the device console: its USB mode, **Live Audio**, **Start Recording**, whether it is ready to record (hover for card, config.json and clock) and **Check**. Format is not offered for a KOL.*
 
 
 | State | When | LED | What the computer sees |
@@ -114,6 +114,10 @@ A miniature tracking tag with a snapshot-GNSS receiver. It connects through the 
 
 The **Nanotag Console** page (left menu, shown while a Nanotag is connected; also the **Nanotag Console** button in the device actions when a Nanotag is selected) has three parts:
 
+![The Nanotag Console page](images/tab-nanotag-console.png)
+
+*The Nanotag Console: disk health with the block map (top left), the configuration read back from the tag (top right) and the tag's console (bottom). Drag the bar between them to share the height.*
+
 - **Disk health** (firmware 1.39 or later): good, bad and to-be-retired blocks, pages written and free space, and the pages read since the tag started that needed ECC correction or could not be read. It also shows a format in progress, and a **block map**: one cell per 256 KB block (64 a row, block 0 top left) coloured as data, free, bad, to retire at the next format, bad-block table or LOGGER log, with the numbers of the bad blocks. After a download, the pages that did not read cleanly, or whose data CRC does not match, are listed in `download-read-status.txt` in the download folder.
 - **Configuration on the tag**: **Read** shows what the tag holds (general settings, driver slots, schedule), to check an upload. **Save…** keeps it as a JSON report; that report is not a file to upload again.
 - **Console**: the tag's text console (the `help`, `ver`, `disk`, `config` … commands). The tag's serial port is listed first; **Open** connects. Up and Down recall earlier commands. The console can stay open while VesperApp talks to the tag.
@@ -130,7 +134,7 @@ Devices store each sensor stream as a separate raw file on internal storage. Dur
 |---|---|---|
 | `U.BIN` / `U0.BIN`–`U3.BIN` | Audio (1–4 channels) | WAV |
 | `M.BIN` | Inertial / motion (IMU) | CSV |
-| `E.BIN` | EXG biopotential (EXG48 or EXG1292, per device metadata) | CSV |
+| `E.BIN` | Biopotential (EXG48, EXG2, or EEG2 / EMG2 / ECG2, per device metadata) | CSV in µV |
 | `R.BIN` | Temperature / pressure / humidity | CSV |
 | `L.BIN` | Ambient light | CSV |
 | `C.BIN` | Thermal camera (Lepton) | JPG images |
