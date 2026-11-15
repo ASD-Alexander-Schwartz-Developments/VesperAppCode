@@ -140,9 +140,10 @@ namespace VesperApp.ViewModels
                         ? "Offline copy — the wiki couldn't be reached, so this may not be the latest version."
                         : string.Empty;
 
-                    // Pull any images this page references into the local cache; when new ones
-                    // arrive, re-render so they appear (cached pages render them instantly).
-                    if (await _wiki.PrefetchImagesAsync(page.Markdown, cts.Token) &&
+                    // Pull any images this page references into the local cache; when new or changed
+                    // ones arrive, re-render so they appear (cached pages render them instantly).
+                    // A page from the offline copy only tries its missing images: the wiki is not reachable.
+                    if (await _wiki.PrefetchImagesAsync(page.Markdown, revalidate: !page.FromCache, cts.Token) &&
                         !cts.IsCancellationRequested)
                     {
                         string md = PageMarkdown;

@@ -42,8 +42,17 @@ namespace VesperApp.Services
         private static readonly HttpClient SharedHttp = new() { Timeout = TimeSpan.FromSeconds(15) };
 
         private readonly HttpClient _http;
+        private readonly string _imageCacheDirectory;
 
-        public WikiHelpService(HttpClient? http = null) => _http = http ?? SharedHttp;
+        // Cached images already checked against the wiki by this instance: one check per image and app run.
+        private readonly HashSet<string> _imagesChecked = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <param name="imageCacheDirectory">Where images are cached; null = the app's help cache (tests pass a temp folder).</param>
+        public WikiHelpService(HttpClient? http = null, string? imageCacheDirectory = null)
+        {
+            _http = http ?? SharedHttp;
+            _imageCacheDirectory = imageCacheDirectory ?? ImageCacheDirectory;
+        }
 
         private static string CacheDirectory => Path.Combine(SettingsService.ConfigDirectory, "helpcache");
 
@@ -146,9 +155,9 @@ namespace VesperApp.Services
         //
         // Pages reference images RELATIVELY ("images/foo.png") so the same markdown renders on
         // the GitHub wiki and in-app. In-app resolution is all local: PrefetchImagesAsync pulls
-        // referenced images into the cache when online, and the Help view's bitmap loader serves
-        // them from cache → embedded copy — so images work identically for live, cached and
-        // embedded pages.
+        // referenced images into the cache when online (and replaces the ones that changed on the
+        // wiki), and the Help view's bitmap loader serves them from cache → embedded copy — so
+        // images work identically for live, cached and embedded pages.
 
         private static string ImageCacheDirectory => Path.Combine(CacheDirectory, "images");
 
@@ -159,10 +168,12 @@ namespace VesperApp.Services
         private static readonly Regex SafeImagePath = new(@"^images/[A-Za-z0-9._-]+$", RegexOptions.Compiled);
 
         /// <summary>Cache file for an image reference; null when the reference isn't cacheable.</summary>
-        internal static string? ImageCacheFileFor(string target)
+        internal static string? ImageCacheFileFor(string target) => ImageCacheFileFor(target, ImageCacheDirectory);
+
+        internal static string? ImageCacheFileFor(string target, string cacheDirectory)
         {
             if (SafeImagePath.IsMatch(target))
-                return Path.Combine(ImageCacheDirectory, Path.GetFileName(target));
+                return Path.Combine(cacheDirectory, Path.GetFileName(target));
 
             // Absolute web images are cached under a URL-derived name.
             if (Uri.TryCreate(target, UriKind.Absolute, out Uri? abs) &&
@@ -171,37 +182,85 @@ namespace VesperApp.Services
                 string ext = Path.GetExtension(abs.AbsolutePath);
                 if (ext.Length is 0 or > 8) ext = ".img";
                 string hash = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(target)))[..12];
-                return Path.Combine(ImageCacheDirectory, "ext-" + hash + ext);
+                return Path.Combine(cacheDirectory, "ext-" + hash + ext);
             }
 
             return null;
         }
 
+        /// <summary>The server's ETag of a cached image, kept beside it for the next check.</summary>
+        internal static string ETagFileFor(string cachePath) => cachePath + ".etag";
+
         /// <summary>
-        /// Download the images a page references into the cache (skipping ones already there).
-        /// Returns true when anything new arrived, so the caller can re-render the page.
+        /// Bring the images a page references into the cache: download the missing ones and, with
+        /// <paramref name="revalidate"/>, check the cached ones against the wiki (once per image and app run;
+        /// a conditional request, so an unchanged image costs no download). An image replaced on the wiki
+        /// under the same name is replaced in the cache. Returns true when anything new or changed arrived,
+        /// so the caller can re-render the page.
         /// </summary>
-        public async Task<bool> PrefetchImagesAsync(string markdown, CancellationToken ct = default)
+        /// <param name="revalidate">False for a page served from the offline copy: the wiki is not reachable,
+        /// so only missing images are tried.</param>
+        public async Task<bool> PrefetchImagesAsync(string markdown, bool revalidate = true, CancellationToken ct = default)
         {
             bool gotNew = false;
             foreach (string target in MdImage.Matches(markdown).Select(m => m.Groups["target"].Value).Distinct())
             {
-                string? cachePath = ImageCacheFileFor(target);
-                if (cachePath is null || File.Exists(cachePath))
+                string? cachePath = ImageCacheFileFor(target, _imageCacheDirectory);
+                if (cachePath is null) continue;
+
+                bool have = File.Exists(cachePath);
+                if (have && (!revalidate || _imagesChecked.Contains(cachePath)))
                     continue;
 
                 Uri url = SafeImagePath.IsMatch(target) ? new Uri(RawBase, target) : new Uri(target);
                 try
                 {
-                    byte[] bytes = await _http.GetByteArrayAsync(url, ct).ConfigureAwait(false);
-                    Directory.CreateDirectory(ImageCacheDirectory);
-                    await File.WriteAllBytesAsync(cachePath, bytes, ct).ConfigureAwait(false);
-                    gotNew = true;
+                    string etagPath = ETagFileFor(cachePath);
+                    using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                    if (have && File.Exists(etagPath))
+                    {
+                        string etag = (await File.ReadAllTextAsync(etagPath, ct).ConfigureAwait(false)).Trim();
+                        if (etag.Length > 0) request.Headers.TryAddWithoutValidation("If-None-Match", etag);
+                    }
+
+                    using HttpResponseMessage response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+                    {
+                        _imagesChecked.Add(cachePath);
+                        continue;
+                    }
+                    response.EnsureSuccessStatusCode();
+                    byte[] bytes = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+
+                    // A cache from before the ETag was kept has no ETag to send: compare the content.
+                    if (!have || !SameContent(cachePath, bytes))
+                    {
+                        Directory.CreateDirectory(_imageCacheDirectory);
+                        string temp = cachePath + ".tmp";
+                        await File.WriteAllBytesAsync(temp, bytes, ct).ConfigureAwait(false);
+                        File.Move(temp, cachePath, overwrite: true);
+                        gotNew = true;
+                    }
+
+                    string? newTag = response.Headers.ETag?.ToString();
+                    if (!string.IsNullOrEmpty(newTag)) await File.WriteAllTextAsync(etagPath, newTag, ct).ConfigureAwait(false);
+                    else if (File.Exists(etagPath)) File.Delete(etagPath);
+                    _imagesChecked.Add(cachePath);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                catch { /* offline or missing on the wiki — the loader falls back to the embedded copy */ }
+                catch { /* offline or missing on the wiki — the cached or embedded copy is shown */ }
             }
             return gotNew;
+        }
+
+        private static bool SameContent(string path, byte[] bytes)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                return info.Length == bytes.Length && File.ReadAllBytes(path).AsSpan().SequenceEqual(bytes);
+            }
+            catch { return false; }
         }
 
         /// <summary>Open a local copy of an image reference: cache first, then the embedded
