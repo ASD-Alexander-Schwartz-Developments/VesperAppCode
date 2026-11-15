@@ -13,7 +13,7 @@ namespace VesperApp.Models
         protected override RateKind SampleRateKind => RateKind.PeriodMs;
         protected override string SampleRateNote => "how often the logger reads the tag (0 = tag not started).";
 
-        public ConfigProxtitDriver() : base("PROXTIT", "Proxtit wireless trasceiver")
+        public ConfigProxtitDriver() : base("PROXTIT", "Proxtit wireless transceiver")
         {
             this.FileSize = 0;
         }

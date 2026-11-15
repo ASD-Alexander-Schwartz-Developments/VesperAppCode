@@ -10,7 +10,7 @@ The **Configuration** tab edits the JSON configuration that tells a device *what
 
 | Setting | Meaning |
 |---|---|
-| **Device name** | Device name - used by the device to validate the configuration matches target device; this is autopopulted by Device pick |
+| **Device name** | Device name - used by the device to validate the configuration matches target device; this is autopopulated by Device pick |
 | **Minimum hardware** | The hardware revision the configuration was made for (e.g. `4.0`). Informational: the firmware does not check it |
 | **Allow magnet turn-off** | Whether a magnet may power the device down in the field (after activation). Vesper / Pipistrelle; a KOL has no magnet and ignores it. |
 | **Battery capacity** | The fitted battery's capacity in mAh (informational, used for documentation - no real impact on execution) |
@@ -27,7 +27,7 @@ There are 4 types of schedules supported:
 | Type | Behaviour |
 |---|---|
 | **Continuous** | Record continuously after activation while powered. Can be stopped manually via magnet if enabled on the General section (Vesper / Pipistrelle); a KOL stops when it is unplugged and connected to a computer. |
-| **Daily** | Repeat the same time windows every 24HR; schdule runs 00:00 to 23:59 if entry should run over midnight, split it till 23:59 and after 00:00 |
+| **Daily** | Repeat the same time windows every 24HR; schedule runs 00:00 to 23:59 if entry should run over midnight, split it till 23:59 and after 00:00 |
 | **Dated** | Run in specific calendar windows based on absolute dates |
 | **Relative** | Windows relative to the date of activation (magnet, or **Start Recording** on a KOL), or to the end of the power-on delay when one is set, with entries given as a day offset and a time: **Day 0** is the start day itself, Day 1 the next day, up to Day 31. Written in config.json as `"2000-00-DD hh:mm:ss"` (DD = day offset) |
 
@@ -36,7 +36,7 @@ The same four types and the power-on delay apply to Vesper, Pipistrelle, KOL and
 
 A configuration contains one or more **schedule blocks** marked as **config0 (Off)**, **config1 (On)**, **config2 (On)**.
 Blocks define when each sensor records, so you can, for example, record audio only at night while sampling environment sensors around the clock.  
-**Continues** schedule type always uses **config1** block, while **Daily**, **Dated** and **Relative** schedule types use **config1** and **config2** blocks as needed.
+The **Continuous** schedule type always uses **config1** block, while **Daily**, **Dated** and **Relative** schedule types use **config1** and **config2** blocks as needed.
 
 **Number of entries.** The count next to the list (for example `6 / 150`) shows the entries used and the most the selected device holds: 150 on a Vesper or Pipistrelle (firmware 1.22 or later), 64 on a KOL, 31 on a Nanotag. The editor adds no entry beyond that, and a configuration opened with more cannot be saved until entries are deleted.
 

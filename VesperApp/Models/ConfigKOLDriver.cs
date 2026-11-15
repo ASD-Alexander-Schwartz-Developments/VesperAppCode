@@ -52,7 +52,7 @@ namespace VesperApp.Models
         }
 
         [DisplayName("Active microphones"),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        CategoryAttribute("Ultrasonic microphone settings"),
         DescriptionAttribute("1, 2 or 4 of the four microphones (other values = 4).")]
         [JsonPropertyName("mikeon"), JsonPropertyOrder(20)]
         [Browsable(true)]
@@ -71,7 +71,7 @@ namespace VesperApp.Models
         [DisplayName("High Pass Filter"),
         TypeConverter(typeof(KOLHpf)),
         Browsable(true),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        CategoryAttribute("Ultrasonic microphone settings"),
         DescriptionAttribute("Removes rumble and DC. Cut-off = fraction x sample rate (0.0025 x 200 kHz = 500 Hz); Solve lists each setting.")]
         [JsonIgnore]
         [MicSolver]
@@ -83,7 +83,7 @@ namespace VesperApp.Models
 
         [DisplayName("Programmable Gain"),
         TypeConverter(typeof(KOLGain)),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        CategoryAttribute("Ultrasonic microphone settings"),
         DescriptionAttribute("Loudness of the recording at Sample Rate [1] (or [2] if [1] is Off); the unit keeps the same loudness at the other rate and in Live Audio. Press Solve to see where loud sounds clip and whether quiet ones are kept."),
         Browsable(true)]
         [JsonIgnore]
@@ -96,7 +96,7 @@ namespace VesperApp.Models
 
         [DisplayName("LED Activity"),
         TypeConverter(typeof(bool)),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        CategoryAttribute("Ultrasonic microphone settings"),
         DescriptionAttribute("Blink the LED while the microphones record.")]
         [JsonIgnore]
         public bool EnableLEDIndication

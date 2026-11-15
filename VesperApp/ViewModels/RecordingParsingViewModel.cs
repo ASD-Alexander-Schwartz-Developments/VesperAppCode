@@ -213,7 +213,7 @@ namespace VesperApp.ViewModels
                 () => DecodeJobManager.Instance.Track("Audio decode", DecodeAudio));
 
             ManualMotionParserCommand = ReactiveCommand.CreateFromTask(
-                () => DecodeJobManager.Instance.Track("Motion decode", () => WithBusy(DecodeMotionInnertial)));
+                () => DecodeJobManager.Instance.Track("Motion decode", () => WithBusy(DecodeMotionInertial)));
 
             ManualAlsParserCommand = ReactiveCommand.CreateFromTask(
                 () => DecodeJobManager.Instance.Track("Ambient-light decode", () => WithBusy(DecodeAls)));
@@ -1011,7 +1011,7 @@ namespace VesperApp.ViewModels
                                              "*U.BIN", "*U0.BIN", "*U1.BIN", "*U2.BIN", "*U3.BIN"},
                             MimeTypes = new[]{"bin/*"}
                         },
-                        new("Motion (Innertial) Recording (.bin) ")
+                        new("Motion (Inertial) Recording (.bin) ")
                         {
                             Patterns = new[]{"*M.bin", "*M.BIN"},
                             MimeTypes = new[]{"bin/*"}
@@ -1357,7 +1357,7 @@ namespace VesperApp.ViewModels
             return retval;
         }
 
-        private async Task<bool> DecodeMotionInnertial()
+        private async Task<bool> DecodeMotionInertial()
         {
             bool retval = false;
 

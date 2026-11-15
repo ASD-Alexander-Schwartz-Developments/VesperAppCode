@@ -76,7 +76,7 @@ public class ScheduleEditorTests
     public async Task ApplyEntry_ScheduleFull_AddsNothing()
     {
         var vm = new ScheduleControlViewModel(new[] { At(0), At(1) }) { MaxEntries = 2 };
-        vm.SelectedScheduleType = ScheduleTypes.Continues;           // same type: the list stays
+        vm.SelectedScheduleType = ScheduleTypes.Continuous;           // same type: the list stays
         Assert.Equal(2, vm.ScheduleEventsList.Count);
         vm.IsAddingNewEntry = true;
 
@@ -104,7 +104,7 @@ public class ScheduleEditorTests
     public void ScheduleType_Change_ClearsTheEntries()
     {
         var vm = new ScheduleControlViewModel(new[] { At(0), At(1) });
-        vm.SelectedScheduleType = ScheduleTypes.Continues;
+        vm.SelectedScheduleType = ScheduleTypes.Continuous;
         Assert.Equal(2, vm.ScheduleEventsList.Count);
         vm.SelectedScheduleType = ScheduleTypes.Daily;
         Assert.Empty(vm.ScheduleEventsList);

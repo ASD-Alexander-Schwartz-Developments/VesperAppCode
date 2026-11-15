@@ -236,7 +236,7 @@ namespace VesperApp.ViewModels
             await ShowGeneralSettings(configurationJSONInstance);
 
             await DriversViewModel.UpdateDeviceDriverCollection(new List<ConfigurationDeviceDriver>());
-            ScheduleViewModel.SelectedScheduleType = ScheduleTypes.Continues;
+            ScheduleViewModel.SelectedScheduleType = ScheduleTypes.Continuous;
             ScheduleViewModel.ScheduleEventsList.Clear();
         }
 

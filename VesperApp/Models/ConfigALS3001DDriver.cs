@@ -13,7 +13,7 @@ namespace VesperApp.Models
         protected override RateKind SampleRateKind => RateKind.PeriodMs;
         protected override string SampleRateNote => "time between readings (0 = off).";
 
-        public ConfigALS3001DDriver() : base("ALS3001D", "Huaman Eye calibrated response ambient light sensor")
+        public ConfigALS3001DDriver() : base("ALS3001D", "Human eye calibrated response ambient light sensor")
         {
             this.FileSize = 512 * 1024;
         }

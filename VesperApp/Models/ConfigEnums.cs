@@ -23,7 +23,7 @@ namespace VesperApp.Models
     
     public enum ScheduleTypes : UInt16 
     { 
-        Continues = 0,
+        Continuous = 0,
         Daily,
         Dated, 
         Relative 

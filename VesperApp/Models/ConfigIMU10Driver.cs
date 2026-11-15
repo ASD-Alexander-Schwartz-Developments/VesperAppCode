@@ -26,7 +26,7 @@ namespace VesperApp.Models
         private bool isStartup = true;
         private ArrayList atts = new ArrayList();
 
-        public ConfigIMU10Driver() : base("IMU10", "Innertial Motion Unit sensor with 10 degrees of freedom")
+        public ConfigIMU10Driver() : base("IMU10", "Inertial Motion Unit sensor with 10 degrees of freedom")
         {
             this.imu_range = 0;
 

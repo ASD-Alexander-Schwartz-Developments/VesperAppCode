@@ -27,8 +27,8 @@ namespace VesperApp.ViewModels
             ScheduleEventsList = new ObservableCollection<ConfigScheduleJSONItem>(items);
             ScheduleEventsList.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(EntryCountText));
 
-            SelectedScheduleType = ScheduleTypes.Continues;
-            previousScheduleType = ScheduleTypes.Continues;
+            SelectedScheduleType = ScheduleTypes.Continuous;
+            previousScheduleType = ScheduleTypes.Continuous;
             IsDateEnabled = false;
             IsMonthVisible = false;
             IsYearVisible = false;
@@ -40,7 +40,7 @@ namespace VesperApp.ViewModels
                 {
                     await ShowScheduleFullAsync();
                 }
-                else if(SelectedScheduleType == ScheduleTypes.Continues)
+                else if(SelectedScheduleType == ScheduleTypes.Continuous)
                 {
                     var messageBoxStandardWindow = MessageBoxManager.GetMessageBoxStandard(
                     new MessageBoxStandardParams
@@ -48,7 +48,7 @@ namespace VesperApp.ViewModels
                         ButtonDefinitions = MsBox.Avalonia.Enums.ButtonEnum.Ok,
                         ContentTitle = "New Schedule Entry",
                         ContentHeader = "Not able to create new entry",
-                        ContentMessage = "Continues schedule types just run forever",
+                        ContentMessage = "A continuous schedule has no entries: it records from activation on",
                         SizeToContent = SizeToContent.WidthAndHeight,
                         WindowIcon = App.MainWindow?.Icon,
                         Icon = MsBox.Avalonia.Enums.Icon.Info
@@ -402,7 +402,7 @@ namespace VesperApp.ViewModels
                 IsRelativeSchedule = selectedScheduleType == ScheduleTypes.Relative;
 
 
-                if(selectedScheduleType == ScheduleTypes.Continues)
+                if(selectedScheduleType == ScheduleTypes.Continuous)
                 {
                     IsDateEnabled = false;
                     SelectedDate = null;

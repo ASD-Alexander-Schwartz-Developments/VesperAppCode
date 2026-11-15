@@ -36,7 +36,7 @@ namespace VesperApp.Models
 
             this.IsMagnetOffEnabled = true;
             this.BatteryCapacity = 60;
-            this.ScheduleType = ScheduleTypes.Continues;
+            this.ScheduleType = ScheduleTypes.Continuous;
 
             this.wake_up_time = new PowerOnTime();
             this.clock_drift = null;
@@ -374,7 +374,7 @@ namespace VesperApp.Models
                 ushort ? enumValue = reader.GetUInt16();
                 if (enumValue == 0)
                 {
-                    return ScheduleTypes.Continues;
+                    return ScheduleTypes.Continuous;
                 }
                 else if (enumValue == 1)
                 {
@@ -394,7 +394,7 @@ namespace VesperApp.Models
 
             public override void Write(Utf8JsonWriter writer, ScheduleTypes value, JsonSerializerOptions options)
             {
-                if (value is ScheduleTypes.Continues)
+                if (value is ScheduleTypes.Continuous)
                 {
                     writer.WriteNumberValue(0);
                 }

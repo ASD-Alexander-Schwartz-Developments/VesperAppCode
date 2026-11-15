@@ -10,7 +10,7 @@ namespace VesperApp.Models
     public class ConfigATLASDriver : ConfigurationDeviceDriver
     {
 
-        public ConfigATLASDriver() : base("ATLAS", "ATLAS system trasceiver")
+        public ConfigATLASDriver() : base("ATLAS", "ATLAS system transceiver")
         {
             this.FileSize = 0;
         }

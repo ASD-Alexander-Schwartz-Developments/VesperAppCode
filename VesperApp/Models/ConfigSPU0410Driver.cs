@@ -19,7 +19,7 @@ namespace VesperApp.Models
         private UInt32 threshold_level;
 
         [DisplayName("Threshold"),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        CategoryAttribute("Ultrasonic microphone settings"),
         DescriptionAttribute("Legacy: audio level 0 to 4095 that starts a recording (0 = continuous); Window Length = recording time, Window Rate = wait after it.")]
         [JsonPropertyName("threshold"), JsonPropertyOrder(20)]
         public UInt32 Threshold
@@ -35,9 +35,9 @@ namespace VesperApp.Models
             }
         }
 
-        [DisplayName("Mike sampler resolution"),
+        [DisplayName("Microphone sample resolution"),
         TypeConverter(typeof(MikeResolutionConverter)),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        CategoryAttribute("Ultrasonic microphone settings"),
         DescriptionAttribute("Samples are 12-bit; files keep 12 bits (as 16-bit) or 8 bits.")]
         [JsonIgnore]
         public string Resolution12bit
@@ -60,7 +60,7 @@ namespace VesperApp.Models
 
         [DisplayName("LED Activity"),
         TypeConverter(typeof(bool)),
-        CategoryAttribute("Ultrasonic Mike specific Settings"),
+        CategoryAttribute("Ultrasonic microphone settings"),
         DescriptionAttribute("Blink the LED while the microphone records.")]
         [JsonIgnore]
         public bool EnableLEDIndication

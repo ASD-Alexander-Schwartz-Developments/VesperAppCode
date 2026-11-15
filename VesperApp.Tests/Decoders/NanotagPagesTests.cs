@@ -282,7 +282,7 @@ public class NanotagPagesTests
         var logger = new ConfigLoggerDriver { LogLevel = LoggerLogLevel.Debug };
         logger.SampleRate1 = 10000;
         var prx = new ConfigProxtitDriver { ProxMode = 1, BeaconInterval = 1000, ScanInterval = 200, ScanWindow = 100, DeltaRssi = 0, AvgSeconds = 30, RssiGate = -85 };
-        var config = new ConfigurationJSON { Name = "NANOTAG", ScheduleType = ScheduleTypes.Continues };
+        var config = new ConfigurationJSON { Name = "NANOTAG", ScheduleType = ScheduleTypes.Continuous };
         config.DeviceDrivers.AddRange(new ConfigurationDeviceDriver[] { new ConfigACLYSDriver(), logger, prx });
 
         var o = new JsonSerializerOptions();

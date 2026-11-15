@@ -78,7 +78,7 @@ namespace VesperApp.Models
 
 		public static ushort ConvertNanotagScheduleType(ScheduleTypes scheduleType)
 		{
-			if(scheduleType == ScheduleTypes.Continues) 
+			if(scheduleType == ScheduleTypes.Continuous) 
 			{
 				return 0;
 			}

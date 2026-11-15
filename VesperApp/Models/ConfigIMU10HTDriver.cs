@@ -22,7 +22,7 @@ namespace VesperApp.Models
         private bool isStartup = true;
         private ArrayList atts = new ArrayList();
 
-        public ConfigIMU10HTDriver() : base("IMU10HT", "Low Noise Innertial Motion Unit sensor with 10 degrees of freedom")
+        public ConfigIMU10HTDriver() : base("IMU10HT", "Low Noise Inertial Motion Unit sensor with 10 degrees of freedom")
         {
             this.imu_range = 0;
 
