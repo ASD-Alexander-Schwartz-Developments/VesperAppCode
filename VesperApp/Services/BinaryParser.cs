@@ -314,6 +314,8 @@ namespace VesperApp.Services
                                             metadata += ("Config2:" + binaryTypeHeader.Configuration2.ToString("X") + Environment.NewLine);
                                             metadata += ("Config3:" + binaryTypeHeader.Configuration3.ToString("X") + Environment.NewLine);
                                             metadata += ("Bitmask:" + binaryTypeHeader.Bitmask.ToString("X") + Environment.NewLine);
+                                            if (binaryTypeHeader.ProxSource is ProxSource src)
+                                                metadata += src.MetaLines();           // ProxTit: the recording tag
 
                                             if (timestamp.SyncTimestamps != null)
                                             {

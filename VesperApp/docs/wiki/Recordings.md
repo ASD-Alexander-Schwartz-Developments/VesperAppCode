@@ -159,6 +159,11 @@ On a **Nanotag** (firmware 1.35 or later) the logger has no file: its records li
 
 `X.BIN` (Vesper) and the Nanotag `PRX` pages hold 16-byte encounter records, exactly as the ProxTit tag delivers them: start time (Unix seconds on the tag clock), duration in seconds, the peer's 6-byte BLE address, the averaged RSSI and the peer's TX power in dBm. **Auto Decode** writes `<file>.csv` with start, end, duration, address, RSSI and TX power per encounter.
 
+The last two columns (ProxTit add-on firmware 02.02.00 with a matching logger firmware) say **who** and **what**:
+
+- **Tag address**: the tag that recorded the file, the animal carrying this logger. The records name only the peer, so with the tag address each row is one meeting between two known tags. The logger stores it once per file (Vesper: in the file header; Nanotag: in every page), and the `.txt` next to the intermediate lists it as `SourceTag`, with the tag's firmware (`SourceTagFW`), variant and boot count. Empty for files from older firmware: note there which tag was fitted.
+- **Record**: `encounter`, or a tag event, with its time in *Start* and the other columns empty: `BOOT` (the tag restarted: its clock ran from the last saved time until the next `TIMESET`), `TIMESET` (the logger set the tag clock; the step tells how far records since the last `BOOT` are off), `POWEROFF`, `START`, `SETTINGS` (settings fixed or migrated at start), `UNREADABLE` (a record the tag could not read from its flash).
+
 
 ### GPS snapshot files
 

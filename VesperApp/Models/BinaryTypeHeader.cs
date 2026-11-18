@@ -103,6 +103,8 @@ namespace VesperApp.Models
 
 
         public string DeviceDriverName => this.name;
+        /// <summary>ProxTit files (contract v2): the tag that recorded them, from the fill at offset 64; null otherwise.</summary>
+        public VesperApp.Services.ProxSource? ProxSource => VesperApp.Services.ProxSource.Parse(original_bytes, VesperApp.Services.ProxSource.Offset);
         public UInt32 UId => uid;
         public UInt32 Configuration0 => this.config_data0;
         public UInt32 Configuration1 => this.config_data1;

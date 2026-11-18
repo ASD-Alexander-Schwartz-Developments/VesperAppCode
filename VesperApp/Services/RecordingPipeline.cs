@@ -313,7 +313,7 @@ namespace VesperApp.Services
                         break;
 
                     case ".XBN":                                    // ProxTit encounters (Vesper X.BIN, Nanotag PRX pages)
-                        using (var xp = new ProxEncounterParser(path, data))
+                        using (var xp = new ProxEncounterParser(path, data, MetaText(path, "SourceTag")))
                             xp.WriteFile();
                         sum.Csv++;
                         break;

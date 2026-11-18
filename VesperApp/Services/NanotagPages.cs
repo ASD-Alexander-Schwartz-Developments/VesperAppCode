@@ -58,6 +58,9 @@ namespace VesperApp.Services
         public uint SnsPeriodMs => U32(40);
         public uint SnsRawData0 => U32(44);
 
+        /// <summary>PRX page (contract v2): the tag that recorded it, from spare offset 64; null otherwise.</summary>
+        public ProxSource? Source => ProxSource.Parse(_raw, DataSize + ProxSource.Offset);
+
         /// <summary>The page's records: data[0 .. dataLength).</summary>
         public ReadOnlySpan<byte> Records => new ReadOnlySpan<byte>(_raw, 0, (int)Math.Min(DataLength, (uint)DataSize));
 
@@ -174,6 +177,7 @@ namespace VesperApp.Services
             public uint LastStamp;
             public uint PeriodMs;
             public uint FirmwareVersion;
+            public ProxSource? Source;                      // PRX: the recording tag (first page that names it)
             public readonly MemoryStream Data = new();
         }
 
@@ -201,6 +205,8 @@ namespace VesperApp.Services
             }
             s.LastSeq = p.SnsSeqId;
             s.LastStamp = p.SnsTimestamp;
+            if (s.Type == NanotagPage.TypePrx && s.Source == null)
+                s.Source = p.Source;
             s.Data.Write(p.Records);
             Pages++;
             return true;
@@ -241,15 +247,16 @@ namespace VesperApp.Services
                 if (!string.IsNullOrEmpty(serial)) meta.Append("DeviceID:").Append(serial).Append(Environment.NewLine);
                 meta.Append("FWID:").Append(NanotagPage.ReleaseOf(s.FirmwareVersion)).Append(Environment.NewLine);
                 meta.Append("SampleRate:").Append(s.PeriodMs).Append(Environment.NewLine);
+                if (s.Source != null) meta.Append(s.Source.MetaLines());
                 File.WriteAllText(path + ".txt", meta.ToString());
 
-                Decode(path, ext, data, start, s.PeriodMs);
+                Decode(path, ext, data, start, s.PeriodMs, s.Source?.Address);
                 written.Add(path);
             }
             return written;
         }
 
-        private static void Decode(string path, string ext, byte[] data, DateTime start, uint periodMs)
+        private static void Decode(string path, string ext, byte[] data, DateTime start, uint periodMs, string? sourceTag)
         {
             try
             {
@@ -262,7 +269,7 @@ namespace VesperApp.Services
                         using (var ip = new ALSParser(path, data, start, 1023, periodMs)) ip.WriteFile();
                         break;
                     case ".XBN":
-                        using (var ip = new ProxEncounterParser(path, data)) ip.WriteFile();
+                        using (var ip = new ProxEncounterParser(path, data, sourceTag)) ip.WriteFile();
                         break;
                 }
             }

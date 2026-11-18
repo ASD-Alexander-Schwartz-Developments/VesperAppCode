@@ -246,9 +246,9 @@ public class NanotagPagesTests
         string x = Assert.Single(Directory.GetFiles(Path.Combine(dir.Path, "PRX"), "*.XBN"));
         Assert.StartsWith("X2026_10_26_09_00_00_000", Path.GetFileName(x));
         string[] enc = File.ReadAllLines(x + ".csv");
-        Assert.Equal("Start,End,Duration [s],Peer address,RSSI [dBm],TX power [dBm]", enc[0]);
-        Assert.Equal("2026-10-26 09:00:00,2026-10-26 09:02:05,125,11:22:33:44:55:66,-71,-1", enc[1]);
-        Assert.Equal("2026-10-26 09:01:40,2026-10-26 09:01:45,5,06:05:04:03:02:01,-90,0", enc[2]);
+        Assert.Equal("Start,End,Duration [s],Peer address,RSSI [dBm],TX power [dBm],Tag address,Record", enc[0]);
+        Assert.Equal("2026-10-26 09:00:00,2026-10-26 09:02:05,125,11:22:33:44:55:66,-71,-1,,encounter", enc[1]);
+        Assert.Equal("2026-10-26 09:01:40,2026-10-26 09:01:45,5,06:05:04:03:02:01,-90,0,,encounter", enc[2]);
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public class NanotagPagesTests
         Assert.True(RecordingPipeline.IsDecodableIntermediate(xbn));
         DecodeSummary sum = await RecordingPipeline.DecodeFilesAsync(new[] { xbn });
         Assert.Equal(1, sum.Csv);
-        Assert.Equal("2026-10-26 09:00:00,2026-10-26 09:01:00,60,01:02:03:04:05:06,-60,0", File.ReadAllLines(xbn + ".csv")[1]);
+        Assert.Equal("2026-10-26 09:00:00,2026-10-26 09:01:00,60,01:02:03:04:05:06,-60,0,,encounter", File.ReadAllLines(xbn + ".csv")[1]);
     }
 
     // ───────────── config slots ─────────────
