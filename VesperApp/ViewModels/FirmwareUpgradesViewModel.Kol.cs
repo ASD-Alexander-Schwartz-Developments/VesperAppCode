@@ -40,6 +40,7 @@ namespace VesperApp.ViewModels
 
             if (!await ConfirmFlash(target, Path.GetFileName(selected.Asset!)))
                 return false;
+            await EnsureDfuDriverAsync();
 
             string serial = dev.SerialNumber ?? string.Empty;
             string tmp = Path.Combine(Path.GetTempPath(), Path.GetFileName(selected.Asset!));

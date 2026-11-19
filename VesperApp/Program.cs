@@ -63,9 +63,20 @@ namespace VesperApp
 
             try
             {
+                // Setup's driver step (started by the after-install hook below): no window, install and exit.
+                if (Services.DfuDriverInstaller.IsInstallRun(args))
+                {
+                    Environment.ExitCode = Services.DfuDriverInstaller.RunFromCommandLine();
+                    return;
+                }
+
                 if (Design.IsDesignMode == false)
                 {
-                    VelopackApp.Build().Run();
+                    // After install: add the ST bootloader (DFU) driver the firmware flash needs. In a process
+                    // of its own - Velopack ends a hook that runs for long, the administrator prompt may wait.
+                    VelopackApp.Build()
+                        .OnAfterInstallFastCallback(_ => Services.DfuDriverInstaller.StartDetached())
+                        .Run();
                 }
                 BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
 

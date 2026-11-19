@@ -368,6 +368,7 @@ namespace VesperApp.ViewModels
 
             if (!await ConfirmFlash(target, Path.GetFileName(selected.Asset!)))
                 return false;
+            await EnsureDfuDriverAsync();
 
             string tmp = Path.Combine(Path.GetTempPath(), Path.GetFileName(selected.Asset!));
 
@@ -413,6 +414,55 @@ namespace VesperApp.ViewModels
                 WindowIcon = App.MainWindow?.Icon,
             });
             return await box.ShowWindowDialogAsync(App.MainWindow) == ButtonResult.Yes;
+        }
+
+        private static bool _dfuDriverOfferRefused;
+
+        /// <summary>
+        /// Before an STM32 flash on Windows: offer the ST bootloader driver when it is not in the driver store
+        /// (an install updated from a version without the setup step, or the administrator prompt refused at
+        /// setup). The flash goes on whatever the answer - the bootloader may be bound by another WinUSB
+        /// driver - and a refusal is not asked again in this run.
+        /// </summary>
+        private async Task EnsureDfuDriverAsync()
+        {
+            if (_dfuDriverOfferRefused || !DfuDriverInstaller.IsSupported) return;
+            if (await Task.Run(DfuDriverInstaller.IsInstalled) != false) return;
+
+            var box = MessageBoxManager.GetMessageBoxStandard(new MessageBoxStandardParams
+            {
+                ButtonDefinitions = ButtonEnum.YesNo,
+                ContentTitle = "ST bootloader driver",
+                ContentHeader = "Install the ST bootloader USB driver?",
+                ContentMessage = "The firmware is written through the device's ST bootloader (USB DFU), which needs a driver on Windows. "
+                               + "It is not installed on this PC.\n\n"
+                               + "Windows asks for administrator permission, and may ask whether to trust software from STMicroelectronics.\n\n"
+                               + "Choose No if flashing already works on this PC with another driver.",
+                Icon = MsBox.Avalonia.Enums.Icon.Question,
+                WindowIcon = App.MainWindow?.Icon,
+            });
+            if (await box.ShowWindowDialogAsync(App.MainWindow) != ButtonResult.Yes)
+            {
+                _dfuDriverOfferRefused = true;
+                return;
+            }
+
+            FlashStatus = "Installing the ST bootloader driver…";
+            switch (await DfuDriverInstaller.InstallAsync())
+            {
+                case DfuDriverResult.Installed:
+                    FlashStatus = "ST bootloader driver installed.";
+                    break;
+                case DfuDriverResult.Declined:
+                    _dfuDriverOfferRefused = true;
+                    FlashStatus = "ST bootloader driver not installed (administrator permission refused).";
+                    break;
+                default:
+                    FlashStatus = "The ST bootloader driver could not be installed.";
+                    await ShowInfo("ST bootloader driver", FlashStatus + " The flash continues. If it cannot open the bootloader, "
+                        + "install the driver by hand: " + DfuDriverInstaller.InfPath + " (right-click > Install).");
+                    break;
+            }
         }
 
         private static async Task ShowInfo(string title, string message)

@@ -66,6 +66,13 @@
 		<Content Include="..\ASDLibUSBWrapper\LibUsb\Win\x86\libusb-1.0.dll" Link="libusb-1.0.dll" Condition="'$(RuntimeIdentifier)' == 'win-x86'">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<!-- ST "STM32 Bootloader" driver package (binds WinUSB to the ROM bootloader 0483:DF11, which the
+		     firmware flash needs). Shipped with the Windows builds and installed by Services/DfuDriverInstaller:
+		     at setup (Velopack after-install hook) or on request before the first flash. The catalog signs the
+		     .inf, so both files are shipped unchanged (.gitattributes: -text). Licence: licenses/ST-SLA0048.txt. -->
+		<Content Include="ThirdParty\st-dfu-driver\STM32Bootloader.inf;ThirdParty\st-dfu-driver\stm32bootloader.cat" Link="drivers\st-dfu\%(Filename)%(Extension)" Condition="'$(RuntimeIdentifier)' == '' Or $(RuntimeIdentifier.StartsWith('win'))">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 		<!-- portaudio.dll (org.k2fsa.portaudio.runtime.win-x64, an MSVC build) imports
 		     VCRUNTIME140.dll, which a clean Windows does not have; everything else we ship
 		     is free of the VC++ redistributable (.NET is self-contained, libusb is a MinGW

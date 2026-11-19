@@ -19,7 +19,8 @@
 
 **Flashing fails with "device did not enter DFU mode".**
 - Keep the device seated; retry the flash — the boot sequence is timing-sensitive.
-- Windows may need a moment on first use to install the ST DFU bootloader driver; retry after the first enumeration.
+- Windows may need a moment on first use to bind the ST bootloader driver; retry after the first enumeration.
+- Windows: the ST bootloader driver is installed by the VesperApp setup. If it is missing, the app offers to install it when you press **Flash** — see [Firmware Updates](Firmware-Updates).
 
 **A flash was interrupted. Is the device bricked?**
 - No. The DFU bootloader is in ROM and always recoverable — power-cycle in the dock and flash again.

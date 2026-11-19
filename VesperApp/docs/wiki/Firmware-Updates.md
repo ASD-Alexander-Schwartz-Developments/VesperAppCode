@@ -26,7 +26,9 @@ Supported firmware file formats: `.dfu` (DfuSe), `.hex` (Intel HEX) and raw `.bi
 
 **During the flash:** leave the device seated and the dock plugged in. If the process is interrupted or fails, the device cannot be bricked: the boot line is always restored and the device stays recoverable through its ROM bootloader — simply run the flash again.
 
-**First flash on a Windows machine:** the very first time the bootloader appears, Windows may take a while to bind its driver — the app waits up to 20 seconds. If it consistently reports that a DFU device was detected but could not be opened, install the "STM32 BOOTLOADER" WinUSB driver (included with STM32CubeProgrammer) once.
+**ST bootloader driver (Windows):** the flash needs the ST "STM32 Bootloader" USB driver. It is part of VesperApp and is installed by the VesperApp setup: Windows asks for administrator permission once, and may ask whether to trust software from STMicroelectronics. If the driver is missing when you press **Flash** (the permission was refused at setup, or VesperApp was updated from a version without the driver), the app offers to install it then. To install it by hand, right-click `STM32Bootloader.inf` in the `drivers\st-dfu` folder of the VesperApp installation and choose **Install**.
+
+**First flash on a Windows machine:** the very first time the bootloader appears, Windows may take a while to bind its driver — the app waits up to 20 seconds.
 
 ## Flashing a KOL
 

@@ -68,3 +68,6 @@
 ###############################################################################
 *.rules text eol=lf
 *.sh    text eol=lf
+
+# ST DFU driver package: the catalog signs the .inf byte for byte - never normalise it.
+VesperApp/ThirdParty/st-dfu-driver/* -text

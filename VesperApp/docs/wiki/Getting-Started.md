@@ -11,7 +11,7 @@ The application is self-contained — no separate .NET installation is required.
 ## Installation
 
 1. Download the installer for your platform from the release channel you were given (stable is recommended; beta receives earlier builds).
-2. Run the installer. The app installs per-user and keeps itself up to date automatically — see [Software Updates and Plugins](Software-Updates-and-Plugins).
+2. Run the installer. The app installs per-user and keeps itself up to date automatically — see [Software Updates and Plugins](Software-Updates-and-Plugins). On Windows the setup also installs the ST bootloader USB driver used for firmware updates: Windows asks for administrator permission for that one step.
 3. Launch **VesperApp**.
 
 On **Linux** the download is a portable AppImage rather than an installer, and USB
