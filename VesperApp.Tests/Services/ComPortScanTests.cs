@@ -237,4 +237,106 @@ public class ComPortScanTests
             adapter.Dispose();
         }
     }
+
+    /// <summary>
+    /// 1.2.1 on a PC with paired Bluetooth devices (2026-11-17): each "Standard Serial over Bluetooth link" port
+    /// blocked its probe for the whole budget, the 2 s refresh overtook the scan and got the list the Nanotag scan
+    /// had just emptied - the logger came and went in the device list and could not be connected.
+    /// </summary>
+    [Fact]
+    public async Task Scan_RefreshDuringAScanWithABlockedPort_KeepsTheLogger()
+    {
+        using var gate = new ManualResetEventSlim(false);
+        var blocked = new FakePort { PortName = "COM6", BlockOpen = gate };
+        var kolPort = new FakePort { PortName = "COM9" };
+        var probe = new ComPortProbe(n => n == "COM6" ? blocked : kolPort,
+            budget: TimeSpan.FromMilliseconds(600), replyWindow: TimeSpan.FromMilliseconds(200));
+        var adapter = new DeviceUsbAdapter(() => new[] { "COM6", "COM9" }, probe);
+        try
+        {
+            kolPort.Incoming.Enqueue(KolReply());
+            LoggerDevice kol = Assert.Single(await adapter.ScanComPortsAsync(false));
+
+            gate.Set();                                                 // the driver call returns: COM6 is probed again
+            await WaitUntil(() => !probe.IsStuck("COM6"));
+            gate.Reset();
+
+            kolPort.Incoming.Enqueue(KolReply());
+            Task<IEnumerable<LoggerDevice>> slow = adapter.ScanComPortsAsync(false);   // held by COM6 for the budget
+            Assert.False(slow.IsCompleted);
+
+            /* the periodic refresh comes round while that scan is running: Nanotag scan, then COM scan */
+            Assert.Empty(await adapter.ScanDevicesAsync(0xFFFF, 0xFFFF, true));
+            var sw = Stopwatch.StartNew();
+            Assert.Same(kol, Assert.Single(await adapter.ScanComPortsAsync(false)));
+            Assert.InRange(sw.ElapsedMilliseconds, 0, 300);
+            Assert.False(slow.IsCompleted);
+
+            Assert.Same(kol, Assert.Single(await slow));
+        }
+        finally
+        {
+            gate.Set();
+            adapter.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task Scan_ProbesThePortsSideBySide()
+    {
+        var silent = Enumerable.Range(1, 6).ToDictionary(i => "COM" + i, i => new FakePort { PortName = "COM" + i });
+        var probe = new ComPortProbe(n => silent[n], budget: TimeSpan.FromSeconds(3), replyWindow: TimeSpan.FromMilliseconds(400));
+        var adapter = new DeviceUsbAdapter(() => silent.Keys.ToArray(), probe);
+        try
+        {
+            var sw = Stopwatch.StartNew();
+            Assert.Empty(await adapter.ScanComPortsAsync(false));
+            Assert.InRange(sw.ElapsedMilliseconds, 300, 1800);          // one after the other: 2.4 s
+        }
+        finally
+        {
+            adapter.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task Scan_LoggerThatMissesAReply_StaysForTwoScans_ThenGoes()
+    {
+        var port = new FakePort { PortName = "COM9" };
+        var probe = new ComPortProbe(_ => port, budget: TimeSpan.FromSeconds(3), replyWindow: TimeSpan.FromMilliseconds(100));
+        var adapter = new DeviceUsbAdapter(() => new[] { "COM9" }, probe);
+        try
+        {
+            port.Incoming.Enqueue(KolReply());
+            LoggerDevice kol = Assert.Single(await adapter.ScanComPortsAsync(false));
+
+            Assert.Same(kol, Assert.Single(await adapter.ScanComPortsAsync(false)));   // busy: no reply
+            port.Incoming.Enqueue(KolReply());
+            Assert.Same(kol, Assert.Single(await adapter.ScanComPortsAsync(false)));   // answers again: the count starts over
+
+            Assert.Single(await adapter.ScanComPortsAsync(false));
+            Assert.Single(await adapter.ScanComPortsAsync(false));
+            Assert.Empty(await adapter.ScanComPortsAsync(false));                      // third scan in a row without a reply
+        }
+        finally
+        {
+            adapter.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ProbeCandidates_OnWindows_AreTheLoggerUsbIdsOnly()
+    {
+        var logger = new ASD.DeviceCore.Transport.SerialPortInfo("COM9", 0x0483, 0xA4F4);
+        var stLink = new ASD.DeviceCore.Transport.SerialPortInfo("COM11", 0x0483, 0x374F);
+        var bluetooth = new ASD.DeviceCore.Transport.SerialPortInfo("COM6", Description: "Standard Serial over Bluetooth link");
+
+        Assert.True(DeviceUsbAdapter.IsProbeCandidate(logger, windows: true));
+        Assert.False(DeviceUsbAdapter.IsProbeCandidate(stLink, windows: true));
+        Assert.False(DeviceUsbAdapter.IsProbeCandidate(bluetooth, windows: true));
+
+        /* macOS / Linux may not resolve the USB id of a CDC node: a port without one is still probed there */
+        Assert.True(DeviceUsbAdapter.IsProbeCandidate(bluetooth, windows: false));
+        Assert.False(DeviceUsbAdapter.IsProbeCandidate(stLink, windows: false));
+    }
 }

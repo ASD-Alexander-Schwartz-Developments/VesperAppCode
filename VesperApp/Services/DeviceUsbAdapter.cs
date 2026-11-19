@@ -13,7 +13,15 @@ namespace VesperApp.Services
 {
     public class DeviceUsbAdapter : IDisposable
     {
-        readonly List<Models.LoggerDevice> _loggerDevices;
+        // The two discoveries keep their own results, each replaced as a whole when a scan completes:
+        // a scan never changes a list another thread is reading, and the Nanotag scan (which starts
+        // from nothing every time) no longer empties the COM result under the COM scan.
+        volatile IReadOnlyList<LoggerDevice> _usbDevices = Array.Empty<LoggerDevice>();
+        volatile IReadOnlyList<LoggerDevice> _comDevices = Array.Empty<LoggerDevice>();
+        readonly Dictionary<string, int> _comMisses = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Scans in a row a listed port may fail to answer GET_VER before its logger leaves the list.</summary>
+        const int MaxMissedProbes = 2;
 
         UsbContext? _context;
         LoggerDevice ? _device;
@@ -37,7 +45,6 @@ namespace VesperApp.Services
         {
             _listComPorts = listComPorts ?? ListLoggerComPorts;
             _comPortProbe = comPortProbe ?? new ComPortProbe();
-            _loggerDevices = new List<Models.LoggerDevice>();
 
             // libusb is only needed for non-serial devices (Nanotag bulk); if the
             // native library can't load, degrade to serial-only discovery instead of
@@ -192,8 +199,7 @@ namespace VesperApp.Services
 
         public async Task<IEnumerable<LoggerDevice>> ScanDevicesAsync(uint vendorid, uint prodid, bool forceRefresh = false)
         {
-            if (forceRefresh == true)
-                this._loggerDevices.Clear();
+            var found = forceRefresh ? new List<LoggerDevice>() : new List<LoggerDevice>(_usbDevices);
 
             if (this._context != null)
             {
@@ -221,14 +227,15 @@ namespace VesperApp.Services
 
                             var dev = new LoggerDevice(this._context, (UsbDevice)device);
 
-                            if (this._loggerDevices.Exists( (d) => d.Equals(dev) ) == false)
-                                this._loggerDevices.Add(dev);
+                            if (found.Exists( (d) => d.Equals(dev) ) == false)
+                                found.Add(dev);
                         }
                     }
                 }
             }
 
-            return await Task.FromResult(this._loggerDevices);
+            _usbDevices = found;
+            return found;
         }
 
 
@@ -237,65 +244,94 @@ namespace VesperApp.Services
         /// <summary>
         /// Cross-platform VID/PID-filtered discovery: list ports WITH their USB
         /// identity (without opening them) and keep only ASD CDC loggers. This
-        /// replaces "open and probe every COM port". Ports whose USB id the
-        /// platform couldn't resolve (null) are still probed as a safety net
-        /// (e.g. macOS usbmodem nodes), but known non-ASB USB devices are skipped.
+        /// replaces "open and probe every COM port".
         /// </summary>
         private static string[] ListLoggerComPorts() =>
             ASD.DeviceCore.Transport.SerialEnumerator.List()
-                .Where(p => ASD.Devices.AsdDeviceIds.IsCdcLogger(p.Vid, p.Pid)
-                            || (p.Vid is null && p.Pid is null))
+                .Where(p => IsProbeCandidate(p, OperatingSystem.IsWindows()))
                 .Select(p => p.PortName)
                 .ToArray();
 
+        /// <summary>
+        /// A port the COM scan opens. An ASD CDC logger by its USB id; a port without a USB id only where the
+        /// platform may fail to resolve one (e.g. macOS usbmodem nodes). Windows always gives a USB port its id,
+        /// so a port without one is not a logger there - and a "Standard Serial over Bluetooth link" port
+        /// blocks in Open for seconds while Windows tries to reach the paired device.
+        /// </summary>
+        internal static bool IsProbeCandidate(ASD.DeviceCore.Transport.SerialPortInfo p, bool windows) =>
+            ASD.Devices.AsdDeviceIds.IsCdcLogger(p.Vid, p.Pid)
+            || (!windows && p.Vid is null && p.Pid is null);
+
+        /// <summary>
+        /// The loggers on the COM ports. One scan runs at a time; a call made while a scan is running
+        /// (the periodic refresh is faster than a scan with a blocked port) gets the result of the last
+        /// completed scan. A logger stays listed while its port is blocked in the driver, and through
+        /// <see cref="MaxMissedProbes"/> scans without a GET_VER reply; it goes at once when its port does.
+        /// </summary>
         public async Task<IEnumerable<LoggerDevice>> ScanComPortsAsync(bool forceRefresh = false)
         {
-            if (forceRefresh == true)
-                this._loggerDevices.Clear();
-
             // One scan at a time: a scan already running (periodic refresh, re-enumeration wait) owns the ports.
-            if (Interlocked.CompareExchange(ref _comScanRunning, 1, 0) == 0)
+            if (Interlocked.CompareExchange(ref _comScanRunning, 1, 0) != 0)
+                return _comDevices;
+
+            try
             {
-                try
+                if (forceRefresh) _comMisses.Clear();
+                IReadOnlyList<LoggerDevice> previous = forceRefresh ? Array.Empty<LoggerDevice>() : _comDevices;
+
+                string[] comports = _listComPorts();
+
+                /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved.
+                   The ports are probed side by side: one that does not answer costs its own time only. */
+                GetVerReply?[] replies = await Task.WhenAll(comports.Select(s => _comPortProbe.ProbeAsync(s)));
+
+                var found = new List<LoggerDevice>();
+                for (int i = 0; i < comports.Length; i++)
                 {
-                    string[] comports = _listComPorts();
+                    string s = comports[i];
+                    GetVerReply? reply = replies[i];
+                    LoggerDevice? known = previous.FirstOrDefault(d => string.Equals(d.ComPort, s, StringComparison.OrdinalIgnoreCase));
 
-                    foreach (string s in comports)
+                    if (reply != null)
                     {
-                        /* GET_VER is: VER_MAJOR, VER_MINOR, UID0, UID1, UID2, UID3, type, reserved */
-                        GetVerReply? reply = await _comPortProbe.ProbeAsync(s);
-                        if (reply != null)
-                        {
-                            var dev = new LoggerDevice(s, ComportBaudRate, reply.Type, reply.Serial, new System.Version(reply.Major, reply.Minor));
-
-                            if (this._loggerDevices.Exists((d) => d.Equals(dev)) == false)
-                                this._loggerDevices.Add(dev);
-                        }
+                        var dev = new LoggerDevice(s, ComportBaudRate, reply.Type, reply.Serial, new System.Version(reply.Major, reply.Minor));
+                        if (known != null && known.Equals(dev)) dev = known;
+                        if (found.Exists((d) => d.Equals(dev)) == false)
+                            found.Add(dev);
+                        _comMisses.Remove(s);
                     }
-
-                    List<string> _names = comports.ToList();
-
-                    for(int i = 0; i < this._loggerDevices.Count; i++)
+                    else if (known != null)
                     {
-                        if (_loggerDevices[i].IsComportDevice)
+                        if (_comPortProbe.IsStuck(s))
                         {
-                            if (_names.Exists((d) => d.Equals(_loggerDevices[i].ComPort)) == false) 
+                            found.Add(known);
+                        }
+                        else
+                        {
+                            int misses = _comMisses.GetValueOrDefault(s) + 1;
+                            if (misses <= MaxMissedProbes)
                             {
-                               // Debug.WriteLine("Remove " + _loggerDevices[i].Name);
-                                _loggerDevices.RemoveAt(i);
-                                i = 0;
-                                break;
+                                _comMisses[s] = misses;
+                                found.Add(known);
+                            }
+                            else
+                            {
+                                _comMisses.Remove(s);
                             }
                         }
                     }
                 }
-                finally
-                {
-                    Interlocked.Exchange(ref _comScanRunning, 0);
-                }
-            }
 
-            return await Task.FromResult(this._loggerDevices);
+                foreach (string gone in _comMisses.Keys.Where(k => !comports.Contains(k, StringComparer.OrdinalIgnoreCase)).ToList())
+                    _comMisses.Remove(gone);
+
+                _comDevices = found;
+                return found;
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _comScanRunning, 0);
+            }
         }
 
 
@@ -333,12 +369,8 @@ namespace VesperApp.Services
 
         public Task<LoggerDevice?> GetDiviceBySerialNumberAsync(string serialnum)
         {
-            LoggerDevice? r = null;
-
-            if (_loggerDevices.Exists(x => x.SerialNumber?.ToUpper() == serialnum.ToUpper()) == true)
-            {
-                r = _loggerDevices.Find(x => x.SerialNumber?.ToUpper() == serialnum.ToUpper());
-            }
+            LoggerDevice? r = _usbDevices.Concat(_comDevices)
+                .FirstOrDefault(x => x.SerialNumber?.ToUpper() == serialnum.ToUpper());
 
             return Task.FromResult(r);
         }
