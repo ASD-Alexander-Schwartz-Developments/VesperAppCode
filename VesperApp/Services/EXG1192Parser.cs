@@ -6,15 +6,19 @@ namespace VesperApp.Services
 {
     /// <summary>
     /// EEG2 / EMG2 / ECG2 boards (TI ADS1192, 2 channels, 16-bit) behind a fixed pre-amplifier.
-    /// <para>Record (VesperU5 ads1192.c, 1.22): 9 bytes per sample. The 6-byte ADS1192 frame
-    /// (1100 + LOFF_STAT[4:1] | LOFF_STAT[0], GPIO[2:1], 0... | CH1 16-bit MSB first | CH2 16-bit), then 3 filler bytes
-    /// (the driver reads the ADS1292 sample size; they repeat the frame's first 3 bytes).</para>
+    /// <para>Record: the 6-byte ADS1192 frame (1100 + LOFF_STAT[4:1] | LOFF_STAT[0], GPIO[2:1], 0... | CH1 16-bit MSB
+    /// first | CH2 16-bit). VesperU5 1.22 wrote 9 bytes per sample: the frame, then 3 filler bytes (the driver read the
+    /// ADS1292 sample size; they repeat the frame's first 3 bytes). Later firmware writes the 6-byte frame only
+    /// (backlog F9). The layout is told from the data (<see cref="DetectRecordSize"/>).</para>
     /// <para>µV at the electrodes = code x 2,420,000 / (32,768 x PGA x pre-amp gain): VREF 2.42 V (CONFIG2 VREF_4V = 0),
     /// PGA from the header's gain code, pre-amp gain from the sensor name (<see cref="ExgGain.Ads1192PreampGain"/>).</para>
     /// </summary>
     public class EXG1192Parser : IDisposable
     {
+        /// <summary>1.22 record: frame + 3 filler bytes.</summary>
         public const int RecordSize = 9;
+        /// <summary>Record from the firmware after 1.22: the frame only.</summary>
+        public const int FrameSize = 6;
         private const byte Header = 0xC0;
 
         private readonly string Filename;
@@ -44,10 +48,11 @@ namespace VesperApp.Services
             double total2 = pga * (preamp2 > 0 ? preamp2 : 1.0);
             long n = 0;
             int index = 0;
+            int recordSize = DetectRecordSize(data);
 
-            while (index + 6 <= data.Length)
+            while (index + FrameSize <= data.Length)
             {
-                if ((data[index] & 0xF0) != Header || (data[index + 1] & 0x1F) != 0 || !FillerMatches(data, index))
+                if (!IsFrameStart(data, index) || (recordSize == RecordSize && !FillerMatches(data, index)))
                 {
                     index++;                                    // resync on the next frame start
                     continue;
@@ -67,7 +72,7 @@ namespace VesperApp.Services
                     CH2 = ExgGain.MicroVolts16((short)((data[index + 4] << 8) | data[index + 5]), 2420000.0, total2),
                 };
                 csv_lines.Add(line.ToString());
-                index += RecordSize;
+                index += recordSize;
             }
         }
 
@@ -79,6 +84,28 @@ namespace VesperApp.Services
         /// </summary>
         private static bool FillerMatches(byte[] d, int i) =>
             i + RecordSize > d.Length || (d[i + 6] == d[i] && d[i + 7] == d[i + 1] && d[i + 8] == d[i + 2]);
+
+        private static bool IsFrameStart(byte[] d, int i) => (d[i] & 0xF0) == Header && (d[i + 1] & 0x1F) == 0;
+
+        /// <summary>
+        /// 9 (1.22: frame + filler) or 6 (frame only). From the first frame start, frame starts are counted at a 9-byte
+        /// and at a 6-byte step over the next 32 records; the step that keeps landing on frame starts wins. (A filler
+        /// test alone cannot tell: in a 6-byte stream bytes 6..8 are the next frame's start, which repeats bytes 0..2
+        /// whenever CH1's high byte does not change.) A tie or fewer than 4 frame starts at the 6-byte step (a fragment) keeps the 1.22 layout.
+        /// </summary>
+        public static int DetectRecordSize(byte[] d)
+        {
+            int first = 0;
+            while (first + FrameSize <= d.Length && !IsFrameStart(d, first)) first++;
+            int hits9 = 0, hits6 = 0;
+            for (int k = 1; k <= 32; k++)
+            {
+                int i9 = first + k * RecordSize, i6 = first + k * FrameSize;
+                if (i9 + FrameSize <= d.Length && IsFrameStart(d, i9)) hits9++;
+                if (i6 + FrameSize <= d.Length && IsFrameStart(d, i6)) hits6++;
+            }
+            return (hits6 > hits9 && hits6 >= 4) ? FrameSize : RecordSize;    // a fragment keeps the 1.22 layout
+        }
 
         public void Dispose()
         {

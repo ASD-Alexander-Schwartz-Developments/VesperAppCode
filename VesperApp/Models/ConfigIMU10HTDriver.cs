@@ -249,6 +249,32 @@ namespace VesperApp.Models
             }
         }
 
+        /// <summary>imuRange bit 11 = the firmware writes the ICM-20680 DLPF_CFG from bits 8..10 (VesperU5 after 1.22,
+        /// imu10ht_cfg.h; open decision D-16). Bit 11 clear = DLPF_CFG 0, the reset value (wide bandwidth, as 1.22).
+        /// The bits are in the existing imuRange field: 1.22 ignores them and records unfiltered (a new config.json
+        /// key would make 1.22 refuse the whole file).</summary>
+        public const UInt32 RANGE_DLPF_SET = 1u << 11;
+        public const int RANGE_DLPF_POS = 8;
+
+        [DisplayName("Low-pass filter"),
+        Browsable(true),
+        CategoryAttribute("IMU10 specific Settings"),
+        DescriptionAttribute("Gyroscope low-pass filter (ICM-20680 DLPF). Off = as before (wide bandwidth). Needs firmware after 1.22; older firmware ignores it.")]
+        [JsonIgnore]
+        public IMU10HTLowPass LowPassFilter
+        {
+            get => IMU10HTLowPass.CreateFromValue((this.imu_range & RANGE_DLPF_SET) == 0
+                ? (ushort)0 : (ushort)((this.imu_range >> RANGE_DLPF_POS) & 0x7));
+            set
+            {
+                this.imu_range &= ~(RANGE_DLPF_SET | (0x7u << RANGE_DLPF_POS));
+                ushort v = value?.Value ?? 0;
+                if (v >= 1 && v <= 6)
+                    this.imu_range |= RANGE_DLPF_SET | ((UInt32)v << RANGE_DLPF_POS);
+                OnPropertyChanged();
+            }
+        }
+
         [DisplayName("Gyroscope range"),
         Browsable(true),
         CategoryAttribute("IMU10 specific Settings"),
@@ -258,11 +284,11 @@ namespace VesperApp.Models
         {
             get
             {
-                return IMU10HTGyroRanges.CreateFromValue((UInt16)((this.imu_range) & 0xFFFF));
+                return IMU10HTGyroRanges.CreateFromValue((UInt16)((this.imu_range) & 0x7));
             }
             set
             {
-                this.imu_range &= 0xFFFF0000;
+                this.imu_range &= ~0x7u;           // gyro range bits only: bits 8..11 hold the low-pass filter
 
                 switch (value.Value)
                 {
@@ -358,6 +384,35 @@ namespace VesperApp.Models
 
             return r;
         }
+    }
+
+
+    /// <summary>IMU10HT low-pass filter: 0 = off, 1..6 = ICM-20680 DLPF_CFG (gyro bandwidth).</summary>
+    public class IMU10HTLowPass
+    {
+        private static readonly string[] Labels = { "Off", "176 Hz", "92 Hz", "41 Hz", "20 Hz", "10 Hz", "5 Hz" };
+
+        private static readonly IMU10HTLowPass[] listOfConstants =
+        {
+            new IMU10HTLowPass(0), new IMU10HTLowPass(1), new IMU10HTLowPass(2), new IMU10HTLowPass(3),
+            new IMU10HTLowPass(4), new IMU10HTLowPass(5), new IMU10HTLowPass(6)
+        };
+
+        public static IMU10HTLowPass[] ListOfOptions => listOfConstants;
+
+        public static IMU10HTLowPass CreateFromValue(ushort v) => new IMU10HTLowPass(v <= 6 ? v : (ushort)0);
+
+        public IMU10HTLowPass(ushort value) { this.value = value; }
+
+        private ushort value;
+
+        public ushort Value
+        {
+            get => value;
+            set => this.value = value;
+        }
+
+        public override string ToString() => value < Labels.Length ? Labels[value] : Labels[0];
     }
 
 
