@@ -295,61 +295,8 @@ namespace VesperApp.Services
 
                                     if (File.Exists(wn) == false)
                                     {
-                                        if (File.Exists(metadata_filename) == true)
-                                        {
-                                            File.Delete(metadata_filename);
-                                        }
-
-                                        if (binaryTypeHeader != null)
-                                        {
-                                            metadata += ("DeviceID:" + binaryTypeHeader.UId.ToString("X") + Environment.NewLine);
-                                            metadata += ("HWID:" + binaryTypeHeader.HwId.ToString("X") + Environment.NewLine);
-                                            metadata += ("FWID:" + binaryTypeHeader.FwId.ToString("X") + Environment.NewLine);
-                                            metadata += ("Sensor:" + binaryTypeHeader.DeviceDriverName + Environment.NewLine);
-                                            metadata += ("SampleRate:" + binaryTypeHeader.SamplingRate + Environment.NewLine);
-                                            metadata += ("WinRate:" + binaryTypeHeader.WindowRate + Environment.NewLine);
-                                            metadata += ("WinLen:" + binaryTypeHeader.WindowLength + Environment.NewLine);
-                                            metadata += ("Config0:" + binaryTypeHeader.Configuration0.ToString("X") + Environment.NewLine);
-                                            metadata += ("Config1:" + binaryTypeHeader.Configuration1.ToString("X") + Environment.NewLine);
-                                            metadata += ("Config2:" + binaryTypeHeader.Configuration2.ToString("X") + Environment.NewLine);
-                                            metadata += ("Config3:" + binaryTypeHeader.Configuration3.ToString("X") + Environment.NewLine);
-                                            metadata += ("Bitmask:" + binaryTypeHeader.Bitmask.ToString("X") + Environment.NewLine);
-
-                                            if (timestamp.SyncTimestamps != null)
-                                            {
-                                                foreach (BinHeader binh in timestamp.SyncTimestamps)
-                                                {
-                                                    metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy HH:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
-                                                }
-                                            }
-
-                                            File.WriteAllText(metadata_filename, metadata, Encoding.UTF8);
-                                        }
-
-                                        using (FileStream fs = File.OpenWrite(wn))
-                                        {
-                                            var gw = new KolGapWriter(databuffer, fs);
-                                            if (timestamp.SyncTimestamps == null || timestamp.SyncTimestamps.Count == 0)
-                                            {
-                                                gw.Write(timestamp.StartHeader.StartPosition, timestamp.EndHeader.StartPosition - timestamp.StartHeader.StartPosition);
-                                            }
-                                            else
-                                            {
-                                                gw.Write(timestamp.StartHeader.StartPosition, timestamp.SyncTimestamps[0].StartPosition - timestamp.StartHeader.StartPosition);
-
-                                                for (int i = 0; i < timestamp.SyncTimestamps.Count - 1; i++)
-                                                {
-                                                    gw.Write(timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.SyncTimestamps[i + 1].StartPosition - (timestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
-                                                }
-
-                                                gw.Write(timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, timestamp.EndHeader.StartPosition - (timestamp.SyncTimestamps[timestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
-                                            }
-
-                                            fs.Close();
-                                            if (gw.Notes.Count > 0 && File.Exists(metadata_filename))
-                                                File.AppendAllText(metadata_filename, string.Join(Environment.NewLine, gw.Notes) + Environment.NewLine, Encoding.UTF8);
-                                        }
-
+                                        WriteSegment(databuffer, timestamp, timestamp.EndHeader.StartPosition, wn, metadata_filename,
+                                                     binaryTypeHeader, first_letter, null);
                                     }
                                 }
                             }
@@ -388,62 +335,11 @@ namespace VesperApp.Services
 
                             if (File.Exists(wn) == false)
                             {
-                                if (File.Exists(metadata_filename) == true)
-                                {
-                                    File.Delete(metadata_filename);
-                                }
-
-                                if (binaryTypeHeader != null)
-                                {
-                                    metadata += ("DeviceID:" + binaryTypeHeader.UId.ToString("X") + Environment.NewLine);
-                                    metadata += ("HWID:" + binaryTypeHeader.HwId.ToString("X") + Environment.NewLine);
-                                    metadata += ("FWID:" + binaryTypeHeader.FwId.ToString("X") + Environment.NewLine);
-                                    metadata += ("Sensor:" + binaryTypeHeader.DeviceDriverName + Environment.NewLine);
-                                    metadata += ("SampleRate:" + binaryTypeHeader.SamplingRate + Environment.NewLine);
-                                    metadata += ("WinRate:" + binaryTypeHeader.WindowRate + Environment.NewLine);
-                                    metadata += ("WinLen:" + binaryTypeHeader.WindowLength + Environment.NewLine);
-                                    metadata += ("Config0:" + binaryTypeHeader.Configuration0.ToString("X") + Environment.NewLine);
-                                    metadata += ("Config1:" + binaryTypeHeader.Configuration1.ToString("X") + Environment.NewLine);
-                                    metadata += ("Config2:" + binaryTypeHeader.Configuration2.ToString("X") + Environment.NewLine);
-                                    metadata += ("Config3:" + binaryTypeHeader.Configuration3.ToString("X") + Environment.NewLine);
-                                    metadata += ("Bitmask:" + binaryTypeHeader.Bitmask.ToString("X") + Environment.NewLine);
-
-                                    if (activeTimestamp.SyncTimestamps != null)
-                                    {
-                                        foreach (BinHeader binh in activeTimestamp.SyncTimestamps)
-                                        {
-                                            metadata += ("Sync:" + binh.HeaderTimestamp.ToString("dd/MM/yyyy HH:mm:ss.FFF") + ":" + (binh.StartPosition / 2).ToString() + Environment.NewLine);       /// shift start position to get it in number of sample
-                                        }
-                                    }
-                                    // No FOOTER: the unit stopped without closing the file (reset - watchdog, low
-                                    // supply - or power loss). Everything in the file is extracted; what was recorded
-                                    // after its last write is not on the card (kol-recording-format.md "Reset while recording").
-                                    metadata += ("Unclosed:no FOOTER - recording ended by a reset or power loss; data up to the end of the file" + Environment.NewLine);
-
-                                    File.WriteAllText(metadata_filename, metadata, Encoding.UTF8);
-                                }
-
-                                using (FileStream fs = File.OpenWrite(wn))
-                                {
-                                    var gw = new KolGapWriter(databuffer, fs);
-                                    if (activeTimestamp.SyncTimestamps == null || activeTimestamp.SyncTimestamps.Count == 0)
-                                    {
-                                        gw.Write(activeTimestamp.StartHeader.StartPosition, databuffer.Length - activeTimestamp.StartHeader.StartPosition);
-                                    }
-                                    else
-                                    {
-                                        gw.Write(activeTimestamp.StartHeader.StartPosition, activeTimestamp.SyncTimestamps[0].StartPosition - activeTimestamp.StartHeader.StartPosition);
-
-                                        for (int i = 0; i < activeTimestamp.SyncTimestamps.Count - 1; i++)
-                                        {
-                                            gw.Write(activeTimestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH, activeTimestamp.SyncTimestamps[i + 1].StartPosition - (activeTimestamp.SyncTimestamps[i].StartPosition + BinHeader.BIN_HEADER_LENGTH));
-                                        }
-                                        gw.Write(activeTimestamp.SyncTimestamps[activeTimestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH, databuffer.Length - (activeTimestamp.SyncTimestamps[activeTimestamp.SyncTimestamps.Count - 1].StartPosition + BinHeader.BIN_HEADER_LENGTH));
-                                    }
-                                    fs.Close();
-                                    if (gw.Notes.Count > 0 && File.Exists(metadata_filename))
-                                        File.AppendAllText(metadata_filename, string.Join(Environment.NewLine, gw.Notes) + Environment.NewLine, Encoding.UTF8);
-                                }
+                                // No FOOTER: the unit stopped without closing the file (reset - watchdog, low
+                                // supply - or power loss). Everything in the file is extracted; what was recorded
+                                // after its last write is not on the card (kol-recording-format.md "Reset while recording").
+                                WriteSegment(databuffer, activeTimestamp, databuffer.Length, wn, metadata_filename, binaryTypeHeader, first_letter,
+                                             "Unclosed:no FOOTER - recording ended by a reset or power loss; data up to the end of the file");
                             }
                         }
                     }
@@ -453,6 +349,72 @@ namespace VesperApp.Services
             finally { }
 
             return Task.FromResult(0);
+        }
+
+        /// <summary>
+        /// Writes one segment (HEADER .. <paramref name="endPos"/>) of a raw file: the payload without its blocks to
+        /// <paramref name="wn"/> (GAP blocks handled by <see cref="KolGapWriter"/>, which keeps the sample timeline),
+        /// then the .txt metadata. A "Sync:" line holds the SYNC time and the position of that SYNC in the written file
+        /// in 2-byte units - the sample number in the WAV for audio (it used to be the raw-file position, which also
+        /// counted the 16-byte blocks: 8 more per earlier SYNC). Audio files also get the rate measured from the SYNCs
+        /// (<see cref="SampleClockFit"/>, backlog F6).
+        /// </summary>
+        private static void WriteSegment(byte[] databuffer, BinTimestamp ts, int endPos, string wn, string metadataFilename,
+                                         BinaryTypeHeader? hdr, char firstLetter, string? closingLine)
+        {
+            if (File.Exists(metadataFilename))
+                File.Delete(metadataFilename);
+
+            var syncAt = new List<(long Sample, DateTime Time)>();
+            List<string> notes;
+            int L = BinHeader.BIN_HEADER_LENGTH;
+            using (FileStream fs = File.OpenWrite(wn))
+            {
+                var gw = new KolGapWriter(databuffer, fs);
+                var syncs = ts.SyncTimestamps;
+                int from = ts.StartHeader!.StartPosition;
+                if (syncs != null)
+                {
+                    foreach (BinHeader s in syncs)
+                    {
+                        gw.Write(from, s.StartPosition - from);
+                        syncAt.Add((fs.Position / 2, s.HeaderTimestamp));
+                        from = s.StartPosition + L;
+                    }
+                }
+                gw.Write(from, endPos - from);
+                notes = gw.Notes;
+            }
+
+            if (hdr == null)
+                return;
+
+            var m = new StringBuilder();
+            m.Append("DeviceID:" + hdr.UId.ToString("X") + Environment.NewLine);
+            m.Append("HWID:" + hdr.HwId.ToString("X") + Environment.NewLine);
+            m.Append("FWID:" + hdr.FwId.ToString("X") + Environment.NewLine);
+            m.Append("Sensor:" + hdr.DeviceDriverName + Environment.NewLine);
+            m.Append("SampleRate:" + hdr.SamplingRate + Environment.NewLine);
+            m.Append("WinRate:" + hdr.WindowRate + Environment.NewLine);
+            m.Append("WinLen:" + hdr.WindowLength + Environment.NewLine);
+            m.Append("Config0:" + hdr.Configuration0.ToString("X") + Environment.NewLine);
+            m.Append("Config1:" + hdr.Configuration1.ToString("X") + Environment.NewLine);
+            m.Append("Config2:" + hdr.Configuration2.ToString("X") + Environment.NewLine);
+            m.Append("Config3:" + hdr.Configuration3.ToString("X") + Environment.NewLine);
+            m.Append("Bitmask:" + hdr.Bitmask.ToString("X") + Environment.NewLine);
+            foreach (var (sample, time) in syncAt)
+                m.Append("Sync:" + time.ToString("dd/MM/yyyy HH:mm:ss.FFF") + ":" + sample + Environment.NewLine);
+            if (firstLetter == 'U')
+            {
+                var fit = SampleClockFit.Fit(syncAt, hdr.SamplingRate);
+                if (fit != null)
+                    m.Append(SampleClockFit.MetadataLines(fit));
+            }
+            if (closingLine != null)
+                m.Append(closingLine + Environment.NewLine);
+            if (notes.Count > 0)
+                m.Append(string.Join(Environment.NewLine, notes) + Environment.NewLine);
+            File.WriteAllText(metadataFilename, m.ToString(), Encoding.UTF8);
         }
     }
 }

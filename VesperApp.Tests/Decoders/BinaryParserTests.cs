@@ -71,7 +71,7 @@ public class BinaryParserTests
         string raw = dir.File("7E.BIN");
         File.WriteAllBytes(raw, Raw.Concat(Raw.FileHeader("EXG48", 250, 0, 0, 0, 0, 0),
             Raw.Block(BinHeader.PreambleHeader, Start), p1,
-            Raw.Block(BinHeader.PreambleSync, Start, 255, 127), p2,           // sync at offset 24 -> sample 12
+            Raw.Block(BinHeader.PreambleSync, Start, 255, 127), p2,           // sync after 8 payload bytes -> position 4 in the .EBN
             Raw.Block(BinHeader.PreambleFooter, Start.AddSeconds(2))));
 
         await BinaryParser.StripSplit(raw, dir.Path, 0);
@@ -80,7 +80,7 @@ public class BinaryParserTests
         Assert.Equal("E2026_10_25_10_00_00_000-E2026_10_25_10_00_02_000.EBN", Path.GetFileName(ebn));
         Assert.Equal(Raw.Concat(p1, p2), File.ReadAllBytes(ebn));
         string sync = Assert.Single(File.ReadAllLines(ebn + ".txt"), l => l.StartsWith("Sync:"));
-        Assert.EndsWith(":12", sync);
+        Assert.EndsWith(":4", sync);           // position in the written file (was the raw-file position, 12)
         Assert.Contains("10:00:00.5", sync);
     }
 

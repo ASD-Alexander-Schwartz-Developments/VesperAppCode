@@ -1336,7 +1336,7 @@ namespace VesperApp.ViewModels
                                             wf.Open();
                                             wf.WriteWave(databuf);
                                         }
-                                        RecordingPipeline.WriteWavNote(lp, band);
+                                        RecordingPipeline.WriteWavNote(lp, band + RecordingPipeline.ClockNote(lp));
                                     }
                                 }
                             }

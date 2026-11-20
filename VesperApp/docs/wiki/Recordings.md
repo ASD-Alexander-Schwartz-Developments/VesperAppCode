@@ -52,7 +52,7 @@ Several jobs can run and be monitored at once; you can keep working in other tab
 
 ## Audio: usable band, recording check and post-filters
 
-**Usable band.** Next to every decoded WAV the decoder writes `<file>.WAV.txt` with the sample rate and the usable band of that recording: up to 0.44 × the sample rate at the rates recorded with the full anti-aliasing filter, less at the rates that run without it (the note then names the rate to record at instead). The WAV is low-pass filtered at the top of that band. To pick a rate with the full filter, press **Solve** in the [Configuration Editor](Configuration-Editor).
+**Usable band.** Next to every decoded WAV the decoder writes `<file>.WAV.txt` with the sample rate, the measured sample rate (see [Exact sample rate and times](#audio-exact-sample-rate-and-times)) and the usable band of that recording: up to 0.44 × the sample rate at the rates recorded with the full anti-aliasing filter, less at the rates that run without it (the note then names the rate to record at instead). The WAV is low-pass filtered at the top of that band. To pick a rate with the full filter, press **Solve** in the [Configuration Editor](Configuration-Editor).
 
 **Recording check** (Vesper and Pipistrelle microphone recordings). Every run is checked when it is decoded, from the sample counts and time stamps the unit writes into its files. The result is one line in the decode summary and the report `AUD\RECORDING-CHECK.TXT` of that session. It reports:
 
@@ -69,6 +69,67 @@ Several jobs can run and be monitored at once; you can keep working in other tab
 
 - **Remove the sound-port resonance** — Vesper and Pipistrelle: takes out the peak that the microphone's sound port adds around 26.5 kHz. Not applied to KOL recordings.
 - **Notch the 32.768 kHz clock-crystal tone** — removes a slice about 65 Hz wide at the tone, located in each file. When no tone stands out in a file, nothing is removed and the note says so.
+
+## Audio: exact sample rate and times
+
+**In short.** A WAV says it was recorded at the rate you set, for example 100,000 samples per second. The real rate is a little different: each unit's sound clock runs a few hundredths of a percent fast or slow. For listening, spectrograms and call frequencies this does not matter. It matters when you need the **exact time** of a sound late in a long file, or when you **compare several recorders** (for example to locate an animal from the arrival times at each unit). For that, VesperApp measures the real rate of every audio file and writes it next to the file.
+
+**Why the rate is off.** The unit keeps its time with a small quartz crystal and corrects that time with its clock calibration. The microphone clock is built from the same crystal, but it does not get that correction: it runs about 0.011 % (107 parts per million, ppm) fast by design, plus the crystal's own error, typically within ±0.03 %. While recording, the unit writes a time stamp into the file about every 32,760 samples (every third of a second at 100 kHz). From those stamps VesperApp measures how many samples the unit really recorded per second. This works for Vesper, Pipistrelle and KOL recordings, and for files from older firmware too.
+
+**Where to find it.** Open the session folder in the system file explorer (right-click → **Open in system file explorer**; the browser hides `.txt` files). Next to each WAV:
+
+- `<file>.WAV.txt` holds the summary:
+
+  ```
+  SampleRate: 100000
+  MeasuredRate: 100010.67
+  ClockPpm: +106.7
+  ClockFit: 1831 SYNC stamps over 599.8 s, largest deviation 0.6 ms
+  ```
+
+- `<file>.UBN.txt` holds the same three lines and every time stamp as a `Sync:` line, for example `Sync:20/11/2026 21:14:59.821:89991720`: the date and time (day/month/year, to the millisecond), then the sample number in the WAV at that moment (the first sample of the WAV is sample 0). The time has no trailing zeros: `.84` means `.840`.
+
+| Line | Meaning |
+|---|---|
+| `SampleRate` | The rate you set: the rate in the WAV header. Audio programs use it. |
+| `MeasuredRate` | Samples per real second, measured over this file (2 decimals). |
+| `ClockPpm` | The same as a difference from `SampleRate`, in ppm (millionths). +106.7 ppm means 106.7 samples more per million than the WAV says. |
+| `ClockFit` | How many time stamps were used, over how long, and how far the furthest one sits from a straight line. A few ms is normal (the stamps are 1 ms steps). "uneven" means the clock changed inside the file (see below). |
+
+A file shorter than 10 seconds gets no `MeasuredRate`: too few stamps for a better answer. Use `SampleRate`; over 10 seconds the error stays under 4 ms.
+
+**Example 1: the time of a sound.** A file starts at 21:00:00.000 (the start time is in the file name). `SampleRate` is 100000 and `MeasuredRate` is 100010.67. A bat call starts at sample 90,000,000.
+
+- With the WAV rate: 90,000,000 ÷ 100,000 = 900.000 s → 21:15:00.000.
+- With the measured rate: 90,000,000 ÷ 100,010.67 = 899.904 s → **21:14:59.904**.
+
+The WAV rate puts the call 96 ms too late. The difference grows with the time into the file: about 0.4 s per hour for this unit.
+
+**Example 2: a time read in an audio program.** Audacity, Kaleidoscope, Raven and similar programs show times from the WAV rate. Convert them with:
+
+> real time into the file = time shown × SampleRate ÷ MeasuredRate
+
+The program shows the call at 00:15:00.000 = 900 s. 900 × 100,000 ÷ 100,010.67 = **899.904 s**, the same as in example 1.
+
+**Example 3: the most exact time, from the `Sync` lines.** The measured rate is an average over the file. Temperature changes the rate slightly during a long file; the `Sync` lines follow it. Take the two `Sync` lines around your sample and share the time between them in proportion:
+
+```
+Sync:20/11/2026 21:14:59.821:89991720
+Sync:20/11/2026 21:15:00.149:90024480
+```
+
+The call at sample 90,000,000 is 8,280 samples after the first line; the two lines are 32,760 samples and 0.328 s apart. 8,280 ÷ 32,760 × 0.328 s = 0.083 s, so the call is at 21:14:59.821 + 0.083 s = **21:14:59.904**. In a spreadsheet: put the sample numbers and times of the `Sync` lines in two columns, and for any sample use `FORECAST.LINEAR` on the two rows around it.
+
+**Example 4: comparing two recorders.** Unit A shows `ClockPpm: +106.7`, unit B `ClockPpm: -97.3`. Both record the same sound one hour after their files started. Counted with the WAV rate, unit A gives 3,600.384 s and unit B 3,599.650 s: the two units disagree by 0.73 s, the time sound needs to travel about 250 m. With each unit's own `MeasuredRate` (or its `Sync` lines), both give 3,600.000 s, and what is left is the time stamps' own precision, about a millisecond. (The units' clocks must of course be set and calibrated: see [Clock calibration](Clock-Calibration).)
+
+**Example 5: frequencies.** A WAV played at the rate in its header shows every frequency short by the same fraction. A 40,000 Hz call recorded by unit A shows at 40,000 × 100,000 ÷ 100,010.67 = 39,995.7 Hz: 4 Hz off, far below what matters for identifying calls. No correction is needed.
+
+**If you need a WAV at the true rate.** Most analysis programs let you enter the sample rate of a file: enter `MeasuredRate`. Some programs accept only whole numbers; round it (100,011 Hz). Rounding leaves at most half a sample per second: 5 ppm at 100 kHz, about 18 ms per hour.
+
+**When something looks wrong.**
+
+- `ClockPpm` beyond ±1,000 (0.1 %): the microphone clock lost its lock to the crystal. For Vesper and Pipistrelle recordings the [recording check](#audio-usable-band-recording-check-and-post-filters) reports it as "Sample clock off". The measured rate is still right for that file as a whole, but if the clock changed in the middle, use the `Sync` lines.
+- `ClockFit` says "uneven": the clock changed inside the file (it lost its lock part-way, or the crystal stalled for a moment). Use the `Sync` lines (example 3) and, for Vesper and Pipistrelle, see `AUD\RECORDING-CHECK.TXT`.
 
 ## Where files go
 

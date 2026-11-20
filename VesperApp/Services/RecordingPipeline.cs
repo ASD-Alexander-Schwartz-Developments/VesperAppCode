@@ -266,7 +266,7 @@ namespace VesperApp.Services
                             wf.Open();
                             wf.WriteWave(data);
                         }
-                        WriteWavNote(path, band);
+                        WriteWavNote(path, band + ClockNote(path));
                         sum.Wav++;
                     }
                         if (WritePostFiltered(path, data, PostFilterSettings())) sum.PostFiltered++;
@@ -413,6 +413,19 @@ namespace VesperApp.Services
             catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
         }
 
+        /// <summary>The measured sample rate lines of the intermediate's metadata (MeasuredRate, ClockPpm, ClockFit; backlog
+        /// F6), as "Key: value" lines for a .WAV.txt note; empty when the file was too short to measure.</summary>
+        public static string ClockNote(string intermediatePath)
+        {
+            var sb = new StringBuilder();
+            foreach (string key in new[] { "MeasuredRate", "ClockPpm", "ClockFit" })
+            {
+                string? v = MetaText(intermediatePath, key);
+                if (v != null) sb.Append(key + ": " + v + Environment.NewLine);
+            }
+            return sb.ToString();
+        }
+
         // ───────────────────────── audio post-filters ─────────────────────────
 
         private static PostFilterOptions PostFilterSettings()
@@ -465,7 +478,7 @@ namespace VesperApp.Services
                 }
 
                 string note = "Source: " + Path.GetFileName(ubnPath) + Environment.NewLine +
-                              band +
+                              band + ClockNote(ubnPath) +
                               (kol && options.PortEq ? "PortEQ: skipped (KOL)" + Environment.NewLine : "") +
                               rep.Describe() + Environment.NewLine;
                 File.WriteAllText(eqBase + ".WAV.txt", note, Encoding.UTF8);
