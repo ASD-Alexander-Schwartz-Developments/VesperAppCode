@@ -91,7 +91,7 @@
 
 						<CheckBox Grid.Row="3" Grid.Column="3" Grid.ColumnSpan="2" VerticalAlignment="Center"
 								  IsChecked="{Binding TempCompEnabled}"
-								  ToolTip.Tip="KOL / Vesper / Pipistrelle: read the internal temperature sensor periodically and correct the clock crystal's temperature drift (a 32 kHz crystal runs slow away from about 25 °C: -14 ppm at 5 °C, -31 ppm at -5 °C). Off by default.">
+								  ToolTip.Tip="KOL / Vesper / Pipistrelle: read the internal temperature sensor periodically and correct the clock crystal's temperature drift. Off by default.">
 							RTC temperature compensation
 						</CheckBox>
 						<StackPanel Grid.Row="4" Grid.Column="3" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8"

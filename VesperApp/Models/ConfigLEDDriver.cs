@@ -21,7 +21,7 @@ namespace VesperApp.Models
             _ => base.EditorLabel(property),
         };
 
-        public ConfigLEDDriver() : base("LED", "LED heartbeat while recording: one flash every Sample Rate ms (Window Length = flash length in ms, 30 ms if 0). Sample Rate 0 with Window Rate and Length set: on for Window Length every Window Rate. VesperU5 1.22-pre.22+")
+        public ConfigLEDDriver() : base("LED", "LED Heartbeat")
         {
             this.FileSize = 0;
         }
