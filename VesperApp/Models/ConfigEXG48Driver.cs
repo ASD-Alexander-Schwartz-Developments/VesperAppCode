@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace VesperApp.Models
 {
-    public class ConfigEXG48Driver : ConfigurationDeviceDriver
+    public class ConfigEXG48Driver : ConfigurationDeviceDriver, IJsonOnDeserialized
     {
         public const UInt32 BITMASK_LED = 0x02;
 
@@ -1427,8 +1427,17 @@ namespace VesperApp.Models
         }
 
 
+        /// <summary>Configurations above the top offered rate (4 kSPS; also every code written by the old list as
+        /// "4 kSPS" or above) open at 4 kSPS.</summary>
+        public void OnDeserialized()
+        {
+            for (int i = 1; i <= 2 && i < SampleRate.Length; i++)
+                if (SampleRate[i] != 0 && EXGSampleRateOptions.SpsFor(SampleRate[i], EnableHR) > EXGSampleRateOptions.MaxSps)
+                    SampleRate[i] = EXGSampleRateOptions.CodeFor(EXGSampleRateOptions.MaxSps, EnableHR);
+        }
+
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Config 1 conversion rate. 8 kSPS to 500 SPS; 250 SPS in low-power mode only."),
+        DescriptionAttribute("Config 1 conversion rate. 4 kSPS to 500 SPS; 250 SPS in low-power mode only."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -1444,7 +1453,7 @@ namespace VesperApp.Models
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Config 2 conversion rate. 8 kSPS to 500 SPS; 250 SPS in low-power mode only."),
+        DescriptionAttribute("Config 2 conversion rate. 4 kSPS to 500 SPS; 250 SPS in low-power mode only."),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
@@ -1586,16 +1595,16 @@ namespace VesperApp.Models
     /// DR code, which VesperU5 writes as is (ads1298.c), with the HR bit from eegconf1 bit 0 ("Enable High Performance
     /// Mode"): high resolution 32 kSPS / 2^code, low power 16 kSPS / 2^code; code 0 = off (the firmware does not start
     /// the converter). Before 2026-11-20 the editor wrote the list position (0..4) as the code: "8 kSPS" turned the ExG
-    /// off and the others ran 2x (low power) or 4x (high resolution) the rate shown. Offered: 8 kSPS down to 500 SPS in
-    /// both modes and 250 SPS in low power; never 16 / 32 kSPS (32 kSPS outputs 16-bit channels, which the firmware
-    /// and VesperApp do not read).
+    /// off and the others ran 2x (low power) or 4x (high resolution) the rate shown. Offered: 4 kSPS down to 500 SPS in
+    /// both modes and 250 SPS in low power. Not above 4 kSPS: the firmware reads every sample in the task that also
+    /// writes the eMMC, so samples are lost during each write; on the twin (1.22) 2 kSPS lost 2 %, 4 kSPS 4 %,
+    /// 8 kSPS 15-30 % (backlog F3). 32 kSPS outputs 16-bit channels, which neither reads.
     /// </summary>
     public class EXGSampleRateOptions
     {
         private static readonly EXGSampleRateOptions[] listOfOptions =
         {
             new EXGSampleRateOptions(0),
-            new EXGSampleRateOptions(8000),
             new EXGSampleRateOptions(4000),
             new EXGSampleRateOptions(2000),
             new EXGSampleRateOptions(1000),
@@ -1604,6 +1613,9 @@ namespace VesperApp.Models
         };
 
         public static EXGSampleRateOptions[] ListOfOptions => listOfOptions;
+
+        /// <summary>The top offered rate (samples per second).</summary>
+        public const uint MaxSps = 4000;
 
         /// <summary>The rate in samples per second (0 = off).</summary>
         public static EXGSampleRateOptions CreateFromValue(uint samplesPerSecond) => new EXGSampleRateOptions(samplesPerSecond);
@@ -1616,12 +1628,12 @@ namespace VesperApp.Models
             code == 0 || code > 6 ? 0u : (highResolution ? 32000u : 16000u) >> (int)code;
 
         /// <summary>The code for a rate in the given mode: the nearest offered rate at or below it (at least 500 SPS in
-        /// high resolution, 250 in low power; 8 kSPS at most); 0 = off.</summary>
+        /// high resolution, 250 in low power; 4 kSPS at most); 0 = off.</summary>
         public static uint CodeFor(uint samplesPerSecond, bool highResolution)
         {
             if (samplesPerSecond == 0) return 0;
             uint top = highResolution ? 32000u : 16000u;
-            uint code = highResolution ? 2u : 1u;                     // 8 kSPS
+            uint code = highResolution ? 3u : 2u;                     // 4 kSPS (MaxSps)
             while (code < 6 && (top >> (int)code) > samplesPerSecond) code++;
             return code;
         }
