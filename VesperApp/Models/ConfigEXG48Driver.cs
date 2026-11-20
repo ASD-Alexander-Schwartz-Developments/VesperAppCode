@@ -1006,7 +1006,7 @@ namespace VesperApp.Models
         [DisplayName("Enable High Performance Mode"),
         TypeConverter(typeof(bool)),
         CategoryAttribute("EXG Specific Settings"),
-        DescriptionAttribute("High-resolution mode (more power); off = low-power mode."),
+        DescriptionAttribute("High-resolution mode (more power); off = low-power mode. The sample rates keep their value (250 SPS becomes 500 SPS in high resolution)."),
         Browsable(true)]
         [JsonIgnore]
         public bool EnableHR
@@ -1017,9 +1017,19 @@ namespace VesperApp.Models
             }
             set
             {
+                bool was = EnableHR;
+                // The rate code depends on the mode: keep the rates in samples per second.
+                uint sps1 = EXGSampleRateOptions.SpsFor(SampleRate[1], was), sps2 = EXGSampleRateOptions.SpsFor(SampleRate[2], was);
                 this.eegconf1 &= ~(uint)(0x00000001);
                 if (value == true) this.eegconf1 |= (uint)(1);
+                if (was != value)
+                {
+                    if (SampleRate[1] != 0) SampleRate[1] = EXGSampleRateOptions.CodeFor(sps1, value);
+                    if (SampleRate[2] != 0) SampleRate[2] = EXGSampleRateOptions.CodeFor(sps2, value);
+                }
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(SampleRate_1));
+                OnPropertyChanged(nameof(SampleRate_2));
             }
         }
 
@@ -1418,38 +1428,34 @@ namespace VesperApp.Models
 
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Config 1 conversion rate, samples per second (0 = off)."),
+        DescriptionAttribute("Config 1 conversion rate. 8 kSPS to 500 SPS; 250 SPS in low-power mode only."),
         DisplayName("Sample Rate [1]")]
         [JsonIgnore]
         [Browsable(true)]
 
         public EXGSampleRateOptions SampleRate_1
         {
-            get
-            {
-                return EXGSampleRateOptions.CreateFromValue((byte)(SampleRate[1]));
-            }
+            get => EXGSampleRateOptions.FromCode(SampleRate[1], EnableHR);
             set
             {
-                this.SampleRate[1] = (uint)value.Value;
+                this.SampleRate[1] = EXGSampleRateOptions.CodeFor(value?.Value ?? 0, EnableHR);
+                OnPropertyChanged();
             }
         }
 
         [CategoryAttribute("Standard configuration"),
-        DescriptionAttribute("Config 2 conversion rate, samples per second (0 = off)."),
+        DescriptionAttribute("Config 2 conversion rate. 8 kSPS to 500 SPS; 250 SPS in low-power mode only."),
         DisplayName("Sample Rate [2]")]
         [JsonIgnore]
         [Browsable(true)]
 
         public EXGSampleRateOptions SampleRate_2
         {
-            get
-            {
-                return EXGSampleRateOptions.CreateFromValue((byte)(SampleRate[2]));
-            }
+            get => EXGSampleRateOptions.FromCode(SampleRate[2], EnableHR);
             set
             {
-                this.SampleRate[2] = (uint)value.Value;
+                this.SampleRate[2] = EXGSampleRateOptions.CodeFor(value?.Value ?? 0, EnableHR);
+                OnPropertyChanged();
             }
         }
 
@@ -1575,117 +1581,66 @@ namespace VesperApp.Models
 
 
 
+    /// <summary>
+    /// EXG48 sample rate as the rate itself (samples per second); config.json "sampleRate" holds the ADS129x CONFIG1
+    /// DR code, which VesperU5 writes as is (ads1298.c), with the HR bit from eegconf1 bit 0 ("Enable High Performance
+    /// Mode"): high resolution 32 kSPS / 2^code, low power 16 kSPS / 2^code; code 0 = off (the firmware does not start
+    /// the converter). Before 2026-11-20 the editor wrote the list position (0..4) as the code: "8 kSPS" turned the ExG
+    /// off and the others ran 2x (low power) or 4x (high resolution) the rate shown. Offered: 8 kSPS down to 500 SPS in
+    /// both modes and 250 SPS in low power; never 16 / 32 kSPS (32 kSPS outputs 16-bit channels, which the firmware
+    /// and VesperApp do not read).
+    /// </summary>
     public class EXGSampleRateOptions
     {
-        public const byte SR_8K_HR = 2;
-        public const byte SR_4K_HR = 3;
-        public const byte SR_2K_HR = 4;
-        public const byte SR_1K_HR = 5;
-        public const byte SR_500_HR = 6;
-
-        public const byte SR_8K_LP = 1;
-        public const byte SR_4K_LP = 2;
-        public const byte SR_2K_LP = 3;
-        public const byte SR_1K_LP = 4;
-        public const byte SR_500_LP = 5;
-        public const byte SR_250_LP = 6;
-
-        public const int SR_8K_I = 0;
-        public const int SR_4K_I = 1;
-        public const int SR_2K_I = 2;
-        public const int SR_1K_I = 3;
-        public const int SR_500_I = 4;
-
-        public const string SR_8K_S = "8 kSPS";
-        public const string SR_4K_S = "4 kSPS";
-        public const string SR_2K_S = "2 kSPS";
-        public const string SR_1K_S = "1 kSPS";
-        public const string SR_500_S = "500 SPS";
-        
-        private static readonly EXGSampleRateOptions[] listOfOptions = 
-        { 
-            new EXGSampleRateOptions(SR_8K_I),
-            new EXGSampleRateOptions(SR_4K_I),
-            new EXGSampleRateOptions(SR_2K_I),
-            new EXGSampleRateOptions(SR_1K_I),
-            new EXGSampleRateOptions(SR_500_I) 
+        private static readonly EXGSampleRateOptions[] listOfOptions =
+        {
+            new EXGSampleRateOptions(0),
+            new EXGSampleRateOptions(8000),
+            new EXGSampleRateOptions(4000),
+            new EXGSampleRateOptions(2000),
+            new EXGSampleRateOptions(1000),
+            new EXGSampleRateOptions(500),
+            new EXGSampleRateOptions(250),
         };
 
-        private static readonly string[] listOfStrings =
+        public static EXGSampleRateOptions[] ListOfOptions => listOfOptions;
+
+        /// <summary>The rate in samples per second (0 = off).</summary>
+        public static EXGSampleRateOptions CreateFromValue(uint samplesPerSecond) => new EXGSampleRateOptions(samplesPerSecond);
+
+        /// <summary>The option for a config.json code in the given mode.</summary>
+        public static EXGSampleRateOptions FromCode(uint code, bool highResolution) => new EXGSampleRateOptions(SpsFor(code, highResolution));
+
+        /// <summary>Samples per second of a code (0 = off; 7 is not a rate: 0).</summary>
+        public static uint SpsFor(uint code, bool highResolution) =>
+            code == 0 || code > 6 ? 0u : (highResolution ? 32000u : 16000u) >> (int)code;
+
+        /// <summary>The code for a rate in the given mode: the nearest offered rate at or below it (at least 500 SPS in
+        /// high resolution, 250 in low power; 8 kSPS at most); 0 = off.</summary>
+        public static uint CodeFor(uint samplesPerSecond, bool highResolution)
         {
-            SR_8K_S,
-            SR_4K_S,
-            SR_2K_S,
-            SR_1K_S,
-            SR_500_S
-        };
-
-        public static EXGSampleRateOptions[] ListOfOptions
-        {
-            get => listOfOptions;
-        }
-        public static EXGSampleRateOptions CreateFromValue(byte v)
-        {
-            return new EXGSampleRateOptions(v);
-        }
-
-
-        public byte GetTrueValue(bool ishr)
-        {
-            byte ret = SR_250_LP;
-
-            if(ishr)
-            {
-                switch(this.value)
-                {
-                    case SR_8K_I: ret = SR_8K_HR; break;
-                    case SR_4K_I: ret = SR_4K_HR; break;
-                    case SR_2K_I: ret = SR_2K_HR; break;
-                    case SR_1K_I: ret = SR_1K_HR; break;
-                    case SR_500_HR: ret = SR_500_HR; break;
-                    default: ret = SR_500_HR; break;
-                }
-            }
-            else
-            {
-                switch (this.value)
-                {
-                    case SR_8K_I: ret = SR_8K_LP; break;
-                    case SR_4K_I: ret = SR_4K_LP; break;
-                    case SR_2K_I: ret = SR_2K_LP; break;
-                    case SR_1K_I: ret = SR_1K_LP; break;
-                    case SR_500_HR: ret = SR_500_LP; break;
-                    default: ret = SR_500_LP; break;
-                }
-            }
-
-            return ret;
+            if (samplesPerSecond == 0) return 0;
+            uint top = highResolution ? 32000u : 16000u;
+            uint code = highResolution ? 2u : 1u;                     // 8 kSPS
+            while (code < 6 && (top >> (int)code) > samplesPerSecond) code++;
+            return code;
         }
 
-
-        public EXGSampleRateOptions(byte value)
+        public EXGSampleRateOptions(uint samplesPerSecond)
         {
-            this.value = value;
+            this.value = samplesPerSecond;
         }
 
+        private uint value;
 
-        private byte value;
-
-        public byte Value
+        public uint Value
         {
             get => value;
             set => this.value = value;
         }
 
-        public override string ToString()
-        {
-            int index = this.value & 0x07;
-
-            if (index > SR_500_I) index = SR_500_I;
-            
-            return listOfStrings[index];
-        }
-
+        public override string ToString() =>
+            value == 0 ? "Off" : value >= 1000 ? $"{value / 1000} kSPS" : $"{value} SPS";
     }
 
 
