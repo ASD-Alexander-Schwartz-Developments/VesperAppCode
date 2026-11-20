@@ -34,6 +34,10 @@ namespace VesperApp.Services
             return sps > 0 ? 1e6 / sps : 0.0;
         }
 
+        /// <summary>Samples per second of an EXG2 / EEG2 / EMG2 / ECG2 (ADS1292 / ADS1192) header rate code: 1 = 125 ...
+        /// 7 = 8000 (the code is CONFIG1 DR + 1; VesperU5 EegSps); anything else 0 (unknown).</summary>
+        public static double Exg2SamplesPerSecond(uint code) => code >= 1 && code <= 7 ? 125.0 * (1u << (int)(code - 1)) : 0.0;
+
         /// <summary>HR bit from the header's first config word (= eegconf1).</summary>
         public static bool Exg48HighResolution(uint config0) => (config0 & 0x01u) != 0;
 

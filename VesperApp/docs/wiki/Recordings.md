@@ -50,7 +50,7 @@ Every parse/decode run appears as a job in the non-modal **Decoding Progress** p
 
 Several jobs can run and be monitored at once; you can keep working in other tabs while they run.
 
-## Audio: usable band, recording check and post-filters
+## Audio and ExG: usable band, recording check and post-filters
 
 **Usable band.** Next to every decoded WAV the decoder writes `<file>.WAV.txt` with the sample rate, the measured sample rate (see [Exact sample rate and times](#audio-exact-sample-rate-and-times)) and the usable band of that recording: up to 0.44 × the sample rate at the rates recorded with the full anti-aliasing filter, less at the rates that run without it (the note then names the rate to record at instead). The WAV is low-pass filtered at the top of that band. To pick a rate with the full filter, press **Solve** in the [Configuration Editor](Configuration-Editor).
 
@@ -64,6 +64,18 @@ Several jobs can run and be monitored at once; you can keep working in other tab
 | **Audio lost inside a file** | The unit could not write for a moment and marked the gap in the file; the report gives the length. |
 
 "No problems found" means none of these occurred. A KOL recording is not checked this way.
+
+**ExG recording check** (EXG2, EEG2 / EMG2 / ECG2 and EXG48). ExG runs are checked the same way when they are decoded, from the start and end time stamps of each file. The report is `EXG\RECORDING-CHECK.TXT` of that session:
+
+| Finding | Meaning |
+|---|---|
+| **Data lost before this file** | The gap from the end of one file to the start of the next, in ms and in samples. Ideally one sample period; firmware 1.22 loses about 0.2–0.3 s at every file change. |
+| **Records that are not valid samples** | The unit read the converter out of step while it wrote to its storage (EXG2 family at high rates). The decoder leaves these records out of the CSV, and the rows after them keep their correct time. |
+| **Samples cover less time than the file** | Fewer samples than the file's start and end times allow, by more than the board's own clock tolerance: samples were lost, or sampling started late after the file's start stamp. The CSV times run from the start stamp. |
+
+The table at the end gives every file's recorded samples per second. The ExG boards run on their own clock, accurate to about ±0.5 % at room temperature and ±2 % over 0–70 °C, so a recorded rate within that is normal and is not reported.
+
+**EXG48 CSV.** One row per sample: date, time, then for each channel its value in µV and two lead-off columns, `CHn+ off` and `CHn- off` (`True` = that electrode is off). A lead-off column is empty when lead-off detection was not enabled for that input in the configuration. The CSV holds the channels the board has: 4 (EXG48 with ADS1294), 6 or 8. Channels that read zero for the whole file at the end of the list are left out.
 
 **Post-filters** (optional, off by default; **Settings → Recordings → Audio post-filters**, see [Settings](Settings)). With one or both ticked, decoding writes an extra `<name>_EQ.UBN.WAV` next to each microphone WAV, with its own `.WAV.txt` saying what was applied. The original WAV is always kept.
 
@@ -128,7 +140,7 @@ The call at sample 90,000,000 is 8,280 samples after the first line; the two lin
 
 **When something looks wrong.**
 
-- `ClockPpm` beyond ±1,000 (0.1 %): the microphone clock lost its lock to the crystal. For Vesper and Pipistrelle recordings the [recording check](#audio-usable-band-recording-check-and-post-filters) reports it as "Sample clock off". The measured rate is still right for that file as a whole, but if the clock changed in the middle, use the `Sync` lines.
+- `ClockPpm` beyond ±1,000 (0.1 %): the microphone clock lost its lock to the crystal. For Vesper and Pipistrelle recordings the [recording check](#audio-and-exg-usable-band-recording-check-and-post-filters) reports it as "Sample clock off". The measured rate is still right for that file as a whole, but if the clock changed in the middle, use the `Sync` lines.
 - `ClockFit` says "uneven": the clock changed inside the file (it lost its lock part-way, or the crystal stalled for a moment). Use the `Sync` lines (example 3) and, for Vesper and Pipistrelle, see `AUD\RECORDING-CHECK.TXT`.
 
 ## Where files go

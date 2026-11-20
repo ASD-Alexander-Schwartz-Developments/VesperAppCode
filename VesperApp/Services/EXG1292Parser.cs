@@ -74,7 +74,10 @@ namespace VesperApp.Services
                 }
                 else
                 {
+                    // Not a sample (the firmware read the converter out of step, backlog F3): no row, but the record
+                    // still stands for one sample period, so the rows after it keep their time.
                     index += 9;
+                    ts = ts.Add(TimeSpan.FromMicroseconds(us_sample));
                 }
             }
         }

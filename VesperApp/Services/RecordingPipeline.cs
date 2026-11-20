@@ -21,17 +21,17 @@ namespace VesperApp.Services
         public int GnssSets;
         public int Skipped;
         public int Failed;
-        /// <summary>Recording checks of the microphone runs in this decode (RecordingIntegrity), one per folder.</summary>
+        /// <summary>Recording checks of the microphone and ExG runs in this decode (RecordingIntegrity), one per folder and kind.</summary>
         public List<(string Folder, RecordingIntegrity.Report Report)> Checks = new();
 
-        /// <summary>The recording-check line for the summary, or "" when no microphone run was checked.</summary>
+        /// <summary>The recording-check line for the summary, or "" when no run was checked.</summary>
         public string CheckLine()
         {
             if (Checks.Count == 0) return "";
             var bad = Checks.Where(c => c.Report.AnyProblem).ToList();
             if (bad.Count == 0) return $" Recording check: no problems in {Checks.Count} run(s).";
-            if (Checks.Count == 1) return $" Recording check: {bad[0].Report.Headline().Substring("recording check: ".Length)} - see AUD\\{RecordingIntegrity.ReportName}.";
-            return $" Recording check: problems in {bad.Count} of {Checks.Count} runs - see AUD\\{RecordingIntegrity.ReportName} in each.";
+            if (bad.Count == 1) return $" Recording check: {bad[0].Report.Headline().Substring("recording check: ".Length)} - see {bad[0].Report.Folder}\\{RecordingIntegrity.ReportName}.";
+            return $" Recording check: problems in {bad.Count} of {Checks.Count} runs - see {string.Join(" / ", bad.Select(c => c.Report.Folder).Distinct())}\\{RecordingIntegrity.ReportName} in each.";
         }
 
         public override string ToString()
@@ -363,7 +363,8 @@ namespace VesperApp.Services
             {
                 // period from the ADS129x rate code + HR bit (was 1000 / code µs: 10x off at 500 SPS, item 22)
                 using var ip = new EXG48Parser(path, data, start, gain,
-                    ExgRate.Exg48UsPerSample(sr, ExgRate.Exg48HighResolutionFromSidecar(path + ".txt")));
+                    ExgRate.Exg48UsPerSample(sr, ExgRate.Exg48HighResolutionFromSidecar(path + ".txt")),
+                    EXG48Parser.ChannelConfigFromSidecar(path + ".txt"));
                 ip.WriteFile();
             }
             sum.Csv++;

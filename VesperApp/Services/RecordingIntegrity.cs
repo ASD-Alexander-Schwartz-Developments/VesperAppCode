@@ -24,6 +24,11 @@ namespace VesperApp.Services
     /// <item>GAP blocks the firmware wrote itself.</item>
     /// </list>
     /// asd-interfaces projects/u585-bench-2026-11-08.md, issue 2 (check 2026-11-09).
+    /// <para>ExG runs (<c>&lt;n&gt;E.BIN</c>: EXG2, EEG2 / EMG2 / ECG2, EXG48; backlog V1) are checked the same way from
+    /// their HEADER / FOOTER stamps (they have no SYNC): data lost at a file change (backlog F1), records that are not
+    /// samples (no 1100 status start: the EXG2 family's merged reads, backlog F3), and the recorded samples per
+    /// second. The boards run on the converter's own oscillator (ADS129x / ADS1x9x: +-0.5 % at 25 C, +-2 % over
+    /// 0..70 C), so only a rate beyond <see cref="ExgRateTolerancePct"/> is reported; the table shows every file's.</para>
     /// </summary>
     public static class RecordingIntegrity
     {
@@ -33,14 +38,21 @@ namespace VesperApp.Services
         public const double FileChangeNormalMs = 30;     // firmware 1.22: 18.6–20.5 ms
         public const double PauseS = 2;                  // longer: a recording window or schedule pause, not a loss
         public const string ReportName = "RECORDING-CHECK.TXT";
+        public const double ExgRateTolerancePct = 2.5;   // converter oscillator over temperature (+-2 %, industrial +-2.5 %)
+        public const double ExgFileChangeMs = 10;        // beyond one sample period: data lost at the file change
+        public const double ExgMinClockS = 5;            // shorter: the 1 ms stamps say little about the rate
 
         private const uint MagHeader = 0xA55AA55A, MagFooter = 0xA55A5AA5, MagSync = 0xABCDEFEF, MagGap = 0xA55A3CC3;
         private const int BlockLen = 16, GapLen = 512;
         private const ushort GapOverrun = 1, GapInvalid = 2;   // GAP block reasons (kol-recording-format.md)
         private static readonly Regex MicRaw = new(@"^(\d+)U\.BIN$", RegexOptions.IgnoreCase);
+        private static readonly Regex ExgRaw = new(@"^(\d+)E\.BIN$", RegexOptions.IgnoreCase);
 
         /// <summary>True for a Vesper / Pipistrelle microphone raw file (<c>12U.BIN</c>; not KOL's <c>U0</c>–<c>U3</c>).</summary>
         public static bool IsMicRaw(string path) => MicRaw.IsMatch(Path.GetFileName(path));
+
+        /// <summary>True for an ExG raw file (<c>7E.BIN</c>).</summary>
+        public static bool IsExgRaw(string path) => ExgRaw.IsMatch(Path.GetFileName(path));
 
         public sealed class Finding
         {
@@ -61,13 +73,19 @@ namespace VesperApp.Services
             public double? ClockOffAt;      // start of the first ~10 s window with the sample clock off
             public List<double> OffPpm = new();
             public int LockedBeforeOff;     // windows within the lock limit before ClockOffAt (0: off since the start)
+            public long Unreliable;         // ExG: records without a valid status start
+            public double? RecordedRate;    // ExG: records per clock second (files of >= ExgMinClockS)
         }
 
         public sealed class Report
         {
             public List<FileResult> Files = new();
             public List<Finding> Findings = new();
-            public int ClockOffFiles, Stalls, LostBetweenFiles, GapBlocks;
+            public int ClockOffFiles, Stalls, LostBetweenFiles, GapBlocks, RateOffFiles;
+            public long UnreliableRecords;
+            /// <summary>"AUD" for a microphone run, "EXG" for an ExG run: the output folder the report goes to.</summary>
+            public string Folder = "AUD";
+            public bool IsExg => Folder == "EXG";
             public double StallTotalMs, LostTotalMs, LostInFilesMs;
             public bool AnyProblem => Findings.Count > 0;
 
@@ -79,6 +97,8 @@ namespace VesperApp.Services
                 if (ClockOffFiles > 0) p.Add($"sample clock off in {ClockOffFiles} file(s)");
                 if (Stalls > 0) p.Add($"{Stalls} crystal stall(s), {StallTotalMs / 1000:0.00} s");
                 if (LostBetweenFiles > 0) p.Add($"{LostTotalMs:0} ms lost between files");
+                if (UnreliableRecords > 0) p.Add($"{UnreliableRecords} unreliable record(s)");
+                if (RateOffFiles > 0) p.Add($"sample count off in {RateOffFiles} file(s)");
                 if (LostInFilesMs > 0) p.Add($"{LostInFilesMs:0} ms lost inside files");
                 else if (GapBlocks > 0) p.Add($"{GapBlocks} GAP block(s)");
                 return "recording check: " + string.Join(", ", p);
@@ -298,9 +318,154 @@ namespace VesperApp.Services
             return day + hh * 3600 + mm * 60 + ss + (frac - (double)sub) / (frac + 1.0);
         }
 
+        // ───────────────────────── ExG runs (backlog V1) ─────────────────────────
+
+        /// <summary>Checks one ExG run: the <c>&lt;n&gt;E.BIN</c> files of one session, in file-number order.</summary>
+        public static Report CheckExg(IEnumerable<string> exgRawFiles)
+        {
+            var rep = new Report { Folder = "EXG" };
+            var files = exgRawFiles.Where(IsExgRaw)
+                .OrderBy(f => long.Parse(ExgRaw.Match(Path.GetFileName(f)).Groups[1].Value, CultureInfo.InvariantCulture))
+                .ToList();
+            double? prevFooter = null;
+            foreach (string path in files)
+            {
+                byte[] b;
+                try { b = File.ReadAllBytes(path); } catch { continue; }
+                CheckExgFile(b, Path.GetFileName(path), rep, ref prevFooter);
+            }
+            Finish(rep);
+            return rep;
+        }
+
+        internal static void CheckExgFile(byte[] b, string name, Report rep, ref double? prevFooter)
+        {
+            if (b.Length < BinaryTypeHeader.FILE_HEADER_LENGTH || BitConverter.ToUInt32(b, 0) != BinaryTypeHeader.FILE_HEADER_PREAMBLE) return;
+            var hdr = new BinaryTypeHeader(b.Take(BinaryTypeHeader.FILE_HEADER_LENGTH).ToArray());
+            string sensor = hdr.DeviceDriverName;
+            bool ads1192 = ExgGain.IsAds1192(sensor), exg2 = ExgGain.IsExg2(sensor);
+            double rate = ads1192 || exg2
+                ? ExgRate.Exg2SamplesPerSecond(hdr.SamplingRate)
+                : ExgRate.Exg48SamplesPerSecond(hdr.SamplingRate, ExgRate.Exg48HighResolution(hdr.Configuration0));
+            if (rate <= 0) return;
+
+            List<Block> blocks = FindBlocks(b);
+            int i = 0;
+            while (i < blocks.Count)
+            {
+                if (blocks[i].Magic != MagHeader) { i++; continue; }
+                Block h = blocks[i];
+                // The payload of the segment, without any block inside it (ExG writes none today).
+                var data = new List<byte>();
+                int last = h.Pos + BlockLen;
+                Block? footer = null;
+                int j = i + 1;
+                for (; j < blocks.Count; j++)
+                {
+                    Block k = blocks[j];
+                    if (k.Magic == MagHeader) break;
+                    for (int q = last; q < k.Pos; q++) data.Add(b[q]);
+                    last = k.Pos + (k.Magic == MagGap ? GapLen : BlockLen);
+                    if (k.Magic == MagFooter) { footer = k; j++; break; }
+                }
+                i = j;
+                if (footer == null) continue;                      // unfinished segment (cut-off file)
+
+                byte[] d = data.ToArray();
+                int size = ads1192 ? EXG1192Parser.DetectRecordSize(d) : exg2 ? Exg2RecordSize : EXG48Parser.RecordSize;
+                long records = d.Length / size, bad = 0;
+                for (long r = 0; r < records; r++)
+                {
+                    int o = (int)(r * size);
+                    bool ok = ads1192 || exg2 ? EXG1192Parser.IsFrameStart(d, o) : (d[o] & 0xF0) == 0xC0;
+                    if (!ok) bad++;
+                }
+                double clockS = footer.Value.T - h.T;
+                var fr = new FileResult
+                {
+                    File = name, Rate = (uint)Math.Round(rate), Samples = records, AudioS = records / rate, ClockS = clockS,
+                    Unreliable = bad, RecordedRate = clockS >= ExgMinClockS ? records / clockS : null,
+                };
+
+                if (prevFooter.HasValue)
+                {
+                    double g = h.T - prevFooter.Value;
+                    if (g >= 0 && g < PauseS)
+                    {
+                        fr.GapBeforeMs = g * 1000;
+                        double lostMs = g * 1000 - 1000.0 / rate;      // one sample period is the normal step
+                        if (lostMs > ExgFileChangeMs)
+                        {
+                            rep.LostBetweenFiles++; rep.LostTotalMs += lostMs;
+                            rep.Findings.Add(new Finding { File = name, AtS = 0,
+                                Text = $"{lostMs:0} ms of data lost before this file (about {lostMs * rate / 1000:0} samples): the recording paused while the logger changed files" });
+                        }
+                    }
+                }
+                prevFooter = footer.Value.T;
+
+                if (bad > 0)
+                {
+                    rep.UnreliableRecords += bad;
+                    rep.Findings.Add(new Finding { File = name, AtS = 0,
+                        Text = $"{bad} of {records} records ({100.0 * bad / Math.Max(1, records):0.00} %) are not valid samples (no status word at their start): " +
+                               "the logger read the converter out of step while it wrote to storage. Each one still takes a sample's place in time" });
+                }
+                if (fr.RecordedRate.HasValue)
+                {
+                    double off = (fr.RecordedRate.Value / rate - 1) * 100;
+                    if (Math.Abs(off) > ExgRateTolerancePct)
+                    {
+                        rep.RateOffFiles++;
+                        rep.Findings.Add(new Finding { File = name, AtS = 0,
+                            Text = off < 0
+                                ? $"the samples cover {clockS - records / rate:0.00} s less than the file's {clockS:0.00} s between its start and end stamps " +
+                                  $"({fr.RecordedRate.Value:0.0} samples per second, {off:+0.0;-0.0} % from {rate:0}; the board's clock is within 2 %): " +
+                                  "samples were lost, or sampling started late after the start stamp. The CSV times run from the start stamp"
+                                : $"{fr.RecordedRate.Value:0.0} samples per second against the logger's clock, {off:+0.0;-0.0} % from {rate:0}: more than the board's clock tolerance" });
+                    }
+                }
+                rep.Files.Add(fr);
+            }
+        }
+
+        /// <summary>EXG2 (ADS1292) record: the 9-byte frame (VesperU5 ads1292.c).</summary>
+        public const int Exg2RecordSize = 9;
+
+        private static string FormatExg(Report rep, string session)
+        {
+            var c = CultureInfo.InvariantCulture;
+            var sb = new StringBuilder();
+            sb.AppendLine($"Recording check (ExG) - {session}");
+            sb.AppendLine($"Checked: {rep.Files.Count} file(s), {rep.Files.Sum(f => f.AudioS).ToString("0.0", c)} s of data.");
+            sb.AppendLine("Compares the sample count with the logger's crystal clock (HEADER / FOOTER time stamps).");
+            sb.AppendLine();
+            if (!rep.AnyProblem) sb.AppendLine("No problems found: no data lost between files, every record a valid sample, sample counts within the board's clock tolerance.");
+            else
+            {
+                sb.AppendLine("Problems:");
+                foreach (var f in rep.Findings) sb.AppendLine($"- {f.File}: {f.Text}.");
+            }
+            sb.AppendLine();
+            sb.AppendLine("File      Rate SPS   Data s   Clock s   Gap before ms   Recorded SPS   Off %   Unreliable");
+            foreach (var f in rep.Files)
+            {
+                string rec = f.RecordedRate.HasValue ? f.RecordedRate.Value.ToString("0.0", c) : "-";
+                string off = f.RecordedRate.HasValue ? ((f.RecordedRate.Value / f.Rate - 1) * 100).ToString("+0.00;-0.00", c) : "-";
+                string gap = f.GapBeforeMs.HasValue ? f.GapBeforeMs.Value.ToString("0.0", c) : "-";
+                sb.AppendLine($"{f.File,-9} {f.Rate,8}   {f.AudioS.ToString("0.00", c),7}   {f.ClockS.ToString("0.00", c),7}   {gap,13}   {rec,12}   {off,5}   {f.Unreliable,10}");
+            }
+            sb.AppendLine();
+            sb.AppendLine("Recorded SPS: samples per second of the logger's clock (files of 5 s or more). The board runs on its own clock,");
+            sb.AppendLine($"accurate to +-0.5 % at room temperature and +-2 % over 0-70 C: within that the rate is normal; beyond {ExgRateTolerancePct:0.0} % it is reported.");
+            sb.AppendLine("Gap before: from the end of the previous file to the start of this one; one sample period is no loss.");
+            return sb.ToString();
+        }
+
         /// <summary>The report as text: the findings first, then a per-file table.</summary>
         public static string Format(Report rep, string session)
         {
+            if (rep.IsExg) return FormatExg(rep, session);
             var sb = new StringBuilder();
             sb.AppendLine($"Recording check - {session}");
             sb.AppendLine($"Checked: {rep.Files.Count} file(s), {rep.Files.Sum(f => f.AudioS):0.0} s of audio.");
@@ -334,6 +499,19 @@ namespace VesperApp.Services
                     Report rep = Check(g);
                     if (rep.Files.Count == 0) continue;
                     string outDir = Path.Combine(g.Key, "AUD");
+                    Directory.CreateDirectory(outDir);
+                    File.WriteAllText(Path.Combine(outDir, ReportName), Format(rep, g.Key), Encoding.UTF8);
+                    result.Add((g.Key, rep));
+                }
+                catch { /* a check that cannot run must not stop the decode */ }
+            }
+            foreach (var g in rawFiles.Where(IsExgRaw).GroupBy(f => Path.GetDirectoryName(f) ?? "", StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    Report rep = CheckExg(g);
+                    if (rep.Files.Count == 0) continue;
+                    string outDir = Path.Combine(g.Key, rep.Folder);
                     Directory.CreateDirectory(outDir);
                     File.WriteAllText(Path.Combine(outDir, ReportName), Format(rep, g.Key), Encoding.UTF8);
                     result.Add((g.Key, rep));

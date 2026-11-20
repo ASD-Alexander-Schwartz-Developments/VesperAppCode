@@ -49,6 +49,7 @@ namespace VesperApp.Services
             long n = 0;
             int index = 0;
             int recordSize = DetectRecordSize(data);
+            int expected = 0;                           // where the next record should start
 
             while (index + FrameSize <= data.Length)
             {
@@ -58,6 +59,9 @@ namespace VesperApp.Services
                     continue;
                 }
 
+                // Records skipped since the last one (not samples: the firmware read out of step, backlog F3) still stand
+                // for a sample period each, so the rows after them keep their time.
+                if (index > expected) n += (index - expected) / recordSize;
                 byte s0 = data[index], s1 = data[index + 1];
                 var line = new EXG1292RecordLine
                 {
@@ -73,6 +77,7 @@ namespace VesperApp.Services
                 };
                 csv_lines.Add(line.ToString());
                 index += recordSize;
+                expected = index;
             }
         }
 
@@ -85,7 +90,7 @@ namespace VesperApp.Services
         private static bool FillerMatches(byte[] d, int i) =>
             i + RecordSize > d.Length || (d[i + 6] == d[i] && d[i + 7] == d[i + 1] && d[i + 8] == d[i + 2]);
 
-        private static bool IsFrameStart(byte[] d, int i) => (d[i] & 0xF0) == Header && (d[i + 1] & 0x1F) == 0;
+        internal static bool IsFrameStart(byte[] d, int i) => (d[i] & 0xF0) == Header && (d[i + 1] & 0x1F) == 0;
 
         /// <summary>
         /// 9 (1.22: frame + filler) or 6 (frame only). From the first frame start, frame starts are counted at a 9-byte
