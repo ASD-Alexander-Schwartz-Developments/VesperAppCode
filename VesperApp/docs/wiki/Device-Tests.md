@@ -49,7 +49,7 @@ Checks the add-on boards on the connector before a deployment: the unit looks fo
 |---|---|---|---|
 | Motion | IMU10 (LSM6DSM, LSM6DS3 or LSM6DSO), IMU10HT (ICM-20680) | ✓ | ✓ |
 | Temperature / humidity | TPRH31 (SHT31) | ✓ | ✓ |
-| Light | ALS3001D (OPT3001) | – (the KOL firmware has the test; VesperApp does not offer it yet) | ✓ |
+| Light | ALS3001D (OPT3001) | ✓ | ✓ |
 | Analog inputs | DAQ24 (ADS1115): the four input voltages | – | ✓ |
 | Biopotential | EEG4 (ADS1294/6/8), EXG2 (ADS1291/2), EEG2 / EMG2 / ECG2 (ADS1191/2) | – | ✓ |
 | Thermal camera | Lepton (VT03 or the older VT01 board): camera version, radiometric or not, sensor and housing °C — takes a few seconds to boot | – | ✓ |

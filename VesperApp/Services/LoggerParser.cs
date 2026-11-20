@@ -168,8 +168,8 @@ namespace VesperApp.Services
             return Codes.TryGetValue(code, out string? s) ? s : "unknown";
         }
 
-        // Watchdog supervisor clients (KOL kol_wdg.h KOL_WDG_*).
-        private static readonly string[] WdgClients = { "main loop", "audio recorder", "LOGGER", "IMU", "TPRH", "ALS" };
+        // Watchdog supervisor clients (KOL kol_wdg.h KOL_WDG_*, VesperU5 vesper_wdg.h; 6 = DAQ24, VesperU5 only).
+        private static readonly string[] WdgClients = { "main loop", "audio recorder", "LOGGER", "IMU", "TPRH", "ALS", "DAQ24" };
 
         // Bit = firmware driver type (SENSOR_Typedef), which differs per firmware family.
         private static readonly string[] KolSensors =

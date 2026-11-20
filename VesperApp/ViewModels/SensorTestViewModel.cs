@@ -69,9 +69,9 @@ namespace VesperApp.ViewModels
 
             Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_IMU, "Motion (IMU10 / IMU10HT)", "Keep the unit still"));
             Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_TPRH, "Temperature / humidity (TPRH31)", ""));
+            Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_ALS, "Light (ALS3001D)", ""));   // KOL 1.8 too (console 74)
             if (dev.DeviceType != DeviceTypes.Kol)
             {
-                Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_ALS, "Light (ALS3001D)", ""));
                 Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_DAQ, "Analog inputs (DAQ24)", ""));
                 Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_EEG, "Biopotential (EEG4 / EXG2 / EEG2-EMG2-ECG2)", ""));
                 Rows.Add(new SensorTestRow(MessageTypes.VESPER_TEST_LEPTON, "Thermal camera (Lepton)", "Takes a few seconds to boot"));

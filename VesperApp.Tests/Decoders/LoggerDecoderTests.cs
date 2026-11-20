@@ -177,6 +177,7 @@ public class LoggerDecoderTests
     [InlineData((ushort)0x0900, (byte)3, "Reset by the watchdog supervisor: main loop stalled")]
     [InlineData((ushort)0x0901, (byte)3, "Reset by the watchdog supervisor: audio recorder stalled")]
     [InlineData((ushort)0x0904, (byte)3, "Reset by the watchdog supervisor: TPRH stalled")]
+    [InlineData((ushort)0x0906, (byte)1, "Reset by the watchdog supervisor: DAQ24 stalled")]
     [InlineData((ushort)0x0907, (byte)3, "Reset by the watchdog supervisor: client 7 stalled")]
     [InlineData((ushort)0x090F, (byte)3, "Reset after a CPU fault (HardFault)")]
     // codes added after the first catalogue (Nanotag NAND, VesperU5 1.22)
