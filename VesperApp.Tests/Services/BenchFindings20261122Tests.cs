@@ -35,6 +35,35 @@ public class BenchFindings20261122Tests
     }
 
     [Fact]
+    public void Exg48_CorruptPair_KeepsTheGrid_DoesNotLockOntoChannelData()
+    {
+        // bench 5E.BIN (4 kSPS): record 5266 has the next frame's bytes, 5267 starts 00 40 02 fc c0 00 00 ...; CH1 is
+        // 0xFFCDxx in every record, so a byte search found 0xCD "status" bytes 4 bytes off for the rest of the file
+        var recs = new List<byte[]>();
+        for (int k = 0; k < 3000; k++)
+        {
+            var r = Rec(); r[3] = 0xFF; r[4] = 0xCD; r[5] = (byte)k; r[13] = 0x0C;
+            recs.Add(r);
+        }
+        byte[] bad1 = Rec(true);
+        var bad2 = new byte[EXG48Parser.RecordSize];
+        new byte[] { 0x00, 0x40, 0x02, 0xFC, 0xC0, 0x00, 0x00 }.CopyTo(bad2, 0);
+        recs[1000] = bad1; recs[1001] = bad2;
+        byte[] data = Raw.Concat(recs.ToArray());
+        var starts = EXG48Parser.FrameStarts(data, out var broken);
+        Assert.Equal(3000, starts.Count);
+        Assert.All(starts, i => Assert.Equal(0, i % EXG48Parser.RecordSize));
+        Assert.Equal(new[] { 1000 * EXG48Parser.RecordSize, 1001 * EXG48Parser.RecordSize }, broken.OrderBy(x => x).ToArray());
+        using var dir = new TempDir();
+        string f = dir.File("E2026_11_22_08_58_02_228-E2026_11_22_08_58_02_978.EBN");
+        using (var p = new EXG48Parser(f, data, T0, 0, 250.0))
+        {
+            Assert.Equal(4, p.Channels);
+            Assert.Equal(2, p.Shifted);
+        }
+    }
+
+    [Fact]
     public void Exg48_OneRecordOutOfStep_KeepsFourChannels_AndHasNoValues()
     {
         var recs = Enumerable.Range(0, 1000).Select(k => Rec(k == 500)).ToArray();

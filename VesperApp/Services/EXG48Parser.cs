@@ -56,8 +56,8 @@ namespace VesperApp.Services
             Filename = filename;
             double g = gain <= 0x07 ? EXGGainOptions.ToMultiplier((byte)gain) : 1.0;
 
-            List<int> starts = FrameStarts(data);
-            Channels = ChannelCount(data, starts);
+            List<int> starts = FrameStarts(data, out HashSet<int> broken);
+            Channels = ChannelCount(data, starts.Where(i => !broken.Contains(i)).ToList());
 
             csv_lines = new List<string> { HeaderText(Channels) };
             string sep = Utils.GetSeparator();
@@ -72,7 +72,7 @@ namespace VesperApp.Services
 
                 sb.Clear();
                 sb.Append(ts.ToShortDateString()).Append(sep).Append(ts.ToString("HH:mm:ss.FFF"));
-                if (IsShifted(data, i, Channels))
+                if (broken.Contains(i) || IsShifted(data, i, Channels))
                 {
                     // read out of step (bytes of the next frame in the absent channels): no values, the row keeps its time
                     for (int ch = 0; ch < Channels; ch++) sb.Append(sep).Append(sep).Append(sep);
@@ -103,15 +103,36 @@ namespace VesperApp.Services
         /// <summary>Record starts, 27 bytes apart. A record counts where it starts with 1100 and so does the next one (or
         /// the data ends): a 0xC_ byte inside channel data is common, so one alone does not set the step. Where that
         /// fails, the next such pair is searched byte by byte.</summary>
-        public static List<int> FrameStarts(byte[] d)
+        public static List<int> FrameStarts(byte[] d) => FrameStarts(d, out _);
+
+        /// <summary><see cref="FrameStarts(byte[])"/>, plus the records that break the 27-byte grid while the grid goes on
+        /// after them (<paramref name="broken"/>): they keep their place in time and get no values. Before 2026-11-22 the
+        /// search went byte by byte at once and could lock onto a 0xC_ byte inside the channel data (a slow CH1 of
+        /// 0xFFCDxx), 4 bytes off for 2,996 records of a 4 kSPS bench file after one corrupt pair.</summary>
+        public static List<int> FrameStarts(byte[] d, out HashSet<int> broken)
         {
+            const int Lookahead = 4;
             var list = new List<int>();
+            broken = new HashSet<int>();
             bool Ok(int i) => IsFrameStart(d, i) && (i + 2 * RecordSize > d.Length || IsFrameStart(d, i + RecordSize));
             int i = 0;
+            bool onGrid = false;
             while (i + RecordSize <= d.Length)
             {
-                if (Ok(i)) { list.Add(i); i += RecordSize; }
-                else i++;
+                if (Ok(i)) { list.Add(i); i += RecordSize; onGrid = true; continue; }
+                if (onGrid)
+                {
+                    int k = 1;
+                    while (k <= Lookahead && !Ok(i + k * RecordSize) && i + (k + 1) * RecordSize <= d.Length) k++;
+                    if (k <= Lookahead && Ok(i + k * RecordSize))
+                    {
+                        for (int q = 0; q < k; q++) { list.Add(i + q * RecordSize); broken.Add(i + q * RecordSize); }
+                        i += k * RecordSize;
+                        continue;
+                    }
+                    onGrid = false;
+                }
+                i++;
             }
             return list;
         }
