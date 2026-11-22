@@ -22,6 +22,22 @@ namespace VesperApp.Services
 
         public sealed record Result(double RateHz, double Ppm, int Points, double SpanS, double MaxDeviationMs);
 
+        /// <summary>The microphone filter clock (4.8 MHz, MSIK / 10) divided by a whole number.</summary>
+        public const double MdfClockHz = 4_800_000.0;
+
+        /// <summary>The divider-true rate behind a header rate. The header holds a whole number of Hz: for rates the
+        /// 4.8 MHz clock only approximates it is rounded (11,025 -> 4.8 MHz / 435 = 11,034.48 Hz, header 11,034), and a
+        /// ppm against it carries the rounding (+43.5 ppm there; bench 2026-11-22). Rates that are not 4.8 MHz / n
+        /// within 1 Hz are returned as they are.</summary>
+        public static double TrueRate(uint headerHz)
+        {
+            if (headerHz == 0) return 0;
+            double n = Math.Round(MdfClockHz / headerHz);
+            if (n < 1) return headerHz;
+            double exact = MdfClockHz / n;
+            return Math.Abs(exact - headerHz) < 1.0 ? exact : headerHz;
+        }
+
         /// <summary>Least-squares rate through the SYNC points (sample number in the output file, stamp time), or
         /// null when there are too few points or they span less than <see cref="MinSpanS"/>.</summary>
         public static Result? Fit(IReadOnlyList<(long Sample, DateTime Time)> points, uint nominalHz)
@@ -49,7 +65,7 @@ namespace VesperApp.Services
                 maxDev = Math.Max(maxDev, Math.Abs(t - (a + b * n)));
             }
             double rate = 1.0 / b;
-            return new Result(rate, (rate / nominalHz - 1.0) * 1e6, k, spanS, maxDev * 1000.0);
+            return new Result(rate, (rate / TrueRate(nominalHz) - 1.0) * 1e6, k, spanS, maxDev * 1000.0);
         }
 
         /// <summary>The metadata lines (no trailing blank line): MeasuredRate, ClockPpm and ClockFit, with a note when

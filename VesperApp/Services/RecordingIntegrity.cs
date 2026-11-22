@@ -229,6 +229,7 @@ namespace VesperApp.Services
 
             // Sample-clock offset in ~10 s windows (stall intervals excluded by measuring between clean points).
             var w = new List<(double at, double ppm)>();
+            double trueRate = SampleClockFit.TrueRate((uint)rate);   // the header rate is rounded for approximate rates
             int a = 0;
             for (int k = 1; k < pts.Count; k++)
             {
@@ -242,7 +243,7 @@ namespace VesperApp.Services
                     double s = (pts[q].N - pts[q - 1].N) / (double)rate, t = pts[q].T - pts[q - 1].T;
                     if (s > 0.05 && (s * 0.99 - t) * 1000 > StallMs) { stalled = true; break; }
                 }
-                if (!stalled && dt > 0) w.Add((pts[a].N / (double)rate, (ds / dt - 1) * 1e6));
+                if (!stalled && dt > 0) w.Add((pts[a].N / (double)rate, (ds * rate / trueRate / dt - 1) * 1e6));
                 a = k;
             }
             fr.WindowPpm = w.Select(x => x.ppm).ToList();
@@ -291,10 +292,13 @@ namespace VesperApp.Services
             rep.Findings = rep.Findings.OrderBy(f => order.TryGetValue(f.File, out int k) ? k : int.MaxValue).ThenBy(f => f.AtS).ToList();
         }
 
-        private static List<Block> FindBlocks(byte[] b)
+        /// <param name="step">2 for audio (16-bit samples keep the blocks on even offsets); 1 for ExG, whose odd record
+        /// sizes (27 bytes EXG48) put a FOOTER on an odd offset in about half the files (bench 2026-11-22: those files
+        /// were left out of the check).</param>
+        private static List<Block> FindBlocks(byte[] b, int step = 2)
         {
             var list = new List<Block>();
-            for (int o = 0; o + BlockLen <= b.Length; o += 2)
+            for (int o = 0; o + BlockLen <= b.Length; o += step)
             {
                 uint m = BitConverter.ToUInt32(b, o);
                 if (m != MagHeader && m != MagFooter && m != MagSync && m != MagGap) continue;
@@ -303,7 +307,7 @@ namespace VesperApp.Services
                 ushort reason = m == MagGap && o + 18 <= b.Length ? BitConverter.ToUInt16(b, o + 16) : (ushort)0;
                 uint nodeSamples = m == MagGap && o + 24 <= b.Length ? BitConverter.ToUInt32(b, o + 20) : 0;
                 list.Add(new Block(o, m, t, reason, nodeSamples));
-                o += (m == MagGap ? GapLen : BlockLen) - 2;
+                o += (m == MagGap ? GapLen : BlockLen) - step;
             }
             return list;
         }
@@ -349,7 +353,7 @@ namespace VesperApp.Services
                 : ExgRate.Exg48SamplesPerSecond(hdr.SamplingRate, ExgRate.Exg48HighResolution(hdr.Configuration0));
             if (rate <= 0) return;
 
-            List<Block> blocks = FindBlocks(b);
+            List<Block> blocks = FindBlocks(b, 1);
             int i = 0;
             while (i < blocks.Count)
             {

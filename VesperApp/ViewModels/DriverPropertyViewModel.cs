@@ -100,7 +100,7 @@ namespace VesperApp.ViewModels
             // Resolve, once, how this property is edited and (if applicable) the
             // set of choices to offer. Driven by the declared property type so it
             // stays stable regardless of the current value.
-            _options = FindOptions(_type);
+            _options = (o as VesperApp.Models.IPropertyOptions)?.OptionsFor(property.Name) ?? FindOptions(_type);
             _editorKind = ResolveEditorKind(_type, _options);
 
             Solvable = property.GetCustomAttribute<VesperApp.Models.MicSolverAttribute>(true) != null

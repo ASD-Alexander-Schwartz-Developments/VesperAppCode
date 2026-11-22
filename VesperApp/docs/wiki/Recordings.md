@@ -75,7 +75,7 @@ Several jobs can run and be monitored at once; you can keep working in other tab
 
 The table at the end gives every file's recorded samples per second. The ExG boards run on their own clock, accurate to about ±0.5 % at room temperature and ±2 % over 0–70 °C, so a recorded rate within that is normal and is not reported.
 
-**EXG48 CSV.** One row per sample: date, time, then for each channel its value in µV and two lead-off columns, `CHn+ off` and `CHn- off` (`True` = that electrode is off). A lead-off column is empty when lead-off detection was not enabled for that input in the configuration. The CSV holds the channels the board has: 4 (EXG48 with ADS1294), 6 or 8. Channels that read zero for the whole file at the end of the list are left out.
+**EXG48 CSV.** One row per sample: date, time, then for each channel its value in µV and two lead-off columns, `CHn+ off` and `CHn- off` (`True` = that electrode is off). A lead-off column is empty when lead-off detection was not enabled for that input in the configuration. The CSV holds the channels the board has: 4 (EXG48 with ADS1294), 6 or 8. Channels that read zero at the end of the list are left out. A sample the logger read out of step (bytes of the next sample in the channels the board does not have) gets a row with its time and no values.
 
 **Post-filters** (optional, off by default; **Settings → Recordings → Audio post-filters**, see [Settings](Settings)). With one or both ticked, decoding writes an extra `<name>_EQ.UBN.WAV` next to each microphone WAV, with its own `.WAV.txt` saying what was applied. The original WAV is always kept.
 
@@ -105,7 +105,7 @@ The table at the end gives every file's recorded samples per second. The ExG boa
 |---|---|
 | `SampleRate` | The rate you set: the rate in the WAV header. Audio programs use it. |
 | `MeasuredRate` | Samples per real second, measured over this file (2 decimals). |
-| `ClockPpm` | The same as a difference from `SampleRate`, in ppm (millionths). +106.7 ppm means 106.7 samples more per million than the WAV says. |
+| `ClockPpm` | The same as a difference from `SampleRate`, in ppm (millionths). +106.7 ppm means 106.7 samples more per million than the WAV says. For the rates the unit only approximates (11.025 / 22.05 / 44.1 kHz, 250 / 256 / 384 kHz) `SampleRate` is rounded to whole Hz, and `ClockPpm` is taken against the exact rate behind it (for example 11,034.48 Hz for `SampleRate: 11034`). |
 | `ClockFit` | How many time stamps were used, over how long, and how far the furthest one sits from a straight line. A few ms is normal (the stamps are 1 ms steps). "uneven" means the clock changed inside the file (see below). |
 
 A file shorter than 10 seconds gets no `MeasuredRate`: too few stamps for a better answer. Use `SampleRate`; over 10 seconds the error stays under 4 ms.

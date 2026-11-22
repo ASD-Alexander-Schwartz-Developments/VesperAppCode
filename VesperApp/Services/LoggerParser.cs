@@ -165,6 +165,11 @@ namespace VesperApp.Services
                 int t = code & 0xFF;
                 return "Configured sensor not found: " + (t < names.Length ? names[t] : $"type {t}");
             }
+            if ((code & 0xFF00) == 0x0A00 && deviceType is 1 or 2)   // VesperU5 F5: REV_ID at boot, (REV_ID >> 12) << 4 | (REV_ID & 0x0F)
+            {
+                string rev = (code & 0xFF) switch { 0x21 => "X", 0x31 => "W", 0x37 => "U", _ => "unknown" };
+                return $"MCU silicon revision {rev} (REV_ID 0x{((code >> 4) & 0x0F) << 12 | (code & 0x0F):X4})";
+            }
             return Codes.TryGetValue(code, out string? s) ? s : "unknown";
         }
 

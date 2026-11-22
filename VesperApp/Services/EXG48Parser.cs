@@ -37,6 +37,9 @@ namespace VesperApp.Services
         /// <summary>Channels in the CSV (4, 6 or 8).</summary>
         public int Channels { get; }
 
+        /// <summary>Records read out of step (written as rows without values).</summary>
+        public int Shifted { get; }
+
         /// <summary>Records decoded (CSV rows).</summary>
         public int Rows => csv_lines == null ? 0 : csv_lines.Count - 1;
 
@@ -69,6 +72,14 @@ namespace VesperApp.Services
 
                 sb.Clear();
                 sb.Append(ts.ToShortDateString()).Append(sep).Append(ts.ToString("HH:mm:ss.FFF"));
+                if (IsShifted(data, i, Channels))
+                {
+                    // read out of step (bytes of the next frame in the absent channels): no values, the row keeps its time
+                    for (int ch = 0; ch < Channels; ch++) sb.Append(sep).Append(sep).Append(sep);
+                    csv_lines.Add(sb.ToString());
+                    Shifted++;
+                    continue;
+                }
                 for (int ch = 0; ch < Channels; ch++)
                 {
                     int raw = Utils.FromBytesS24bitMSB(data, i + 3 + 3 * ch);
@@ -105,17 +116,31 @@ namespace VesperApp.Services
             return list;
         }
 
-        /// <summary>8 when channel 7 or 8 reads non-zero in any record, else 6 when channel 5 or 6 does, else 4.</summary>
+        /// <summary>8 when channel 7 or 8 reads non-zero, else 6 when channel 5 or 6 does, else 4 - in more than 1 % of
+        /// the records. Absent and powered-down channels read 0 in every valid sample; a record read out of step carries
+        /// bytes of the next frame there (bench 2026-11-22: one such record per file made a 4-channel board's file 8
+        /// channels wide), so a few records must not decide it.</summary>
         public static int ChannelCount(byte[] d, IReadOnlyList<int> starts)
         {
-            bool any56 = false;
+            int n78 = 0, n56 = 0;
             foreach (int i in starts)
             {
-                for (int k = i + 3 + 3 * 6; k < i + RecordSize; k++) if (d[k] != 0) return 8;
-                if (!any56) for (int k = i + 3 + 3 * 4; k < i + 3 + 3 * 6; k++) if (d[k] != 0) { any56 = true; break; }
+                if (AnyNonZero(d, i + 3 + 3 * 6, i + RecordSize)) n78++;
+                if (AnyNonZero(d, i + 3 + 3 * 4, i + 3 + 3 * 6)) n56++;
             }
-            return any56 ? 6 : 4;
+            int limit = starts.Count / 100;
+            return n78 > limit ? 8 : n56 > limit ? 6 : 4;
         }
+
+        private static bool AnyNonZero(byte[] d, int from, int to)
+        {
+            for (int k = from; k < to; k++) if (d[k] != 0) return true;
+            return false;
+        }
+
+        /// <summary>A record with non-zero bytes in the channels the file does not have was read out of step.</summary>
+        public static bool IsShifted(byte[] d, int i, int channels) =>
+            channels < 8 && AnyNonZero(d, i + 3 + 3 * channels, i + RecordSize);
 
         public static string HeaderText(int channels)
         {

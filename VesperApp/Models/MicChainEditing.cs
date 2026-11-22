@@ -29,6 +29,13 @@ namespace VesperApp.Models
     }
 
     /// <summary>A driver whose grid rows depend on its own settings (e.g. trigger rows only in sound-triggered mode).</summary>
+    /// <summary>A driver whose option list for a row depends on its own settings (e.g. EXG48 rates per mode).
+    /// The grid uses it before the option type's static list.</summary>
+    public interface IPropertyOptions
+    {
+        System.Collections.IEnumerable? OptionsFor(string propertyName);
+    }
+
     public interface IDynamicBrowsable
     {
         bool IsPropertyVisible(string propertyName);

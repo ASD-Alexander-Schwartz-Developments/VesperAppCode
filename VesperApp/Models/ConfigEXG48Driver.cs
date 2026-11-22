@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.ComponentModel;
@@ -6,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace VesperApp.Models
 {
-    public class ConfigEXG48Driver : ConfigurationDeviceDriver, IJsonOnDeserialized
+    public class ConfigEXG48Driver : ConfigurationDeviceDriver, IJsonOnDeserialized, IPropertyOptions, IDynamicBrowsable
     {
         public const UInt32 BITMASK_LED = 0x02;
 
@@ -1030,8 +1031,17 @@ namespace VesperApp.Models
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(SampleRate_1));
                 OnPropertyChanged(nameof(SampleRate_2));
+                if (was != value) LayoutChanged?.Invoke(this, EventArgs.Empty);   // the rate list depends on the mode
             }
         }
+
+        /// <summary>The rate rows offer the rates of the current mode (250 SPS only in low power).</summary>
+        public System.Collections.IEnumerable? OptionsFor(string propertyName) =>
+            propertyName is nameof(SampleRate_1) or nameof(SampleRate_2) ? EXGSampleRateOptions.ListFor(EnableHR) : null;
+
+        public bool IsPropertyVisible(string propertyName) => true;
+
+        public event EventHandler? LayoutChanged;
 
         [DisplayName("Enable int test"),
         TypeConverter(typeof(bool)),
@@ -1613,6 +1623,11 @@ namespace VesperApp.Models
         };
 
         public static EXGSampleRateOptions[] ListOfOptions => listOfOptions;
+
+        /// <summary>The rates offered in a mode: high resolution goes down to 500 SPS (32 kSPS / 2^6), low power to
+        /// 250 SPS (16 kSPS / 2^6). Bench 2026-11-22: the shared list offered 250 SPS in high resolution, written as 500.</summary>
+        public static EXGSampleRateOptions[] ListFor(bool highResolution) =>
+            highResolution ? listOfOptions.Where(o => o.Value == 0 || o.Value >= 500).ToArray() : listOfOptions;
 
         /// <summary>The top offered rate (samples per second).</summary>
         public const uint MaxSps = 4000;
