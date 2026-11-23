@@ -151,7 +151,7 @@ public class BinaryParserTests
     [Theory]
     [InlineData("a.HBN", true)]
     [InlineData("a.mbn", true)]
-    [InlineData("a.SBN", false)]
+    [InlineData("a.SBN", true)]     // DAQ24 (V12)
     [InlineData("a.csv", false)]
     public void IsDecodableIntermediate_ByExtension(string name, bool expected)
         => Assert.Equal(expected, RecordingPipeline.IsDecodableIntermediate(name));

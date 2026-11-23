@@ -57,8 +57,9 @@ namespace VesperApp.Services
     /// </summary>
     public static class RecordingPipeline
     {
-        // Intermediate extensions we know how to decode (others, e.g. .SBN/.OBN, are left as parsed bins).
-        private static readonly string[] DecodableExts = { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN", ".HBN", ".XBN" };
+        // Intermediate extensions we know how to decode (others, e.g. .OBN, are left as parsed bins).
+        // .SBN (DAQ24) was missing, so Auto Decode never wrote its CSV (bench 2026-11-23, VesperApp V12).
+        private static readonly string[] DecodableExts = { ".UBN", ".MBN", ".ABN", ".LBN", ".RBN", ".EBN", ".CBN", ".HBN", ".XBN", ".SBN" };
 
         public static async Task<DecodeSummary> AutoDecodeAsync(IReadOnlyList<string> rawFiles, IProgress<int>? progress = null)
         {
