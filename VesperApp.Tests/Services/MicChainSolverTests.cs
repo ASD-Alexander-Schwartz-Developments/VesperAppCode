@@ -90,9 +90,21 @@ public class MicChainSolverTests
     [Theory]
     [InlineData(0u, 0u)]
     [InlineData(45000u, 44100u)]
+    [InlineData(10000u, 10000u)]          // 4.8 MHz / 480 exact (user 2026-11-23); was moved to 11.025 kHz
+    [InlineData(10500u, 10000u)]
     [InlineData(195000u, 192000u)]
     [InlineData(1000000u, 400000u)]
     public void NearestListed(uint fs, uint expected) => Assert.Equal(expected, MicChainSolver.NearestListed(fs));
+
+    [Fact]
+    public void TenKilohertz_IsExactWithTheReshapeFilter()
+    {
+        var c = MicChainSolver.Solve(10000, 0)!;
+        Assert.False(c.Inexact);
+        Assert.Equal(480, c.Total);
+        Assert.True(c.Reshape);
+        Assert.Equal(120, c.Cic);
+    }
 
     [Theory]
     [InlineData(200000u, 4)]              // ultrasonic: highest cut-off <= 2 kHz (0.0095 * 200 kHz = 1.9 kHz)

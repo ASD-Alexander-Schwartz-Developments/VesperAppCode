@@ -41,7 +41,7 @@ namespace VesperApp.Services
         /// rates the 4.8 MHz clock only approximates (44.1 kHz family, 250 / 256 / 384 kHz). The MDF bottom is 4.8 MHz / 2048.</summary>
         public static readonly uint[] CommonRates =
         {
-            0, 4000, 8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000,
+            0, 4000, 8000, 10000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000,
             96000, 100000, 120000, 150000, 192000, 200000, 240000, 250000, 256000, 300000, 384000, 400000,
         };
 
